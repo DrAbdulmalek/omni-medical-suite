@@ -1,0 +1,120 @@
+# ============================================================================
+# OmniMedical Suite — Unified Docker Configuration
+# ============================================================================
+
+version: "3.9"
+
+services:
+  # --- Web Application (Next.js) ---
+  web:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.web
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/data/omni-medical.db
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-in-production}
+    volumes:
+      - web-data:/app/data
+      - uploads:/app/uploads
+    depends_on:
+      - api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # --- Python API Service (FastAPI) ---
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - OCR_ENGINE_ORDER=mixed_engine,tesseract,mistral,easyocr
+      - NLP_STAGES=preprocessing,correction,entity_extraction,enrichment
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+    volumes:
+      - uploads:/app/uploads
+      - encrypted:/app/encrypted
+      - model-data:/app/model
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # --- Redis (Cache + Message Broker) ---
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Celery OCR Worker ---
+  ocr-worker:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.api
+    command: celery -A services.api worker -l info -c 4 --queue ocr
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - OCR_ENGINE_ORDER=mixed_engine,tesseract,easyocr
+    volumes:
+      - uploads:/app/uploads
+      - model-data:/app/model
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # --- Monitoring: Prometheus ---
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../infrastructure/monitoring/prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+    restart: unless-stopped
+
+  # --- Monitoring: Grafana ---
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../../infrastructure/monitoring/grafana:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  web-data:
+  uploads:
+  encrypted:
+  model-data:
+  redis-data:
+  grafana-data:

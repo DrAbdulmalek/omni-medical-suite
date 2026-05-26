@@ -1,0 +1,222 @@
+// ============================================================================
+// OmniMedical Suite — Unified Prisma Schema
+// Merged from: medical-doc-processor (v3.2) + OmniFile_Processor (v5.0)
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// User Management (from medical-doc-processor with NextAuth)
+// ============================================================================
+
+model User {
+  id              String    @id @default(cuid())
+  username        String    @unique
+  password        String    // hashed with bcrypt
+  role            String    @default("user") // admin, editor, viewer
+  email           String?   @unique
+  failedAttempts  Int       @default(0)
+  lockedUntil     DateTime?
+  lastLogin       DateTime?
+  lastActivity    DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  processingLogs  ProcessingLog[]
+  trainingRecords TrainingRecord[]
+  auditLogs       AuditLog[]
+}
+
+// ============================================================================
+// Image Processing (from medical-doc-processor)
+// ============================================================================
+
+model ProcessedImage {
+  id            String   @id @default(uuid())
+  fileName      String
+  originalName  String
+  width         Int      @default(0)
+  height        Int      @default(0)
+  cropLeft      Int      @default(0)
+  cropTop       Int      @default(0)
+  cropRight     Int      @default(0)
+  cropBottom    Int      @default(0)
+  deskewAngle   Float    @default(0)
+  blurBefore    Float    @default(0)
+  blurAfter     Float    @default(0)
+  status        String   @default("pending") // pending, processing, completed, failed
+  confidence    Float    @default(0)
+  operations    String   @default("[]") // JSON array
+  pageNumber    String   @default("")
+  shadowRemoved Boolean  @default(false)
+  ocrEngine     String   @default("") // mixed_engine, tesseract, mistral, easyocr
+  fileHash      String   @default("") // SHA-256 for deduplication
+  encryptedPath String   @default("") // AES-256-GCM encrypted file path
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  processingLogs ProcessingLog[]
+  ocrResults      OCRResult[]
+  extractedEntities ExtractedEntity[]
+}
+
+// ============================================================================
+// OCR Results (unified — supports all engines)
+// ============================================================================
+
+model OCRResult {
+  id              String         @id @default(uuid())
+  imageId         String?
+  processedImage  ProcessedImage? @relation(fields: [imageId], references: [id])
+  engine          String         // mixed_engine, tesseract, mistral, easyocr, surya, trocr
+  rawText         String         @default("")
+  correctedText   String         @default("")
+  confidence      Float          @default(0)
+  wordCount       Int            @default(0)
+  language        String         @default("ar") // ar, en, mixed
+  processingTime  Float          @default(0) // milliseconds
+  metadata        String         @default("{}") // JSON: per-word results, regions, etc.
+  isVerified      Boolean        @default(false)
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+// ============================================================================
+// Entity Extraction (from OmniFile NLP pipeline)
+// ============================================================================
+
+model ExtractedEntity {
+  id              String         @id @default(uuid())
+  imageId         String?
+  processedImage  ProcessedImage? @relation(fields: [imageId], references: [id])
+  ocrResultId     String?
+  entityType      String         // PERSON, ORGANIZATION, DATE, MEDICAL_TERM, PII, etc.
+  entityValue     String
+  startPosition   Int            @default(0)
+  endPosition     Int            @default(0)
+  confidence      Float          @default(0)
+  isPII           Boolean        @default(false)
+  piiType         String?        // CREDIT_CARD, EMAIL, PHONE, SSN, etc.
+  riskLevel       String         @default("low") // low, medium, high, critical
+  maskedValue     String         @default("")
+  createdAt       DateTime       @default(now())
+}
+
+// ============================================================================
+// Processing Logs (from medical-doc-processor)
+// ============================================================================
+
+model ProcessingLog {
+  id        String         @id @default(uuid())
+  imageId   String?
+  image     ProcessedImage? @relation(fields: [imageId], references: [id])
+  imageName String
+  action    String         // preprocess, ocr, correct, extract, export
+  details   String         @default("")
+  quality   Int            @default(0) // 0-100
+  duration  Float          @default(0) // milliseconds
+  userId    String?
+  user      User?          @relation(fields: [userId], references: [id])
+  timestamp DateTime       @default(now())
+}
+
+// ============================================================================
+// Training (unified — KNN + Active Learning + TrOCR)
+// ============================================================================
+
+model TrainingRecord {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  imageName     String
+  features      String   // JSON: 30-dimensional feature vector
+  initialParams String   @default("{}")
+  finalParams   String   @default("{}")
+  operations    String   // JSON array
+  quality       String   @default("")
+  confidence    Float    @default(0)
+  algorithm     String   @default("knn") // knn, active_learning, trocr, mixed
+  datasetSize   Int      @default(0)
+  metrics       String   @default("{}") // JSON: accuracy, precision, recall, f1
+  createdAt     DateTime @default(now())
+}
+
+model TrainingWord {
+  id             String   @id @default(uuid())
+  sourcePdf      String   @default("")
+  sourcePage     Int      @default(0)
+  wordIndex      Int      @default(0)
+  lineIndex      Int      @default(0)
+  originalText   String   @default("")
+  correctedText  String   @default("")
+  confidence     Float    @default(0)
+  imagePath      String   @default("")
+  status         String   @default("pending") // pending, approved, rejected
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ============================================================================
+// Correction Patterns (from OmniFile learning module)
+// ============================================================================
+
+model Pattern {
+  id          String   @id @default(uuid())
+  original    String
+  corrected   String
+  language    String   @default("ar")
+  usageCount  Int      @default(1)
+  confidence  Float    @default(0)
+  source      String   @default("") // user, auto, training
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================================================
+// Audit Log (from OmniFile audit module)
+// ============================================================================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // login, logout, process, export, delete, settings_change
+  resource  String   @default("")
+  details   String   @default("")
+  ipAddress String   @default("")
+  userAgent String   @default("")
+  severity  String   @default("info") // info, warning, error, critical
+  createdAt DateTime @default(now())
+}
+
+// ============================================================================
+// App Settings (from medical-doc-processor)
+// ============================================================================
+
+model AppSettings {
+  id             String  @id @default("main")
+  pageThreshold  Int     @default(200)
+  grayThreshold  Int     @default(230)
+  autoSave       Boolean @default(true)
+  autoDeskew     Boolean @default(true)
+  autoCrop       Boolean @default(true)
+  padding        Int     @default(10)
+  minConfidence  Float   @default(0.85)
+  ocrEngineOrder String  @default("mixed_engine,tesseract,mistral,easyocr")
+  encryptionKey  String  @default("")
+  enablePII      Boolean @default(true)
+  enableAudit    Boolean @default(true)
+  maxFileMB      Int     @default(50)
+  language       String  @default("ar") // ar, en, auto
+}

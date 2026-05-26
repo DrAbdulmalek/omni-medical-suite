@@ -1,0 +1,34 @@
+{
+  "name": "omni-medical-suite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OmniMedical Suite — Unified Medical Document Processing Platform (medical-doc-processor + OmniFile_Processor)",
+  "license": "MIT",
+  "author": "DrAbdulmalek",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "db:generate": "cd apps/web && npx prisma generate",
+    "db:push": "cd apps/web && npx prisma db push",
+    "db:migrate": "cd apps/web && npx prisma migrate dev",
+    "db:seed": "cd apps/web && npx prisma db seed",
+    "setup": "bash scripts/setup.sh",
+    "docker:build": "docker compose -f infrastructure/docker/docker-compose.yml build",
+    "docker:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infrastructure/docker/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "npm@10.9.0",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
