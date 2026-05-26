@@ -1,0 +1,437 @@
+# ============================================================================
+# OmniMedical Suite v2.0 — Development Docker Compose
+# ============================================================================
+#
+# Usage:
+#   # Start core services (API + Postgres + Redis + Qdrant)
+#   docker compose -f docker-compose.dev.yml up -d
+#
+#   # Add monitoring (Prometheus + Grafana)
+#   docker compose -f docker-compose.dev.yml --profile monitoring up -d
+#
+#   # Add database tools (MailHog + pgAdmin + Redis Commander)
+#   docker compose -f docker-compose.dev.yml --profile db-tools up -d
+#
+#   # Start everything at once
+#   docker compose -f docker-compose.dev.yml --profile monitoring --profile db-tools up -d
+#
+#   # Live-reload API (mount source, watch for changes)
+#   docker compose -f docker-compose.dev.yml up --build omnimedical-api
+#
+#   # Tear everything down (volumes preserved)
+#   docker compose -f docker-compose.dev.yml --profile monitoring --profile db-tools down
+#
+#   # Nuclear option — destroy volumes too
+#   docker compose -f docker-compose.dev.yml --profile monitoring --profile db-tools down -v
+#
+# Environment:
+#   Copy .env.example to .env and fill in secrets before starting.
+#   All ${VAR} references resolve from the .env file or host environment.
+#
+# ============================================================================
+
+services:
+
+  # ===========================================================================
+  # 🐍 omnimedical-api (Development)
+  # --------------------------------------------------------------------------
+  # FastAPI + Gradio with hot-reload, debug logging, and live source mounts.
+  # Exposes:
+  #   - http://localhost:8000  FastAPI REST API + /docs (Swagger)
+  #   - http://localhost:7860  Gradio interactive UI
+  # ===========================================================================
+  omnimedical-api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+      target: production
+    container_name: omnimedical-api-dev
+    ports:
+      - "8000:8000"        # FastAPI REST + Swagger docs
+      - "7860:7860"        # Gradio UI
+    environment:
+      # ── Application mode ──────────────────────────────────────────────
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - WORKERS=1                  # Single worker for easier debugging
+      - RELOAD=true                # Enable uvicorn hot-reload
+
+      # ── Database ──────────────────────────────────────────────────────
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-omnimedical}
+
+      # ── Redis ─────────────────────────────────────────────────────────
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+
+      # ── Qdrant ────────────────────────────────────────────────────────
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+
+      # ── Auth / CORS ───────────────────────────────────────────────────
+      - API_KEY=${API_KEY:-dev-api-key-change-me}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000,http://localhost:7860
+
+      # ── OCR ───────────────────────────────────────────────────────────
+      - OCR_ENGINE_PRIORITY=tesseract,easyocr,paddleocr,trocr,surya
+      - OCR_CONFIDENCE_THRESHOLD=0.5   # Lower threshold for dev debugging
+
+      # ── LLM providers (optional — set in .env) ─────────────────────────
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+
+      # ── Storage paths ─────────────────────────────────────────────────
+      - CORRECTION_DB_PATH=/data/corrections_v2.db
+      - MODEL_CACHE=/models
+
+      # ── Prometheus metrics ────────────────────────────────────────────
+      - PROMETHEUS_PORT=9090
+
+      # ── Email (routed to MailHog in dev) ──────────────────────────────
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - SMTP_USER=
+      - SMTP_PASSWORD=
+      - SMTP_FROM=noreply@omnimedical.dev
+    volumes:
+      # Live-reload: mount source so uvicorn --reload picks up changes
+      - ./services/api/app:/app/app:rw
+      - ./services/api/tests:/app/tests:rw
+      - ./data:/app/data:ro               # Correction dicts, medical dicts
+      - ./model:/app/model:ro              # Trained models
+      - ./prisma:/app/prisma:ro            # Prisma schema
+      - ./packages:/app/packages:rw        # Shared Python packages
+      - api_dev_data:/data                 # Persisted correction DB
+      - model_cache:/models                # Cached model downloads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    networks:
+      - omnimedical-dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # 🐘 PostgreSQL 16
+  # --------------------------------------------------------------------------
+  # Primary relational database. Auto-initialises schema from init.sql on
+  # first run (only when the data volume is empty).
+  # Exposes:
+  #   - localhost:5432   (host: postgres / omnimedical)
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: omnimedical-postgres-dev
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-omnimedical}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - omnimedical-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-omnimedical}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # ⚡ Redis 7
+  # --------------------------------------------------------------------------
+  # Cache, session store, and Celery message broker with AOF persistence
+  # and LRU eviction so dev data survives container restarts.
+  # Exposes:
+  #   - localhost:6379
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: omnimedical-redis-dev
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+        --appendonly yes
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --loglevel warning
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - omnimedical-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # 🟡 Qdrant v1.8 — Vector Database
+  # --------------------------------------------------------------------------
+  # Stores document embeddings for semantic search / dedup.
+  # Exposes:
+  #   - localhost:6333  HTTP API + /healthz
+  #   - localhost:6334  gRPC
+  # ===========================================================================
+  qdrant:
+    image: qdrant/qdrant:v1.8.0
+    container_name: omnimedical-qdrant-dev
+    ports:
+      - "6333:6333"        # HTTP API
+      - "6334:6334"        # gRPC
+    volumes:
+      - qdrant_dev_data:/qdrant/storage
+      - ./config/qdrant.yaml:/qdrant/config/production.yaml:ro
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+      QDRANT__SERVICE__MAX_REQUEST_SIZE_MB: 32
+      QDRANT__STORAGE__STORAGE_PATH: /qdrant/storage
+      QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"
+    networks:
+      - omnimedical-dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # 📊 Prometheus — Metrics Collection                [--profile monitoring]
+  # --------------------------------------------------------------------------
+  # Scrapes metrics from the API, Qdrant, and self.
+  # Start with:  --profile monitoring
+  # Exposes:
+  #   - localhost:9090   Web UI
+  # ===========================================================================
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: omnimedical-prometheus-dev
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_dev_data:/prometheus
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus-rules.yml:/etc/prometheus/rules.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"        # Shorter retention for dev
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    networks:
+      - omnimedical-dev
+    depends_on:
+      omnimedical-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # 📈 Grafana — Dashboards & Visualisation          [--profile monitoring]
+  # --------------------------------------------------------------------------
+  # Auto-provisioned with Prometheus datasource and OCR dashboard.
+  # Start with:  --profile monitoring
+  # Exposes:
+  #   - localhost:3000   (admin / ${GRAFANA_PASSWORD:-admin})
+  # ===========================================================================
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: omnimedical-grafana-dev
+    profiles: ["monitoring"]
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_LOG_LEVEL=warn
+      # Anonymous access for quick dev access (disable in prod)
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - grafana_dev_data:/var/lib/grafana
+      # Auto-provision datasources and dashboards
+      - ./infrastructure/monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./infrastructure/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana-dashboards:/etc/grafana/provisioning/dashboards/config:ro
+    networks:
+      - omnimedical-dev
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # 📬 MailHog — Dev Email Capture                   [--profile db-tools]
+  # --------------------------------------------------------------------------
+  # Catches all outgoing SMTP email so nothing leaks during development.
+  # Configure SMTP_HOST=mailhog SMTP_PORT=1025 in the API service.
+  # Start with:  --profile db-tools
+  # Exposes:
+  #   - localhost:1025  SMTP server (where apps send mail)
+  #   - localhost:8025  Web UI (browse captured emails)
+  # ===========================================================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: omnimedical-mailhog-dev
+    profiles: ["db-tools"]
+    ports:
+      - "1025:1025"        # SMTP
+      - "8025:8025"        # Web UI
+    environment:
+      - MH_STORAGE=memory    # In-memory for dev; emails lost on restart
+    networks:
+      - omnimedical-dev
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8025/api/v2/messages"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # 🔧 pgAdmin — PostgreSQL Management                [--profile db-tools]
+  # --------------------------------------------------------------------------
+  # Full-featured PostgreSQL admin UI. Connect using:
+  #   Host: postgres  |  Port: 5432
+  #   Username: ${POSTGRES_USER:-postgres}  |  Password: ${POSTGRES_PASSWORD:-postgres}
+  #   (Login to pgAdmin: ${PGADMIN_EMAIL:-admin@omnimedical.dev} / ${PGADMIN_PASSWORD:-admin})
+  # Start with:  --profile db-tools
+  # Exposes:
+  #   - localhost:5050
+  # ===========================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: omnimedical-pgadmin-dev
+    profiles: ["db-tools"]
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@omnimedical.dev}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_LISTEN_PORT=80
+      # Pre-register the dev Postgres server so it appears on first login
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    volumes:
+      - pgadmin_dev_data:/var/lib/pgadmin
+      # Pre-seed server connection (auto-registered on first boot)
+      - ./config/pgadmin-servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - omnimedical-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/misc/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # 🗂️ Redis Commander — Redis Browser                  [--profile db-tools]
+  # --------------------------------------------------------------------------
+  # Web UI for inspecting Redis keys, values, and pub/sub channels.
+  # Start with:  --profile db-tools
+  # Exposes:
+  #   - localhost:8081   (no auth required in dev)
+  # ===========================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: omnimedical-redis-commander-dev
+    profiles: ["db-tools"]
+    ports:
+      - "8081:8081"
+    environment:
+      # Connect to the dev Redis instance (hostname = service name)
+      - REDIS_HOSTS=dev:redis:6379
+      - HTTP_USER=${REDIS_COMMANDER_USER:-}
+      - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-}
+    networks:
+      - omnimedical-dev
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  omnimedical-dev:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+
+# =============================================================================
+# Named Volumes — persisted across docker compose down (removed with -v)
+# =============================================================================
+volumes:
+  # Core services
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  qdrant_dev_data:
+    driver: local
+  # API
+  api_dev_data:
+    driver: local
+  model_cache:
+    driver: local
+  # Monitoring
+  prometheus_dev_data:
+    driver: local
+  grafana_dev_data:
+    driver: local
+  # DB tools
+  pgadmin_dev_data:
+    driver: local

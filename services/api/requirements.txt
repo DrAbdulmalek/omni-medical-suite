@@ -30,6 +30,19 @@ PyJWT>=2.8.0
 # System monitoring
 psutil>=5.9.0
 
+# Observability
+prometheus-client>=0.19.0
+
+# Async tasks
+celery>=5.3.0
+
+# UI
+gradio>=4.0.0
+
+# Vector DB
+qdrant-client>=1.7.0
+hdbscan>=0.8.0
+
 # HTTP client (for LLM APIs)
 httpx>=0.25.0
 

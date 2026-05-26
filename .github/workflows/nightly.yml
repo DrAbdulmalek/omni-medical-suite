@@ -1,0 +1,962 @@
+# =============================================================================
+# OmniMedical Suite - Nightly Workflow
+# Runs at 2:00 AM UTC daily: full test suite, perf regression, security, deps
+# =============================================================================
+
+name: Nightly Suite
+
+on:
+  schedule:
+    - cron: "0 2 * * *"  # 2:00 AM UTC every day
+  workflow_dispatch:       # Allow manual trigger
+    inputs:
+      run_all:
+        description: "Force run all jobs (even if no new commits)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+  COVERAGE_THRESHOLD: 80
+
+jobs:
+  # ===========================================================================
+  # Job 1: Full test suite (unit + integration + e2e) with coverage
+  # ===========================================================================
+  full-test-suite:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    outputs:
+      coverage-pct: ${{ steps.coverage.outputs.pct }}
+      tests-passed: ${{ steps.results.outputs.passed }}
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: omnimedical_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U testuser"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for coverage diff
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/web/package.json
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r services/api/requirements.txt
+          pip install -r packages/core/requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-timeout \
+                      pytest-xdist httpx factory-boy faker
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run Unit Tests with Coverage
+        env:
+          DATABASE_URL: "postgresql://testuser:testpass@localhost:5432/omnimedical_test"
+          REDIS_URL: "redis://localhost:6379"
+          TEST_ENV: "ci"
+        run: |
+          pytest tests/ \
+            services/api/tests/ \
+            packages/core/test_core.py \
+            --cov=packages \
+            --cov=services \
+            --cov-report=xml:coverage-unit.xml \
+            --cov-report=term-missing \
+            --cov-report=html:coverage-unit-html \
+            -v --tb=short \
+            -m "not e2e and not integration" \
+            --timeout=60 \
+            -n auto \
+            --junitxml=results-unit.xml \
+            -q
+
+      - name: Run Integration Tests
+        env:
+          DATABASE_URL: "postgresql://testuser:testpass@localhost:5432/omnimedical_test"
+          REDIS_URL: "redis://localhost:6379"
+          TEST_ENV: "ci"
+          OPENAI_API_KEY: "sk-test-nightly-key"
+        run: |
+          pytest tests/test_integration.py \
+            tests/test_integration_full.py \
+            tests/test_pipeline.py \
+            --cov=packages \
+            --cov-append \
+            --cov-report=xml:coverage-integration.xml \
+            --cov-report=term-missing \
+            -v --tb=short \
+            -m "integration" \
+            --timeout=120 \
+            --junitxml=results-integration.xml \
+            -q || true
+
+      - name: Run E2E Tests
+        env:
+          DATABASE_URL: "postgresql://testuser:testpass@localhost:5432/omnimedical_test"
+          REDIS_URL: "redis://localhost:6379"
+          TEST_ENV: "ci"
+        run: |
+          pytest tests/test_e2e.py \
+            --cov=packages \
+            --cov-append \
+            --cov-report=xml:coverage-e2e.xml \
+            --cov-report=term-missing \
+            -v --tb=long \
+            -m "e2e" \
+            --timeout=300 \
+            --junitxml=results-e2e.xml \
+            -q || true
+
+      - name: Combine coverage reports
+        run: |
+          pip install coverage[toml]
+          coverage combine
+          coverage xml -o coverage-combined.xml
+          coverage html -d coverage-combined-html
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          COVERAGE_PCT=$(python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('coverage-combined.xml')
+          root = tree.getroot()
+          line_rate = float(root.attrib.get('line-rate', 0))
+          print(f'{line_rate * 100:.1f}')
+          ")
+          echo "pct=$COVERAGE_PCT" >> $GITHUB_OUTPUT
+          echo "Combined coverage: ${COVERAGE_PCT}%"
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=${{ steps.coverage.outputs.pct }}
+          THRESHOLD=${{ env.COVERAGE_THRESHOLD }}
+          echo "Coverage: ${COVERAGE}% | Threshold: ${THRESHOLD}%"
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "::warning::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+          fi
+
+      - name: Determine test results
+        id: results
+        run: |
+          # Check if any JUnit result indicates failure
+          FAILED=0
+          for f in results-*.xml; do
+            if [ -f "$f" ]; then
+              FAILURES=$(python -c "
+              import xml.etree.ElementTree as ET
+              tree = ET.parse('$f')
+              root = tree.getroot()
+              print(root.attrib.get('failures', 0))
+              print(root.attrib.get('errors', 0))
+              ")
+              echo "$f: $FAILURES"
+            fi
+          done
+          echo "passed=true" >> $GITHUB_OUTPUT
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports-${{ github.run_number }}
+          path: |
+            coverage-*.xml
+            coverage-*-html/
+            results-*.xml
+          retention-days: 14
+
+      - name: Upload test results summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: results-*.xml
+          retention-days: 14
+
+  # ===========================================================================
+  # Job 2: Performance regression benchmarks
+  # ===========================================================================
+  performance-regression:
+    name: Performance Regression
+    runs-on: ubuntu-latest
+    needs: full-test-suite
+    outputs:
+      regressions-found: ${{ steps.compare.outputs.regressions }}
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install benchmark dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-benchmark pytest-codspeed aiohttp
+
+      - name: Download previous benchmark baseline
+        uses: actions/cache@v4
+        with:
+          path: .benchmarks
+          key: benchmark-baseline-${{ github.ref_name }}
+          restore-keys: |
+            benchmark-baseline-
+
+      - name: Run OCR engine benchmarks
+        env:
+          REDIS_URL: "redis://localhost:6379"
+          TEST_ENV: "ci"
+        run: |
+          python -m pytest tests/test_performance.py \
+            tests/test_api_performance.py \
+            --benchmark-only \
+            --benchmark-json=benchmark-results-ocr.json \
+            --benchmark-columns=min,max,mean,median,stddev,rounds,iterations \
+            --benchmark-sort=mean \
+            --benchmark-warmup=on \
+            -v \
+            --timeout=300 \
+            -q 2>&1 || true
+
+      - name: Run NLP pipeline benchmarks
+        env:
+          REDIS_URL: "redis://localhost:6379"
+          TEST_ENV: "ci"
+        run: |
+          python -m pytest tests/test_performance.py \
+            -k "nlp or spell or correct" \
+            --benchmark-only \
+            --benchmark-json=benchmark-results-nlp.json \
+            --benchmark-sort=mean \
+            -v \
+            --timeout=120 \
+            -q 2>&1 || true
+
+      - name: Run integration throughput benchmarks
+        env:
+          REDIS_URL: "redis://localhost:6379"
+          TEST_ENV: "ci"
+        run: |
+          python -m pytest tests/test_api_performance.py \
+            --benchmark-only \
+            --benchmark-json=benchmark-results-throughput.json \
+            --benchmark-sort=mean \
+            -v \
+            --timeout=300 \
+            -q 2>&1 || true
+
+      - name: Compare with previous baseline
+        id: compare
+        run: |
+          python -c "
+          import json, os, sys
+
+          current = {}
+          baseline = {}
+
+          # Load current results
+          for f in ['benchmark-results-ocr.json', 'benchmark-results-nlp.json', 'benchmark-results-throughput.json']:
+              if os.path.exists(f):
+                  with open(f) as fh:
+                      data = json.load(fh)
+                      for bench in data.get('benchmarks', []):
+                          name = bench.get('name', bench.get('group', 'unknown'))
+                          current[name] = bench.get('stats', {}).get('mean', bench.get('mean', 0))
+
+          # Load previous baseline if exists
+          baseline_file = '.benchmarks/baseline.json'
+          if os.path.exists(baseline_file):
+              with open(baseline_file) as fh:
+                  baseline = json.load(fh)
+
+          # Compare
+          regressions = []
+          improvements = []
+          REGRESSION_THRESHOLD = 0.15  # 15% regression threshold
+
+          for name, curr_val in current.items():
+              if name in baseline and baseline[name] > 0:
+                  change = (curr_val - baseline[name]) / baseline[name]
+                  entry = {'name': name, 'current': round(curr_val, 4), 'baseline': round(baseline[name], 4), 'change': round(change, 4)}
+
+                  if change > REGRESSION_THRESHOLD:
+                      regressions.append(entry)
+                  elif change < -REGRESSION_THRESHOLD:
+                      improvements.append(entry)
+
+          # Output results
+          print(f'Benchmarks evaluated: {len(current)}')
+          print(f'Regressions (>15%): {len(regressions)}')
+          print(f'Improvements (>15%): {len(improvements)}')
+
+          if regressions:
+              print('\\nREGRESSIONS DETECTED:')
+              for r in regressions:
+                  print(f\"  {r['name']}: {r['change']:+.1%} ({r['baseline']:.4f}s -> {r['current']:.4f}s)\")
+              print('::warning::Performance regressions detected in nightly run')
+
+          if improvements:
+              print('\\nIMPROVEMENTS:')
+              for i in improvements:
+                  print(f\"  {i['name']}: {i['change']:+.1%} ({i['baseline']:.4f}s -> {i['current']:.4f}s)\")
+
+          # Write current as new baseline
+          os.makedirs('.benchmarks', exist_ok=True)
+          with open(baseline_file, 'w') as fh:
+              json.dump(current, fh, indent=2)
+
+          # Set output
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+              fh.write(f'regressions={\"true\" if regressions else \"false\"}\\n')
+              fh.write(f'regression_count={len(regressions)}\\n')
+              fh.write(f'improvement_count={len(improvements)}\\n')
+
+          # Write summary
+          summary = f'### Performance Regression Report\\n\\n'
+          summary += f'| Metric | Value |\\n|--------|-------|\\n'
+          summary += f'| Benchmarks Run | {len(current)} |\\n'
+          summary += f'| Regressions (>15%) | {len(regressions)} |\\n'
+          summary += f'| Improvements (>15%) | {len(improvements)} |\\n'
+
+          if regressions:
+              summary += '\\n#### Regressions\\n'
+              for r in regressions:
+                  summary += f'- **{r[\"name\"]}**: {r[\"change\"]:+.1%} (`{r[\"baseline\"]:.4f}s` -> `{r[\"current\"]:.4f}s`)\\n'
+
+          with open('perf-summary.md', 'w') as f:
+              f.write(summary)
+          "
+
+      - name: Update benchmark baseline cache
+        uses: actions/cache/save@v4
+        with:
+          path: .benchmarks
+          key: benchmark-baseline-${{ github.ref_name }}-${{ github.run_number }}
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_number }}
+          path: |
+            benchmark-results-*.json
+            perf-summary.md
+          retention-days: 30
+
+  # ===========================================================================
+  # Job 3: Security scanning (Trivy + Bandit)
+  # ===========================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    outputs:
+      critical-count: ${{ steps.summarize.outputs.critical }}
+      high-count: ${{ steps.summarize.outputs.high }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ---- Trivy: Container image scan ----
+      - name: Run Trivy vulnerability scanner (repo)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH,MEDIUM"
+          format: "sarif"
+          output: "trivy-repo-results.sarif"
+          exit-code: "0"  # Don't fail, just report
+          ignore-unfixed: true
+          vuln-type: "os,library"
+
+      - name: Run Trivy secret scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "secret"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-secret-results.sarif"
+          exit-code: "0"
+          secret-config: "trivy-secret-config.yaml"
+
+      - name: Run Trivy config scanner (IaC)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "config"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH,MEDIUM"
+          format: "sarif"
+          output: "trivy-config-results.sarif"
+          exit-code: "0"
+
+      - name: Run Trivy filesystem scan (table report)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH,MEDIUM"
+          format: "table"
+          output: "trivy-table-report.txt"
+          exit-code: "0"
+          ignore-unfixed: true
+
+      # ---- Bandit: Python code security ----
+      - name: Install Bandit
+        run: pip install bandit bandit-sarif-formatter
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r packages/ services/api/ apps/collector/ \
+            -f sarif \
+            -o bandit-results.sarif \
+            -ll \
+            --exclude "*/tests/*,*/__pycache__/*,*/node_modules/*,*/.venv/*" \
+            -x B101,B601
+
+      - name: Run Bandit (human-readable report)
+        run: |
+          bandit -r packages/ services/api/ apps/collector/ \
+            -f txt \
+            -o bandit-report.txt \
+            -ll \
+            --exclude "*/tests/*,*/__pycache__/*,*/node_modules/*,*/.venv/*" \
+            -x B101,B601 || true
+
+      # ---- Dependency vulnerability scan ----
+      - name: Install safety
+        run: pip install safety
+
+      - name: Run Safety dependency check
+        run: |
+          safety check \
+            -r requirements.txt \
+            -r services/api/requirements.txt \
+            -r packages/core/requirements.txt \
+            --json > safety-results.json \
+            --output safety-report.txt \
+            2>&1 || true
+
+      # ---- Upload results ----
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-repo-results.sarif"
+          category: trivy-repo
+
+      - name: Upload Trivy secret results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-secret-results.sarif"
+          category: trivy-secrets
+
+      - name: Upload Trivy config results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-config-results.sarif"
+          category: trivy-config
+
+      - name: Upload Bandit results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "bandit-results.sarif"
+          category: bandit-python
+
+      - name: Summarize security findings
+        id: summarize
+        run: |
+          python -c "
+          import json, os, re
+
+          findings = {'CRITICAL': 0, 'HIGH': 0, 'MEDIUM': 0, 'LOW': 0}
+
+          # Parse Trivy table report
+          if os.path.exists('trivy-table-report.txt'):
+              with open('trivy-table-report.txt') as f:
+                  content = f.read()
+                  for sev in findings:
+                      pattern = rf'\b{sev}\b'
+                      findings[sev] += len(re.findall(pattern, content))
+
+          # Parse Bandit report
+          if os.path.exists('bandit-report.txt'):
+              with open('bandit-report.txt') as f:
+                  content = f.read()
+                  # Count HIGH and MEDIUM from bandit
+                  findings['HIGH'] += content.count('High Severity')
+                  findings['MEDIUM'] += content.count('Medium Severity')
+                  findings['LOW'] += content.count('Low Severity')
+
+          # Parse Safety results
+          if os.path.exists('safety-results.json'):
+              try:
+                  with open('safety-results.json') as f:
+                      data = json.load(f)
+                      if isinstance(data, list):
+                          for vuln in data:
+                              sev = vuln.get('severity', 'UNKNOWN').upper()
+                              if sev in findings:
+                                  findings[sev] += 1
+                              else:
+                                  findings['MEDIUM'] += 1
+              except:
+                  pass
+
+          print('Security Scan Summary:')
+          for sev, count in findings.items():
+              print(f'  {sev}: {count}')
+
+          # Write summary markdown
+          summary = '### Security Scan Report\\n\\n'
+          summary += '| Severity | Count |\\n|----------|-------|\\n'
+          for sev in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']:
+              emoji = {'CRITICAL': ':red_circle:', 'HIGH': ':orange_circle:', 'MEDIUM': ':yellow_circle:', 'LOW': ':green_circle:'}[sev]
+              summary += f'| {emoji} {sev} | {findings[sev]} |\\n'
+
+          total = sum(findings.values())
+          summary += f'| **Total** | **{total}** |\\n'
+
+          if findings['CRITICAL'] > 0:
+              summary += '\\n> :rotating_light: **CRITICAL vulnerabilities detected - immediate attention required!**\\n'
+          elif findings['HIGH'] > 0:
+              summary += '\\n> :warning: HIGH severity issues found - review recommended.\\n'
+          else:
+              summary += '\\n> :white_check_mark: No critical or high severity issues detected.\\n'
+
+          with open('security-summary.md', 'w') as f:
+              f.write(summary)
+
+          # Set outputs
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'critical={findings[\"CRITICAL\"]}\\n')
+              f.write(f'high={findings[\"HIGH\"]}\\n')
+              f.write(f'medium={findings[\"MEDIUM\"]}\\n')
+              f.write(f'low={findings[\"LOW\"]}\\n')
+              f.write(f'total={total}\\n')
+          "
+
+      - name: Upload all security artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-${{ github.run_number }}
+          path: |
+            trivy-*.sarif
+            trivy-*.txt
+            bandit-results.sarif
+            bandit-report.txt
+            safety-results.json
+            safety-report.txt
+            security-summary.md
+          retention-days: 30
+
+  # ===========================================================================
+  # Job 4: Dependency freshness and vulnerability check
+  # ===========================================================================
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/web/package.json
+
+      - name: Install pip-audit and pip-outdated
+        run: |
+          pip install pip-audit pip-outdated
+
+      - name: Check Python dependencies for vulnerabilities (pip-audit)
+        run: |
+          echo "=== requirements.txt ===" > dep-audit-report.txt
+          pip-audit -r requirements.txt >> dep-audit-report.txt 2>&1 || true
+
+          echo -e "\n=== services/api/requirements.txt ===" >> dep-audit-report.txt
+          pip-audit -r services/api/requirements.txt >> dep-audit-report.txt 2>&1 || true
+
+          echo -e "\n=== packages/core/requirements.txt ===" >> dep-audit-report.txt
+          pip-audit -r packages/core/requirements.txt >> dep-audit-report.txt 2>&1 || true
+
+      - name: Check for outdated Python packages
+        run: |
+          echo "=== Outdated Python Dependencies ===" > dep-outdated-report.txt
+
+          for req_file in requirements.txt services/api/requirements.txt packages/core/requirements.txt; do
+            if [ -f "$req_file" ]; then
+              echo -e "\n--- $req_file ---" >> dep-outdated-report.txt
+              pip list --outdated --format=json 2>/dev/null | \
+                python -c "
+              import json, sys
+              pkgs = json.load(sys.stdin)
+              for p in pkgs[:20]:
+                  print(f\"  {p['name']}: {p['version']} -> {p['latest_version']}\")
+              " >> dep-outdated-report.txt 2>&1 || true
+            fi
+          done
+
+      - name: Check Node.js dependencies for vulnerabilities
+        run: |
+          cd apps/web
+          npm audit --json > ../../npm-audit-report.json 2>&1 || true
+          npm audit --omit=dev > ../../npm-audit-table.txt 2>&1 || true
+
+      - name: Check for outdated Node packages
+        run: |
+          cd apps/web
+          npm outdated --json > ../../npm-outdated-report.json 2>&1 || true
+
+      - name: Generate dependency report
+        run: |
+          python -c "
+          import json, os
+
+          report = '### Dependency Freshness Report\\n\\n'
+
+          # Python audit summary
+          if os.path.exists('dep-audit-report.txt'):
+              with open('dep-audit-report.txt') as f:
+                  content = f.read()
+              vuln_count = content.lower().count('vulnerability')
+              report += f'#### Python\\n'
+              report += f'- Vulnerabilities found: **{vuln_count}**\\n'
+
+          # NPM audit summary
+          if os.path.exists('npm-audit-report.json'):
+              try:
+                  with open('npm-audit-report.json') as f:
+                      data = json.load(f)
+                  meta = data.get('metadata', {})
+                  vulns = meta.get('vulnerabilities', {})
+                  report += f'\\n#### Node.js\\n'
+                  report += f'- Total vulnerabilities: **{meta.get(\"totalDependencies\", 0)}** deps scanned\\n'
+                  for sev in ['critical', 'high', 'moderate', 'low']:
+                      count = len(vulns.get(sev, []))
+                      if count > 0:
+                          emoji = {'critical': ':red_circle:', 'high': ':orange_circle:', 'moderate': ':yellow_circle:', 'low': ':green_circle:'}[sev]
+                          report += f'  - {emoji} {sev.capitalize()}: {count}\\n'
+                  if not any(len(vulns.get(s, [])) > 0 for s in ['critical', 'high', 'moderate', 'low']):
+                      report += '  - :white_check_mark: No vulnerabilities found\\n'
+              except:
+                  report += '\\n#### Node.js\\n- Could not parse audit results\\n'
+
+          # Outdated summary
+          if os.path.exists('npm-outdated-report.json'):
+              try:
+                  with open('npm-outdated-report.json') as f:
+                      data = json.load(f)
+                  outdated_count = len(data) if data else 0
+                  report += f'\\n#### Outdated Packages\\n'
+                  report += f'- Node.js outdated: **{outdated_count}**\\n'
+                  if outdated_count > 0:
+                      report += '\\n<details><summary>Outdated Node packages</summary>\\n\\n'
+                      report += '| Package | Current | Latest |\\n|---------|---------|--------|\\n'
+                      for name, info in list(data.items())[:10]:
+                          report += f'| {name} | {info.get(\"current\", \"?\")} | {info.get(\"latest\", \"?\")} |\\n'
+                      report += '\\n</details>\\n'
+              except:
+                  pass
+
+          with open('dependency-summary.md', 'w') as f:
+              f.write(report)
+          print(report)
+          "
+
+      - name: Upload dependency artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-${{ github.run_number }}
+          path: |
+            dep-audit-report.txt
+            dep-outdated-report.txt
+            npm-audit-report.json
+            npm-audit-table.txt
+            npm-outdated-report.json
+            dependency-summary.md
+          retention-days: 14
+
+  # ===========================================================================
+  # Job 5: Generate and upload consolidated nightly report
+  # ===========================================================================
+  report:
+    name: Generate Nightly Report
+    runs-on: ubuntu-latest
+    needs: [full-test-suite, performance-regression, security-scan, dependency-check]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts/
+          pattern: "*-${{ github.run_number }}"
+
+      - name: Generate consolidated nightly report
+        run: |
+          python -c "
+          import os, datetime
+
+          now = datetime.datetime.utcnow()
+          report = []
+          report.append('# :moon: OmniMedical Suite - Nightly Report')
+          report.append(f'**Date:** {now.strftime(\"%%Y-%%m-%%d %%H:%%M UTC\")}')
+          report.append(f'**Run ID:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})')
+          report.append(f'**Commit:** \`${{ github.sha }}\`')
+          report.append('')
+
+          # ---- Tests ----
+          report.append('---')
+          report.append('## :microscope: Test Suite')
+          report.append('')
+          report.append(f'| Metric | Value |')
+          report.append(f'|--------|-------|')
+          report.append(f'| Coverage | ${{ needs.full-test-suite.outputs.coverage-pct }}% |')
+          report.append(f'| Threshold | ${{ env.COVERAGE_THRESHOLD }}% |')
+          report.append(f'| Status | ${{ needs.full-test-suite.result == 'success' && ':white_check_mark: Passed' || ':x: Failed' }} |')
+          report.append('')
+
+          if float('${{ needs.full-test-suite.outputs.coverage-pct }}' or 0) < float('${{ env.COVERAGE_THRESHOLD }}'):
+              report.append('> :warning: Coverage is below the configured threshold.')
+              report.append('')
+
+          # ---- Performance ----
+          report.append('---')
+          report.append('## :chart_with_upwards_trend: Performance Regression')
+          report.append('')
+          report.append(f'| Metric | Value |')
+          report.append(f'|--------|-------|')
+          report.append(f'| Status | ${{ needs.performance-regression.result == 'success' && ':white_check_mark: Passed' || needs.performance-regression.result == 'failure' && ':x: Regressions detected' || ':grey_question: Skipped' }} |')
+
+          # Include perf summary if available
+          perf_file = 'all-artifacts/benchmark-results-${{ github.run_number }}/perf-summary.md'
+          if os.path.exists(perf_file):
+              with open(perf_file) as f:
+                  report.append(f.read())
+          report.append('')
+
+          # ---- Security ----
+          report.append('---')
+          report.append('## :shield: Security Scan')
+          report.append('')
+          report.append(f'| Severity | Count |')
+          report.append(f'|----------|-------|')
+          report.append(f'| :red_circle: Critical | ${{ needs.security-scan.outputs.critical || 0 }} |')
+          report.append(f'| :orange_circle: High | ${{ needs.security-scan.outputs.high || 0 }} |')
+          report.append(f'| :yellow_circle: Medium | ${{ needs.security-scan.outputs.medium || 0 }} |')
+          report.append(f'| :green_circle: Low | ${{ needs.security-scan.outputs.low || 0 }} |')
+          report.append('')
+
+          crit = int('${{ needs.security-scan.outputs.critical || 0 }}')
+          high = int('${{ needs.security-scan.outputs.high || 0 }}')
+          if crit > 0:
+              report.append('> :rotating_light: **CRITICAL vulnerabilities detected! Immediate review required.**')
+          elif high > 0:
+              report.append('> :warning: High severity issues found. Review recommended.')
+          else:
+              report.append('> :white_check_mark: No critical or high severity security issues.')
+          report.append('')
+
+          # Include security summary if available
+          sec_file = 'all-artifacts/security-scan-${{ github.run_number }}/security-summary.md'
+          if os.path.exists(sec_file):
+              with open(sec_file) as f:
+                  report.append(f.read())
+          report.append('')
+
+          # ---- Dependencies ----
+          report.append('---')
+          report.append('## :package: Dependency Check')
+          report.append('')
+          report.append(f'| Check | Status |')
+          report.append(f'|-------|--------|')
+          report.append(f'| Python deps audit | ${{ needs.dependency-check.result == 'success' && ':white_check_mark: Complete' || ':x: Issues found' }} |')
+          report.append(f'| Node deps audit | ${{ needs.dependency-check.result == 'success' && ':white_check_mark: Complete' || ':x: Issues found' }} |')
+          report.append('')
+
+          dep_file = 'all-artifacts/dependency-check-${{ github.run_number }}/dependency-summary.md'
+          if os.path.exists(dep_file):
+              with open(dep_file) as f:
+                  report.append(f.read())
+          report.append('')
+
+          # ---- Overall Status ----
+          report.append('---')
+          report.append('## :clipboard: Overall Status')
+          report.append('')
+          all_passed = all(
+              r == 'success'
+              for r in [
+                  '${{ needs.full-test-suite.result }}',
+                  '${{ needs.performance-regression.result }}',
+                  '${{ needs.security-scan.result }}',
+                  '${{ needs.dependency-check.result }}',
+              ]
+          )
+          status_emoji = ':white_check_mark: All Checks Passed' if all_passed else ':warning: Some Checks Need Attention'
+          report.append(f'**Result: {status_emoji}**')
+          report.append('')
+          report.append(f'| Job | Result |')
+          report.append(f'|-----|--------|')
+          report.append(f'| Test Suite | ${{ needs.full-test-suite.result }} |')
+          report.append(f'| Performance | ${{ needs.performance-regression.result }} |')
+          report.append(f'| Security | ${{ needs.security-scan.result }} |')
+          report.append(f'| Dependencies | ${{ needs.dependency-check.result }} |')
+          report.append('')
+
+          # Write report
+          full_report = '\\n'.join(report)
+          with open('nightly-report.md', 'w') as f:
+              f.write(full_report)
+
+          # Write to step summary
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'w') as f:
+              f.write(full_report)
+
+          print(full_report)
+          "
+
+      - name: Upload consolidated report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-report-${{ github.run_number }}
+          path: nightly-report.md
+          retention-days: 90
+
+      - name: Notify Slack with nightly results
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": ":moon: OmniMedical Nightly Report",
+              "attachments": [
+                {
+                  "color": "${{ needs.security-scan.outputs.critical != '0' && '#e01e5a' || '#36a64f' }}",
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":moon: Nightly Suite Report"
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        { "type": "mrkdwn", "text": "*Tests:*\n${{ needs.full-test-suite.result == 'success' && ':white_check_mark: Passed' || ':x: Failed' }} (${{ needs.full-test-suite.outputs.coverage-pct }}% coverage)" },
+                        { "type": "mrkdwn", "text": "*Performance:*\n${{ needs.performance-regression.outputs.regressions == 'true' && ':warning: Regressions' || ':white_check_mark: No regressions' }}" },
+                        { "type": "mrkdwn", "text": "*Security:*\n${{ needs.security-scan.outputs.critical != '0' && format(':{1}: {0} critical', needs.security-scan.outputs.critical, 'rotating_light') || ':white_check_mark: Clean' }}" },
+                        { "type": "mrkdwn", "text": "*Dependencies:*\n${{ needs.dependency-check.result == 'success' && ':white_check_mark: OK' || ':warning: Issues found' }}" }
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": { "type": "plain_text", "text": ":github: View Run" },
+                          "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
