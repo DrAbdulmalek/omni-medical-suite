@@ -82,7 +82,7 @@ def _get_audit_logger():
     global _audit_logger
     if _audit_logger is None:
         try:
-            from modules.security.audit_logger import get_audit_logger
+            from packages.security.audit_logger import get_audit_logger
             _audit_logger = get_audit_logger()
         except Exception as e:
             logger.warning("فشل تحميل سجل التدقيق: %s", e)
@@ -101,7 +101,7 @@ def _audit(
     try:
         audit = _get_audit_logger()
         if audit:
-            from modules.security.audit_logger import AuditAction, AuditLevel
+            from packages.security.audit_logger import AuditAction, AuditLevel
             action_enum = AuditAction(action)
             level_enum = AuditLevel(level)
             ip = request.client.host if request and request.client else None
@@ -129,28 +129,28 @@ _translator = None
 def _get_ocr_engine():
     global _ocr_engine
     if _ocr_engine is None:
-        from modules.vision.ocr_engine import OCREngine
+        from packages.vision.ocr_engine import OCREngine
         _ocr_engine = OCREngine()
     return _ocr_engine
 
 def _get_spell_corrector():
     global _spell_corrector
     if _spell_corrector is None:
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         _spell_corrector = SpellCorrector()
     return _spell_corrector
 
 def _get_summarizer():
     global _summarizer
     if _summarizer is None:
-        from modules.nlp.summarizer import TextSummarizer
+        from packages.nlp.summarizer import TextSummarizer
         _summarizer = TextSummarizer()
     return _summarizer
 
 def _get_translator():
     global _translator
     if _translator is None:
-        from modules.nlp.translator import TextTranslator
+        from packages.nlp.translator import TextTranslator
         _translator = TextTranslator()
     return _translator
 
@@ -367,7 +367,7 @@ async def evaluate_ocr(request_body: EvaluateRequest, request: Request):
     """تقييم دقة OCR باستخدام CER/WER."""
     start_time = time.time()
     try:
-        from modules.evaluation.metrics import evaluate
+        from packages.evaluation.metrics import evaluate
         result = evaluate(request_body.reference_text, request_body.ocr_text)
         duration = (time.time() - start_time) * 1000
 
@@ -397,7 +397,7 @@ async def ai_improve_text(
     """تحسين نص OCR باستخدام AI (GPT/Gemini)."""
     start_time = time.time()
     try:
-        from modules.nlp.ai_corrector import AICorrector
+        from packages.nlp.ai_corrector import AICorrector
 
         corrector = AICorrector()
         if not corrector.is_available():
@@ -437,7 +437,7 @@ async def encrypt_file_endpoint(
     """تشفير ملف باستخدام AES-128 (Fernet)."""
     start_time = time.time()
     try:
-        from modules.security.encryption import FileEncryptor
+        from packages.security.encryption import FileEncryptor
         encryptor = FileEncryptor()
 
         # Save uploaded file
@@ -479,7 +479,7 @@ async def decrypt_file_endpoint(
     """فك تشفير ملف."""
     start_time = time.time()
     try:
-        from modules.security.encryption import FileEncryptor
+        from packages.security.encryption import FileEncryptor
         encryptor = FileEncryptor()
 
         suffix = os.path.splitext(file.filename)[1] if file.filename else ".enc"
@@ -666,7 +666,7 @@ async def correct_translation(request_body: TranslationCorrectRequest, request: 
     """تصحيح ترجمة عربية باستخدام قواعد ثنائية اللغة."""
     start_time = time.time()
     try:
-        from modules.nlp.translation_corrector import ArabicTranslationProcessor
+        from packages.nlp.translation_corrector import ArabicTranslationProcessor
         processor = ArabicTranslationProcessor()
         result = processor.process_translation(
             request_body.english_text,
@@ -697,7 +697,7 @@ async def correct_translation(request_body: TranslationCorrectRequest, request: 
 async def get_translation_rules():
     """عرض قواعد تصحيح الترجمات."""
     try:
-        from modules.nlp.translation_corrector import ArabicTranslationProcessor
+        from packages.nlp.translation_corrector import ArabicTranslationProcessor
         processor = ArabicTranslationProcessor()
         rules = [
             {
@@ -723,7 +723,7 @@ async def get_translation_rules():
 async def api_sync_status():
     """حالة المزامنة بين الأجهزة."""
     try:
-        from modules.security.sync import SyncManager, FileLock
+        from packages.security.sync import SyncManager, FileLock
         return {
             "sync_enabled": True,
             "message": "نظام المزامنة جاهز - يتطلب config.py مع sync_enabled=True",
@@ -737,7 +737,7 @@ async def api_sync_status():
 async def api_sync_config():
     """إعدادات Syncthing للمشروع."""
     try:
-        from modules.security.sync import SyncManager
+        from packages.security.sync import SyncManager
         return {"sync_enabled": True, "setup_instructions": "See docs/ for Syncthing setup"}
     except Exception as e:
         logger.error("Sync config failed: %s", e)
@@ -773,7 +773,7 @@ async def api_network_info():
 async def api_migration_scan(base_path: str = ""):
     """فحص المشاريع القديمة المتاحة للترحيل."""
     try:
-        from modules.core.migration import DataMigrator
+        from packages.core.migration import DataMigrator
         migrator = DataMigrator()
         report = migrator.scan_and_report(base_path=base_path)
         return report
@@ -792,7 +792,7 @@ class MigrationRunRequest(BaseModel):
 async def api_run_migration(req: MigrationRunRequest):
     """تشغيل ترحيل البيانات من النسخ القديمة."""
     try:
-        from modules.core.migration import DataMigrator
+        from packages.core.migration import DataMigrator
         migrator = DataMigrator()
         result = migrator.migrate(
             base_path=req.base_path,
@@ -811,7 +811,7 @@ async def api_run_migration(req: MigrationRunRequest):
 async def api_generate_study_guide(title: str = "مرجع دراسي", highlight: bool = True):
     """توليد مرجع دراسي بصيغة Markdown."""
     try:
-        from modules.export.study_guide import generate_study_guide
+        from packages.export.study_guide import generate_study_guide
         content = generate_study_guide(title=title, highlight_terms=highlight)
         if not content:
             raise HTTPException(status_code=400, detail="لا توجد بيانات كافية لتوليد المرجع")
@@ -832,7 +832,7 @@ async def api_generate_study_guide(title: str = "مرجع دراسي", highlight
 async def api_generate_mermaid(diagram_type: str = "mindmap", max_terms: int = 50):
     """توليد مخطط Mermaid للمفردات المستخرجة."""
     try:
-        from modules.export.study_guide import generate_mermaid_diagram
+        from packages.export.study_guide import generate_mermaid_diagram
         mermaid_code = generate_mermaid_diagram(diagram_type=diagram_type, max_terms=max_terms)
         if not mermaid_code:
             raise HTTPException(status_code=400, detail="لا توجد مفردات لتوليد المخطط")
@@ -856,7 +856,7 @@ async def api_generate_study_guide_full(
 ):
     """توليد مرجع دراسي شامل يتضمن Mermaid + Flashcards + Markdown."""
     try:
-        from modules.export.study_guide import generate_study_guide_full
+        from packages.export.study_guide import generate_study_guide_full
         content = generate_study_guide_full(
             title=title,
             include_mermaid=include_mermaid,
@@ -882,7 +882,7 @@ async def api_generate_study_guide_full(
 async def api_compute_metrics():
     """حساب WER/CER الحاليين."""
     try:
-        from modules.evaluation.metrics import calculate_cer, calculate_wer
+        from packages.evaluation.metrics import calculate_cer, calculate_wer
         return {"message": "Metrics endpoint ready - requires active processing data"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -900,7 +900,7 @@ async def api_metrics_history():
 async def api_auto_export():
     """تصدير تلقائي شامل."""
     try:
-        from modules.export.exporter import DocumentExporter
+        from packages.export.exporter import DocumentExporter
         return {"success": True, "message": "Auto-export endpoint ready"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -910,7 +910,7 @@ async def api_auto_export():
 async def api_create_backup():
     """إنشاء نسخة احتياطية شاملة."""
     try:
-        from modules.security.backup_manager import BackupManager
+        from packages.security.backup_manager import BackupManager
         manager = BackupManager()
         result = manager.create_backup()
         return {"success": True, "backup_dir": result}
@@ -928,7 +928,7 @@ async def api_layout_preserving_export(
     """تصدير مع الحفاظ على التنسيق و RTL."""
     start_time = time.time()
     try:
-        from modules.export.layout_preserving import LayoutPreservingExporter
+        from packages.export.layout_preserving import LayoutPreservingExporter
 
         suffix = os.path.splitext(file.filename)[1] if file.filename else ".pdf"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:

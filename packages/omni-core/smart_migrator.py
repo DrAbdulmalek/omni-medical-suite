@@ -8,7 +8,7 @@ feedback CSVs, and correction dictionaries, then imports
 them into the current OmniFile HandwritingDB.
 
 Usage:
-  from modules.core.smart_migrator import SmartMigrator
+  from packages.core.smart_migrator import SmartMigrator
   migrator = SmartMigrator(target_db="database.db")
   report = migrator.scan()           # Preview what would be imported
   report = migrator.migrate()        # Execute the migration

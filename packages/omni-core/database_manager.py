@@ -8,13 +8,13 @@ database_manager.py — نظام قاعدة البيانات المحسّن لـ
 - نظام الكاش (Cache) لتسريع المعالجة على الدفعات
 
 الاستخدام:
-    from modules.core.database_manager import OmniDatabase
+    from packages.core.database_manager import OmniDatabase
     db = OmniDatabase("my_archive.db")
     db.process_file(file_path, my_ai_engine)
     results = db.search_text("كسر عنق الفخذ")
 """
 
-from modules.core.base_db import BaseDB
+from packages.core.base_db import BaseDB
 import hashlib
 import os
 from datetime import datetime

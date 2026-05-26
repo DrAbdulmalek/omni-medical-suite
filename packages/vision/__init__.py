@@ -14,20 +14,20 @@
 
 OmniFile AI Processor - وحدة معالجة الملفات الذكية
 """
-from modules.vision.ocr_engine import OCREngine
-from modules.vision.pdf_processor import PDFProcessor
-from modules.vision.image_preprocessor import ImagePreprocessor
-from modules.vision.text_reconstructor import TextReconstructor
-from modules.vision.result_fusion import ResultFusion, FusionStrategy
-from modules.vision.layout_analyzer import LayoutAnalyzer
-from modules.vision.table_extractor import TableExtractor
-from modules.vision.video_ocr import VideoOCR, FrameResult, VideoTimeline
-from modules.vision.data_augmentation import DataAugmentor
-from modules.vision.dual_ocr_verifier import DualOCRVerifier
-from modules.vision.batch_ocr import BatchMedicalOCR
-from modules.vision.dataset_builder import DatasetBuilder
-from modules.vision.medical_ocr import MedicalOCRProcessor, process_medical_pdf
-from modules.vision.medical_ocr_gradio import create_medical_ocr_tab
+from packages.vision.ocr_engine import OCREngine
+from packages.vision.pdf_processor import PDFProcessor
+from packages.vision.image_preprocessor import ImagePreprocessor
+from packages.vision.text_reconstructor import TextReconstructor
+from packages.vision.result_fusion import ResultFusion, FusionStrategy
+from packages.vision.layout_analyzer import LayoutAnalyzer
+from packages.vision.table_extractor import TableExtractor
+from packages.vision.video_ocr import VideoOCR, FrameResult, VideoTimeline
+from packages.vision.data_augmentation import DataAugmentor
+from packages.vision.dual_ocr_verifier import DualOCRVerifier
+from packages.vision.batch_ocr import BatchMedicalOCR
+from packages.vision.dataset_builder import DatasetBuilder
+from packages.vision.medical_ocr import MedicalOCRProcessor, process_medical_pdf
+from packages.vision.medical_ocr_gradio import create_medical_ocr_tab
 
 __all__ = [
     "OCREngine",

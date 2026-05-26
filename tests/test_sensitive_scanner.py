@@ -16,18 +16,18 @@ class TestSensitiveDataScanner:
 
     def test_import(self):
         """اختبار استيراد الفاحص."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         assert SensitiveDataScanner is not None
 
     def test_initialization(self):
         """اختبار التهيئة."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner()
         assert scanner is not None
 
     def test_scan_clean_text(self):
         """اختبار فحص نص نظيف."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text("Hello World, this is a clean text.")
@@ -37,7 +37,7 @@ class TestSensitiveDataScanner:
 
     def test_scan_email(self):
         """اختبار كشف البريد الإلكتروني."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text("Contact me at test@example.com please.")
@@ -49,7 +49,7 @@ class TestSensitiveDataScanner:
 
     def test_scan_credit_card(self):
         """اختبار كشف بطاقة الائتمانية."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text("Card: 4111-1111-1111-1111")
@@ -57,7 +57,7 @@ class TestSensitiveDataScanner:
 
     def test_scan_phone(self):
         """اختبار كشف رقم الهاتف."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text("Call me at +1-234-567-8900")
@@ -65,7 +65,7 @@ class TestSensitiveDataScanner:
 
     def test_scan_ip_address(self):
         """اختبار كشف عنوان IP."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text("Server at 192.168.1.1")
@@ -73,7 +73,7 @@ class TestSensitiveDataScanner:
 
     def test_scan_api_key(self):
         """اختبار كشف مفتاح API."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text('api_key = "sk-1234567890abcdefghij"')
@@ -81,7 +81,7 @@ class TestSensitiveDataScanner:
 
     def test_scan_multiple_entities(self, sensitive_text):
         """اختبار كشف كيانات متعددة."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text(sensitive_text)
@@ -90,7 +90,7 @@ class TestSensitiveDataScanner:
 
     def test_risk_level_critical(self):
         """اختبار مستوى خطورة حرج."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text("-----BEGIN RSA PRIVATE KEY-----")
@@ -98,7 +98,7 @@ class TestSensitiveDataScanner:
 
     def test_anonymize_text(self):
         """اختبار إخفاء البيانات الحساسة."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         text = "Email: test@example.com"
@@ -108,14 +108,14 @@ class TestSensitiveDataScanner:
 
     def test_anonymize_empty(self):
         """اختبار إخفاء نص فارغ."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         assert scanner.anonymize_text("") == ""
 
     def test_add_custom_pattern(self):
         """اختبار إضافة نمط مخصص."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         scanner.add_custom_pattern(
@@ -130,7 +130,7 @@ class TestSensitiveDataScanner:
 
     def test_is_available(self):
         """اختبار فحص التوفر."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner()
 
         available = scanner.is_available()
@@ -140,7 +140,7 @@ class TestSensitiveDataScanner:
 
     def test_scan_empty_text(self):
         """اختبار فحص نص فارغ."""
-        from modules.security.sensitive_data_scanner import SensitiveDataScanner
+        from packages.security.sensitive_data_scanner import SensitiveDataScanner
         scanner = SensitiveDataScanner(use_presidio=False)
 
         result = scanner.scan_text("")

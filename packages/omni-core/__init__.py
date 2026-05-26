@@ -20,7 +20,7 @@ Shared data models and type definitions for all processing modules.
 OmniFile AI Processor - وحدة معالجة الملفات الذكية
 """
 
-from modules.core.structure import (
+from packages.core.structure import (
     BBox,
     BlockType,
     OCRToken,
@@ -29,16 +29,16 @@ from modules.core.structure import (
     DocumentMetadata,
     Document,
 )
-from modules.core.engine_router import EngineRouter
-from modules.core.corrections_manager import CorrectionsDictManager
-from modules.core.word_trainer import WordCorrectionDB
-from modules.core.spell_checker import HybridSpellChecker
-from modules.core.log_manager import AppLogger, get_app_logger
-from modules.core.base_db import BaseDB
-from modules.core.user_manager import UserManager
-from modules.core.parallel_processor import ParallelProcessor
-from modules.core.model_manager import ModelCache
-from modules.core.progress_tracker import (
+from packages.core.engine_router import EngineRouter
+from packages.core.corrections_manager import CorrectionsDictManager
+from packages.core.word_trainer import WordCorrectionDB
+from packages.core.spell_checker import HybridSpellChecker
+from packages.core.log_manager import AppLogger, get_app_logger
+from packages.core.base_db import BaseDB
+from packages.core.user_manager import UserManager
+from packages.core.parallel_processor import ParallelProcessor
+from packages.core.model_manager import ModelCache
+from packages.core.progress_tracker import (
     ProgressCallback,
     ProgressTracker,
     ProgressRenderer,

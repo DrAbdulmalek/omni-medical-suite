@@ -8,7 +8,7 @@
 """
 
 import pytest
-from modules.nlp.arabic_nlp_utils import (
+from packages.nlp.arabic_nlp_utils import (
     normalize_for_comparison,
     arabic_normalized_similarity,
     similarity_report,

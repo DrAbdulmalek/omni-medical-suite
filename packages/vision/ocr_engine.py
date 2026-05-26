@@ -346,7 +346,7 @@ class OCREngine:
         """الحصول على معالج الصور المسبق."""
         if self._preprocessor is None:
             try:
-                from modules.vision.image_preprocessor import ImagePreprocessor
+                from packages.vision.image_preprocessor import ImagePreprocessor
                 self._preprocessor = ImagePreprocessor(
                     apply_clahe=True,
                     apply_denoise=True,
@@ -361,7 +361,7 @@ class OCREngine:
         """الحصول على مُعيد تجميع النصوص."""
         if self._reconstructor is None:
             try:
-                from modules.vision.text_reconstructor import TextReconstructor
+                from packages.vision.text_reconstructor import TextReconstructor
                 self._reconstructor = TextReconstructor()
             except Exception as e:
                 logger.warning("فشل في تحميل مُعيد التجميع: %s", e)
@@ -371,7 +371,7 @@ class OCREngine:
         """الحصول على معالج PDF."""
         if self._pdf_processor is None:
             try:
-                from modules.vision.pdf_processor import PDFProcessor
+                from packages.vision.pdf_processor import PDFProcessor
                 self._pdf_processor = PDFProcessor(dpi=self.dpi)
             except Exception as e:
                 logger.warning("فشل في تحميل معالج PDF: %s", e)
@@ -847,7 +847,7 @@ class OCREngine:
 
         try:
             logger.info("جارٍ تحميل Surya OCR...")
-            from modules.vision.surya_ocr import SuryaOCREngine
+            from packages.vision.surya_ocr import SuryaOCREngine
 
             self._surya_engine = SuryaOCREngine(langs=self.easyocr_languages)
             self._surya_loaded = True

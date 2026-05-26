@@ -87,7 +87,7 @@ class TestE2EHTRPipeline(unittest.TestCase):
 
     def test_line_segmentation_e2e(self):
         """E2E: Document → Line segments."""
-        from modules.vision.htr.line_segmenter import LineSegmenter
+        from packages.vision.htr.line_segmenter import LineSegmenter
 
         segmenter = LineSegmenter(method="projection")
         lines = segmenter.segment(self.test_doc)
@@ -102,7 +102,7 @@ class TestE2EHTRPipeline(unittest.TestCase):
 
     def test_word_segmentation_e2e(self):
         """E2E: Text line → Word segments."""
-        from modules.vision.htr.word_segmenter import WordSegmenter
+        from packages.vision.htr.word_segmenter import WordSegmenter
 
         segmenter = WordSegmenter()
         words = segmenter.segment(self.test_line)
@@ -116,7 +116,7 @@ class TestE2EHTRPipeline(unittest.TestCase):
 
     def test_dotted_recovery_e2e(self):
         """E2E: Raw OCR text → Corrected text."""
-        from modules.vision.htr.dotted_recovery import DottedRecovery
+        from packages.vision.htr.dotted_recovery import DottedRecovery
 
         recovery = DottedRecovery()
 
@@ -129,7 +129,7 @@ class TestE2EHTRPipeline(unittest.TestCase):
 
     def test_pipeline_config_e2e(self):
         """E2E: Pipeline configuration."""
-        from modules.vision.htr.arabic_htr import ArabicHTR
+        from packages.vision.htr.arabic_htr import ArabicHTR
 
         htr = ArabicHTR(
             checkpoint="training/outputs/best_model",
@@ -146,8 +146,8 @@ class TestE2EHTRPipeline(unittest.TestCase):
 
     def test_full_pipeline_with_mock(self):
         """E2E: Full pipeline with mocked TrOCR."""
-        from modules.vision.htr.arabic_htr import ArabicHTR
-        from modules.vision.htr.trocr_finetuned import TrOCRFineTuned
+        from packages.vision.htr.arabic_htr import ArabicHTR
+        from packages.vision.htr.trocr_finetuned import TrOCRFineTuned
 
         # Mock the TrOCR recognize method
         original_recognize = TrOCRFineTuned.recognize

@@ -6,7 +6,7 @@ class TestHybridSpellChecker:
     """Test HybridSpellChecker with temp arabic_fixes."""
     
     def _make_checker(self, tmp_path):
-        from modules.core.spell_checker import HybridSpellChecker
+        from packages.core.spell_checker import HybridSpellChecker
         fixes_path = str(tmp_path / "arabic_fixes.json")
         Path(fixes_path).write_text(
             json.dumps({"الاختبار": "الاختبار"}), encoding="utf-8"

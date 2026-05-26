@@ -14,7 +14,7 @@ class TestSpellCorrectorPerformance:
 
     def test_single_word_performance(self):
         """اختبار سرعة تصحيح كلمة واحدة."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
         
         start = time.time()
@@ -27,7 +27,7 @@ class TestSpellCorrectorPerformance:
 
     def test_text_correction_performance(self):
         """اختبار سرعة تصحيح نص."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
         
         long_text = "helloo world testt samplee data " * 50
@@ -41,7 +41,7 @@ class TestSpellCorrectorPerformance:
 
     def test_batch_correction_performance(self):
         """اختبار سرعة التصحيح المتوازي."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
         
         texts = ["helloo world testt"] * 20
@@ -59,7 +59,7 @@ class TestEvaluationPerformance:
 
     def test_cer_performance(self):
         """اختبار سرعة حساب CER."""
-        from modules.evaluation.metrics import calculate_cer
+        from packages.evaluation.metrics import calculate_cer
         
         ref = "This is a reference text for testing performance of the CER metric."
         hyp = "This is a hypothesis text for testing performance of the CER metric."
@@ -73,7 +73,7 @@ class TestEvaluationPerformance:
 
     def test_wer_performance(self):
         """اختبار سرعة حساب WER."""
-        from modules.evaluation.metrics import calculate_wer
+        from packages.evaluation.metrics import calculate_wer
         
         ref = "This is a reference text for testing."
         hyp = "This is a hypothesis text for testing."
@@ -92,14 +92,14 @@ class TestImportPerformance:
     def test_vision_import_time(self):
         """اختبار سرعة استيراد وحدة الرؤية."""
         start = time.time()
-        from modules.vision import ocr_engine
+        from packages.vision import ocr_engine
         elapsed = time.time() - start
         assert elapsed < 3.0, f"Vision module import too slow: {elapsed:.2f}s"
 
     def test_nlp_import_time(self):
         """اختبار سرعة استيراد وحدة NLP."""
         start = time.time()
-        from modules.nlp import spell_corrector
+        from packages.nlp import spell_corrector
         elapsed = time.time() - start
         assert elapsed < 3.0, f"NLP module import too slow: {elapsed:.2f}s"
 

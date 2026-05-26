@@ -6,8 +6,8 @@ feedback collection from both the medical-doc-processor and OmniFile
 Processor projects.
 """
 
-from modules.learning.pattern_db import PatternDB
-from modules.learning.unified_learning import (
+from packages.learning.pattern_db import PatternDB
+from packages.learning.unified_learning import (
     ActiveLearningStrategy,
     FeatureExtractor,
     FeatureVector,

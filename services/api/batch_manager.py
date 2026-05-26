@@ -453,7 +453,7 @@ class BatchManager:
     def _process_image(self, filepath: str, config: BatchConfig, batch_id: str, file_id: str) -> Dict:
         """Process a single image file."""
         try:
-            from modules.vision.ocr_engine import OCREngine
+            from packages.vision.ocr_engine import OCREngine
         except ImportError:
             from src import OCREngine
 
@@ -471,7 +471,7 @@ class BatchManager:
         # Auto-correct if enabled
         if config.auto_correct and result.text:
             try:
-                from modules.core.spell_checker import HybridSpellChecker
+                from packages.core.spell_checker import HybridSpellChecker
                 checker = HybridSpellChecker()
                 result.text = checker.correct(result.text)
             except ImportError:
@@ -487,7 +487,7 @@ class BatchManager:
     def _process_pdf(self, filepath: str, config: BatchConfig, batch_id: str, file_id: str) -> Dict:
         """Process a PDF file (extract text from all pages)."""
         try:
-            from modules.vision.pdf_processor import PDFProcessor
+            from packages.vision.pdf_processor import PDFProcessor
         except ImportError:
             raise ImportError("PDF processing requires PyMuPDF. Install: pip install PyMuPDF")
 

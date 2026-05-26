@@ -41,7 +41,7 @@ class TestProjectionProfileSegmenter(unittest.TestCase):
     def _get_segmenter(self):
         """استيراد وإنشاء المقسم مع تجنب فشل الاستيراد في بيئة الاختبار."""
         try:
-            from modules.vision.ocr_engine import ProjectionProfileSegmenter
+            from packages.vision.ocr_engine import ProjectionProfileSegmenter
             return ProjectionProfileSegmenter()
         except ImportError:
             # Fallback: create a mock segmenter that uses numpy projection
@@ -142,7 +142,7 @@ class TestArabicWordSegmenter(unittest.TestCase):
 
     def _get_segmenter(self):
         try:
-            from modules.vision.ocr_engine import ArabicWordSegmenter
+            from packages.vision.ocr_engine import ArabicWordSegmenter
             return ArabicWordSegmenter()
         except ImportError:
             seg = MagicMock()
@@ -194,7 +194,7 @@ class TestArabicDottedRecovery(unittest.TestCase):
     def setUp(self):
         """إنشاء قاموس استعادة."""
         try:
-            from modules.nlp.arabic_rtl import ArabicDottedRecovery
+            from packages.nlp.arabic_rtl import ArabicDottedRecovery
             self.recovery = ArabicDottedRecovery()
         except ImportError:
             self.recovery = None
@@ -352,7 +352,7 @@ class TestFineTunedTrOCR(unittest.TestCase):
 
     def _get_recognizer(self):
         try:
-            from modules.vision.ocr_engine import FineTunedTrOCR
+            from packages.vision.ocr_engine import FineTunedTrOCR
             return FineTunedTrOCR(checkpoint_path="test-checkpoint")
         except (ImportError, TypeError):
             # Create a mock recognizer
@@ -404,7 +404,7 @@ class TestArabicHandwrittenHTR(unittest.TestCase):
 
     def _get_htr(self):
         try:
-            from modules.vision.ocr_engine import ArabicHandwrittenHTR
+            from packages.vision.ocr_engine import ArabicHandwrittenHTR
             return ArabicHandwrittenHTR()
         except (ImportError, TypeError):
             # Create a mock HTR system

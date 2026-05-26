@@ -6,7 +6,7 @@ class TestUserManager:
     """Test UserManager with temp files."""
     
     def _make_manager(self, tmp_path):
-        from modules.core.user_manager import UserManager
+        from packages.core.user_manager import UserManager
         users_file = str(tmp_path / "users.json")
         return UserManager(users_file=users_file)
     

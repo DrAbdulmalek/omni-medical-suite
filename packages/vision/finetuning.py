@@ -13,7 +13,7 @@ Features:
   - WER/CER evaluation after training
 
 Usage:
-  from modules.vision.finetuning import TrOCRFinetuner
+  from packages.vision.finetuning import TrOCRFinetuner
   tuner = TrOCRFinetuner(model_name="microsoft/trocr-base-handwritten")
   tuner.train(
       train_jsonl="training_data/train.jsonl",

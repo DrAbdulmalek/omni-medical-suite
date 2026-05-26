@@ -5,7 +5,7 @@ Centralized model caching singleton for HuggingFace models.
 Prevents redundant from_pretrained() calls across the project.
 
 Usage:
-    from modules.core.model_registry import ModelRegistry
+    from packages.core.model_registry import ModelRegistry
     
     registry = ModelRegistry.get_instance()
     processor, model = registry.get_trocr("ar")

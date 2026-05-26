@@ -17,7 +17,7 @@
 - general: عام (غير مصنف)
 
 الاستخدام:
-    from modules.core.classifier import MedicalClassifier
+    from packages.core.classifier import MedicalClassifier
     clf = MedicalClassifier()
     result = clf.classify("المريض يعاني من كسر في عظم الفخذ")
 """

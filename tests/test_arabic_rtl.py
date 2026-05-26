@@ -9,7 +9,7 @@ Based on modules.vision.text_reconstructor which provides RTL support.
 
 import pytest
 
-from modules.vision.text_reconstructor import TextReconstructor
+from packages.vision.text_reconstructor import TextReconstructor
 
 
 # ─── Arabic Character Detection Tests ────────────────────────────────

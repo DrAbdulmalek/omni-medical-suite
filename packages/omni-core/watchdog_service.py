@@ -11,7 +11,7 @@
 - سجل عمليات مفصل
 
 الاستخدام:
-    from modules.core.watchdog_service import FolderWatchdog
+    from packages.core.watchdog_service import FolderWatchdog
     watchdog = FolderWatchdog(
         watch_dir="/path/to/input",
         callback=my_processing_function,

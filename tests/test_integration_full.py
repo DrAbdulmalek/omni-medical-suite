@@ -501,7 +501,7 @@ class TestHTRPipelineIntegration(unittest.TestCase):
 
     def test_line_segmenter(self):
         """Test line segmentation produces results."""
-        from modules.vision.htr.line_segmenter import LineSegmenter
+        from packages.vision.htr.line_segmenter import LineSegmenter
 
         # Create test image with text lines
         img = np.ones((300, 400, 3), dtype=np.uint8) * 255
@@ -515,7 +515,7 @@ class TestHTRPipelineIntegration(unittest.TestCase):
 
     def test_word_segmenter(self):
         """Test word segmentation."""
-        from modules.vision.htr.word_segmenter import WordSegmenter
+        from packages.vision.htr.word_segmenter import WordSegmenter
 
         img = np.ones((50, 400, 3), dtype=np.uint8) * 255
         for x in [10, 100, 200, 300]:
@@ -527,7 +527,7 @@ class TestHTRPipelineIntegration(unittest.TestCase):
 
     def test_dotted_recovery(self):
         """Test Arabic dotted character recovery."""
-        from modules.vision.htr.dotted_recovery import DottedRecovery
+        from packages.vision.htr.dotted_recovery import DottedRecovery
 
         recovery = DottedRecovery()
         result = recovery.correct("فم المدرسة الكبري")
@@ -536,7 +536,7 @@ class TestHTRPipelineIntegration(unittest.TestCase):
 
     def test_dotted_recovery_candidates(self):
         """Test word correction candidates."""
-        from modules.vision.htr.dotted_recovery import DottedRecovery
+        from packages.vision.htr.dotted_recovery import DottedRecovery
 
         recovery = DottedRecovery()
         candidates = recovery.correct_word("فم")
@@ -545,7 +545,7 @@ class TestHTRPipelineIntegration(unittest.TestCase):
 
     def test_arabic_htr_config(self):
         """Test ArabicHTR pipeline configuration."""
-        from modules.vision.htr import ArabicHTR
+        from packages.vision.htr import ArabicHTR
 
         htr = ArabicHTR(
             checkpoint="dummy",
@@ -565,7 +565,7 @@ class TestErrorRecovery(unittest.TestCase):
 
     def test_corrupted_image_handling(self):
         """Test handling corrupted images."""
-        from modules.vision.htr.line_segmenter import LineSegmenter
+        from packages.vision.htr.line_segmenter import LineSegmenter
 
         segmenter = LineSegmenter()
         with self.assertRaises(Exception):
@@ -573,7 +573,7 @@ class TestErrorRecovery(unittest.TestCase):
 
     def test_empty_image(self):
         """Test handling blank images."""
-        from modules.vision.htr.line_segmenter import LineSegmenter
+        from packages.vision.htr.line_segmenter import LineSegmenter
 
         blank = np.ones((100, 100, 3), dtype=np.uint8) * 255
         segmenter = LineSegmenter(method="projection")
@@ -582,7 +582,7 @@ class TestErrorRecovery(unittest.TestCase):
 
     def test_very_large_image(self):
         """Test handling large images without crashing."""
-        from modules.vision.htr.line_segmenter import LineSegmenter
+        from packages.vision.htr.line_segmenter import LineSegmenter
 
         large = np.ones((2000, 3000, 3), dtype=np.uint8) * 255
         segmenter = LineSegmenter(method="projection")
@@ -597,7 +597,7 @@ class TestDataIntegrity(unittest.TestCase):
 
     def test_correction_idempotency(self):
         """Test that repeated corrections are idempotent."""
-        from modules.vision.htr.dotted_recovery import DottedRecovery
+        from packages.vision.htr.dotted_recovery import DottedRecovery
 
         recovery = DottedRecovery()
         r1 = recovery.correct("الكلية")
@@ -606,7 +606,7 @@ class TestDataIntegrity(unittest.TestCase):
 
     def test_empty_string_handling(self):
         """Test empty string handling across modules."""
-        from modules.vision.htr.dotted_recovery import DottedRecovery
+        from packages.vision.htr.dotted_recovery import DottedRecovery
 
         recovery = DottedRecovery()
         self.assertEqual(recovery.correct(""), "")

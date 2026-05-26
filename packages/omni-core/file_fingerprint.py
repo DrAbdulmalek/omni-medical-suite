@@ -11,7 +11,7 @@
 - إحصائيات الأرشيف
 
 الاستخدام:
-    from modules.core.file_fingerprint import FileFingerprintManager
+    from packages.core.file_fingerprint import FileFingerprintManager
     mgr = FileFingerprintManager()
     is_new = mgr.is_new_file("/path/to/document.pdf")
     mgr.mark_processed("/path/to/document.pdf", category="medical")
@@ -19,7 +19,7 @@
 
 import hashlib
 import os
-from modules.core.base_db import BaseDB
+from packages.core.base_db import BaseDB
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any, Tuple

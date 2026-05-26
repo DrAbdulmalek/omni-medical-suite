@@ -8,9 +8,9 @@ import cv2
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from modules.vision.dual_ocr_verifier import DualOCRVerifier
-from modules.audit.audit_logger import AuditLogger
-from modules.audit.rejected_lines_manager import RejectedLinesManager
+from packages.vision.dual_ocr_verifier import DualOCRVerifier
+from packages.audit.audit_logger import AuditLogger
+from packages.audit.rejected_lines_manager import RejectedLinesManager
 
 
 class DualOCRVerificationPipeline:

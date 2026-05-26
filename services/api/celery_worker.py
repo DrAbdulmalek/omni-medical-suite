@@ -74,7 +74,7 @@ def process_pdf_task(
         )
 
         # تحميل المعالج (lazy loading)
-        from modules.vision.medical_ocr import MedicalOCRProcessor
+        from packages.vision.medical_ocr import MedicalOCRProcessor
 
         ocr = MedicalOCRProcessor(use_gpu=use_gpu)
 

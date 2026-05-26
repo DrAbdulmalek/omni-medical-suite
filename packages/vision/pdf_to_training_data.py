@@ -12,7 +12,7 @@ Pipeline:
   PDF → Page Images → Preprocess → Segment Words → Segment Chars → Export JSONL
 
 Usage:
-  from modules.vision.pdf_to_training_data import TrainingDataGenerator
+  from packages.vision.pdf_to_training_data import TrainingDataGenerator
   gen = TrainingDataGenerator(output_dir="./training_data")
   stats = gen.process_pdf("notes.pdf", pages="1-10", level="character")
   # Output: training_data/page_images/, word_crops/, char_crops/, train.jsonl, val.jsonl

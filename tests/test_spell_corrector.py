@@ -16,18 +16,18 @@ class TestSpellCorrector:
 
     def test_import(self):
         """اختبار استيراد المصحح."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         assert SpellCorrector is not None
 
     def test_initialization(self):
         """اختبار التهيئة."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
         assert corrector is not None
 
     def test_protected_python_keywords(self):
         """اختبار حماية كلمات Python."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         keywords = ["def", "class", "import", "return", "if", "else", "for"]
@@ -37,7 +37,7 @@ class TestSpellCorrector:
 
     def test_protected_module_names(self):
         """اختبار حماية أسماء الوحدات."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         modules = ["numpy", "pandas", "torch", "flask", "django"]
@@ -47,7 +47,7 @@ class TestSpellCorrector:
 
     def test_skip_numbers(self):
         """اختبار تخطي الأرقام."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         assert corrector.correct_word("123") == "123"
@@ -56,7 +56,7 @@ class TestSpellCorrector:
 
     def test_skip_empty(self):
         """اختبار تخطي النصوص الفارغة."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         assert corrector.correct_word("") == ""
@@ -64,7 +64,7 @@ class TestSpellCorrector:
 
     def test_correct_text_returns_dict(self):
         """اختبار أن correct_text يعيد قاموساً."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         result = corrector.correct_text("Hello World")
@@ -75,7 +75,7 @@ class TestSpellCorrector:
 
     def test_correct_text_empty(self):
         """اختبار تصحيح نص فارغ."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         result = corrector.correct_text("")
@@ -84,7 +84,7 @@ class TestSpellCorrector:
 
     def test_learn_correction(self):
         """اختبار تعلم تصحيح جديد."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         import tempfile
         import os
 
@@ -107,7 +107,7 @@ class TestSpellCorrector:
 
     def test_is_available(self):
         """اختبار فحص التوفر."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         availability = corrector.is_available()
@@ -118,7 +118,7 @@ class TestSpellCorrector:
 
     def test_protected_terms_management(self):
         """اختبار إدارة المصطلحات المحمية."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         # إضافة مصطلح
@@ -131,7 +131,7 @@ class TestSpellCorrector:
 
     def test_cannot_remove_python_keyword(self):
         """اختبار عدم القدرة على إزالة كلمة Python محجوزة."""
-        from modules.nlp.spell_corrector import SpellCorrector
+        from packages.nlp.spell_corrector import SpellCorrector
         corrector = SpellCorrector()
 
         assert corrector.remove_protected_term("def") is False

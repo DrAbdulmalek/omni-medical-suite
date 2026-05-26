@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from modules.vision.image_preprocessor import ImagePreprocessor
+from packages.vision.image_preprocessor import ImagePreprocessor
 
 
 @pytest.fixture

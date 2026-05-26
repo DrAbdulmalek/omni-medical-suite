@@ -16,7 +16,7 @@ and improve OCR accuracy over time through pattern matching.
 from __future__ import annotations
 
 import logging
-from modules.core.base_db import BaseDB
+from packages.core.base_db import BaseDB
 from datetime import datetime
 from pathlib import Path
 from typing import Optional

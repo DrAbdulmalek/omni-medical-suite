@@ -14,7 +14,7 @@ from difflib import get_close_matches
 from pathlib import Path
 from typing import Optional
 
-from modules.core.base_db import BaseDB
+from packages.core.base_db import BaseDB
 
 logger = logging.getLogger(__name__)
 

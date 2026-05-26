@@ -2,7 +2,7 @@
 Pattern DB — قاعدة بيانات لأنماط الخط اليدوي الشخصية
 تتعلم من تصحيحات المستخدم وتقترح تلقائياً
 """
-from modules.core.base_db import BaseDB
+from packages.core.base_db import BaseDB
 import hashlib
 import cv2
 import numpy as np

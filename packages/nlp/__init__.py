@@ -15,25 +15,25 @@
 - مولّد المراجع الدراسية (Study Guide Generator)
 - خط أنابيب NLP الطبي الموحّد (Medical NLP Pipeline)
 """
-from modules.nlp.text_classifier import TextClassifier
-from modules.nlp.entity_extractor import EntityExtractor
-from modules.nlp.translator import TechnicalTranslator
-from modules.nlp.spell_corrector import SpellCorrector
-from modules.nlp.language_detector import LanguageDetector
-from modules.nlp.arabic_rtl import RTLFixer, is_rtl_text, get_text_direction
-from modules.nlp.mixed_text import (
+from packages.nlp.text_classifier import TextClassifier
+from packages.nlp.entity_extractor import EntityExtractor
+from packages.nlp.translator import TechnicalTranslator
+from packages.nlp.spell_corrector import SpellCorrector
+from packages.nlp.language_detector import LanguageDetector
+from packages.nlp.arabic_rtl import RTLFixer, is_rtl_text, get_text_direction
+from packages.nlp.mixed_text import (
     detect_language,
     optimize_mixed_text,
     separate_text_components,
 )
-from modules.nlp.protected_words import ProtectedWordsManager
-from modules.nlp.study_guide import StudyGuideGenerator
+from packages.nlp.protected_words import ProtectedWordsManager
+from packages.nlp.study_guide import StudyGuideGenerator
 try:
-    from modules.nlp.ai_corrector import AICorrector
+    from packages.nlp.ai_corrector import AICorrector
 except ImportError:  # تبعيات اختيارية مثل python-dotenv / openai
     AICorrector = None
 
-from modules.nlp.pipeline import (
+from packages.nlp.pipeline import (
     MedicalNLPPipeline,
     NLPPipelineResult,
     StageResult,

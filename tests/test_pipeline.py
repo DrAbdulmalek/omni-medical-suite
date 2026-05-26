@@ -49,13 +49,13 @@ class TestTextReconstructor:
 
     def test_reconstruct_empty(self) -> None:
         """Test reconstruct with empty word list."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         reconstructor = TextReconstructor()
         assert reconstructor.reconstruct([]) == ""
 
     def test_reconstruct_single_word(self) -> None:
         """Test reconstruct with single word."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         reconstructor = TextReconstructor()
         words = [{"text": "مرحبا", "x": 10, "y": 10, "w": 50, "h": 20}]
         result = reconstructor.reconstruct(words, direction="rtl")
@@ -63,7 +63,7 @@ class TestTextReconstructor:
 
     def test_reconstruct_ltr(self) -> None:
         """Test reconstruct with LTR direction."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         reconstructor = TextReconstructor()
         words = [
             {"text": "Hello", "x": 10, "y": 10, "w": 50, "h": 20},
@@ -75,7 +75,7 @@ class TestTextReconstructor:
 
     def test_reconstruct_rtl(self) -> None:
         """Test reconstruct with RTL direction."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         reconstructor = TextReconstructor()
         words = [
             {"text": "مرحبا", "x": 100, "y": 10, "w": 50, "h": 20},
@@ -87,7 +87,7 @@ class TestTextReconstructor:
 
     def test_detect_direction_arabic(self) -> None:
         """Test auto-detection of Arabic (RTL) direction."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         reconstructor = TextReconstructor()
         words = [
             {"text": "مرحبا", "x": 10, "y": 10, "w": 50, "h": 20},
@@ -97,7 +97,7 @@ class TestTextReconstructor:
 
     def test_detect_direction_english(self) -> None:
         """Test auto-detection of English (LTR) direction."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         reconstructor = TextReconstructor()
         words = [
             {"text": "Hello", "x": 10, "y": 10, "w": 50, "h": 20},
@@ -107,21 +107,21 @@ class TestTextReconstructor:
 
     def test_is_arabic_text(self) -> None:
         """Test Arabic text detection."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         assert TextReconstructor._is_arabic_text("مرحبا") is True
         assert TextReconstructor._is_arabic_text("Hello") is False
         assert TextReconstructor._is_arabic_text("") is False
 
     def test_is_latin_text(self) -> None:
         """Test Latin text detection."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         assert TextReconstructor._is_latin_text("Hello") is True
         assert TextReconstructor._is_latin_text("مرحبا") is False
         assert TextReconstructor._is_latin_text("") is False
 
     def test_statistics(self) -> None:
         """Test getting reconstruction statistics."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         reconstructor = TextReconstructor()
         words = [
             {"text": "مرحبا", "x": 10, "y": 10, "w": 50, "h": 20},
@@ -134,7 +134,7 @@ class TestTextReconstructor:
 
     def test_group_into_lines(self) -> None:
         """Test grouping words into lines."""
-        from modules.vision.text_reconstructor import TextReconstructor
+        from packages.vision.text_reconstructor import TextReconstructor
         reconstructor = TextReconstructor(line_threshold=15.0)
         words = [
             {"text": "Word1", "x": 10, "y": 10, "w": 50, "h": 20},
@@ -152,7 +152,7 @@ class TestImagePreprocessor:
 
     def test_preprocessor_creation(self) -> None:
         """Test preprocessor initialization."""
-        from modules.vision.image_preprocessor import ImagePreprocessor
+        from packages.vision.image_preprocessor import ImagePreprocessor
         pp = ImagePreprocessor(
             apply_clahe=True,
             apply_denoise=True,
@@ -166,7 +166,7 @@ class TestImagePreprocessor:
 
     def test_preprocessor_all_disabled(self) -> None:
         """Test preprocessor with all steps disabled."""
-        from modules.vision.image_preprocessor import ImagePreprocessor
+        from packages.vision.image_preprocessor import ImagePreprocessor
         pp = ImagePreprocessor(
             apply_clahe=False,
             apply_denoise=False,
@@ -178,7 +178,7 @@ class TestImagePreprocessor:
 
     def test_to_numpy(self, sample_image: np.ndarray) -> None:
         """Test converting image to numpy."""
-        from modules.vision.image_preprocessor import ImagePreprocessor
+        from packages.vision.image_preprocessor import ImagePreprocessor
         result = ImagePreprocessor._to_numpy(sample_image)
         assert isinstance(result, np.ndarray)
         assert result.shape == sample_image.shape
@@ -186,7 +186,7 @@ class TestImagePreprocessor:
     def test_to_numpy_pil(self) -> None:
         """Test converting PIL image to numpy."""
         from PIL import Image
-        from modules.vision.image_preprocessor import ImagePreprocessor
+        from packages.vision.image_preprocessor import ImagePreprocessor
         pil_img = Image.new("RGB", (100, 100), color="white")
         result = ImagePreprocessor._to_numpy(pil_img)
         assert isinstance(result, np.ndarray)
@@ -194,7 +194,7 @@ class TestImagePreprocessor:
 
     def test_ensure_odd(self) -> None:
         """Test that odd number helper works."""
-        from modules.vision.image_preprocessor import ImagePreprocessor
+        from packages.vision.image_preprocessor import ImagePreprocessor
         pp = ImagePreprocessor()
         # Verify denoise window sizes are odd
         assert pp.denoise_template_window % 2 == 1

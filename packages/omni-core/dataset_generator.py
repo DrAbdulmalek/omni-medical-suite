@@ -9,7 +9,7 @@
 - CSV: للتحليل الإحصائي
 
 الاستخدام:
-    from modules.core.dataset_generator import DatasetGenerator
+    from packages.core.dataset_generator import DatasetGenerator
     gen = DatasetGenerator(output_dir="training_data")
     gen.add_entry(
         instruction="صحح المصطلحات الطبية في النص التالي:",

@@ -6,7 +6,7 @@ class TestAuditLogger:
     """Test AuditLogger with temp directory."""
     
     def _make_logger(self, tmp_path):
-        from modules.audit.audit_logger import AuditLogger
+        from packages.audit.audit_logger import AuditLogger
         log_dir = str(tmp_path / "audit_logs")
         return AuditLogger(log_dir=log_dir, reviewer_id="TestUser")
     

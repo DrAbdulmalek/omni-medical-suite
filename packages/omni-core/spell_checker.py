@@ -192,7 +192,7 @@ class HybridSpellChecker:
 
         # 2. WordCorrectionDB (تعلّم من تصحيحات المستخدم)
         try:
-            from modules.core.word_trainer import WordCorrectionDB
+            from packages.core.word_trainer import WordCorrectionDB
             db = WordCorrectionDB()
             best = db.get_best_correction(word, lang=lang)
             if best and best != word and best not in suggestions:

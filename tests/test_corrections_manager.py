@@ -6,7 +6,7 @@ class TestCorrectionsDictManager:
     """Test CorrectionsDictManager with temp files."""
     
     def _make_manager(self, tmp_path):
-        from modules.core.corrections_manager import CorrectionsDictManager
+        from packages.core.corrections_manager import CorrectionsDictManager
         corrections_path = str(tmp_path / "corrections.json")
         arabic_fixes_path = str(tmp_path / "arabic_fixes.json")
         backup_dir = str(tmp_path / "backups")
@@ -42,7 +42,7 @@ class TestCorrectionsDictManager:
         assert stats["total"] == 2
     
     def test_export(self, tmp_path):
-        from modules.core.corrections_manager import CorrectionsDictManager
+        from packages.core.corrections_manager import CorrectionsDictManager
         mgr = self._make_manager(tmp_path)
         mgr.add("w1", "c1")
         export_path = str(tmp_path / "exported.json")
@@ -52,7 +52,7 @@ class TestCorrectionsDictManager:
         assert "w1" in data
     
     def test_import_and_merge(self, tmp_path):
-        from modules.core.corrections_manager import CorrectionsDictManager
+        from packages.core.corrections_manager import CorrectionsDictManager
         mgr = self._make_manager(tmp_path)
         
         # Create import file

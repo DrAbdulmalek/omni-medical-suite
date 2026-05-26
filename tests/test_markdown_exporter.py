@@ -1,6 +1,6 @@
 """اختبارات modules/export/markdown_exporter.py"""
 import pytest
-from modules.export.markdown_exporter import (
+from packages.export.markdown_exporter import (
     blocks_to_markdown, export_to_markdown, detect_list_items, _table_to_markdown
 )
 

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from unittest.mock import MagicMock, patch
 
-from modules.vision.ocr_engine import OCREngine
+from packages.vision.ocr_engine import OCREngine
 
 
 @pytest.fixture

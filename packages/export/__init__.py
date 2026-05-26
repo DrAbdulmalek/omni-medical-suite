@@ -8,6 +8,6 @@ OmniFile AI Processor — Export Module
 - تصدير إلى HTML مع الحفاظ على التنسيق
 - تصدير إلى PDF قابل للبحث (صورة + نص مخفي)
 """
-from modules.export.exporter import DocumentExporter
+from packages.export.exporter import DocumentExporter
 
 __all__ = ["DocumentExporter"]

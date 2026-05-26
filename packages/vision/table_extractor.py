@@ -24,7 +24,7 @@ from typing import Optional
 import cv2
 import numpy as np
 
-from modules.core.structure import BBox
+from packages.core.structure import BBox
 
 logger = logging.getLogger(__name__)
 

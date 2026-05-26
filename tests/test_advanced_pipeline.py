@@ -12,8 +12,8 @@ from PIL import Image, ImageDraw
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.vision.ocr_engine import OCREngine
-from modules.vision.text_reconstructor import TextReconstructor
+from packages.vision.ocr_engine import OCREngine
+from packages.vision.text_reconstructor import TextReconstructor
 
 
 # ─── Test Helpers ─────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ class TestTextReconstructor:
 class TestImagePreprocessor:
     def test_creation(self):
         """Test preprocessor can be created."""
-        from modules.vision.image_preprocessor import ImagePreprocessor
+        from packages.vision.image_preprocessor import ImagePreprocessor
         pp = ImagePreprocessor(
             apply_clahe=True,
             apply_denoise=True,
@@ -185,7 +185,7 @@ class TestImagePreprocessor:
 
     def test_preprocess(self):
         """Test preprocessing a simple image."""
-        from modules.vision.image_preprocessor import ImagePreprocessor
+        from packages.vision.image_preprocessor import ImagePreprocessor
         pp = ImagePreprocessor(apply_clahe=False, apply_denoise=False,
                                apply_deskew=False, apply_binarize=False)
         img = np.ones((100, 100, 3), dtype=np.uint8) * 255
@@ -194,7 +194,7 @@ class TestImagePreprocessor:
 
     def test_smart_segment(self):
         """Test word segmentation returns list."""
-        from modules.vision.image_preprocessor import ImagePreprocessor
+        from packages.vision.image_preprocessor import ImagePreprocessor
         pp = ImagePreprocessor()
         img = np.ones((100, 100, 3), dtype=np.uint8) * 255
         result = pp.smart_segment(img)
@@ -206,7 +206,7 @@ class TestImagePreprocessor:
 class TestSecureFileHandling:
     def test_sanitize_filename(self):
         """Test filename sanitization."""
-        from modules.security.file_scanner import FileScanner
+        from packages.security.file_scanner import FileScanner
         # Basic test that file scanner can be imported and instantiated
         scanner = FileScanner()
         assert scanner is not None

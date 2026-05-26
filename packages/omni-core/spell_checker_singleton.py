@@ -5,7 +5,7 @@ Singleton instance of HybridSpellChecker for project-wide use.
 Prevents duplicate instances across modules.
 
 Usage:
-    from modules.core.spell_checker_singleton import get_spell_checker
+    from packages.core.spell_checker_singleton import get_spell_checker
     
     checker = get_spell_checker()
     corrected = checker.correct_text("النص المراد تصحيحه")
@@ -32,7 +32,7 @@ def get_spell_checker(arabic_fixes_path: Optional[str] = None) -> "HybridSpellCh
     if _instance is None:
         with _lock:
             if _instance is None:
-                from modules.core.spell_checker import HybridSpellChecker
+                from packages.core.spell_checker import HybridSpellChecker
                 kwargs = {}
                 if arabic_fixes_path:
                     kwargs["arabic_fixes_path"] = arabic_fixes_path

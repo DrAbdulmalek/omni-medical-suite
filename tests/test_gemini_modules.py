@@ -41,7 +41,7 @@ class TestFileFingerprintManager(unittest.TestCase):
 
     def test_calculate_hash(self):
         """اختبار حساب بصمة الملف."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         hash1 = FileFingerprintManager.calculate_hash(self.test_file)
         hash2 = FileFingerprintManager.calculate_hash(self.test_file)
@@ -55,7 +55,7 @@ class TestFileFingerprintManager(unittest.TestCase):
 
     def test_calculate_hash_different_files(self):
         """اختبار بصمات ملفات مختلفة."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         other_file = os.path.join(self.temp_dir, "other.txt")
         with open(other_file, "w") as f:
@@ -67,14 +67,14 @@ class TestFileFingerprintManager(unittest.TestCase):
 
     def test_md5_hash(self):
         """اختبار حساب بصمة MD5."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         hash_md5 = FileFingerprintManager.calculate_hash(self.test_file, algorithm="md5")
         self.assertEqual(len(hash_md5), 32)
 
     def test_is_new_file(self):
         """اختبار كشف الملفات الجديدة."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         mgr = FileFingerprintManager(self.db_path)
         try:
@@ -86,7 +86,7 @@ class TestFileFingerprintManager(unittest.TestCase):
 
     def test_mark_processed(self):
         """اختبار تسجيل ملف كمعالج."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         mgr = FileFingerprintManager(self.db_path)
         try:
@@ -108,7 +108,7 @@ class TestFileFingerprintManager(unittest.TestCase):
 
     def test_mark_duplicate(self):
         """اختبار تجاهل الملفات المكررة."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         mgr = FileFingerprintManager(self.db_path)
         try:
@@ -120,7 +120,7 @@ class TestFileFingerprintManager(unittest.TestCase):
 
     def test_get_statistics(self):
         """اختبار الإحصائيات."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         mgr = FileFingerprintManager(self.db_path)
         try:
@@ -136,7 +136,7 @@ class TestFileFingerprintManager(unittest.TestCase):
 
     def test_context_manager(self):
         """اختبار مدير السياق."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         with FileFingerprintManager(self.db_path) as mgr:
             mgr.mark_processed(self.test_file)
@@ -144,7 +144,7 @@ class TestFileFingerprintManager(unittest.TestCase):
 
     def test_export_fingerprints(self):
         """اختبار تصدير البصمات."""
-        from modules.core.file_fingerprint import FileFingerprintManager
+        from packages.core.file_fingerprint import FileFingerprintManager
 
         mgr = FileFingerprintManager(self.db_path)
         try:
@@ -166,7 +166,7 @@ class TestMedicalClassifier(unittest.TestCase):
     """اختبارات مصنف المحتوى الطبي."""
 
     def setUp(self):
-        from modules.core.classifier import MedicalClassifier
+        from packages.core.classifier import MedicalClassifier
         self.classifier = MedicalClassifier()
 
     def test_orthopedic_text(self):
@@ -251,7 +251,7 @@ class TestLanguageCorrector(unittest.TestCase):
     """اختبارات المدقق اللغوي."""
 
     def setUp(self):
-        from modules.nlp.language_corrector import LanguageCorrector
+        from packages.nlp.language_corrector import LanguageCorrector
         self.corrector = LanguageCorrector(lang='ar')
 
     def test_empty_text(self):
@@ -287,7 +287,7 @@ class TestDatasetGenerator(unittest.TestCase):
     """اختبارات مولد بيانات التدريب."""
 
     def setUp(self):
-        from modules.core.dataset_generator import DatasetGenerator
+        from packages.core.dataset_generator import DatasetGenerator
         self.temp_dir = tempfile.mkdtemp()
         self.gen = DatasetGenerator(
             output_dir=self.temp_dir,
@@ -371,7 +371,7 @@ class TestDatasetGenerator(unittest.TestCase):
 
     def test_max_entries(self):
         """اختبار الحد الأقصى."""
-        from modules.core.dataset_generator import DatasetGenerator
+        from packages.core.dataset_generator import DatasetGenerator
         gen = DatasetGenerator(output_dir=self.temp_dir, max_entries=2)
 
         gen.add_entry(input_text="a", output_text="b")
@@ -387,7 +387,7 @@ class TestSearchEngine(unittest.TestCase):
 
     def test_parse_advanced_query(self):
         """اختبار تحليل الاستعلام المتقدم."""
-        from modules.core.search_engine import SearchEngine
+        from packages.core.search_engine import SearchEngine
 
         # AND
         result = SearchEngine._parse_advanced_query("كسر AND فخذ")
@@ -407,7 +407,7 @@ class TestSearchEngine(unittest.TestCase):
 
     def test_extract_context(self):
         """اختبار استخراج السياق."""
-        from modules.core.search_engine import SearchEngine
+        from packages.core.search_engine import SearchEngine
 
         text = "المريض يعاني من ألم شديد في الركبة اليسرى منذ فترة طويلة ويحتاج إلى تقييم متخصص"
         result = SearchEngine._extract_context(text, "الركبة", context_length=20)
@@ -415,7 +415,7 @@ class TestSearchEngine(unittest.TestCase):
 
     def test_fts5_query(self):
         """اختبار تحويل استعلام FTS5."""
-        from modules.core.search_engine import SearchEngine
+        from packages.core.search_engine import SearchEngine
 
         result = SearchEngine._to_fts5_query("كسر فخذ")
         self.assertIn('"كسر"', result)
@@ -423,7 +423,7 @@ class TestSearchEngine(unittest.TestCase):
 
     def test_search_files(self):
         """اختبار البحث في الملفات."""
-        from modules.core.search_engine import SearchEngine
+        from packages.core.search_engine import SearchEngine
 
         temp_dir = tempfile.mkdtemp()
         try:
@@ -446,7 +446,7 @@ class TestWatchdogService(unittest.TestCase):
 
     def test_initialization(self):
         """اختبار التهيئة."""
-        from modules.core.watchdog_service import FolderWatchdog
+        from packages.core.watchdog_service import FolderWatchdog
 
         temp_dir = tempfile.mkdtemp()
         try:
@@ -464,7 +464,7 @@ class TestWatchdogService(unittest.TestCase):
 
     def test_valid_extensions(self):
         """اختبار فلاتر الامتدادات."""
-        from modules.core.watchdog_service import FolderWatchdog
+        from packages.core.watchdog_service import FolderWatchdog
 
         wd = FolderWatchdog.__new__(FolderWatchdog)
         wd.extensions = {'.pdf', '.png'}
@@ -475,7 +475,7 @@ class TestWatchdogService(unittest.TestCase):
 
     def test_statistics(self):
         """اختبار إحصائيات المراقب."""
-        from modules.core.watchdog_service import FolderWatchdog
+        from packages.core.watchdog_service import FolderWatchdog
 
         temp_dir = tempfile.mkdtemp()
         try:
@@ -493,7 +493,7 @@ class TestWatchdogService(unittest.TestCase):
 
     def test_repr(self):
         """اختبار التمثيل النصي."""
-        from modules.core.watchdog_service import FolderWatchdog
+        from packages.core.watchdog_service import FolderWatchdog
 
         temp_dir = tempfile.mkdtemp()
         try:

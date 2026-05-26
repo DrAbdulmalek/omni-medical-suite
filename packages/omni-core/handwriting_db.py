@@ -11,7 +11,7 @@ from typing import Optional
 from pathlib import Path
 from datetime import datetime
 
-from modules.core.base_db import BaseDB
+from packages.core.base_db import BaseDB
 
 logger = logging.getLogger("modules.core.handwriting_db")
 

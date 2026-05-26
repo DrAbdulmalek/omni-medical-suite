@@ -9,7 +9,7 @@ class TestBaseDB:
     
     def _make_db(self, tmp_path):
         """Create a test database subclass."""
-        from modules.core.base_db import BaseDB
+        from packages.core.base_db import BaseDB
         
         class TestDB(BaseDB):
             def _create_schema(self, conn):

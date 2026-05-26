@@ -108,12 +108,12 @@ def plot_metrics_fig(metrics_log: str = ""):
 # === Compatibility aliases for OmniFile_v500_Colab ===
 def compute_cer(reference: str, hypothesis: str) -> float:
     """CER wrapper — delegates to metrics.calculate_cer."""
-    from modules.evaluation.metrics import calculate_cer
+    from packages.evaluation.metrics import calculate_cer
     cer, _, _ = calculate_cer(reference, hypothesis)
     return cer
 
 def compute_wer(reference: str, hypothesis: str) -> float:
     """WER wrapper — delegates to metrics.calculate_wer."""
-    from modules.evaluation.metrics import calculate_wer
+    from packages.evaluation.metrics import calculate_wer
     wer, _, _ = calculate_wer(reference, hypothesis)
     return wer

@@ -7,7 +7,7 @@ Tools for evaluating OCR accuracy and measuring result quality.
 OmniFile AI Processor - وحدة معالجة الملفات الذكية
 """
 
-from modules.evaluation.metrics import (
+from packages.evaluation.metrics import (
     EvaluationResult,
     calculate_cer,
     calculate_wer,

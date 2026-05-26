@@ -175,7 +175,7 @@ class SuryaOCREngine:
             dict النتيجة الموحدة بالهيكل القياسي
         """
         from PIL import Image
-        from modules.vision.normalize import normalize_ocr_output, save_normalized
+        from packages.vision.normalize import normalize_ocr_output, save_normalized
 
         text, blocks = self.extract_text(image_path)
         img = Image.open(image_path)

@@ -15,7 +15,7 @@
 أنت الطبيب الأدرى بصحة المصطلح.
 
 الاستخدام:
-    from modules.nlp.language_corrector import LanguageCorrector
+    from packages.nlp.language_corrector import LanguageCorrector
     corrector = LanguageCorrector(lang='ar')
     result = corrector.check("المريض يعاني من الم في الركبة")
     # result = {

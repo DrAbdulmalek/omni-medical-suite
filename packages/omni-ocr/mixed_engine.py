@@ -36,7 +36,7 @@ class MixedLanguageOCR:
         self.engines = {}
 
         try:
-            from modules.learning.pattern_db import PatternDB
+            from packages.learning.pattern_db import PatternDB
             self.pattern_db = PatternDB(pattern_db_path)
         except ImportError:
             print("⚠️ PatternDB غير متاح")

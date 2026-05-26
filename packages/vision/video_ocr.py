@@ -197,7 +197,7 @@ class VideoOCR:
             return self._ocr_engine
 
         try:
-            from modules.vision.ocr_engine import OCREngine
+            from packages.vision.ocr_engine import OCREngine
             self._ocr_engine = OCREngine(
                 enable_trocr=False,
                 enable_easyocr=True,

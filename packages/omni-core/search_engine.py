@@ -12,7 +12,7 @@
 - تصدير النتائج
 
 الاستخدام:
-    from modules.core.search_engine import SearchEngine
+    from packages.core.search_engine import SearchEngine
     engine = SearchEngine(db_path="omni_processor.db")
     results = engine.search("كسر عنق الفخذ", limit=20)
     for r in results:
@@ -22,7 +22,7 @@
 import logging
 import os
 import re
-from modules.core.base_db import BaseDB
+from packages.core.base_db import BaseDB
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 
