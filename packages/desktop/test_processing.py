@@ -13,7 +13,7 @@ sys.path.insert(0, ".")
 # Import core functions that don't depend on PyQt5
 # We import them directly to avoid PyQt5 dependency in tests
 try:
-    from medical_doc_gui_v10 import (
+    from medical_doc_gui import (
         apply_processing, _remove_shadow, calc_blur, quality_label,
         auto_detect_skew, smart_auto_crop, images_are_similar,
         assess_image_quality,
@@ -98,8 +98,8 @@ class TestApplyProcessing:
             "sharpen": True,
         }
         result = apply_processing(img, params)
-        # After 90 rotation: 300x200 -> 200x300, then crop: 200-10=190 x 300-10=290
-        assert result.shape == (290, 190, 3)
+        # After 90 rotation: image shape becomes (200, 300), then crop => (190, 290)
+        assert result.shape == (190, 290, 3)
 
     def test_shadow_removal(self):
         """Shadow removal should not change dimensions."""

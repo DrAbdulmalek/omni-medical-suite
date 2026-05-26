@@ -1,20 +1,20 @@
-# Medical Document Scanner - Dependencies
-# Core (required)
+# Omni Medical Suite - Python requirements
+# Core
 PyQt5>=5.15.0
-opencv-python-headless>=4.5.0
-numpy>=1.21.0
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
 
-# OCR & Image Analysis (recommended)
-pytesseract>=0.3.8
-Pillow>=8.0.0
-imagehash>=4.2.0
+# Recommended OCR & analysis
+pytesseract>=0.3.10
+Pillow>=9.0.0
+imagehash>=4.3.0
 
-# PDF Support (optional)
+# Optional PDF support
 pdf2image>=1.16.0
 
-# System dependency (required for OCR):
-# Tesseract OCR must be installed on the system:
-#   Ubuntu/Debian: sudo apt install tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng
-#   Arch Linux:    sudo pacman -S tesseract tesseract-data-ara tesseract-data-eng
-#   macOS:         brew install tesseract
-#   Windows:       Download installer from https://github.com/UB-Mannheim/tesseract/wiki
+# Testing
+pytest>=7.0.0
+
+# System packages:
+# - Tesseract OCR (+ Arabic/English language data)
+# - Poppler utilities for PDF rendering
