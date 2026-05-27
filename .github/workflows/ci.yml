@@ -135,8 +135,9 @@ jobs:
 
       - name: Run Bandit security scan
         run: |
-          bandit -r services/api/app/ -ll -x tests || true
-          bandit -r packages/security/ -ll || true
+          bandit -r services/api/app/ -ll -x tests
+          bandit -r packages/security/ -ll
+        continue-on-error: false
 
       - name: Check for leaked secrets
         run: |

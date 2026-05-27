@@ -56,3 +56,4 @@ jobs:
           echo "Deploying to Kubernetes cluster..."
           kubectl apply -f k8s/
           kubectl rollout status deployment/api -n omnimedical --timeout=300s
+          echo "Deployment complete. NOTE: infrastructure/k8s/ is deprecated — use k8s/ only."

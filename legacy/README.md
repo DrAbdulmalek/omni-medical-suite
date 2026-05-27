@@ -1,17 +1,11 @@
-# Legacy Code
+# Legacy Code Archive
 
 This directory contains deprecated code that has been superseded by newer implementations.
 
-## api_server.py
+## Files
 
-**Status:** Deprecated — use `services/api/app/main.py` instead.
+| File | Replaced By | Notes |
+|------|------------|-------|
+| `api_server.py` | `services/api/app/main.py` | Old BaseHTTPRequestHandler stub replaced by FastAPI app |
 
-This was a simple HTTP stub using `BaseHTTPRequestHandler`. The production API
-is now a full FastAPI application located at `services/api/app/main.py`.
-
-### Migration
-
-- Old: `python services/api/api_server.py`
-- New: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
-
-All Dockerfiles, CI, and documentation now reference the FastAPI entry-point.
+These files are kept for historical reference only. Do not use them in production.

@@ -1,23 +1,22 @@
+# =============================================================================
+# DEPRECATED — Use infrastructure/docker/Dockerfile.api instead
+# =============================================================================
+# This file is kept for backward compatibility.
+# The canonical API Dockerfile is at infrastructure/docker/Dockerfile.api
+# and is used by CI/CD (docker.yml workflow) and docker-compose.
+# =============================================================================
+
 FROM python:3.11-slim
 
-# ============================================================================
-# OmniMedical Suite — API Worker Dockerfile
-# ============================================================================
-# FastAPI application serving the main API.
-# Entry-point: services/api/app/main.py
-# ============================================================================
-
 LABEL maintainer="Dr. Abdulmalek Al-husseini"
-LABEL description="OmniMedical API Worker"
+LABEL description="OmniMedical API Worker (DEPRECATED — see infrastructure/docker/Dockerfile.api)"
 
 WORKDIR /app
 
-# Set PYTHONPATH so `from app.core.config import ...` resolves correctly
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app/services/api
 
-# System dependencies
 RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-ara \
@@ -25,24 +24,19 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
 COPY services/api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code
 COPY services/api/ ./services/api/
 COPY packages/ ./packages/
 COPY data/ ./data/
 COPY config/ ./config/
 
-# Create data directories
 RUN mkdir -p /app/uploads /app/encrypted /app/model /app/logs
 
 EXPOSE 8000
 
-# Health check
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Start FastAPI — correct module path is app.main:app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

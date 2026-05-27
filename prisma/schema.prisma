@@ -8,6 +8,11 @@ generator client {
 }
 
 datasource db {
+  // Use "postgresql" for production deployments (Docker/K8s)
+  // Use "sqlite" for local development only
+  // Set via DATABASE_URL format:
+  //   PostgreSQL: postgresql://user:pass@host:5432/db
+  //   SQLite:     file:./dev.db
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }

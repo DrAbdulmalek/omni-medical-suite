@@ -2,7 +2,8 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
     "**/.env",
-    "prisma/schema.prisma"
+    "prisma/schema.prisma",
+    "apps/web/next.config.ts"
   ],
   "tasks": {
     "build": {
@@ -20,6 +21,10 @@
       "dependsOn": ["build"]
     },
     "db:generate": {
+      "cache": true,
+      "outputs": ["node_modules/.prisma/**"]
+    },
+    "db:generate:root": {
       "cache": true,
       "outputs": ["node_modules/.prisma/**"]
     },
