@@ -1,11 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
-    "**/.env"
+    "**/.env",
+    "prisma/schema.prisma"
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "db:generate"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
@@ -17,6 +18,10 @@
     },
     "test": {
       "dependsOn": ["build"]
+    },
+    "db:generate": {
+      "cache": true,
+      "outputs": ["node_modules/.prisma/**"]
     },
     "clean": {
       "cache": false

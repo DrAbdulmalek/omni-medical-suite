@@ -1,6 +1,11 @@
 /**
  * In-memory sliding window rate limiter
  *
+ * ⚠️  IMPORTANT: This in-memory implementation is suitable for
+ * single-instance deployments only. In a multi-container / production setup
+ * you MUST replace the `Map`-based store with Redis (e.g. ioredis)
+ * or use an API-gateway level rate limiter (Nginx, Kong, Cloudflare).
+ *
  * Usage:
  *   import { rateLimit } from "@/lib/rate-limit";
  *   const { success, remaining, resetAt } = rateLimit("api-process", 10, 60);
@@ -11,6 +16,7 @@ interface RateLimitEntry {
   timestamps: number[];
 }
 
+// ── Store ──────────────────────────────────────────────────────────────
 // In-memory store (for production, use Redis)
 const store = new Map<string, RateLimitEntry>();
 
@@ -77,9 +83,15 @@ export function rateLimit(
   };
 }
 
+/** Standard rate-limit headers attached to every response. */
+const RATE_LIMIT_HEADERS = {
+  "X-RateLimit-Policy": "1;w=60",          // 1 request per second burst, 60s window
+  "X-RateLimit-Limit": "100",
+} as const;
+
 /**
- * Apply rate limiting to a Next.js API route
- * Returns a 429 response if rate limit exceeded, or null if OK
+ * Apply rate limiting to a Next.js API route.
+ * Returns a 429 response if rate limit exceeded, or null if OK.
  */
 export function withRateLimit(
   request: Request,
@@ -104,8 +116,11 @@ export function withRateLimit(
         {
           status: 429,
           headers: {
+            "Content-Type": "application/json",
             "Retry-After": String(Math.ceil((result.resetAt - Date.now()) / 1000)),
             "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": new Date(result.resetAt).toISOString(),
+            ...RATE_LIMIT_HEADERS,
           },
         }
       ),
@@ -113,4 +128,24 @@ export function withRateLimit(
   }
 
   return { limited: false };
+}
+
+/**
+ * Attach standard rate-limit headers to a successful response.
+ * Call this on every non-limited API response for consistency.
+ */
+export function attachRateLimitHeaders(
+  response: Response,
+  remaining: number,
+  resetAt: number
+): Response {
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set("X-RateLimit-Remaining", String(remaining));
+  newHeaders.set("X-RateLimit-Reset", new Date(resetAt).toISOString());
+  newHeaders.set("X-RateLimit-Limit", "100");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
 }

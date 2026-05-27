@@ -3,6 +3,9 @@ set -euo pipefail
 
 echo "=== OmniMedical Suite v2.0 - Starting ==="
 
+# Ensure PYTHONPATH is set so `from app.core.config import ...` works
+export PYTHONPATH="${PYTHONPATH:-/app/services/api}"
+
 # Wait for dependencies
 echo "Waiting for PostgreSQL..."
 while ! python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('postgres', 5432)); s.close()" 2>/dev/null; do
@@ -19,6 +22,8 @@ echo "Redis is ready."
 # Run database migrations
 echo "Running database migrations..."
 python -c "
+import sys
+sys.path.insert(0, '/app/services/api')
 from app.core.database import engine, Base
 Base.metadata.create_all(bind=engine)
 print('Migrations complete.')

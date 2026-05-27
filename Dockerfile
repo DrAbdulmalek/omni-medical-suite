@@ -12,9 +12,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Set PYTHONPATH so `from app.core.config import ...` resolves correctly
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app/services/api
+
+# Copy API requirements first for better caching
+COPY services/api/requirements.txt ./services/api/requirements.txt
+RUN pip install --no-cache-dir -r services/api/requirements.txt
 
 # ---- Development stage ----
 FROM base AS dev

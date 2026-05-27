@@ -1,8 +1,17 @@
 /**
  * Next.js Middleware - Route Protection
  *
- * Protects API routes and dashboard pages.
+ * Protects all application pages and API routes.
+ * The root page (/) is the main app interface and must be authenticated.
  * Redirects unauthenticated users to /login.
+ *
+ * Public routes (excluded from protection):
+ * - /login — sign-in page
+ * - /api/auth/* — NextAuth endpoints
+ * - /api/health — health check
+ * - /api/init-data — initial data bootstrap
+ * - /api/preview/* — public document preview
+ * - /api/auth/seed — user seeding (dev only)
  */
 
 import { withAuth } from "next-auth/middleware";
@@ -15,6 +24,8 @@ export default withAuth({
 
 export const config = {
   matcher: [
+    // Protect root page — it IS the main application
+    "/",
     // Protect dashboard and all API routes except auth and public endpoints
     "/dashboard/:path*",
     "/api/mistral/:path*",
@@ -32,5 +43,8 @@ export const config = {
     "/api/stats/:path*",
     "/api/settings/:path*",
     "/api/logs/:path*",
+    "/api/rate-limit-example/:path*",
+    "/api/pdf-pages/:path*",
+    "/api/extract-page-number/:path*",
   ],
 };

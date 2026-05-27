@@ -2,7 +2,54 @@ import sharp from 'sharp';
 import Tesseract from 'tesseract.js';
 
 /**
+ * OCR Worker Singleton
+ *
+ * Instead of creating a new Tesseract worker for every page number extraction
+ * (which is expensive in production), we maintain a singleton worker that is
+ * reused across calls. The worker is initialized lazily on first use and
+ * supports language configuration.
+ */
+
+let _worker: Tesseract.Worker | null = null;
+let _workerInitPromise: Promise<Tesseract.Worker> | null = null;
+
+/**
+ * Get or create a singleton Tesseract worker.
+ * The worker is shared across all requests to avoid the overhead of
+ * initializing a new worker for every OCR call.
+ */
+async function getWorker(): Promise<Tesseract.Worker> {
+  if (_worker) return _worker;
+
+  if (_workerInitPromise) return _workerInitPromise;
+
+  _workerInitPromise = Tesseract.createWorker('ara+eng', undefined, {
+    logger: () => {},
+  }).then((worker) => {
+    _worker = worker;
+    _workerInitPromise = null;
+    return worker;
+  });
+
+  return _workerInitPromise;
+}
+
+/**
+ * Terminate the singleton worker. Call this on server shutdown.
+ */
+export async function terminateOcrWorker(): Promise<void> {
+  if (_worker) {
+    await _worker.terminate();
+    _worker = null;
+    _workerInitPromise = null;
+  }
+}
+
+/**
  * Extract text from the bottom-right region of an image and find page numbers.
+ *
+ * Uses a singleton Tesseract worker for efficiency. In a high-throughput
+ * environment, consider moving OCR to a backend queue (Celery/Redis).
  */
 export async function extractPageNumber(imageBuffer: Buffer): Promise<{
   pageNumber: string | null;
@@ -42,13 +89,9 @@ export async function extractPageNumber(imageBuffer: Buffer): Promise<{
       .toBuffer();
   }
 
-  // Run OCR
-  const worker = await Tesseract.createWorker('ara+eng', undefined, {
-    logger: () => {},
-  });
-
+  // Reuse the singleton worker instead of creating a new one per call
+  const worker = await getWorker();
   const { data: { text } } = await worker.recognize(regionBuffer);
-  await worker.terminate();
 
   const fullText = text.replace(/\s+/g, ' ').trim();
 
@@ -86,11 +129,9 @@ function detectPageNumber(text: string): string | null {
   }
 
   // Pattern 4: Standalone number (likely a page number if it's the main/only content)
-  // A number by itself at the end, like "5" or "123"
   const standaloneMatch = clean.match(/(\d+)\s*$/);
   if (standaloneMatch) {
     const num = standaloneMatch[1];
-    // Only accept if it looks like a page number (1-3 digits usually)
     if (num.length <= 4 && parseInt(num) > 0 && parseInt(num) < 10000) {
       return num;
     }
