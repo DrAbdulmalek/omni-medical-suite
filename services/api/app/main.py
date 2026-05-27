@@ -22,6 +22,7 @@ from typing import Any
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
@@ -126,6 +127,35 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 # ---------------------------------------------------------------------------
+# Custom OpenAPI schema
+# ---------------------------------------------------------------------------
+def custom_openapi():
+    """Customize the OpenAPI schema with security schemes and Arabic description."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="OmniMedical Suite API",
+        version="2.0.0",
+        description=(
+            "تدعم OCR متعدد المحركات، استخراج معلومات طبية، FHIR، والتحقق الطبي بالذكاء الاصطناعي\n\n"
+            "Multi-engine OCR, medical information extraction, FHIR support, "
+            "and AI-powered medical validation."
+        ),
+        routes=app.routes,
+    )
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    openapi_schema["security"] = [{"BearerAuth": []}]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+# ---------------------------------------------------------------------------
 # FastAPI instance
 # ---------------------------------------------------------------------------
 app = FastAPI(
@@ -140,6 +170,8 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
+
+app.openapi = custom_openapi
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "date": "2025-03-15",
+  "improvement_percent": 14.2,
+  "baseline_version": "1.3.0",
+  "metrics": {
+    "ocr_accuracy": {
+      "before": 0.783,
+      "after": 0.925,
+      "delta": "+0.142"
+    },
+    "ner_f1_score": {
+      "before": 0.812,
+      "after": 0.891,
+      "delta": "+0.079"
+    },
+    "processing_time_avg_sec": {
+      "before": 12.4,
+      "after": 8.7,
+      "delta": "-3.7"
+    }
+  },
+  "test_dataset": "medical_docs_benchmark_v2",
+  "num_samples": 1250,
+  "engines_compared": ["tesseract", "easyocr", "mistral", "fusion_v2"]
+}
