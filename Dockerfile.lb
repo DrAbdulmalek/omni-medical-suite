@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+# ============================================================================
+# OmniMedical Suite — Load Balancer Dockerfile
+# ============================================================================
+# موزع حمل بسيط يعمل بـ least_conn أو round_robin
+# يوجه الطلبات من API Workers متعددة
+# ============================================================================
+
+LABEL maintainer="Dr. Abdulmalek Al-husseini"
+LABEL description="OmniMedical Load Balancer"
+
+WORKDIR /app
+
+# تثبيت التبعيات
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY services/lb/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# نسخ الكود
+COPY services/lb/ .
+
+# المنفذ
+EXPOSE 8080
+
+# تشغيل
+CMD ["python", "lb_server.py"]

@@ -1,0 +1,187 @@
+version: "3.9"
+# ============================================================================
+# OmniMedical Suite — Unified Medical Infrastructure
+# ============================================================================
+# يشمل: Redis, Load Balancer, WebSocket, API replicas, Prometheus, Grafana
+#
+# الاستخدام:
+#   make infra-up        # تشغيل كل الخدمات
+#   make infra-down      # إيقاف كل الخدمات
+#   make infra-logs      # عرض السجلات
+#
+# المؤلف: Dr. Abdulmalek Al-husseini
+# ============================================================================
+
+services:
+  # ===========================================================================
+  # Redis — تخزين مؤقت + جلسات + طوابير رسائل
+  # ===========================================================================
+  medical-redis:
+    build:
+      context: .
+      dockerfile: Dockerfile.redis
+    container_name: omni-redis
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis_data:/data
+    networks:
+      - infra-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Load Balancer — توزيع الحمل على API Workers
+  # ===========================================================================
+  medical-lb:
+    build:
+      context: .
+      dockerfile: Dockerfile.lb
+    container_name: omni-lb
+    ports:
+      - "8080:8080"
+    environment:
+      BACKENDS: "api1:8000,api2:8000"
+      STRATEGY: "least_conn"
+      HEALTH_CHECK_INTERVAL: "10"
+      HEALTH_CHECK_PATH: "/health"
+    depends_on:
+      api1:
+        condition: service_healthy
+      api2:
+        condition: service_healthy
+    networks:
+      - infra-net
+      - public-net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # WebSocket Server — تنبيهات فورية + مزامنة مستندات
+  # ===========================================================================
+  medical-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile.ws
+    container_name: omni-websocket
+    ports:
+      - "8765:8765"
+    environment:
+      REDIS_URL: "redis://medical-redis:6380"
+      HEARTBEAT_INTERVAL: "30"
+      MAX_CONNECTIONS: "5000"
+    depends_on:
+      medical-redis:
+        condition: service_healthy
+    networks:
+      - infra-net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # API Worker 1
+  # ===========================================================================
+  api1: &api_template
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: omni-api-1
+    environment:
+      WORKER_ID: "api1"
+      REDIS_URL: "redis://medical-redis:6380"
+      WS_URL: "ws://medical-ws:8765"
+      LOG_LEVEL: "info"
+    depends_on:
+      medical-redis:
+        condition: service_healthy
+    networks:
+      - infra-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # API Worker 2
+  # ===========================================================================
+  api2:
+    <<: *api_template
+    container_name: omni-api-2
+    environment:
+      WORKER_ID: "api2"
+      REDIS_URL: "redis://medical-redis:6380"
+      WS_URL: "ws://medical-ws:8765"
+      LOG_LEVEL: "info"
+
+  # ===========================================================================
+  # Prometheus — مراقبة وقياس الأداء
+  # ===========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: omni-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - infra-net
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Grafana — لوحات المراقبة
+  # ===========================================================================
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: omni-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: "grafana-clock-panel"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/etc/grafana/provisioning/dashboards/medical-overview.json"
+    volumes:
+      - ./config/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - infra-net
+    restart: unless-stopped
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  infra-net:
+    driver: bridge
+    internal: true   # شبكة داخلية معزولة (أمان طبي)
+  public-net:
+    driver: bridge   # شبكة عامة للـ LB فقط
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

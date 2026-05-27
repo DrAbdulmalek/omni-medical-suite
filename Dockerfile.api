@@ -1,0 +1,44 @@
+FROM python:3.11-slim
+
+# ============================================================================
+# OmniMedical Suite — API Worker Dockerfile
+# ============================================================================
+# عقدة معالجة API تتعامل مع:
+# - OCR (Tesseract, EasyOCR, PaddleOCR, TrOCR)
+# - التصحيح الإملائي (AraBART GEC)
+# - استخراج الكيانات الطبية
+# - إدارة المستندات
+# ============================================================================
+
+LABEL maintainer="Dr. Abdulmalek Al-husseini"
+LABEL description="OmniMedical API Worker"
+
+WORKDIR /app
+
+# تثبيت تبعيات النظام
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-ara \
+    tesseract-ocr-eng \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# تثبيت تبعيات Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# نسخ باقي المشروع
+COPY packages/ ./packages/
+COPY services/api/ ./services/api/
+COPY data/ ./data/
+COPY config/ ./config/
+
+# المنفذ
+EXPOSE 8000
+
+# فحص الصحة
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# تشغيل
+CMD ["uvicorn", "services.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

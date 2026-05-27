@@ -1,0 +1,22 @@
+FROM redis:7.2-alpine
+
+# ============================================================================
+# OmniMedical Suite — Redis Dockerfile
+# ============================================================================
+# Redis محسّن للاستخدام الطبي:
+# - maxmemory مع سياسة no-eviction (لا نحذف بيانات طبية)
+# - AOF persistence لحماية البيانات
+# - TLS اختياري للاتصالات المشفرة
+# ============================================================================
+
+LABEL maintainer="Dr. Abdulmalek Al-husseini"
+LABEL description="OmniMedical Redis Cache — Medical Document Processing"
+
+# التكوين
+COPY config/redis/redis.conf /usr/local/etc/redis/redis.conf
+
+# تعريض المنفذ
+EXPOSE 6380
+
+# الأوامر
+CMD ["redis-server", "/usr/local/etc/redis/redis.conf"]
