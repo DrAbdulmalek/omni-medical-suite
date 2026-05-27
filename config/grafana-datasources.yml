@@ -7,16 +7,21 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: false
-    jsonData:
-      timeInterval: "5s"
-      httpMethod: POST
-      manageAlerts: true
-      alertmanagerUid: "prometheus"
 
-  - name: Qdrant Metrics
-    type: prometheus
+  - name: Tempo
+    type: tempo
     access: proxy
-    url: http://qdrant:6333
+    url: http://tempo:3200
     editable: false
+
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: omnimedical
+    user: omnimedical
     jsonData:
-      timeInterval: "30s"
+      sslmode: disable
+    secureJsonData:
+      password: omnimedical_secure
+    editable: false

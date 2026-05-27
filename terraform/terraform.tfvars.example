@@ -1,57 +1,10 @@
-###############################################################################
-# OmniMedical Suite — Example Terraform Variables
-# Copy this file to terraform.tfvars and adjust values for your environment.
-#   cp terraform.tfvars.example terraform.tfvars
-###############################################################################
+# Copy this file to terraform.tfvars and fill in the values
 
-# ---------------------------------------------------------------------------
-# General
-# ---------------------------------------------------------------------------
-cluster_name = "omnimedical-suite"
-environment  = "production"
-region       = "us-east-1"
+aws_region    = "us-east-1"
+cluster_name  = "omnimedical-cluster"
+environment   = "production"
+image_tag     = "v2.0.0"
 
-# ---------------------------------------------------------------------------
-# VPC
-# ---------------------------------------------------------------------------
-vpc_cidr = "10.0.0.0/16"
-# azs     = ["us-east-1a", "us-east-1b", "us-east-1c"]   # empty = auto-select
-
-# ---------------------------------------------------------------------------
-# EKS — Main Node Group
-# ---------------------------------------------------------------------------
-instance_type     = "m6i.xlarge"
-node_min_count    = 3
-node_desired_count = 3
-node_max_count    = 10
-
-# ---------------------------------------------------------------------------
-# EKS — GPU Node Group
-# ---------------------------------------------------------------------------
-enable_gpu_node_group = true
-gpu_instance_type     = "g4dn.xlarge"
-gpu_max_count         = 3
-
-# ---------------------------------------------------------------------------
-# RDS PostgreSQL
-# ---------------------------------------------------------------------------
-db_instance_class = "db.t3.medium"
-db_name           = "omnimedical"
-db_multi_az       = true
-
-# ---------------------------------------------------------------------------
-# ElastiCache Redis
-# ---------------------------------------------------------------------------
-redis_node_type = "cache.t3.micro"
-
-# ---------------------------------------------------------------------------
-# Monitoring & Backup
-# ---------------------------------------------------------------------------
-enable_monitoring = true
-enable_backup     = true
-
-# ---------------------------------------------------------------------------
-# ALB / ACM
-# ---------------------------------------------------------------------------
-# acm_certificate_arn  = "arn:aws:acm:us-east-1:123456789012:certificate/xxx"
-# acm_certificate_domain = "app.omnimedical.example.com"
+# Sensitive values — use environment variables or secret managers
+# postgres_password = "your-secure-password"
+# secret_key       = "your-secure-secret-key"

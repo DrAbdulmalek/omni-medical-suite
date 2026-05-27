@@ -95,3 +95,17 @@ GitPython>=3.1.0
 pytest>=7.0.0
 pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
+
+# ---- OmniMedical Suite v2.0 additions ----
+sqlalchemy>=2.0.25
+alembic>=1.13.1
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+celery[redis]>=5.3.6
+redis>=5.0.1
+qdrant-client>=1.7.0
+opentelemetry-api>=1.22.0
+opentelemetry-sdk>=1.22.0
+opentelemetry-exporter-otlp-proto-http>=1.22.0
+prometheus-fastapi-instrumentator>=7.0.0
+httpx>=0.26.0

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: omnimedical
+  labels:
+    app.kubernetes.io/name: omnimedical-suite
+    app.kubernetes.io/part-of: omnimedical

@@ -1,0 +1,129 @@
+# Global settings
+global:
+  imageRegistry: ghcr.io/drabdulmalek
+  imagePullSecrets: []
+  namespace: omnimedical
+
+# API service
+api:
+  replicaCount: 2
+  image:
+    repository: omni-medical-suite
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  env: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Celery workers
+celery:
+  worker:
+    replicaCount: 2
+    concurrency: 4
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+  beat:
+    enabled: true
+
+# PostgreSQL
+postgresql:
+  enabled: true
+  auth:
+    username: omnimedical
+    database: omnimedical
+  primary:
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+
+# Redis
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 5Gi
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 50m
+
+# Qdrant vector database
+qdrant:
+  enabled: true
+  replicaCount: 1
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+
+# Monitoring
+monitoring:
+  prometheus:
+    enabled: true
+    persistence:
+      size: 10Gi
+  grafana:
+    enabled: true
+    persistence:
+      size: 5Gi
+  tempo:
+    enabled: true
+
+# Ingress
+ingress:
+  enabled: true
+  className: nginx
+  host: api.omnimedical.local
+  tls:
+    enabled: true
+    secretName: omnimedical-tls
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+
+# Network policies
+networkPolicy:
+  enabled: true
+
+# Secrets (use --set or values file)
+secrets:
+  postgresPassword: CHANGE_ME
+  secretKey: CHANGE_ME
+  databaseUrl: ""
+
+# PVC for uploads
+uploads:
+  persistence:
+    enabled: true
+    size: 50Gi

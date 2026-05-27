@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: omnimedical
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.50.0
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /prometheus
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: prometheus-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: omnimedical
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: omnimedical
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.3.0
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/grafana
+            - name: dashboards
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: grafana-pvc
+        - name: dashboards
+          configMap:
+            name: grafana-dashboards
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: omnimedical
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  namespace: omnimedical
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      containers:
+        - name: tempo
+          image: grafana/tempo:2.3.0
+          ports:
+            - containerPort: 3200
+            - containerPort: 4318
+          volumeMounts:
+            - name: config
+              mountPath: /etc/tempo.yaml
+              subPath: tempo.yaml
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "2Gi"
+              cpu: "500m"
+      volumes:
+        - name: config
+          configMap:
+            name: tempo-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  namespace: omnimedical
+spec:
+  selector:
+    app: tempo
+  ports:
+    - port: 3200
+      targetPort: 3200
+      name: grpc
+    - port: 4318
+      targetPort: 4318
+      name: otlp-http

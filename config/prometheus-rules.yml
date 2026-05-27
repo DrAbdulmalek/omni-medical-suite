@@ -2,44 +2,43 @@ groups:
   - name: omnimedical_alerts
     rules:
       - alert: HighErrorRate
-        expr: rate(omnimedical_errors_total[5m]) > 0.1
-        for: 2m
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "High error rate detected"
-          description: "Error rate is above 10% for 2 minutes"
+          summary: "High error rate on {{ $labels.instance }}"
+          description: "Error rate is {{ $value | humanizePercentage }}"
 
-      - alert: FusionLowConfidence
-        expr: omnimedical_fusion_confidence_avg < 0.7
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2.0
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "OCR Fusion confidence is low"
-          description: "Average fusion confidence below 70%"
+          summary: "High latency on {{ $labels.instance }}"
+          description: "P95 latency is {{ $value }}s"
 
-      - alert: MedicalContextConflict
-        expr: rate(omnimedical_context_conflicts_total[1h]) > 0
-        for: 0m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Medical context conflict detected"
-          description: "Protected attributes are being merged incorrectly"
-
-      - alert: QdrantDown
-        expr: up{job="qdrant"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Qdrant Vector DB is down"
-
-      - alert: AutoPromotionQueueStuck
-        expr: omnimedical_promotion_queue_size > 1000
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / (1024 * 1024 * 1024) > 4
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "Auto-promotion queue is backed up"
+          summary: "High memory usage on {{ $labels.instance }}"
+
+      - alert: OCRQueueBacklog
+        expr: celery_queue_length{queue="ocr"} > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OCR processing queue backlog: {{ $value }} tasks"
+
+      - alert: OCRProcessingFailed
+        expr: rate(celery_task failures_total{task="process_ocr"}[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "OCR task failure rate increasing"

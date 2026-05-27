@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "omnimedical.fullname" . }}-celery-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "omnimedical.labels" . | nindent 4 }}
+    app: celery-worker
+spec:
+  replicas: {{ .Values.celery.worker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "omnimedical.selectorLabels" . | nindent 6 }}
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        {{- include "omnimedical.selectorLabels" . | nindent 8 }}
+        app: celery-worker
+    spec:
+      containers:
+        - name: celery-worker
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          command: ["celery", "-A", "app.tasks", "worker", "--loglevel=info", "--concurrency={{ .Values.celery.worker.concurrency }}"]
+          env:
+            - name: DATABASE_URL
+              value: {{ .Values.secrets.databaseUrl | default (printf "postgresql://%s:%s@%s-postgresql/%s" .Values.postgresql.auth.username .Values.secrets.postgresPassword (include "omnimedical.fullname" .) .Values.postgresql.auth.database) }}
+            - name: REDIS_URL
+              value: {{ printf "redis://%s-redis-master:6379/0" (include "omnimedical.fullname" .) }}
+            - name: QDRANT_URL
+              value: "http://{{ include "omnimedical.fullname" . }}-qdrant:6333"
+          resources:
+            {{- toYaml .Values.celery.worker.resources | nindent 12 }}
+---
+{{- if .Values.celery.beat.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "omnimedical.fullname" . }}-celery-beat
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "omnimedical.labels" . | nindent 4 }}
+    app: celery-beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "omnimedical.selectorLabels" . | nindent 6 }}
+      app: celery-beat
+  template:
+    metadata:
+      labels:
+        {{- include "omnimedical.selectorLabels" . | nindent 8 }}
+        app: celery-beat
+    spec:
+      containers:
+        - name: celery-beat
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          command: ["celery", "-A", "app.tasks", "beat", "--loglevel=info"]
+          env:
+            - name: DATABASE_URL
+              value: {{ .Values.secrets.databaseUrl | default (printf "postgresql://%s:%s@%s-postgresql/%s" .Values.postgresql.auth.username .Values.secrets.postgresPassword (include "omnimedical.fullname" .) .Values.postgresql.auth.database) }}
+            - name: REDIS_URL
+              value: {{ printf "redis://%s-redis-master:6379/0" (include "omnimedical.fullname" .) }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 512Mi
+{{- end }}

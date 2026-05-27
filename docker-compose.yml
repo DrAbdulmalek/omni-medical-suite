@@ -1,288 +1,157 @@
 version: "3.9"
 
-# =============================================================================
-# OmniMedical Suite v2.0 — Full Infrastructure Stack
-# Qdrant (Vector DB) + Prometheus (Metrics) + Grafana (Dashboards) + API
-# =============================================================================
-
 services:
-  # ---------------------------------------------------------------------------
-  # 🔴 Stage 1-2-3: OmniMedical API (FastAPI + Gradio)
-  # ---------------------------------------------------------------------------
-  omnimedical-api:
+  api:
     build:
-      context: ./services/api
+      context: .
       dockerfile: Dockerfile
-      target: production
-    container_name: omnimedical-api
     ports:
-      - "8000:8000"      # FastAPI REST
-      - "7860:7860"      # Gradio UI
+      - "8000:8000"
     environment:
-      - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/omnimedical
+      - DATABASE_URL=postgresql://omnimedical:omnimedical_secure@postgres:5432/omnimedical
       - REDIS_URL=redis://redis:6379/0
-      - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6333
-      - PROMETHEUS_PORT=9090
-      - CORRECTION_DB_PATH=/data/corrections_v2.db
-      - MODEL_CACHE=/models
-      - LOG_LEVEL=INFO
-      - WORKERS=4
+      - QDRANT_URL=http://qdrant:6333
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - ENVIRONMENT=development
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
     volumes:
-      - api_data:/data
-      - model_cache:/models
-      - ./services/api/app:/app/app:ro
+      - ./services/uploads:/app/services/uploads
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       qdrant:
-        condition: service_started
-    networks:
-      - omnimedical-net
+        condition: service_healthy
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '4.0'
-          memory: 8G
-        reservations:
-          cpus: '2.0'
-          memory: 4G
-    restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # 🟢 Qdrant — Vector Database (Persistent)
-  # ---------------------------------------------------------------------------
-  qdrant:
-    image: qdrant/qdrant:v1.8.0
-    container_name: omnimedical-qdrant
-    ports:
-      - "6333:6333"      # HTTP API
-      - "6334:6334"      # gRPC
-    volumes:
-      - qdrant_storage:/qdrant/storage
-      - ./config/qdrant.yaml:/qdrant/config/production.yaml:ro
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A app.tasks worker --loglevel=info --concurrency=2
     environment:
-      QDRANT__SERVICE__HTTP_PORT: 6333
-      QDRANT__SERVICE__GRPC_PORT: 6334
-      QDRANT__SERVICE__MAX_REQUEST_SIZE_MB: 32
-      QDRANT__STORAGE__STORAGE_PATH: /qdrant/storage
-      QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"
-    networks:
-      - omnimedical-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 4G
-    restart: unless-stopped
-
-  # ---------------------------------------------------------------------------
-  # 📊 Prometheus — Metrics Collection
-  # ---------------------------------------------------------------------------
-  prometheus:
-    image: prom/prometheus:v2.50.0
-    container_name: omnimedical-prometheus
-    ports:
-      - "9090:9090"
+      - DATABASE_URL=postgresql://omnimedical:omnimedical_secure@postgres:5432/omnimedical
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_URL=http://qdrant:6333
     volumes:
-      - prometheus_data:/prometheus
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./config/prometheus-rules.yml:/etc/prometheus/rules.yml:ro
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    networks:
-      - omnimedical-net
+      - ./services/uploads:/app/services/uploads
     depends_on:
-      - omnimedical-api
-      - qdrant
+      - api
+      - redis
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # 📈 Grafana — Visualization Dashboards
-  # ---------------------------------------------------------------------------
-  grafana:
-    image: grafana/grafana:10.3.1
-    container_name: omnimedical-grafana
-    ports:
-      - "3000:3000"
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A app.tasks beat --loglevel=info
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=http://localhost:3000
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./config/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-    networks:
-      - omnimedical-net
+      - DATABASE_URL=postgresql://omnimedical:omnimedical_secure@postgres:5432/omnimedical
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - prometheus
+      - redis
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # 🗄️ PostgreSQL — Relational Database
-  # ---------------------------------------------------------------------------
   postgres:
     image: postgres:16-alpine
-    container_name: omnimedical-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: omnimedical
-      PGDATA: /var/lib/postgresql/data/pgdata
+      - POSTGRES_DB=omnimedical
+      - POSTGRES_USER=omnimedical
+      - POSTGRES_PASSWORD=omnimedical_secure
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
-    networks:
-      - omnimedical-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d omnimedical"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # ---------------------------------------------------------------------------
-  # ⚡ Redis — Cache & Message Broker
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    container_name: omnimedical-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - omnimedical-net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U omnimedical"]
+      interval: 5s
       timeout: 3s
       retries: 5
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # 🔄 Celery Worker — Background Tasks
-  # ---------------------------------------------------------------------------
-  celery-worker:
-    build:
-      context: ./services/api
-      dockerfile: Dockerfile
-      target: production
-    container_name: omnimedical-celery
-    command: celery -A app.tasks worker --loglevel=info --concurrency=4
-    environment:
-      - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/omnimedical
-      - REDIS_URL=redis://redis:6379/0
-      - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6333
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
-      - api_data:/data
-      - model_cache:/models
-    depends_on:
-      - redis
-      - postgres
-      - qdrant
-    networks:
-      - omnimedical-net
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 4G
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # ⏰ Celery Beat — Scheduled Tasks (AutoPromotion)
-  # ---------------------------------------------------------------------------
-  celery-beat:
-    build:
-      context: ./services/api
-      dockerfile: Dockerfile
-      target: production
-    container_name: omnimedical-beat
-    command: celery -A app.tasks beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    environment:
-      - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/omnimedical
-      - REDIS_URL=redis://redis:6379/0
+  qdrant:
+    image: qdrant/qdrant:latest
     volumes:
-      - api_data:/data
-    depends_on:
-      - redis
-      - postgres
-    networks:
-      - omnimedical-net
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # 🌐 Nginx — Reverse Proxy & Load Balancer
-  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/prometheus-rules.yml:/etc/prometheus/prometheus-rules.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.3.0
+    volumes:
+      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./grafana-dashboards:/etc/grafana/provisioning/dashboards
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:2.3.0
+    volumes:
+      - ./config/tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"
+      - "4318:4318"
+    restart: unless-stopped
+
   nginx:
     image: nginx:alpine
-    container_name: omnimedical-nginx
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./config/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - omnimedical-api
-      - grafana
-    networks:
-      - omnimedical-net
+      - api
     restart: unless-stopped
 
-# =============================================================================
-# Networks
-# =============================================================================
-networks:
-  omnimedical-net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-
-# =============================================================================
-# Volumes
-# =============================================================================
 volumes:
-  qdrant_storage:
-    driver: local
-  prometheus_data:
-    driver: local
-  grafana_data:
-    driver: local
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
-  api_data:
-    driver: local
-  model_cache:
-    driver: local
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
