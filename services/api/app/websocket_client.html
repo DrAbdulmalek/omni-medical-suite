@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniMedical WebSocket Client</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #00d4ff; margin-bottom: 30px; font-size: 2.5em; }
+        .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+
+        .panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .panel h2 { color: #00d4ff; margin-bottom: 15px; font-size: 1.3em; }
+
+        input, button, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #0f0f23;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        button:hover { transform: scale(1.02); }
+        button:disabled { background: #444; cursor: not-allowed; }
+
+        .status { 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status.connected { background: rgba(0,255,100,0.2); color: #00ff64; }
+        .status.disconnected { background: rgba(255,0,0,0.2); color: #ff4444; }
+
+        #log {
+            height: 400px;
+            overflow-y: auto;
+            background: #0a0a1a;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 6px;
+            border-right: 3px solid;
+        }
+
+        .log-entry.uploaded { border-color: #888; background: rgba(255,255,255,0.03); }
+        .log-entry.ocr { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
+        .log-entry.fusion { border-color: #ffaa00; background: rgba(255,170,0,0.05); }
+        .log-entry.completed { border-color: #00ff64; background: rgba(0,255,100,0.1); }
+        .log-entry.alert { border-color: #ff4444; background: rgba(255,68,68,0.2); animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #1a1a2e;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff64);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: rgba(0,212,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-box .number { font-size: 2em; color: #00d4ff; font-weight: bold; }
+        .stat-box .label { font-size: 0.9em; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 OmniMedical WebSocket Monitor</h1>
+
+        <div class="grid">
+            <div class="panel">
+                <h2>⚙️ الإعدادات</h2>
+                <input type="text" id="wsUrl" value="ws://localhost:8765" placeholder="WebSocket URL">
+                <input type="text" id="tenantId" value="hospital_a" placeholder="Tenant ID">
+                <input type="text" id="docId" value="doc_001" placeholder="Document ID">
+
+                <button id="connectBtn" onclick="connect()">🔗 الاتصال</button>
+                <button id="subscribeBtn" onclick="subscribe()" disabled>📋 الاشتراك</button>
+                <button id="disconnectBtn" onclick="disconnect()" disabled>❌ قطع الاتصال</button>
+
+                <div id="connectionStatus" class="status disconnected">غير متصل</div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="number" id="msgCount">0</div>
+                        <div class="label">رسائل</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="number" id="alertCount">0</div>
+                        <div class="label">تنبيهات</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="number" id="lastProgress">0%</div>
+                        <div class="label">تقدم</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📊 سجل المعالجة</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="mainProgress" style="width: 0%">0%</div>
+                </div>
+                <div id="log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let messageCount = 0;
+        let alertCount = 0;
+
+        function connect() {
+            const url = document.getElementById('wsUrl').value;
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                updateStatus('متصل', true);
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('subscribeBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = false;
+                log('✅ تم الاتصال بخادم WebSocket', 'uploaded');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onclose = () => {
+                updateStatus('غير متصل', false);
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('subscribeBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = true;
+                log('❌ تم قطع الاتصال', 'uploaded');
+            };
+
+            ws.onerror = (error) => {
+                log('❌ خطأ: ' + error, 'alert');
+            };
+        }
+
+        function subscribe() {
+            const tenantId = document.getElementById('tenantId').value;
+            const docId = document.getElementById('docId').value;
+
+            const msg = {
+                type: 'subscribe_document',
+                document_id: docId,
+                tenant_id: tenantId
+            };
+
+            ws.send(JSON.stringify(msg));
+            log(`📋 تم الاشتراك في المستند: ${docId}`, 'uploaded');
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function handleMessage(data) {
+            messageCount++;
+            document.getElementById('msgCount').textContent = messageCount;
+
+            if (data.type === 'medical_alert') {
+                alertCount++;
+                document.getElementById('alertCount').textContent = alertCount;
+                log(`🚨 ALERT: ${data.message}`, 'alert');
+                return;
+            }
+
+            if (data.type === 'processing_update') {
+                const progress = data.progress || 0;
+                document.getElementById('lastProgress').textContent = progress + '%';
+                document.getElementById('mainProgress').style.width = progress + '%';
+                document.getElementById('mainProgress').textContent = progress + '%';
+
+                const stage = data.stage || 'unknown';
+                let cssClass = 'uploaded';
+                if (stage.includes('ocr')) cssClass = 'ocr';
+                else if (stage.includes('fusion')) cssClass = 'fusion';
+                else if (stage.includes('completed')) cssClass = 'completed';
+
+                log(`[${stage}] ${progress}% - ${data.message}`, cssClass);
+            }
+        }
+
+        function log(message, cssClass) {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${cssClass}`;
+            entry.innerHTML = `<strong>${new Date().toLocaleTimeString('ar-SA')}</strong> - ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        }
+
+        function updateStatus(text, connected) {
+            const status = document.getElementById('connectionStatus');
+            status.textContent = text;
+            status.className = `status ${connected ? 'connected' : 'disconnected'}`;
+        }
+    </script>
+</body>
+</html>
