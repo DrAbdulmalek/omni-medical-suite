@@ -1,49 +1,126 @@
-version: "3.9"
+# 🚀 OmniMedical Suite — Development Compose (Simplified)
+# يشغل فقط الخدمات الأساسية للمبتدئين:
+#   - Next.js Web (port 3000)
+#   - FastAPI Backend (port 8000)  
+#   - Redis (port 6379)
+#
+# للإنتاج استخدم: docker-compose.yml الرئيسي
+# للمراقبة أضف: --profile monitoring
 
-# Development overrides — use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 services:
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+    container_name: omni-web
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:./db/omni-medical.db
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-in-production}
+      - API_URL=http://api:8000
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - web_node_modules:/app/apps/web/node_modules
+    command: npm run dev
+    depends_on:
+      - api
+    networks:
+      - omni-net
+
   api:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: infrastructure/docker/Dockerfile.api
+    container_name: omni-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=file:./db/omni-medical.db
+      - REDIS_URL=redis://redis:6379
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-key-32bytes-long-change-me}
+      - OCR_ENGINE_ORDER=mixed_engine,tesseract,mistral,easyocr
+      - TESSERACT_LANGUAGES=ara+eng
+      - NLP_LANGUAGE=ar
+      - ENABLE_PII_DETECTION=true
+      - RATE_LIMIT_TIER_FREE=10
+      - RATE_LIMIT_TIER_STANDARD=100
+      - RATE_LIMIT_TIER_PREMIUM=500
+      - OCR_CACHE_TTL=86400
+      - CIRCUIT_BREAKER_ENABLED=true
+      - MEDICAL_VALIDATOR_ENABLED=true
+      - FHIR_DEFAULT_FORMAT=fhir_r4
+      - LOG_LEVEL=INFO
     volumes:
-      - .:/app
-      - ./services/uploads:/app/services/uploads
-    environment:
-      - DEBUG=true
-      - ENVIRONMENT=development
-      - OTEL_ENABLED=false
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  celery-worker:
-    volumes:
-      - .:/app
-    command: celery -A app.tasks worker --loglevel=debug --concurrency=1
-
-  # Dev-only services
-  mailhog:
-    image: mailhog/mailhog:latest
-    ports:
-      - "8025:8025"
-    restart: unless-stopped
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@omnimedical.local
-      - PGADMIN_DEFAULT_PASSWORD=admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    restart: unless-stopped
-
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    ports:
-      - "8081:8081"
+      - ./services/api:/app/services/api
+      - ./packages:/app/packages
+      - ./data:/app/data
+      - api_uploads:/app/uploads
+    command: uvicorn services.api.main:app --reload --host 0.0.0.0 --port 8000
     depends_on:
       - redis
-    restart: unless-stopped
+    networks:
+      - omni-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: omni-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - omni-net
+
+  # Optional: Qdrant for vector search (uncomment if needed)
+  # qdrant:
+  #   image: qdrant/qdrant:latest
+  #   container_name: omni-qdrant
+  #   ports:
+  #     - "6333:6333"
+  #   volumes:
+  #     - qdrant_data:/qdrant/storage
+  #   networks:
+  #     - omni-net
+
+  # Optional: Monitoring (use with --profile monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: omni-prometheus
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    networks:
+      - omni-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: omni-grafana
+    profiles: ["monitoring"]
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    networks:
+      - omni-net
+
+volumes:
+  web_node_modules:
+  api_uploads:
+  redis_data:
+  # qdrant_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  omni-net:
+    driver: bridge
