@@ -33,6 +33,36 @@
 
 ---
 
+<br>
+
+## 🚀 Quick Start — Zero to Running in 1 Minute
+
+> **One command. Docker + Make. That's it.**
+
+```bash
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
+cd omni-medical-suite
+make dev
+```
+
+Then open **http://localhost:8000** in your browser.
+
+> 📌 **No Python installation needed. No environment variables. No database setup.**  
+> Everything runs inside Docker containers. For production: `make prod` after copying `env.example.production` to `.env`.
+
+### Without Docker? No Problem.
+
+```bash
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
+cd omni-medical-suite
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main_pipeline:app --reload --port 8000
+```
+
+<br>
+
+
 ## Architecture
 
 ```
