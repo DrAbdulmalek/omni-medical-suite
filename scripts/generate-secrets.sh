@@ -1,92 +1,83 @@
 #!/usr/bin/env bash
-# ============================================
-# OmniMedical Suite — Secret Generator
-# ============================================
-# Generates secure random values for all secrets needed in production.
-# Usage: bash scripts/generate-secrets.sh > .env.production
-#
-# Requirements: openssl, python3
+# =============================================================================
+# generate-secrets.sh — Generate secure secrets for production deployment
+# =============================================================================
+# Usage: bash scripts/generate-secrets.sh [--output .env.production]
+# =============================================================================
 
 set -euo pipefail
 
-echo "# ============================================"
-echo "# OmniMedical Suite — Production Environment"
-echo "# Auto-generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-echo "# ============================================"
-echo ""
-echo "# ---- Application ----"
-echo "APP_ENV=production"
-echo "APP_URL=https://your-domain.com"
-echo "APP_PORT=8000"
-echo "APP_LOG_LEVEL=warning"
+OUTPUT_FILE="${1:-.env.production}"
+BASIC_ENV_FILE="env.example.production"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo -e "${BLUE}🔐 Omni Medical Suite — Secret Generator${NC}"
+echo -e "${BLUE}=============================================${NC}"
 echo ""
 
-# Database password
-DB_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
-echo "# ---- Database (PostgreSQL) ----"
-echo "DATABASE_URL=postgresql://omnimed_user:${DB_PASS}@db_host:5432/omnimed_prod"
-echo "DATABASE_POOL_MIN=5"
-echo "DATABASE_POOL_MAX=20"
+# Check if base env file exists
+if [ ! -f "$BASIC_ENV_FILE" ]; then
+    echo -e "${RED}Error: ${BASIC_ENV_FILE} not found${NC}"
+    echo "Run this script from the project root directory."
+    exit 1
+fi
+
+# Generate functions
+generate_secret() {
+    local length=${1:-32}
+    openssl rand -hex "$length" 2>/dev/null || python3 -c "import secrets; print(secrets.token_hex($length))"
+}
+
+generate_password() {
+    local length=${1:-24}
+    openssl rand -base64 "$length" 2>/dev/null | tr -d '=/+' | head -c "$length" || \
+        python3 -c "import secrets, string; chars=string.ascii_letters+string.digits+'!@#$%'; print(''.join(secrets.choice(chars) for _ in range($length)))"
+}
+
+echo -e "${YELLOW}Generating secure secrets...${NC}"
+
+# Copy base env file
+cp "$BASIC_ENV_FILE" "$OUTPUT_FILE"
+
+# Replace all CHANGE_ME placeholders with generated secrets
+sed -i.bak \
+    -e "s|CHANGE_ME_STRONG_PASSWORD|$(generate_password 32)|g" \
+    -e "s|CHANGE_ME_REDIS_PASSWORD|$(generate_password 24)|g" \
+    -e "s|CHANGE_ME_GENERATE_WITH_SCRIPTS|$(generate_secret 32)|g" \
+    -e "s|CHANGE_ME_JWT_SECRET|$(generate_secret 32)|g" \
+    -e "s|CHANGE_ME_API_KEY|sk-$(generate_secret 24)|g" \
+    -e "s|CHANGE_ME_QDRANT_KEY|$(generate_secret 24)|g" \
+    -e "s|CHANGE_ME_GRAFANA_PASS|$(generate_password 20)|g" \
+    "$OUTPUT_FILE"
+
+# Clean up backup
+rm -f "${OUTPUT_FILE}.bak"
+
+echo ""
+echo -e "${GREEN}✅ Secrets generated successfully!${NC}"
+echo -e "${GREEN}   Output: ${OUTPUT_FILE}${NC}"
+echo ""
+echo -e "${YELLOW}⚠️  IMPORTANT SECURITY NOTES:${NC}"
+echo "   1. Review the generated ${OUTPUT_FILE} before deploying"
+echo "   2. Add ${OUTPUT_FILE} to .gitignore (it should already be)"
+echo "   3. Store secrets securely (e.g., vault, sealed secrets, SOPS)"
+echo "   4. Rotate secrets regularly"
+echo "   5. Never commit secrets to version control"
 echo ""
 
-# Redis password
-REDIS_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
-echo "# ---- Redis ----"
-echo "REDIS_URL=redis://:${REDIS_PASS}@redis_host:6379/0"
-echo ""
-
-# Celery
-echo "# ---- Celery ----"
-echo "CELERY_BROKER_URL=redis://:${REDIS_PASS}@redis_host:6379/1"
-echo "CELERY_RESULT_BACKEND=redis://:${REDIS_PASS}@redis_host:6379/2"
-echo ""
-
-# Qdrant
-QDRANT_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))" 2>/dev/null || openssl rand -base64 32)
-echo "# ---- Qdrant Vector Database ----"
-echo "QDRANT_URL=http://qdrant_host:6333"
-echo "QDRANT_API_KEY=${QDRANT_KEY}"
-echo "QDRANT_COLLECTION=medical_documents"
-echo ""
-
-# NextAuth
-NEXTAUTH_SECRET=$(openssl rand -base64 32)
-echo "# ---- Authentication (NextAuth) ----"
-echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}"
-echo "NEXTAUTH_URL=https://your-domain.com"
-echo ""
-
-# AES key
-AES_KEY=$(openssl rand -hex 16)
-echo "# ---- Encryption ----"
-echo "AES_ENCRYPTION_KEY=${AES_KEY}"
-echo ""
-
-# Grafana
-GRAFANA_PASS=$(openssl rand -base64 16 | tr -d '/+=' | head -c 20)
-echo "# ---- Monitoring ----"
-echo "PROMETHEUS_PORT=9090"
-echo "GRAFANA_ADMIN_PASSWORD=${GRAFANA_PASS}"
-echo ""
-
-# MinIO
-MINIO_ACCESS=$(openssl rand -hex 8)
-MINIO_SECRET=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
-echo "# ---- MinIO / S3 Storage ----"
-echo "MINIO_ENDPOINT=minio_host:9000"
-echo "MINIO_ACCESS_KEY=${MINIO_ACCESS}"
-echo "MINIO_SECRET_KEY=${MINIO_SECRET}"
-echo "MINIO_BUCKET=medical-documents"
-echo "MINIO_USE_SSL=true"
-echo ""
-
-echo "# ---- Rate Limiting ----"
-echo "RATE_LIMIT_PER_MINUTE=60"
-echo "RATE_LIMIT_BURST=10"
-echo ""
-
-echo "# ============================================"
-echo "# IMPORTANT: Replace 'your-domain.com' with your actual domain"
-echo "# IMPORTANT: Replace 'db_host', 'redis_host', 'qdrant_host', 'minio_host' with actual hosts"
-echo "# IMPORTANT: Add your API keys (Mistral, OpenAI) manually"
-echo "# ============================================"
+# Verify no CHANGE_ME placeholders remain
+REMAINING=$(grep -c "CHANGE_ME" "$OUTPUT_FILE" 2>/dev/null || echo "0")
+if [ "$REMAINING" -gt 0 ]; then
+    echo -e "${YELLOW}⚠️  Warning: ${REMAINING} CHANGE_ME placeholder(s) remain in ${OUTPUT_FILE}${NC}"
+    echo -e "${YELLOW}   These may require manual configuration:${NC}"
+    grep "CHANGE_ME" "$OUTPUT_FILE" | while read -r line; do
+        echo -e "   ${YELLOW}→ ${line%%=*}${NC}"
+    done
+    echo ""
+fi

@@ -10,20 +10,31 @@ build/
 *.tsbuildinfo
 .turbo/
 
-# Environment
+# Environment files
 .env
+.env.*
+!.env.example
+!.env.example.production
 .env.local
 .env.*.local
+
+# Secrets
+*.pem
+*.key
+*.secret
 
 # Database
 *.db
 *.db-journal
 *.db-wal
+*.sqlite
+*.sqlite3
 prisma/db/
 
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
 *.egg
 .eggs/
