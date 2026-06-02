@@ -2,6 +2,8 @@
 
 > **Medical Document Intelligence Ecosystem**
 > Unified architecture for Arabic/English medical OCR, NLP, and AI-powered document processing.
+> 
+> **Last Updated**: June 2026 | **Restructuring Status**: Phase 3 In Progress
 
 ---
 
@@ -12,34 +14,76 @@
 │                    PLATFORM LAYER                                   │
 │  omni-medical-suite (Main Platform — Monorepo)                      │
 │  Next.js 16 + FastAPI + Celery + Redis + Qdrant                     │
+│  ✅ Production env templates, secrets generator, pre-deploy checks    │
 └──────────┬──────────────────────────────────┬───────────────────────┘
            │                                  │
 ┌──────────▼──────────┐        ┌──────────────▼──────────────────────┐
 │  APPLICATION LAYER   │        │  CORE ENGINES LAYER                │
 │                      │        │                                      │
-│  medical-handwriting │        │  medical-ocr-postprocessor          │
-│  -ocr (Production)   │───────▶│  (Correction + PHI Masking)        │
-│                      │        │                                      │
-│  medical-ocr-trainer │        │                                      │
-│  (Data Collection)   │───────▶│                                      │
-│                      │        │                                      │
-│  medical-doc-        │        │                                      │
-│  processor (Review)   │        │                                      │
+│  medical-handwriting │        │  medical-ocr-postprocessor v2.2.0   │
+│  -ocr (Production)   │───────▶│  ✅ Installable package (pip)        │
+│                      │        │  ✅ Stable API: correct_text(),      │
+│  medical-ocr-trainer │        │     mask_phi(), batch_process()      │
+│  (Evaluation + Data) │───────▶│  ✅ 56 golden tests + benchmarks    │
+│  ✅ CER/WER metrics  │        │  ✅ GitHub Actions CI/CD            │
+│  ✅ Benchmark suite   │        │                                      │
 └──────────┬──────────┘        └──────────────┬──────────────────────┘
            │                                  │
 ┌──────────▼──────────┐        ┌──────────────▼──────────────────────┐
-│  DEPLOYMENT LAYER   │        │  STUDY / RESEARCH LAYER             │
+│  DEPLOYMENT LAYER   │        │  BENCHMARKS LAYER (NEW)              │
 │                      │        │                                      │
-│  medical-ocr-trainer │        │  omniparse (Fork/Study)              │
-│  -hf (HF Space)      │        │  omniparse-study (Analysis)          │
-└──────────┬──────────┘        └──────────────────────────────────────┘
-           │
-┌──────────▼──────────┐
-│  INDEPENDENT        │
+│  medical-ocr-trainer │        │  medical-ocr-benchmarks v1.0.0       │
+│  -hf (HF Space)      │        │  ✅ CER, WER, Medical Term Accuracy  │
+│                      │        │  ✅ Latency profiling (p95/p99)      │
+└──────────┬──────────┘        │  ✅ Golden datasets (EN, AR, Mixed)  │
+           │                  │  ✅ Multi-engine comparison          │
+┌──────────▼──────────┐        │  ✅ Markdown/JSON/HTML reports       │
+│  INDEPENDENT        │        └──────────────────────────────────────┘
 │  IntelliFile-app    │
 │  (File Manager)     │
 └─────────────────────┘
 
-LEGACY (Migration Source):
+LEGACY (Migration Source — Tagged ✅):
   OmniFile_Processor → merged into omni-medical-suite
   medical-doc-processor → migrating to omni-medical-suite
+
+---
+
+## Restructuring Progress
+
+| Phase | Status | Key Changes |
+|-------|--------|-------------|
+| **Phase 1** | ✅ Complete | Descriptions, topics, READMEs, PORTFOLIO.md across all 10 repos |
+| **Phase 2** | ✅ Complete | Package conversion, evaluation toolkit, legacy tagging, production templates |
+| **Phase 3** | 🔄 In Progress | GitHub Actions CI/CD, unified benchmarks, SDK planning |
+
+### Phase 2 Completed (June 2026)
+
+| Repository | Change | Commit |
+|-----------|--------|--------|
+| **medical-ocr-postprocessor** | Converted to installable package with stable API | `ba3a6c2` |
+| **medical-ocr-trainer** | Refocused as evaluation & data collection toolkit | `414442f` |
+| **OmniFile_Processor** | Tagged as legacy with migration map | `b8817bf` |
+| **medical-doc-processor** | Tagged as legacy with merge notice | `d3309f1` |
+| **omni-medical-suite** | Added production env templates & deployment scripts | `76e8d92` |
+
+### Phase 3 In Progress (June 2026)
+
+| Repository | Change | Commit |
+|-----------|--------|--------|
+| **medical-ocr-postprocessor** | GitHub Actions CI/CD (lint, test, benchmark, release) | `0359535` |
+| **medical-ocr-trainer** | GitHub Actions CI/CD (lint, test, package) | `4f9e31b` |
+| **medical-ocr-benchmarks** | NEW — Unified benchmark suite created | (new repo) |
+
+---
+
+## Decision Matrix
+
+| Question | Answer |
+|----------|--------|
+| Need OCR text correction? | `pip install medical-ocr-postprocessor` → `correct_text()` |
+| Need PHI masking? | `from medical_ocr_toolkit import mask_phi` |
+| Need to evaluate OCR quality? | `medical-ocr-trainer` → CER, WER, Medical Term Accuracy |
+| Need full document platform? | `omni-medical-suite` → Web + API + Training |
+| Need to run benchmarks? | `medical-ocr-benchmarks` → `ocr-bench` CLI |
+| Legacy code reference? | `OmniFile_Processor` → See MIGRATION_MAP.md |
