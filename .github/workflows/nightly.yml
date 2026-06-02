@@ -19,7 +19,7 @@ jobs:
           pip install pip-tools
           pip-compile requirements.in --output-file requirements.txt --upgrade 2>/dev/null || true
       - name: Create PR if changes
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v8
         with:
           title: "chore: update Python dependencies"
           branch: chore/update-deps
