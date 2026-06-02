@@ -1,0 +1,481 @@
+# =============================================================================
+# OmniMedical Suite — Production Docker Compose
+# =============================================================================
+# Full production stack with:
+#   - Next.js Web (behind Nginx)
+#   - FastAPI Backend (multi-worker)
+#   - Celery Worker (background tasks)
+#   - PostgreSQL 16 (persistent database)
+#   - Redis 7 (cache + broker with persistence + auth)
+#   - Qdrant (vector search)
+#   - Nginx (reverse proxy + TLS termination)
+#   - Prometheus (metrics)
+#   - Grafana (dashboards)
+#
+# Usage:
+#   cp env.example.production .env.production
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Primary Database (replaces SQLite in production)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: omni-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-omni_medical}
+      POSTGRES_USER: ${POSTGRES_USER:-omni_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-omni_user} -d ${POSTGRES_DB:-omni_medical}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # Redis — Cache & Message Broker (with persistence + authentication)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: omni-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      --save 60 1000
+      --save 300 100
+      --loglevel warning
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # Qdrant — Vector Search Engine (uncommented for production)
+  # ---------------------------------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: omni-qdrant
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+      QDRANT__TELEMETRY__DISABLED: "true"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "30m"
+        max-file: "3"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # API — FastAPI Backend (production multi-worker, no source mounts)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+      target: production
+    container_name: omni-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-omni_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-omni_medical}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+      OCR_ENGINE_ORDER: ${OCR_ENGINE_ORDER:-mixed_engine,tesseract,mistral,easyocr}
+      TESSERACT_LANGUAGES: ${TESSERACT_LANGUAGES:-ara+eng}
+      NLP_LANGUAGE: ${NLP_LANGUAGE:-ar}
+      ENABLE_PII_DETECTION: "true"
+      RATE_LIMIT_TIER_FREE: ${RATE_LIMIT_TIER_FREE:-10}
+      RATE_LIMIT_TIER_STANDARD: ${RATE_LIMIT_TIER_STANDARD:-100}
+      RATE_LIMIT_TIER_PREMIUM: ${RATE_LIMIT_TIER_PREMIUM:-500}
+      OCR_CACHE_TTL: ${OCR_CACHE_TTL:-86400}
+      CIRCUIT_BREAKER_ENABLED: "true"
+      MEDICAL_VALIDATOR_ENABLED: "true"
+      FHIR_DEFAULT_FORMAT: fhir_r4
+      LOG_LEVEL: ${LOG_LEVEL:-WARNING}
+      APP_ENV: production
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # Web — Next.js Frontend (production build, no source mounts)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+      target: production
+    container_name: omni-web
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-omni_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-omni_medical}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://your-domain.com}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
+      API_URL: http://api:8000
+      NODE_ENV: production
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # Worker — Celery Background Tasks
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+      target: production
+    container_name: omni-worker
+    restart: unless-stopped
+    command: >
+      celery -A app.tasks worker
+      --loglevel=warning
+      --concurrency=${CELERY_CONCURRENCY:-4}
+      --max-tasks-per-child=${CELERY_MAX_TASKS_PER_CHILD:-1000}
+      --time-limit=${CELERY_TIME_LIMIT:-300}
+      --soft-time-limit=${CELERY_SOFT_TIME_LIMIT:-240}
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-omni_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-omni_medical}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-WARNING}
+      APP_ENV: production
+    volumes:
+      - worker_uploads:/app/uploads
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks inspect ping --timeout 10 | grep -q pong || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # Beat — Celery Periodic Task Scheduler
+  # ---------------------------------------------------------------------------
+  beat:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+      target: production
+    container_name: omni-beat
+    restart: unless-stopped
+    command: celery -A app.tasks beat --loglevel=warning
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-omni_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-omni_medical}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      LOG_LEVEL: ${LOG_LEVEL:-WARNING}
+      APP_ENV: production
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # Nginx — Reverse Proxy & TLS Termination
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: omni-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    logging:
+      driver: json-file
+      options:
+        max-size: "30m"
+        max-file: "5"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # Prometheus — Metrics Collection (not behind profile in production)
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: omni-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=4GB"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus-rules.yml:/etc/prometheus/prometheus-rules.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - omni-net
+
+  # ---------------------------------------------------------------------------
+  # Grafana — Monitoring Dashboards (not behind profile in production)
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: omni-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://your-domain.com/monitoring}
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "30m"
+        max-file: "3"
+    networks:
+      - omni-net
+
+# =============================================================================
+# Named Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  worker_uploads:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_logs:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  omni-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
