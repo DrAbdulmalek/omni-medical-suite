@@ -1,0 +1,121 @@
+version: "3.9"
+
+# ============================================
+# OmniMedical Suite — STANDARD Mode
+# ============================================
+# Staging/small-team: web, api, worker, postgres, redis, qdrant, monitoring
+# Usage: DEPLOYMENT_MODE=standard docker-compose -f docker-compose.standard.yml up
+# Requirements: ~8GB RAM, 2-4 CPUs
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: omnimedical
+      POSTGRES_PASSWORD: omnimedical_standard
+      POSTGRES_DB: omnimedical
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=staging
+      - DATABASE_URL=postgresql://omnimedical:omnimedical_standard@postgres:5432/omnimedical
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - WORKERS=2
+      - LOG_LEVEL=INFO
+      - OCR_ENGINE=ensemble
+    volumes:
+      - ./services/api:/app/services/api
+      - ./packages:/app/packages
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    environment:
+      - APP_ENV=staging
+      - DATABASE_URL=postgresql://omnimedical:omnimedical_standard@postgres:5432/omnimedical
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./services/api:/app/services/api
+      - ./packages:/app/packages
+      - worker-uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://omnimedical:omnimedical_standard@postgres:5432/omnimedical
+      - NEXTAUTH_SECRET=standard-mode-change-this
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus:/etc/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.3.0
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  qdrant-data:
+  worker-uploads:
+  grafana-data:
