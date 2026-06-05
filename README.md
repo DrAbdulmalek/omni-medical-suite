@@ -24,6 +24,8 @@
   <a href="#project-structure">Structure</a> ·
   <a href="#modules-overview">Modules</a> ·
   <a href="#docker-deployment">Docker</a> ·
+  <a href="#development-make-targets">Dev</a> ·
+  <a href="#production-deployment">Production</a> ·
   <a href="#migration-guide">Migration</a>
 </p>
 
@@ -722,6 +724,95 @@ kubectl scale deployment api --replicas=3 -n omni-medical
 # Launch GPU training job
 kubectl apply -f infrastructure/k8s/gpu-training-job.yaml
 ```
+
+---
+
+## Development (Make Targets)
+
+The `Makefile` provides quick commands for local development and deployment:
+
+```bash
+# Install dependencies and initialize the database
+make install
+
+# Start development environment (Docker: web + Redis, SQLite)
+make dev
+
+# Run linting across all packages
+make lint
+
+# Run all tests
+make test
+
+# Build the full project
+make build
+```
+
+> **Tip:** Run `make help` to see all available targets.
+
+## Production Deployment
+
+### Quick Start
+
+```bash
+# 1. Generate secure secrets (creates .env.production from env.example.production)
+make secrets
+
+# 2. Review generated secrets before deploying
+#    (opens .env.production — verify no CHANGE_ME placeholders remain)
+less .env.production
+
+# 3. Run pre-deployment checks
+make check
+
+# 4. Start production stack (web + PostgreSQL + Redis)
+make prod
+
+# 5. View production logs
+make logs
+
+# 6. Stop production stack
+make prod-down
+```
+
+### Docker Compose Profiles
+
+The project provides two Docker Compose profiles optimized for different environments:
+
+| Feature | Development (`docker-compose.dev.yml`) | Production (`docker-compose.prod.yml`) |
+|:---------|:--------------------------------------|:----------------------------------------|
+| **Web Service** | `npm run dev` (hot-reload) | Production build (`target: production`) |
+| **Database** | SQLite (`file:/data/dev.db`) | PostgreSQL 15 Alpine (persistent volume) |
+| **Redis** | Redis 7 Alpine (ephemeral) | Redis 7 Alpine (`appendonly yes`, persistent) |
+| **Volumes** | Source bind-mount + `node_modules` | Named volumes (`pgdata`, `redisdata`) |
+| **Restart Policy** | None (foreground) | `unless-stopped` |
+| **Init SQL** | Not needed | Auto-runs `init.sql` on first start |
+| **Environment** | Hardcoded dev defaults | Loaded from `.env.production` |
+| **Ports** | 3000, 8000, 6379 | 3000, 5432, 6379 |
+| **Command** | `make dev` | `make prod` |
+| **Use Case** | Local development & debugging | Production / staging deployment |
+
+### Production Environment Variables
+
+For production, copy `env.example.production` to `.env.production` and fill in the values:
+
+```bash
+cp env.example.production .env.production
+```
+
+Key variables that **must** be set for production:
+
+| Variable | Description |
+|:---------|:------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEXTAUTH_SECRET` | NextAuth signing secret |
+| `NEXTAUTH_URL` | Public URL of the application |
+| `POSTGRES_PASSWORD` | PostgreSQL password |
+| `REDIS_PASSWORD` | Redis authentication password |
+| `ENCRYPTION_KEY` | AES-256-GCM key |
+| `ADMIN_PASSWORD_HASH` | bcrypt hash of admin password |
+
+> **Security:** Never commit `.env.production` to version control. Use `make secrets` to generate cryptographically secure values.
 
 ---
 

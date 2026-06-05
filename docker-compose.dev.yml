@@ -1,126 +1,36 @@
-# 🚀 OmniMedical Suite — Development Compose (Simplified)
-# يشغل فقط الخدمات الأساسية للمبتدئين:
-#   - Next.js Web (port 3000)
-#   - FastAPI Backend (port 8000)  
-#   - Redis (port 6379)
+# =============================================================================
+# OmniMedical Suite — Development Docker Compose
+# =============================================================================
+# Lightweight dev profile: Next.js web + Redis (SQLite dev DB).
+# For the full stack (web + api + monitoring), use docker-compose.standard.yml
+# or the infrastructure/docker/docker-compose.yml.
 #
-# للإنتاج استخدم: docker-compose.yml الرئيسي
-# للمراقبة أضف: --profile monitoring
+# Usage:
+#   make dev          # or: docker compose -f docker-compose.dev.yml up --build
+#   make prod-down    # stop: docker compose -f docker-compose.dev.yml down -v
+# =============================================================================
 
 services:
   web:
     build:
       context: .
-      dockerfile: infrastructure/docker/Dockerfile.web
-    container_name: omni-web
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:/data/dev.db
+      - NEXTAUTH_URL=http://localhost:3000
     ports:
       - "3000:3000"
-    environment:
-      - DATABASE_URL=file:./db/omni-medical.db
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-change-in-production}
-      - API_URL=http://api:8000
-    volumes:
-      - ./apps/web:/app/apps/web
-      - ./packages:/app/packages
-      - web_node_modules:/app/apps/web/node_modules
-    command: npm run dev
-    depends_on:
-      - api
-    networks:
-      - omni-net
-
-  api:
-    build:
-      context: .
-      dockerfile: infrastructure/docker/Dockerfile.api
-    container_name: omni-api
-    ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=file:./db/omni-medical.db
-      - REDIS_URL=redis://redis:6379
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-key-32bytes-long-change-me}
-      - OCR_ENGINE_ORDER=mixed_engine,tesseract,mistral,easyocr
-      - TESSERACT_LANGUAGES=ara+eng
-      - NLP_LANGUAGE=ar
-      - ENABLE_PII_DETECTION=true
-      - RATE_LIMIT_TIER_FREE=10
-      - RATE_LIMIT_TIER_STANDARD=100
-      - RATE_LIMIT_TIER_PREMIUM=500
-      - OCR_CACHE_TTL=86400
-      - CIRCUIT_BREAKER_ENABLED=true
-      - MEDICAL_VALIDATOR_ENABLED=true
-      - FHIR_DEFAULT_FORMAT=fhir_r4
-      - LOG_LEVEL=INFO
     volumes:
-      - ./services/api:/app/services/api
-      - ./packages:/app/packages
-      - ./data:/app/data
-      - api_uploads:/app/uploads
-    command: uvicorn services.api.main:app --reload --host 0.0.0.0 --port 8000
-    depends_on:
-      - redis
-    networks:
-      - omni-net
+      - ./:/app
+      - node_modules:/app/node_modules
+    command: npm run dev
 
   redis:
     image: redis:7-alpine
-    container_name: omni-redis
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    networks:
-      - omni-net
-
-  # Optional: Qdrant for vector search (uncomment if needed)
-  # qdrant:
-  #   image: qdrant/qdrant:latest
-  #   container_name: omni-qdrant
-  #   ports:
-  #     - "6333:6333"
-  #   volumes:
-  #     - qdrant_data:/qdrant/storage
-  #   networks:
-  #     - omni-net
-
-  # Optional: Monitoring (use with --profile monitoring)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: omni-prometheus
-    profiles: ["monitoring"]
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./infrastructure/monitoring/prometheus:/etc/prometheus
-      - prometheus_data:/prometheus
-    networks:
-      - omni-net
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: omni-grafana
-    profiles: ["monitoring"]
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-    volumes:
-      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning
-      - grafana_data:/var/lib/grafana
-    networks:
-      - omni-net
 
 volumes:
-  web_node_modules:
-  api_uploads:
-  redis_data:
-  # qdrant_data:
-  prometheus_data:
-  grafana_data:
-
-networks:
-  omni-net:
-    driver: bridge
+  node_modules:
