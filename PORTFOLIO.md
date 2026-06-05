@@ -1,171 +1,136 @@
-# Dr. Abdulmalek — Project Portfolio
+# 🏥 Medical OCR Ecosystem — خريطة المشاريع
 
-> **Medical Document Intelligence Ecosystem**
-> Unified architecture for Arabic/English medical OCR, NLP, and AI-powered document processing.
-> 
-> **Last Updated**: June 2026 | **Restructuring Status**: Phase 4 Complete ✅
+> **منظومة متكاملة للتعرف الضوئي على الخط اليدوي الطبي**
+> Integrated Ecosystem for Medical Handwriting OCR
 
----
+## 📊 خريطة المشاريع / Project Map
 
-## Architecture Overview
+| # | المشروع | الدور | الحالة | اللغة |
+|---|--------|------|--------|-------|
+| 1 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | المنصة الرئيسية المتكاملة | ✅ `active` | Next.js + FastAPI |
+| 2 | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | مكتبة تصحيح OCR ثنائية اللغة | ✅ `active` | Python (pip) |
+| 3 | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) | خط إنتاج OCR متقدم | ✅ `active` | FastAPI + React |
+| 4 | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | أداة تدريب وجمع بيانات بشرية | ✅ `active` | Streamlit |
+| 5 | [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer-hf) | نسخة نشر على Hugging Face | 📦 `deployment-only` | Streamlit |
+| 6 | [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) | معيار قياس موحد | ✅ `active` | Python (pip) |
+| 7 | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | بيانات أساس للتدريب والقياس | ✅ `active` | JSONL + Python |
+| 8 | [medical-doc-processor](https://github.com/DrAbdulmalek/medical-doc-processor) | معالج مستندات (قديم) | ⚠️ `legacy` | Electron + React |
+| 9 | [OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor) | منصة ملفات ذكية (قديم) | ⚠️ `legacy` | Python + Multi-UI |
+| 10 | [IntelliFile-app](https://github.com/DrAbdulmalek/IntelliFile-app) | مدير ملفات ذكي | ✅ `active` (مستقل) | Python + PySide6 |
+| 11 | [omniparse](https://github.com/DrAbdulmalek/omniparse) | محلل متعدد الوسائط | 📚 `experimental` | Python |
+| 12 | [omniparse-study](https://github.com/DrAbdulmalek/omniparse-study) | دراسة تحليلية | 📚 `archived` | Notes |
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PLATFORM LAYER                                   │
-│  omni-medical-suite (Main Platform — Monorepo)                      │
-│  Next.js 16 + FastAPI + Celery + Redis + Qdrant                     │
-│  ✅ Production env templates, secrets generator, pre-deploy checks    │
-└──────────┬──────────────────────────────────┬───────────────────────┘
-           │                                  │
-┌──────────▼──────────┐        ┌──────────────▼──────────────────────┐
-│  APPLICATION LAYER   │        │  CORE ENGINES LAYER                │
-│                      │        │                                      │
-│  medical-handwriting │        │  medical-ocr-postprocessor v2.2.0   │
-│  -ocr (Production)   │───────▶│  ✅ Installable package (pip)        │
-│  ✅ Postprocessor     │        │  ✅ Stable API: correct_text(),      │
-│    integration       │        │     mask_phi(), batch_process()      │
-│  medical-ocr-trainer │        │     mask_phi(), batch_process()      │
-│  (Evaluation + Data) │───────▶│  ✅ 56 golden tests + benchmarks    │
-│  ✅ CER/WER metrics  │        │  ✅ GitHub Actions CI/CD            │
-│  ✅ Benchmark suite   │        │                                      │
-└──────────┬──────────┘        └──────────────┬──────────────────────┘
-           │                                  │
-┌──────────▼──────────┐        ┌──────────────▼──────────────────────┐
-│  DEPLOYMENT LAYER   │        │  BENCHMARKS LAYER (NEW)              │
-│                      │        │                                      │
-│  medical-ocr-trainer │        │  medical-ocr-benchmarks v1.0.0       │
-│  -hf (HF Space)      │        │  ✅ CER, WER, Medical Term Accuracy  │
-│                      │        │  ✅ Latency profiling (p95/p99)      │
-└──────────┬──────────┘        │  ✅ Golden datasets (EN, AR, Mixed)  │
-           │                  │  ✅ Multi-engine comparison          │
-┌──────────▼──────────┐        │  ✅ Markdown/JSON/HTML reports       │
-│  INDEPENDENT        │        └──────────────────────────────────────┘
-│  IntelliFile-app    │
-│  (File Manager)     │
-└─────────────────────┘
-
-LEGACY (Migration Source — Tagged ✅):
-  OmniFile_Processor → merged into omni-medical-suite
-  medical-doc-processor → migrating to omni-medical-suite
-
----
-
-## Restructuring Progress
-
-| Phase | Status | Key Changes |
-|-------|--------|-------------|
-| **Phase 1** | ✅ Complete | Descriptions, topics, READMEs, PORTFOLIO.md across all 10 repos |
-| **Phase 2** | ✅ Complete | Package conversion, evaluation toolkit, legacy tagging, production templates |
-| **Phase 3** | ✅ Complete | GitHub Actions CI/CD, unified benchmarks, new benchmark repo |
-| **Phase 4** | ✅ Complete | handwriting-ocr postprocessor integration, Docker/Makefile verified |
-
-### Phase 2 Completed (June 2026)
-
-| Repository | Change | Commit |
-|-----------|--------|--------|
-| **medical-ocr-postprocessor** | Converted to installable package with stable API | `ba3a6c2` |
-| **medical-ocr-trainer** | Refocused as evaluation & data collection toolkit | `414442f` |
-| **OmniFile_Processor** | Tagged as legacy with migration map | `b8817bf` |
-| **medical-doc-processor** | Tagged as legacy with merge notice | `d3309f1` |
-| **omni-medical-suite** | Added production env templates & deployment scripts | `76e8d92` |
-
-### Phase 3 Completed (June 2026)
-
-| Repository | Change | Commit |
-|-----------|--------|--------|
-| **medical-ocr-postprocessor** | GitHub Actions CI/CD (lint, test, benchmark, release) | `0359535` |
-| **medical-ocr-trainer** | GitHub Actions CI/CD (lint, test, package) | `4f9e31b` |
-| **medical-ocr-benchmarks** | NEW — Unified benchmark suite created | (new repo) |
-
-### Phase 4 Completed (June 2026)
-
-| Repository | Change | Commit |
-|-----------|--------|--------|
-| **medical-handwriting-ocr** | Integrated postprocessor as post-OCR correction engine | `b800558` |
-| **omni-medical-suite** | Docker Compose + Makefile already present (verified) | (existing) |
-
----
-
-## Decision Matrix
-
-| Question | Answer |
-|----------|--------|
-| Need OCR text correction? | `pip install medical-ocr-postprocessor` → `correct_text()` |
-| Need PHI masking? | `from medical_ocr_toolkit import mask_phi` |
-| Need to evaluate OCR quality? | `medical-ocr-trainer` → CER, WER, Medical Term Accuracy |
-| Need full document platform? | `omni-medical-suite` → Web + API + Training |
-| Need production handwriting OCR? | `medical-handwriting-ocr` → PaddleOCR + TrOCR + postprocessor |
-| Need to run benchmarks? | `medical-ocr-benchmarks` → `ocr-bench` CLI |
-| Legacy code reference? | `OmniFile_Processor` → See MIGRATION_MAP.md |
-| Need Lite/Standard/GPU modes? | `medical-handwriting-ocr` → `docker/profiles/lite|standard|gpu-production/` |
-
----
-
-## 📋 سجل التحديثات الأخيرة (Recent Changes Log)
-
-### تاريخ: يونيو 2026
-
-#### ✅ المهام المُنجزة
-
-| # | المستودع | التغيير | Commit |
-|---|----------|---------|--------|
-| 1 | `omni-medical-suite` | إضافة `docker-compose.prod.yml` (9 خدمات، إعدادات إنتاجية كاملة) | `4b3cb4e` |
-| 2 | `omni-medical-suite` | إضافة `hf-space/` (5 ملفات لنشر Hugging Face Space) | 5 commits |
-| 3 | `omni-medical-suite` | إضافة Ultra Quick Start في README (تشغيل بخطوة واحدة) | `168bd84` |
-| 4 | `medical-ocr-trainer` | ربط رسمي مع `medical-ocr-benchmarks` كاعتمادية | `1db1495`, `0d7072` |
-| 5 | `medical-ocr-trainer` | ترقية الإصدار إلى v1.1.0 | `1db1495` |
-| 6 | `medical-ocr-benchmarks` | إضافة Nightly CI مع كشف التراجعات (regression detection) | `504e0c` |
-| 7 | `medical-ocr-postprocessor` | إصدار GitHub Release v2.2.0 (أول إصدار مستقر) | Release |
-
-#### 🆕 الملفات الجديدة
-
-| المستودع | الملف | الوصف |
-|----------|-------|-------|
-| `omni-medical-suite` | `docker-compose.prod.yml` | إعدادات إنتاج كاملة (PostgreSQL, Nginx, Redis auth, Qdrant, Worker, Beat, Monitoring) |
-| `omni-medical-suite` | `hf-space/app.py` | تطبيق FastAPI لنشر HF Space |
-| `omni-medical-suite` | `hf-space/Dockerfile` | صورة Docker للـ HF Space |
-| `omni-medical-suite` | `hf-space/requirements.txt` | اعتماديات HF Space |
-| `omni-medical-suite` | `hf-space/README.md` | وصف HF Space بالعربية والإنجليزية |
-| `omni-medical-suite` | `hf-space/DEPLOY.md` | دليل نشر HF Space خطوة بخطوة |
-| `medical-ocr-benchmarks` | `.github/workflows/nightly-benchmarks.yml` | سير عمل يومي للمعايير مع كشف التراجعات |
-
-#### 🔗 التبعيات المُحدثة
+## 🏗️ البنية المعمارية / Architecture
 
 ```
-medical-handwriting-ocr ──depends-on──▶ medical-ocr-postprocessor
-medical-ocr-trainer ──depends-on──────▶ medical-ocr-benchmarks
-omni-medical-suite ──depends-on──────▶ medical-ocr-postprocessor (via hf-space)
-medical-ocr-benchmarks ──depends-on──▶ medical-ocr-postprocessor (optional)
+┌───────────────────────────────────────────────────────────┐
+│                    USER INTERFACES                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
+│  │ Next.js  │  │ Streamlit│  │ React    │  │ Gradio    │  │
+│  │ (Suite)  │  │(Trainer) │  │(Handwrit)│  │(HF Space) │  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬─────┘  │
+└───────┼──────────────┼──────────────┼──────────────┼─────┘
+        │              │              │              │
+┌───────▼──────────────▼──────────────▼──────────────▼─────┐
+│                    API LAYER                               │
+│  ┌──────────────────┐  ┌────────────────────────────────┐ │
+│  │  FastAPI Backend │  │  Postprocessor Library (pip)   │ │
+│  │  (handwriting)   │  │  correct_text() | mask_phi()   │ │
+│  └──────────────────┘  └────────────────────────────────┘ │
+└────────────────────────────────┬───────────────────────────┘
+                                 │
+┌────────────────────────────────▼───────────────────────────┐
+│                    DATA PIPELINE                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│  │ Ground   │  │ Trainer  │  │ Bench-   │  │ Diction- │  │
+│  │ Truth    │──│ Collect  │──│ marks    │  │ aries    │  │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
+└───────────────────────────────────────────────────────────┘
 ```
 
-#### 🚀 واجهة التشغيل الفائق (Ultra Quick Start)
+## 🔗 مصفوفة التبعيات / Dependency Matrix
 
-مستخدم جديد يمكنه الآن تشغيل المنصة بخطوة واحدة:
+| المشروع | يعتمد على | يُستخدم بواسطة |
+|---------|-----------|---------------|
+| omni-medical-suite | postprocessor | المستخدم النهائي |
+| medical-handwriting-ocr | postprocessor, القواميس | المستخدم النهائي |
+| medical-ocr-trainer | benchmarks (اختياري) | trainer-hf |
+| medical-ocr-trainer-hf | trainer | HF Spaces |
+| medical-ocr-postprocessor | — | suite, handwriting, trainer |
+| medical-ocr-benchmarks | ground-truth (بيانات) | trainer, suite |
+| medical-ocr-ground-truth | — | benchmarks, trainer |
 
+## 🚀 إرشادات الاستخدام / Usage Guide
+
+### للمستخدم النهائي / For End Users
 ```bash
+# 1. استخدم المنصة الرئيسية
 git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
-cd omni-medical-suite
-make dev
-# → http://localhost:8000
+cd omni-medical-suite && make dev
 ```
 
-#### 🌐 Hugging Face Space
-
-جميع الملفات الجاهزة للنشر في `hf-space/`:
+### للتطوير / For Developers
 ```bash
-huggingface-cli repo create medical-ocr-demo --type space --space_sdk docker
-git clone https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-demo
-cp -r omni-medical-suite/hf-space/* medical-ocr-demo/
-cd medical-ocr-demo && git add . && git commit -m "deploy" && git push
+# 2. استخدم مكتبة التصحيح
+pip install medical-ocr-postprocessor
+
+# 3. قياس الأداء
+pip install medical-ocr-benchmarks
+medocr-bench --engines paddleocr --check-ci
 ```
 
-#### 📊 إحصائيات المنظومة النهائية
+### لتدريب النماذج / For Training
+```bash
+# 4. أداة التدريب التفاعلية
+git clone https://github.com/DrAbdulmalek/medical-ocr-trainer.git
+cd medical-ocr-trainer && streamlit run app.py
 
-| المقياس | القيمة |
-|---------|--------|
-| إجمالي المستودعات النشطة | 7 (من 10) |
-| إجمالي Commits في التحسين | 20+ |
-| إجمالي الأسطر المضافة | 7,000+ |
-| مستودعات مع CI/CD | 4/7 |
-| مستودعات مع Release | 1/7 (postprocessor v2.2.0) |
-| Legacy موثقة | 2 (OmniFile_Processor, medical-doc-processor) |
+# 5. نسخة HF (تجربة سريعة)
+# https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-trainer
+```
+
+### للخط اليدوي / For Handwriting OCR
+```bash
+# 6. خط إنتاج متقدم
+git clone https://github.com/DrAbdulmalek/medical-handwriting-ocr.git
+cd medical-handwriting-ocr/colab_medical_ocr_lite && ./run_demo.sh
+```
+
+## 📦 الحزم المتاحة / Available Packages
+
+| الحزمة | التثبيت | الوظيفة |
+|--------|---------|--------|
+| `medical-ocr-postprocessor` | `pip install medical-ocr-postprocessor` | تصحيح OCR |
+| `medical-ocr-benchmarks` | `pip install medical-ocr-benchmarks` | قياس الأداء |
+
+## 📈 مؤشرات الجودة / Quality Metrics
+
+| المقياس | القيمة المستهدفة |
+|---------|----------------|
+| CER (معدل خطأ الحروف) | < 5% (عربي), < 3% (إنجليزي) |
+| WER (معدل خطأ الكلمات) | < 8% (عربي), < 5% (إنجليزي) |
+| Medical Term Accuracy | > 90% |
+| CI/CD Coverage | 6 مستودعات نشطة |
+| Test Cases (Benchmarks) | 50+ حالة (عربي + إنجليزي + مختلط) |
+
+## 🏷️ حالات المستودعات / Repo Status Legend
+
+- ✅ `active` — نشط ومُحدَّث
+- ⚠️ `legacy` — قديم (استخدم البديل المُشار)
+- 📦 `deployment-only` — للنشر فقط (لا تطوّر هنا)
+- 📚 `experimental` — تجريبي
+- 📚 `archived` — مؤرشف (للقراءة فقط)
+
+## 📅 تاريخ التطوير / Development Timeline
+
+| التاريخ | الإنجاز |
+|---------|---------|
+| 2026-06-06 | إكمال إعادة الهيكلة الكاملة للمنظومة |
+| 2026-06-06 | ربط handwriting-ocr بمكتبة postprocessor |
+| 2026-06-06 | Docker Compose + Makefile لـ omni-medical-suite |
+| 2026-06-06 | GitHub Actions CI/CD لـ handwriting-ocr |
+| 2026-06-06 | Nightly Benchmarks لـ benchmarks |
+| 2026-06-06 | Release v0.1.0 لـ medical-ocr-postprocessor |
+| 2026-06-03 | إنشاء ground-truth + benchmarks + بيانات حوكمة |
+| 2026-06-02 | تحويل postprocessor إلى حزمة pip |
+| 2026-06-02 | تبسيط Lite mode لـ handwriting-ocr |
