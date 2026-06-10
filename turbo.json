@@ -2,13 +2,14 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
     "**/.env",
+    "**/.env.*",
     "prisma/schema.prisma",
     "apps/web/next.config.ts"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build", "db:generate"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "*.whl"]
     },
     "dev": {
       "cache": false,
@@ -30,6 +31,12 @@
     },
     "clean": {
       "cache": false
+    },
+    "ocr:train": {
+      "cache": false
+    },
+    "benchmark": {
+      "outputs": ["benchmarks/results/**"]
     }
   }
 }

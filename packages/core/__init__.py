@@ -1,64 +1,69 @@
-# Medical Document Processor - Core Python Package
-# Version: 3.2
-# Modules: image processing, encryption, DB management, Mistral AI integration
-
 """
-Unified logging configuration for all packages/core modules.
+packages/core/__init__.py
+==========================
+الوحدة الموحّدة بعد دمج packages/core (legacy) + packages/omni-core
 
-Usage (from any module in packages/core):
-    from packages.core import logger
+تحتوي على:
+  - engine_router       : توجيه محركات OCR
+  - database_manager    : إدارة قاعدة البيانات
+  - user_manager        : إدارة المستخدمين والصلاحيات
+  - model_registry      : سجل النماذج المدرّبة
+  - model_manager       : دورة حياة النماذج
+  - corrections_manager : تتبع التصحيحات اليدوية
+  - protected_vocab     : المفردات المحمية
+  - word_trainer        : تدريب على مستوى الكلمة
+  - parallel_processor  : المعالجة المتوازية
+  - smart_migrator      : هجرة البيانات الذكية
+  - encryption          : تشفير AES-256 (مُعاد توجيهه من packages/security)
+  - spell_checker       : التدقيق الإملائي الموحّد
 
-All modules share the same logger with consistent formatting.
+التغييرات عن النسخة القديمة:
+  - packages/omni-core/* أُدمج هنا وحُذف كمجلد مستقل
+  - packages/core/api_server.py بقي كما هو (legacy endpoint)
+  - packages/core/encryption.py حُذف — استخدم packages.security.encryption
+  - جميع imports من packages.omni_core.* أصبحت packages.core.*
 """
 
-import logging
-import sys
-
-# Configure root logger for the core package
-def _setup_logging():
-    formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-
-    # Get the core package logger
-    core_logger = logging.getLogger("packages.core")
-    core_logger.setLevel(logging.INFO)
-    core_logger.addHandler(handler)
-    core_logger.propagate = False
-
-    return core_logger
-
-# Module-level logger - use this in all core modules
-logger = _setup_logging()
-
-# Re-export main processing functions for convenience
-from .image_processor import (
-    find_page_bounds,
-    auto_detect_skew,
-    smart_auto_crop,
-    remove_shadow,
-    detect_blur_laplacian,
-    sharpen_image,
-    extract_page_number,
-    assess_image_quality,
-    apply_processing,
-    image_segmentation,
-)
+from .engine_router import EngineRouter, EngineConfig, RoutingResult
+from .database_manager import DatabaseManager
+from .user_manager import UserManager, UserRole, Permission
+from .model_registry import ModelRegistry, ModelEntry
+from .model_manager import ModelManager
+from .corrections_manager import CorrectionsManager
+from .protected_vocab import ProtectedVocabulary
+from .word_trainer import WordTrainer
+from .parallel_processor import ParallelProcessor
+from .smart_migrator import SmartMigrator, MigrationResult
+from .spell_checker import UnifiedSpellChecker
 
 __all__ = [
-    "logger",
-    "find_page_bounds",
-    "auto_detect_skew",
-    "smart_auto_crop",
-    "remove_shadow",
-    "detect_blur_laplacian",
-    "sharpen_image",
-    "extract_page_number",
-    "assess_image_quality",
-    "apply_processing",
-    "image_segmentation",
+    "EngineRouter", "EngineConfig", "RoutingResult",
+    "DatabaseManager",
+    "UserManager", "UserRole", "Permission",
+    "ModelRegistry", "ModelEntry",
+    "ModelManager",
+    "CorrectionsManager",
+    "ProtectedVocabulary",
+    "WordTrainer",
+    "ParallelProcessor",
+    "SmartMigrator", "MigrationResult",
+    "UnifiedSpellChecker",
 ]
+
+# ── Backward-compat shims ─────────────────────────────────────
+# كود قديم يستورد من omni_core يُعيَّن هنا تلقائياً
+# يُعرض تحذير deprecation ليُذكَّر المطوّر بالتحديث
+
+import warnings as _w
+
+class _OmniCoreShim:
+    """Proxy أُنشئ لضمان التوافق مع الاستيرادات القديمة."""
+    def __getattr__(self, name: str):
+        _w.warn(
+            f"packages.omni_core.{name} is deprecated — "
+            f"use packages.core.{name} instead.",
+            DeprecationWarning, stacklevel=2
+        )
+        return globals().get(name)
+
+omni_core = _OmniCoreShim()
