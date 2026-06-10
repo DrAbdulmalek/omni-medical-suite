@@ -1,0 +1,100 @@
+# =============================================================================
+# OmniMedical Suite — Prometheus Alerting Rules
+# =============================================================================
+
+groups:
+  - name: omni-medical-suite
+    rules:
+      # -------------------------------------------------------------------------
+      # 1. Health Score Too Low
+      #    Triggers when the composite health score drops below 0.7 for 2 minutes.
+      # -------------------------------------------------------------------------
+      - alert: HealthScoreTooLow
+        expr: omni_health_score < 0.7
+        for: 2m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Health score below 0.7"
+          description: >
+            The composite health score has been {{ $value | printf "%.3f" }}
+            for over 2 minutes (threshold: 0.7). Investigate upstream
+            dependencies and service health endpoints.
+
+      # -------------------------------------------------------------------------
+      # 2. Health Endpoint Failing
+      #    Triggers when the health-check failure rate exceeds 0.5 % for 3 min.
+      # -------------------------------------------------------------------------
+      - alert: HealthEndpointFailing
+        expr: >
+          (
+            rate(omni_health_check_total{status="failure"}[5m])
+          /
+            rate(omni_health_check_total[5m])
+          ) > 0.005
+        for: 3m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Health endpoint failure rate above 0.5%"
+          description: >
+            Health endpoint failure rate is {{ $value | printf "%.4f" }}
+            ({{ $value | humanizePercentage }}) over the last 3 minutes.
+
+      # -------------------------------------------------------------------------
+      # 3. E2E Tests Failing
+      #    Fires immediately when any end-to-end test fails.
+      # -------------------------------------------------------------------------
+      - alert: E2ETestsFailing
+        expr: omni_e2e_test_failures_total > 0
+        for: 0m
+        labels:
+          severity: critical
+          team: qa
+        annotations:
+          summary: "E2E test failure detected"
+          description: >
+            {{ $value }} end-to-end test failure(s) reported. Review the
+            latest CI run and test logs for details.
+
+      # -------------------------------------------------------------------------
+      # 4. Fusion Not Improving Confidence
+      #    Fires when confidence improvement from result fusion is < 5% for 10m.
+      # -------------------------------------------------------------------------
+      - alert: FusionNotImprovingConfidence
+        expr: >
+          (
+            omni_fusion_confidence_after
+          -
+            omni_fusion_confidence_before
+          ) / omni_fusion_confidence_before < 0.05
+        for: 10m
+        labels:
+          severity: warning
+          team: ml
+        annotations:
+          summary: "Fusion confidence improvement below 5%"
+          description: >
+            The multi-engine result fusion strategy has improved confidence
+            by less than 5% over the last 10 minutes (current improvement:
+            {{ $value | printf "%.4f" }}). Consider tuning fusion weights
+            or investigating engine quality.
+
+      # -------------------------------------------------------------------------
+      # 5. Review Queue Growing
+      #    Fires when the human review queue exceeds 50 items for 5 minutes.
+      # -------------------------------------------------------------------------
+      - alert: ReviewQueueGrowing
+        expr: omni_review_queue_size > 50
+        for: 5m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "Review queue size exceeds 50 items"
+          description: >
+            The human review queue has held {{ $value }} items for over
+            5 minutes. Assign additional reviewers or investigate
+            processing bottlenecks.

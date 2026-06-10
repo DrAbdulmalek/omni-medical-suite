@@ -1,0 +1,59 @@
+# =============================================================================
+# OmniMedical Suite — Prometheus Configuration
+# =============================================================================
+# Scrapes the API metrics endpoint, Node Exporter, and Redis Exporter.
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: omni-medical-suite
+
+# Alertmanager configuration (optional, can point to external instance)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+          # - alertmanager:9093
+
+# Load alerting rules
+rule_files:
+  - /etc/prometheus/alerts/alerts.yml
+
+# Storage configuration
+storage:
+  tsdb:
+    retention: 30d
+
+scrape_configs:
+  # --------------------------------------------------------------------------
+  # OmniMedical Suite API — fast scrape at /metrics
+  # --------------------------------------------------------------------------
+  - job_name: "omni-medical-api"
+    scrape_interval: 5s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["localhost:8000"]
+        labels:
+          team: backend
+
+  # --------------------------------------------------------------------------
+  # Node Exporter — host-level metrics (CPU, memory, disk, network)
+  # --------------------------------------------------------------------------
+  - job_name: "node-exporter"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["localhost:9100"]
+        labels:
+          team: infra
+
+  # --------------------------------------------------------------------------
+  # Redis Exporter — Redis instance metrics
+  # --------------------------------------------------------------------------
+  - job_name: "redis-exporter"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["localhost:9121"]
+        labels:
+          team: infra

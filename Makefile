@@ -1,11 +1,11 @@
-# ============================================================================
+# =============================================================================
 # OmniMedical Suite — Makefile
-# ============================================================================
-# Primary targets for local dev, production Docker, and common operations.
+# =============================================================================
+# Primary targets for local dev, production Docker, testing, and monitoring.
 # Run `make` or `make help` to see all available targets.
-# ============================================================================
+# =============================================================================
 
-.PHONY: dev prod prod-down install build test lint secrets check logs clean help
+.PHONY: dev prod test lint monitoring check secrets clean help
 
 # ---------------------------------------------------------------------------
 # Default target
@@ -16,69 +16,58 @@
 # Development
 # ===========================================================================
 
-## dev - Start development Docker Compose (web + redis, SQLite)
+## dev - Start development environment (API + Redis + PostgreSQL)
 dev:
-	docker compose -f docker-compose.dev.yml up --build
+	docker-compose -f docker-compose.dev.yml up --build
 
 # ===========================================================================
 # Production
 # ===========================================================================
 
-## prod - Start production Docker Compose (web + postgres + redis) in background
+## prod - Start production environment in detached mode
 prod:
-	docker compose -f docker-compose.prod.yml up -d --build
-
-## prod-down - Stop production Docker Compose and remove containers
-prod-down:
-	docker compose -f docker-compose.prod.yml down
+	docker-compose -f docker-compose.prod.yml up -d --build
 
 # ===========================================================================
-# Local Development (without Docker)
+# Testing & Quality
 # ===========================================================================
 
-## install - Install dependencies and initialize database
-install:
-	npm install
-	npm run prisma:generate
-	npm run prisma:migrate
-
-## build - Build the full project
-build:
-	npm run build
-
-## test - Run all tests
+## test - Run all tests with verbose output
 test:
-	npm run test
+	pytest tests/ -v
 
-## lint - Run linting across all packages
+## lint - Run ruff (linting) and mypy (type checking)
 lint:
-	npm run lint
+	ruff check . && mypy packages/
+
+# ===========================================================================
+# Monitoring
+# ===========================================================================
+
+## monitoring - Deploy Prometheus + Grafana monitoring stack
+monitoring:
+	bash scripts/deploy_monitoring.sh
 
 # ===========================================================================
 # Deployment Helpers
 # ===========================================================================
 
-## secrets - Generate secure production secrets
-secrets:
-	bash scripts/generate-secrets.sh
-
 ## check - Run pre-deployment readiness checks
 check:
 	bash scripts/pre-deploy-check.sh
 
-## logs - Tail production Docker Compose logs (last 100 lines)
-logs:
-	docker compose -f docker-compose.prod.yml logs -f --tail=100
+## secrets - Generate secure production secrets
+secrets:
+	bash scripts/generate-secrets.sh
 
 # ===========================================================================
 # Cleanup
 # ===========================================================================
 
-## clean - Remove all containers, volumes, node_modules, and build artifacts
+## clean - Stop all containers, remove volumes, and clean build artifacts
 clean:
-	docker compose -f docker-compose.dev.yml down -v
-	docker compose -f docker-compose.prod.yml down -v
-	rm -rf node_modules .next
+	docker-compose down -v
+	rm -rf __pycache__ .pytest_cache
 
 # ===========================================================================
 # Help
@@ -87,8 +76,8 @@ clean:
 ## help - Show this help message
 help:
 	@echo ""
-	@echo "OmniMedical Suite - Available Commands"
-	@echo "======================================"
+	@echo "OmniMedical Suite — Available Commands"
+	@echo "========================================"
 	@echo ""
 	@grep -E '^## ' $(MAKEFILE_LIST) | sort | \
 		sed 's/^## //' | \

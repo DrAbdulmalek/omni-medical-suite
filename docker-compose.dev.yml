@@ -1,36 +1,94 @@
 # =============================================================================
 # OmniMedical Suite — Development Docker Compose
 # =============================================================================
-# Lightweight dev profile: Next.js web + Redis (SQLite dev DB).
-# For the full stack (web + api + monitoring), use docker-compose.standard.yml
-# or the infrastructure/docker/docker-compose.yml.
+# Lightweight dev profile: API (hot-reload) + Redis + PostgreSQL.
+# SQLite fallback available if PostgreSQL is not needed.
 #
 # Usage:
-#   make dev          # or: docker compose -f docker-compose.dev.yml up --build
-#   make prod-down    # stop: docker compose -f docker-compose.dev.yml down -v
+#   make dev          # or: docker-compose -f docker-compose.dev.yml up --build
 # =============================================================================
 
 services:
-  web:
+  # ---------------------------------------------------------------------------
+  # API — FastAPI application with hot-reload volumes
+  # ---------------------------------------------------------------------------
+  api:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: omni-api-dev
     environment:
-      - NODE_ENV=development
-      - DATABASE_URL=file:/data/dev.db
-      - NEXTAUTH_URL=http://localhost:3000
+      - ENV=development
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - APP_PORT=8000
+      - DB_URL=postgresql://omni_user:omni_dev_pass@postgres:5432/omni_medical_dev
+      - REDIS_URL=redis://redis:6379/0
+      - OCR_ENGINE=tesseract
+      - OCR_LANGUAGES=en,ar
+      - OCR_DEVICE=cpu
+      - SECRET_KEY=dev-secret-not-for-production
     ports:
-      - "3000:3000"
       - "8000:8000"
     volumes:
-      - ./:/app
-      - node_modules:/app/node_modules
-    command: npm run dev
+      - ./:/app                          # Hot-reload: source code
+      - pip-cache:/root/.cache/pip       # Persist pip downloads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    # Override command for development with auto-reload
+    command: >
+      uvicorn app.main:app
+        --host 0.0.0.0
+        --port 8000
+        --reload
+        --reload-dir /app/app
 
+  # ---------------------------------------------------------------------------
+  # Redis — In-memory cache and message broker
+  # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
+    container_name: omni-redis-dev
     ports:
       - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Persistent database for development
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: omni-postgres-dev
+    environment:
+      POSTGRES_USER: omni_user
+      POSTGRES_PASSWORD: omni_dev_pass
+      POSTGRES_DB: omni_medical_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-dev-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omni_user -d omni_medical_dev"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
 volumes:
-  node_modules:
+  pg-dev-data:
+  redis-dev-data:
+  pip-cache:

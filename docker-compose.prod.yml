@@ -1,56 +1,220 @@
 # =============================================================================
 # OmniMedical Suite — Production Docker Compose
 # =============================================================================
-# Production profile: Next.js web + PostgreSQL + Redis with persistence.
-# Uses env vars from .env.production (copy from env.example.production).
+# Full production stack: API + Redis + PostgreSQL + Nginx + Celery worker
+# + Celery beat. Health checks, resource limits, secrets from environment.
 #
 # Usage:
 #   cp env.example.production .env.production   # fill in secrets first
-#   make prod       # or: docker compose -f docker-compose.prod.yml up -d --build
-#   make prod-down  # stop: docker compose -f docker-compose.prod.yml down
+#   make prod       # or: docker-compose -f docker-compose.prod.yml up -d --build
 # =============================================================================
 
 services:
-  web:
+  # ---------------------------------------------------------------------------
+  # API — FastAPI application
+  # ---------------------------------------------------------------------------
+  api:
     build:
       context: .
       dockerfile: Dockerfile
       target: production
+    container_name: omni-api
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
+      - ENV=production
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_PORT=8000
+      - DB_URL=${DB_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - OCR_ENGINE=${OCR_ENGINE:-tesseract}
+      - OCR_LANGUAGES=${OCR_LANGUAGES:-en,ar}
+      - OCR_DEVICE=${OCR_DEVICE:-cpu}
+      - OCR_BATCH_SIZE=${OCR_BATCH_SIZE:-8}
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
     depends_on:
-      - postgres
-      - redis
-    ports:
-      - "3000:3000"
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # Celery Worker — Background task processing (OCR, batch jobs)
+  # ---------------------------------------------------------------------------
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: omni-celery-worker
+    environment:
+      - ENV=production
+      - APP_ENV=production
+      - DB_URL=${DB_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - OCR_ENGINE=${OCR_ENGINE:-tesseract}
+      - OCR_LANGUAGES=${OCR_LANGUAGES:-en,ar}
+      - OCR_DEVICE=${OCR_DEVICE:-cpu}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: celery -A app.tasks worker --loglevel=info --concurrency=4
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks inspect ping --timeout=5 2>/dev/null | grep -q pong || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Celery Beat — Periodic task scheduler
+  # ---------------------------------------------------------------------------
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: omni-celery-beat
+    environment:
+      - ENV=production
+      - APP_ENV=production
+      - DB_URL=${DB_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: celery -A app.tasks beat --loglevel=info
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis — In-memory cache and Celery broker
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: omni-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Primary database
+  # ---------------------------------------------------------------------------
   postgres:
     image: postgres:15-alpine
+    container_name: omni-postgres
     environment:
-      POSTGRES_USER: ${DB_USER:-medocr}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME:-medical_ocr}
+      POSTGRES_USER: ${DB_USER:-omni_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME:-omni_medical}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pg-data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-omni_user} -d ${DB_NAME:-omni_medical}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - redisdata:/data
+  # ---------------------------------------------------------------------------
+  # Nginx — Reverse proxy & TLS termination
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: omni-nginx
     ports:
-      - "6379:6379"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
     restart: unless-stopped
 
 volumes:
-  pgdata:
-  redisdata:
+  pg-data:
+  redis-data:

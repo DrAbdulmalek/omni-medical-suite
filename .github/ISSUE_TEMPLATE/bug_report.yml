@@ -1,0 +1,104 @@
+name: Bug Report
+description: >
+  Report a reproducible bug in the OmniMedical Suite.
+  Please fill in as many fields as possible to help us diagnose the issue quickly.
+title: "[Bug] "
+labels: ["bug", "triage"]
+assignees: []
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the system is affected?
+      options:
+        - Frontend
+        - Backend
+        - Worker
+        - DB
+        - Docker
+        - CI
+    validations:
+      required: true
+
+  - type: input
+    id: title_summary
+    attributes:
+      label: Brief Title
+      description: A short, descriptive summary of the bug.
+      placeholder: "e.g. OCR returns empty text for Arabic PDFs on GPU mode"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A detailed description of the problem.
+      placeholder: "Describe what happened, what you expected, and any relevant context."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Clear steps that someone can follow to reproduce the bug.
+      placeholder: |
+        1. Start the API with `MODE=gpu-production`
+        2. Upload an Arabic PDF via POST /api/ocr/upload
+        3. Observe the response body
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "The API should return extracted Arabic text with confidence scores."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened instead?
+      placeholder: "The API returned an empty text field with HTTP 500."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs / Output
+      description: >
+        Paste any relevant log output, stack traces, or error messages.
+        Use triple backticks for formatting.
+      placeholder: |
+        ```
+        Traceback (most recent call last):
+          File "app/routers/ocr.py", line 42, in upload
+            result = ocr_engine.process(file)
+        ...
+        ```
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Provide details about your runtime environment.
+      placeholder: |
+        - OS: Manjaro Linux 24.0
+        - Python version: 3.11.7
+        - GPU: NVIDIA RTX 4070 (CUDA 12.4)
+        - Docker version: 27.0.3
+        - MODE: gpu-production
+      value: |
+        - OS:
+        - Python version:
+        - GPU:
+        - Docker version:
+        - MODE:

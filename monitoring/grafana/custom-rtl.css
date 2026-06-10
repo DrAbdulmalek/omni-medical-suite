@@ -1,0 +1,109 @@
+/* =============================================================================
+   OmniMedical Suite — Custom RTL (Arabic) Styles for Grafana
+   =============================================================================
+   Mount this file into the Grafana container and load via a text/html panel
+   or dashboard annotation so the styles apply site-wide.
+   ============================================================================= */
+
+/* --- Global RTL direction and font --- */
+body,
+.grafana-app,
+.dashboard-container,
+.main-view {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+/* --- Panels --- */
+.panel-container,
+.panel-content,
+.panel-header,
+.dashboard-panel {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+.panel-title {
+  text-align: right !important;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+/* --- Tables --- */
+.grafana-table,
+table {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+.grafana-table th,
+.grafana-table td {
+  text-align: right !important;
+  padding-right: 8px !important;
+  padding-left: 16px !important;
+}
+
+/* --- Dashboards --- */
+.dashboard-header,
+.dashboard-title,
+.dashboard-subtitle {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+/* --- Sidebar / navigation --- */
+.sidemenu,
+.sidebar-container {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* --- Form inputs --- */
+input,
+select,
+textarea,
+.gf-form-input {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+/* --- Tooltips --- */
+.grafana-tooltip,
+.tooltip-content {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+/* --- Legend items (charts) --- */
+.legend-series-item,
+.graph-legend {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* --- Stat panels (big numbers) --- */
+.stat-panel .stat-value {
+  direction: rtl !important;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+/* --- Pie chart labels --- */
+.pie-chart-panel .pie-label,
+.arc-panel .arc-label {
+  font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif !important;
+}
+
+/* --- Scrollbar positioning for RTL --- */
+::-webkit-scrollbar {
+  direction: rtl;
+}
+
+/* --- Breadcrumbs --- */
+.breadcrumb-links {
+  direction: rtl !important;
+}
