@@ -49,20 +49,17 @@ JWT_SECRET_KEY: str | None = None
 def _get_jwt_secret() -> str:
     """Lazily resolve the JWT signing secret.
 
-    Falls back to a SHA-256 hash of the API key when a dedicated secret is
-    not available.  In production, always set ``JWT_SECRET_KEY`` explicitly.
+    Requires ``JWT_SECRET_KEY`` to be set explicitly.  Raises RuntimeError if
+    the secret has not been configured.
     """
     global JWT_SECRET_KEY  # noqa: PLW0603
     if JWT_SECRET_KEY is not None:
         return JWT_SECRET_KEY
 
-    # Lazy import to avoid circular dependency
-    from app.core.config import settings  # noqa: WPS433
-
-    JWT_SECRET_KEY = hashlib.sha256(
-        f"omni-medical-jwt-{settings.API_KEY}".encode()
-    ).hexdigest()
-    return JWT_SECRET_KEY
+    raise RuntimeError(
+        "JWT_SECRET_KEY environment variable is required for production. "
+        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -361,7 +361,12 @@ class AuditLogger:
     """
 
     # Pepper for hashing (makes rainbow table attacks infeasible)
-    _PEPPER = os.getenv("OMNIFILE_AUDIT_PEPPER", "omnifile-pepper-2024-secret")
+    _PEPPER = os.getenv("OMNIFILE_AUDIT_PEPPER")
+    if _PEPPER is None:
+        raise RuntimeError(
+            "OMNIFILE_AUDIT_PEPPER environment variable is required. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
 
     def __init__(self, log_dir: Path, retention_days: int = 90):
         self.log_dir = Path(log_dir)
