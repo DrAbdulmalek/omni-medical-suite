@@ -17,6 +17,9 @@ build/
 !.env.example.production
 .env.local
 .env.*.local
+.env.standard
+.env.production
+.env.lite
 
 # Secrets
 *.pem

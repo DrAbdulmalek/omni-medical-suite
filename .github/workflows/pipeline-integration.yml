@@ -1,0 +1,79 @@
+name: Pipeline Integration — Training Data Updates
+
+on:
+  repository_dispatch:
+    types: [training-data-updated, ground-truth-updated]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Pipeline action'
+        required: false
+        default: 'update-all'
+        type: choice
+        options: [update-all, update-corrections, run-eval]
+
+jobs:
+  update-correction-dictionary:
+    name: Update Correction Dictionary
+    runs-on: ubuntu-latest
+    if: >
+      github.event.client_payload.action == 'update_correction_dict' ||
+      github.event.inputs.action == 'update-all' ||
+      github.event.inputs.action == 'update-corrections'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_GITHUB }}
+      - name: Check for updated correction data
+        run: |
+          echo "## Pipeline Integration — $(date -u '+%Y-%m-%d')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Event Info" >> $GITHUB_STEP_SUMMARY
+          echo "- Source: ${{ github.event.client_payload.source || 'manual' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Action: ${{ github.event.client_payload.action || github.event.inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          echo "- SHA: ${{ github.event.client_payload.sha || github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps (Manual for Now)" >> $GITHUB_STEP_SUMMARY
+          echo "1. Copy updated correction dict from training-hub to \`data/correction_dict.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Update \`packages/nlp/correction_dict.json\` with new entries" >> $GITHUB_STEP_SUMMARY
+          echo "3. Run \`make test\` to verify no regressions" >> $GITHUB_STEP_SUMMARY
+          echo "4. Deploy updated dictionary to production" >> $GITHUB_STEP_SUMMARY
+
+  run-evaluation:
+    name: Run Evaluation Suite
+    runs-on: ubuntu-latest
+    if: >
+      github.event.inputs.action == 'update-all' ||
+      github.event.inputs.action == 'run-eval'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run evaluation
+        run: |
+          if [ -f evaluation/benchmark_runner.py ]; then
+            pip install -r requirements/base.txt 2>/dev/null || true
+            python evaluation/benchmark_runner.py --output evaluation/results/ 2>&1 | head -50 || echo "Evaluation completed"
+          else
+            echo "benchmark_runner.py not found"
+          fi
+
+  dispatch-to-postprocessor:
+    name: Update Postprocessor Dictionary
+    runs-on: ubuntu-latest
+    needs: update-correction-dictionary
+    if: github.event_name == 'repository_dispatch'
+    steps:
+      - name: Notify postprocessor repo
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_GITHUB }}
+          repository: DrAbdulmalek/medical-ocr-postprocessor
+          event-type: dictionary-updated
+          client-payload: |
+            {
+              "source": "omni-medical-suite",
+              "trigger": "pipeline",
+              "sha": "${{ github.sha }}"
+            }

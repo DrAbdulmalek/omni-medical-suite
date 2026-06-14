@@ -23,5 +23,5 @@ datasources:
     jsonData:
       sslmode: disable
     secureJsonData:
-      password: omnimedical_secure
+      password: ${GRAFANA_DB_PASSWORD:?required}
     editable: false

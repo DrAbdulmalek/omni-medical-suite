@@ -8,10 +8,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://omnimedical:omnimedical_secure@postgres:5432/omnimedical
+      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}@postgres:5432/omnimedical
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
-      - SECRET_KEY=dev-secret-key-change-in-production
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY required}
       - ENVIRONMENT=development
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
     volumes:
@@ -37,7 +37,7 @@ services:
       dockerfile: Dockerfile
     command: celery -A app.tasks worker --loglevel=info --concurrency=2
     environment:
-      - DATABASE_URL=postgresql://omnimedical:omnimedical_secure@postgres:5432/omnimedical
+      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}@postgres:5432/omnimedical
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
     volumes:
@@ -53,7 +53,7 @@ services:
       dockerfile: Dockerfile
     command: celery -A app.tasks beat --loglevel=info
     environment:
-      - DATABASE_URL=postgresql://omnimedical:omnimedical_secure@postgres:5432/omnimedical
+      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}@postgres:5432/omnimedical
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       - redis
@@ -64,7 +64,7 @@ services:
     environment:
       - POSTGRES_DB=omnimedical
       - POSTGRES_USER=omnimedical
-      - POSTGRES_PASSWORD=omnimedical_secure
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -79,7 +79,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD required}
     volumes:
       - redis_data:/data
     ports:

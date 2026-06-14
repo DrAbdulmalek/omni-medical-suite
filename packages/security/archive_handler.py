@@ -30,7 +30,7 @@ class ArchiveHandler:
 
     الاستخدام:
         handler = ArchiveHandler()
-        files = handler.extract_archive("backup.zip", "output/", password="123")
+        files = handler.extract_archive("backup.zip", "output/", password="your_password_here")
     """
 
     # ======== الأنواع المدعومة ========
