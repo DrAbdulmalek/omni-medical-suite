@@ -19,7 +19,7 @@ curl http://localhost/api/health
 # 5. Open interfaces
 # Gradio UI:    http://localhost/
 # API Docs:     http://localhost/api/docs
-# Grafana:      http://localhost/grafana (admin/admin)
+# Grafana:      http://localhost/grafana (password: set GRAFANA_PASSWORD in .env)
 # Prometheus:   http://localhost/prometheus
 ```
 

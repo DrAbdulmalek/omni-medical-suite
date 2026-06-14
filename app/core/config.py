@@ -5,7 +5,7 @@ For production, use Kubernetes Secrets or external secret managers.
 import os
 from typing import Optional
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, model_validator
 
 
 class Settings(BaseSettings):
@@ -16,11 +16,11 @@ class Settings(BaseSettings):
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = False
     ENVIRONMENT: str = "production"
-    SECRET_KEY: str = Field(default="change-me-in-production")
+    SECRET_KEY: str = Field(default=None)
     ALLOWED_ORIGINS: list[str] = Field(default=["*"])
     
     # Database
-    DATABASE_URL: str = Field(default="postgresql://omnimedical:omnimedical@localhost:5432/omnimedical")
+    DATABASE_URL: str = Field(default=None)
     
     # Redis
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
@@ -51,6 +51,21 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = Field(default="services/uploads")
     MAX_UPLOAD_SIZE: int = Field(default=50 * 1024 * 1024)
     
+    @model_validator(mode="after")
+    def validate_production_settings(self) -> "Settings":
+        env = os.getenv("OMNIMEDICAL_ENV", "development")
+        if env == "production":
+            if not self.SECRET_KEY or self.SECRET_KEY in ("change-me-in-production", "None", ""):
+                raise RuntimeError(
+                    "SECRET_KEY must be explicitly set in production. "
+                    "Generate: python -c \"import secrets; print(secrets.token_hex(32))\""
+                )
+            if not self.DATABASE_URL or "change_me" in self.DATABASE_URL.lower() or "omnimedical:omnimedical" in self.DATABASE_URL:
+                raise RuntimeError(
+                    "DATABASE_URL must be explicitly set in production with strong credentials."
+                )
+        return self
+
     class Config:
         env_file = ".env"
         case_sensitive = True

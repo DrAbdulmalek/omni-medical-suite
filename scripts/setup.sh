@@ -89,7 +89,7 @@ echo ""
 
 # --- 6. Seed admin user ---
 log_info "Step 6/7: Seeding database..."
-log_warn "Default admin: username=admin, password=admin123"
+log_warn "Set ADMIN_SEED_PASSWORD environment variable before running seed"
 log_warn "CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!"
 echo ""
 
@@ -105,7 +105,7 @@ echo "  Next steps:"
 echo "    1. Edit .env with your API keys and secrets"
 echo "    2. Run: npm run dev"
 echo "    3. Open: http://localhost:3000"
-echo "    4. Login: admin / admin123 (CHANGE IMMEDIATELY)"
+echo "    4. Set ADMIN_SEED_PASSWORD in .env, then access the app"
 echo ""
 echo "  Python API: source venv/bin/activate && uvicorn services.api.main:app --reload"
 echo "  Docker:     npm run docker:up"

@@ -22,9 +22,16 @@ export async function GET() {
       });
     }
 
-    // Hash default password
+    // Hash admin password from environment variable
     const bcrypt = await import("bcryptjs");
-    const hashedPassword = await bcrypt.hash("admin123", 12);
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD;
+    if (!adminPassword) {
+      throw new Error(
+        "ADMIN_SEED_PASSWORD environment variable is required for seeding. " +
+        "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+      );
+    }
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
     const admin = await prisma.user.create({
       data: {

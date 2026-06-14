@@ -122,7 +122,7 @@ Authentication is handled by NextAuth.js v4 with a Credentials provider defined 
 | Field | Value |
 |-------|-------|
 | Username | `admin` |
-| Password | `admin123` |
+| Password | Set via `ADMIN_SEED_PASSWORD` env var |
 | Role | `admin` |
 
 ### Account Lockout Policy
@@ -583,7 +583,7 @@ Use this checklist before deploying to any non-local environment.
 
 - [ ] **NEXTAUTH_SECRET** is set to a cryptographically random value (not the default)
 - [ ] **ENCRYPTION_KEY** is set and different from the development key
-- [ ] **Default admin password** (`admin123`) has been changed
+- [ ] **Default admin password** has been changed (set `ADMIN_SEED_PASSWORD` before seeding)
 - [ ] **DATABASE_URL** points to an encrypted volume
 - [ ] **REDIS_URL** is configured and Redis requires authentication
 - [ ] **NODE_ENV** is set to `production`

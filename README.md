@@ -617,7 +617,7 @@ uvicorn services.api.main:app --reload --port 8000
 npm run docker:up
 ```
 
-**Default login credentials:** `admin` / `admin123` — **change immediately after first login!**
+**First-time setup:** Run `python scripts/generate-secrets.sh` → set `ADMIN_SEED_PASSWORD` in `.env` → restart the app
 
 ---
 

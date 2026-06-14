@@ -106,7 +106,7 @@ services:
       - grafana-data:/var/lib/grafana
       - ../../infrastructure/monitoring/grafana:/etc/grafana/provisioning
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set}
     depends_on:
       - prometheus
     restart: unless-stopped
