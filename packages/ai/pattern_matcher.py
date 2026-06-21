@@ -107,7 +107,7 @@ class PatternMatcher:
         """
         # Lazy import to avoid circular dependency
         if db is None:
-            from packages.ai.pattern_db import PatternDatabase
+            from packages.learning.pattern_db import PatternDB as PatternDatabase
             db = PatternDatabase(db_path)
 
         self.db = db

@@ -395,9 +395,9 @@ user and system actions for compliance and forensic analysis.
 ### Querying Logs
 
 ```python
-from packages.security.audit_logger import get_audit_logger
+from packages.audit.audit_logger import AuditLogger
 
-logger = get_audit_logger()
+logger = AuditLogger()
 
 # Get all logs for a specific user
 user_logs = logger.get_logs(user="admin", limit=50)

@@ -19,7 +19,7 @@ from packages.security.encryption import FileEncryptor
 from packages.security.sensitive_data_scanner import SensitiveDataScanner
 
 try:
-    from packages.security.audit_logger import AuditLogger, get_audit_logger
+    from packages.audit.audit_logger import AuditLogger
     _audit_available = True
 except ImportError:
     _audit_available = False
@@ -31,4 +31,4 @@ __all__ = [
 ]
 
 if _audit_available:
-    __all__.extend(["AuditLogger", "get_audit_logger"])
+    __all__.extend(["AuditLogger"])
