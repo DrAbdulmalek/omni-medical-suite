@@ -197,6 +197,9 @@ Input ──► 1. Preprocessing ──► 2. Correction ──► 3. Entity Ext
 | **Account Lockout** | Failed login attempt tracking with auto-lockout |
 | **File Integrity** | SHA-256 fingerprinting for deduplication |
 
+> 🔑 لمعرفة كيفية تأمين مفاتيح API للمزودين المتعددين، راجع [توثيق أمان البوابة](packages/ai/gateway/SECURITY.md).
+> 🔑 For securing multi-provider API keys, see [Gateway Security Guide](packages/ai/gateway/SECURITY.md).
+
 ### Arabic / RTL Full Support
 
 - Complete right-to-left (RTL) text rendering and processing
@@ -876,7 +879,7 @@ pytest tests/test_performance.py -v  # Performance benchmarks
 
 | Package | Origin | Description |
 |:--------|:------:|:------------|
-| `packages/ai` | OmniFile | Multi-provider AI gateway supporting 15+ LLM providers (OpenAI, Anthropic, Ollama, DeepSeek, NVIDIA NIM, etc.), active learning, pattern matching, and Gemini refinement |
+| `packages/ai` | OmniFile | Multi-provider AI gateway supporting 15+ LLM providers (OpenAI, Anthropic, Ollama, DeepSeek, NVIDIA NIM, etc.), active learning, pattern matching, and Gemini refinement. See [🔒 Gateway Security](packages/ai/gateway/SECURITY.md) |
 | `packages/vision` | OmniFile | Complete OCR and computer vision toolkit — multi-engine OCR, image preprocessing, PDF processing, table extraction, layout analysis, Arabic segmentation, dual-engine verification, and handwriting recognition (HTR) with TrOCR |
 | `packages/nlp` | OmniFile | Full NLP pipeline with 4 stages: preprocessing, spell correction (SymSpell, ar-corrector, AI), entity extraction (NER + PII), and enrichment (translation, summarization, study guides). Full Arabic RTL support |
 | `packages/omni-core` | Merged | Unified core utilities — OCR engine routing, spell checking, database management, user management, model registry, corrections tracking, parallel processing, and data migration |
