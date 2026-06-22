@@ -38,15 +38,15 @@ from typing import Dict, List, Tuple, Optional, Any, Union
 
 import cv2
 import numpy as np
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QSlider, QSpinBox, QCheckBox, QProgressBar,
     QTextEdit, QFileDialog, QMessageBox, QGroupBox, QFormLayout,
     QSplitter, QDialog, QScrollArea, QSizePolicy, QTabWidget, QFrame,
     QInputDialog, QDialogButtonBox, QShortcut, QRubberBand,
 )
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QMutex, QMutexLocker, QRect, QPoint
-from PyQt5.QtGui import QPixmap, QImage, QFont, QKeySequence, QColor, QIcon, QPainter, QPen
+from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSize, QMutex, QMutexLocker, QRect, QPoint
+from PySide6.QtGui import QPixmap, QImage, QFont, QKeySequence, QColor, QIcon, QPainter, QPen
 
 # ── نظام التسجيل الموحّد ─────────────────────────────────────────
 logger = logging.getLogger("MedicalDocApp")
@@ -497,8 +497,8 @@ def assess_image_quality(img: np.ndarray) -> Dict[str, float]:
 
 class SkewWorker(QThread):
     """Background skew detection worker."""
-    finished = pyqtSignal(float)
-    error = pyqtSignal(str)
+    finished = Signal(float)
+    error = Signal(str)
 
     def __init__(self, img: np.ndarray):
         super().__init__()
@@ -513,7 +513,7 @@ class SkewWorker(QThread):
 
 class ThumbnailWorker(QThread):
     """Background thumbnail generation. Supports LazyImage, Path, and ndarray."""
-    ready = pyqtSignal(int, QPixmap)
+    ready = Signal(int, QPixmap)
 
     def __init__(self, image_list: list):
         super().__init__()
@@ -824,7 +824,7 @@ class ThumbButton(QPushButton):
 class RegionSelectorLabel(QLabel):
     """QLabel يدعم رسم مربع تحديد بالماوس."""
 
-    region_selected = pyqtSignal(QRect)  # يُرسل QRect بالبكسل
+    region_selected = Signal(QRect)  # يُرسل QRect بالبكسل
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -2052,7 +2052,7 @@ class MedicalDocApp(QMainWindow):
         proc = apply_processing(self.current_img, self.current_params)
         proc_pix = cv2_to_pixmap(proc, max_w=600, max_h=800)
         dlg = CompareDialog(orig_pix, proc_pix, self)
-        dlg.exec_()
+        dlg.exec()
 
     # ──────────────────────────────────────────────────────────
     #  Quality Display
@@ -2671,7 +2671,7 @@ class MedicalDocApp(QMainWindow):
         pix = cv2_to_pixmap(self.current_img, max_w=900, max_h=700)
         dlg = RegionSelectorDialog(pix, self)
 
-        if dlg.exec_() == QDialog.Accepted:
+        if dlg.exec() == QDialog.Accepted:
             region_px = dlg.get_region()
             if region_px:
                 # ── إصلاح Bug 1: تحويل من إحداثيات الـ Label إلى إحداثيات الـ Pixmap ──
@@ -3047,7 +3047,7 @@ def main():
     app.setStyle("Fusion")
     window = MedicalDocApp()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

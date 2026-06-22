@@ -605,7 +605,7 @@ class TestCv2ToPixmap:
     def test_returns_pixmap(self):
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-        from PyQt5.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
         app = QApplication.instance() or QApplication([])
         img = make_white_img(200, 150)
         pix = cv2_to_pixmap(img, max_w=100, max_h=100)
@@ -614,7 +614,7 @@ class TestCv2ToPixmap:
     def test_respects_max_dimensions(self):
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-        from PyQt5.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
         app = QApplication.instance() or QApplication([])
         img = make_white_img(1000, 800)
         pix = cv2_to_pixmap(img, max_w=200, max_h=200)
@@ -625,7 +625,7 @@ class TestCv2ToPixmap:
         """معامل التكبير يُكبّر الصورة."""
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-        from PyQt5.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
         app = QApplication.instance() or QApplication([])
         img = make_white_img(100, 100)
         pix = cv2_to_pixmap(img, zoom=2.0)
@@ -636,7 +636,7 @@ class TestCv2ToPixmap:
         """التكبير مع حد أقصى يطبّق الحد."""
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-        from PyQt5.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
         app = QApplication.instance() or QApplication([])
         img = make_white_img(100, 100)
         pix = cv2_to_pixmap(img, zoom=5.0, max_w=200, max_h=200)
@@ -647,7 +647,7 @@ class TestCv2ToPixmap:
         """بدون تكبير أو حد → نفس الحجم (h=200, w=150)."""
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-        from PyQt5.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
         app = QApplication.instance() or QApplication([])
         # make_white_img(h=200, w=150) → الصورة بالشكل (200, 150, 3)
         img = make_white_img(200, 150)

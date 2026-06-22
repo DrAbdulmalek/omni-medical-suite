@@ -10,8 +10,8 @@ import numpy as np
 # Add parent directory to path for imports
 sys.path.insert(0, ".")
 
-# Import core functions that don't depend on PyQt5
-# We import them directly to avoid PyQt5 dependency in tests
+# Import core functions that don't depend on PySide6
+# We import them directly to avoid PySide6 dependency in tests
 try:
     from medical_doc_gui import (
         apply_processing, _remove_shadow, calc_blur, quality_label,
@@ -19,9 +19,9 @@ try:
         assess_image_quality,
     )
 except ImportError as e:
-    # PyQt5 not available — skip tests
+    # PySide6 not available — skip tests
     import pytest
-    pytest.skip("PyQt5 not available, skipping import", allow_module_level=True)
+    pytest.skip("PySide6 not available, skipping import", allow_module_level=True)
 
 
 # ════════════════════════════════════════════════════════════════

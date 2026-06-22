@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 # region_selector.py — محدد منطقة رقم الصفحة
 
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QLabel, QRubberBand, QDialog, QVBoxLayout, QHBoxLayout,
     QPushButton, QMessageBox
 )
-from PyQt5.QtCore import Qt, QRect, QPoint, pyqtSignal, QSize
-from PyQt5.QtGui import QPainter, QPen, QColor
+from PySide6.QtCore import Qt, QRect, QPoint, Signal, QSize
+from PySide6.QtGui import QPainter, QPen, QColor
 
 
 class RegionSelectorLabel(QLabel):
     """QLabel يدعم رسم مربع تحديد بالماوس."""
     
-    region_selected = pyqtSignal(QRect)  # يُرسل QRect بالبكسل
+    region_selected = Signal(QRect)  # يُرسل QRect بالبكسل
     
     def __init__(self, parent=None):
         super().__init__(parent)

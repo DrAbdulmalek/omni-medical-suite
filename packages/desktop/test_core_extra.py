@@ -14,11 +14,11 @@ import importlib.util
 spec = importlib.util.spec_from_file_location(
     "app", os.path.join(os.path.dirname(__file__), "medical_doc_gui.py"))
 mod = importlib.util.module_from_spec(spec)
-# تشغيل جزئي (بدون PyQt5)
+# تشغيل جزئي (بدون PySide6)
 import unittest.mock as mock
 with mock.patch.dict('sys.modules', {
-    'PyQt5': mock.MagicMock(), 'PyQt5.QtWidgets': mock.MagicMock(),
-    'PyQt5.QtCore': mock.MagicMock(), 'PyQt5.QtGui': mock.MagicMock(),
+    'PySide6': mock.MagicMock(), 'PySide6.QtWidgets': mock.MagicMock(),
+    'PySide6.QtCore': mock.MagicMock(), 'PySide6.QtGui': mock.MagicMock(),
 }):
     spec.loader.exec_module(mod)
 
