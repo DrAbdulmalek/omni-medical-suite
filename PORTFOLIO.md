@@ -1,196 +1,74 @@
-# 🏥 Medical OCR Ecosystem — خريطة المشاريع
+# Architectural Portfolio: Omni-Medical-Suite
 
-> **منظومة متكاملة للتعرف الضوئي على الخط اليدوي الطبي**
-> Integrated Ecosystem for Medical Handwriting OCR
+Welcome to the technical portfolio of the **Omni-Medical-Suite** ecosystem. This document outlines the architecture, decision rules, and integrations that power our medical document processing pipelines.
 
-## 📊 خريطة المشاريع / Project Map
+---
 
-| # | المشروع | الدور | الحالة | اللغة |
-|---|--------|------|--------|-------|
-| 1 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | المنصة الرئيسية المتكاملة | ✅ `active` | Next.js + FastAPI |
-| 2 | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | مكتبة تصحيح OCR ثنائية اللغة | ✅ `active` | Python (pip) |
-| 3 | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) | خط إنتاج OCR متقدم | ✅ `active` | FastAPI + React |
-| 4 | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | أداة تدريب وجمع بيانات بشرية | ✅ `active` | Streamlit |
-| 5 | [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer-hf) | نسخة نشر على Hugging Face | 📦 `deployment-only` | Streamlit |
-| 6 | [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) | معيار قياس موحد | ✅ `active` | Python (pip) |
-| 7 | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | بيانات أساس للتدريب والقياس | ✅ `active` | JSONL + Python |
-| 8 | [medical-doc-processor](https://github.com/DrAbdulmalek/medical-doc-processor) | معالج مستندات (قديم) | ⚠️ `legacy` | Electron + React |
-| 9 | [OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor) | منصة ملفات ذكية (قديم) | ⚠️ `legacy` | Python + Multi-UI |
-| 10 | [IntelliFile-app](https://github.com/DrAbdulmalek/IntelliFile-app) | مدير ملفات ذكي | ✅ `active` (مستقل) | Python + PySide6 |
-| 11 | [omniparse](https://github.com/DrAbdulmalek/omniparse) | محلل متعدد الوسائط | 📚 `experimental` | Python |
-| 12 | [omniparse-study](https://github.com/DrAbdulmalek/omniparse-study) | دراسة تحليلية | 📚 `archived` | Notes |
+## Ecosystem Architecture
 
-## 🏗️ البنية المعمارية / Architecture
+The suite is a modular, data-driven network. Specialized repositories handle distinct lifecycle phases:
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                    USER INTERFACES                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
-│  │ Next.js  │  │ Streamlit│  │ React    │  │ Gradio    │  │
-│  │ (Suite)  │  │(Trainer) │  │(Handwrit)│  │(HF Space) │  │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬─────┘  │
-└───────┼──────────────┼──────────────┼──────────────┼─────┘
-        │              │              │              │
-┌───────▼──────────────▼──────────────▼──────────────▼─────┐
-│                    API LAYER                               │
-│  ┌──────────────────┐  ┌────────────────────────────────┐ │
-│  │  FastAPI Backend │  │  Postprocessor Library (pip)   │ │
-│  │  (handwriting)   │  │  correct_text() | mask_phi()   │ │
-│  └──────────────────┘  └────────────────────────────────┘ │
-└────────────────────────────────┬───────────────────────────┘
-                                 │
-┌────────────────────────────────▼───────────────────────────┐
-│                    DATA PIPELINE                            │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │ Ground   │  │ Trainer  │  │ Bench-   │  │ Diction- │  │
-│  │ Truth    │──│ Collect  │──│ marks    │  │ aries    │  │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
-└───────────────────────────────────────────────────────────┘
+| Repository | Role | Status |
+|:-----------|:-----|:-------|
+| **omni-medical-suite** | Core engine — pipeline, layout analysis, text extraction | Active |
+| **medical-ocr-ground-truth** | Single source of truth for verified datasets | Active |
+| **medical-ocr-training-hub** | Ingestion bridge — validates & routes user feedback | Active |
+| **medical-ocr-benchmarks** | Nightly regression testing & accuracy tracking | Active |
+| **medical-ocr-trainer** | Model training & fine-tuning | Active |
+| **telegram-forwarder** | Telegram content forwarding (Gradio/Telethon) | Active |
+| **IntelliFile-app** | AI file classification (Manjaro Linux) | Active |
+| Legacy repos (4) | Archived — migrated to omni-medical-suite | Archived |
+
+---
+
+## Data Lifecycle Flow
+
+```mermaid
+graph TD
+    A[Medical Documents / Scans] --> B(Omni-Medical-Suite)
+    B --> C{OCR Engine}
+    C -->|Ground Truth Data| D[medical-ocr-ground-truth]
+    D --> E[medical-ocr-training-hub]
+    E -->|Continuous Retraining| F[medical-ocr-trainer]
+    F --> G[medical-ocr-benchmarks]
+    G -->|Nightly & Regression Checks| B
 ```
 
-## 🔗 مصفوفة التبعيات / Dependency Matrix
+---
 
-| المشروع | يعتمد على | يُستخدم بواسطة |
-|---------|-----------|---------------|
-| omni-medical-suite | postprocessor | المستخدم النهائي |
-| medical-handwriting-ocr | postprocessor, القواميس | المستخدم النهائي |
-| medical-ocr-trainer | benchmarks (اختياري) | trainer-hf |
-| medical-ocr-trainer-hf | trainer | HF Spaces |
-| medical-ocr-postprocessor | — | suite, handwriting, trainer |
-| medical-ocr-benchmarks | ground-truth (بيانات) | trainer, suite |
-| medical-ocr-ground-truth | — | benchmarks, trainer |
+## Decision Rules
 
-## 🚀 إرشادات الاستخدام / Usage Guide
+### 1. Document Ingestion
+- Images below **150 DPI** are flagged for enhancement or rejected.
+- Skewed scans undergo adaptive thresholding before OCR.
 
-### للمستخدم النهائي / For End Users
-```bash
-# 1. استخدم المنصة الرئيسية
-git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
-cd omni-medical-suite && make dev
-```
+### 2. OCR Routing
+- **Printed text** → standard OCR engines (fast, efficient).
+- **Handwriting** → fine-tuned deep learning models (accurate, slower).
 
-### للتطوير / For Developers
-```bash
-# 2. استخدم مكتبة التصحيح
-pip install medical-ocr-postprocessor
+### 3. Privacy & PII
+- All text passes through NER-based anonymization before public storage.
+- Patient names, phone numbers, and dates are redacted automatically.
+- No raw data enters ground truth without compliance validation.
 
-# 3. قياس الأداء
-pip install medical-ocr-benchmarks
-medocr-bench --engines paddleocr --check-ci
-```
+### 4. Quality Gates
+- Every model update must pass baseline benchmarks before production merge.
+- Nightly regression checks prevent accuracy degradation.
 
-### لتدريب النماذج / For Training
-```bash
-# 4. أداة التدريب التفاعلية
-git clone https://github.com/DrAbdulmalek/medical-ocr-trainer.git
-cd medical-ocr-trainer && streamlit run app.py
+### 5. Continuous Improvement
+- User corrections from HF Spaces feed back into training data.
+- Validated corrections trigger retraining cycles automatically.
 
-# 5. نسخة HF (تجربة سريعة)
-# https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-trainer
-```
+---
 
-### للخط اليدوي / For Handwriting OCR
-```bash
-# 6. خط إنتاج متقدم
-git clone https://github.com/DrAbdulmalek/medical-handwriting-ocr.git
-cd medical-handwriting-ocr/colab_medical_ocr_lite && ./run_demo.sh
-```
+## System Benchmarks
 
-## 📦 الحزم المتاحة / Available Packages
+| Metric | Target | Tool |
+|:-------|:-------|:-----|
+| Character Error Rate (printed) | < 5% | medical-ocr-benchmarks |
+| Character Error Rate (handwritten) | < 12% | medical-ocr-benchmarks |
+| PII Redaction Accuracy | 100% on standard fields | NER Sanity Workflows |
 
-| الحزمة | التثبيت | الوظيفة |
-|--------|---------|--------|
-| `medical-ocr-postprocessor` | `pip install medical-ocr-postprocessor` | تصحيح OCR |
-| `medical-ocr-benchmarks` | `pip install medical-ocr-benchmarks` | قياس الأداء |
+---
 
-## 📈 مؤشرات الجودة / Quality Metrics
-
-| المقياس | القيمة المستهدفة |
-|---------|----------------|
-| CER (معدل خطأ الحروف) | < 5% (عربي), < 3% (إنجليزي) |
-| WER (معدل خطأ الكلمات) | < 8% (عربي), < 5% (إنجليزي) |
-| Medical Term Accuracy | > 90% |
-| CI/CD Coverage | 6 مستودعات نشطة |
-| Test Cases (Benchmarks) | 50+ حالة (عربي + إنجليزي + مختلط) |
-
-## 🏷️ حالات المستودعات / Repo Status Legend
-
-- ✅ `active` — نشط ومُحدَّث
-- ⚠️ `legacy` — قديم (استخدم البديل المُشار)
-- 📦 `deployment-only` — للنشر فقط (لا تطوّر هنا)
-- 📚 `experimental` — تجريبي
-- 📚 `archived` — مؤرشف (للقراءة فقط)
-
-## 🧭 قواعد الاختيار / Decision Rules
-
-> متى تستخدم أي مشروع في المنظومة؟
-
-### متى أستخدم omni-medical-suite؟
-- **السيناريو**: أنت مستخدم نهائي أو مطور تريد منصة متكاملة تشمل كل شيء (OCR + تصحيح + تصدير + NLP + واجهة ويب)
-- **الميزة**: خط إنتاج كامل بـ `make dev`، مع Docker، K8s، Next.js UI، FastAPI backend
-- **لا تستخدمه إذا**: كنت تريد فقط مكتبة تصحيح نصوص أو قياس أداء
-
-### متى أستخدم medical-handwriting-ocr؟
-- **السيناريو**: تركيزك الأساسي هو OCR الخط اليدوي الطبي (وليس المستندات المطبوعة)
-- **الميزة**: أوضاع متعددة (Lite/Standard/GPU-Production)، دعم Colab، تكامل مع PaddleOCR و Surya
-- **لا تستخدمه إذا**: كنت تتعامل مع مستندات مطبوعة فقط — استخدم المنصة الرئيسية
-
-### متى أستخدم medical-ocr-postprocessor؟
-- **السيناريو**: تحتاج تصحيح أخطاء OCR في تطبيقك البرمجي (مكتبة برمجية مستقلة)
-- **الميزة**: `pip install medical-ocr-postprocessor` — حزمة خفيفة بدون واجهة، تصحيح ثنائي اللغة (عربي/إنجليزي)، قمع PHI
-- **لا تستخدمه إذا**: كنت تحتاج واجهة مرئية أو خط إنتاج كامل
-
-### متى أستخدم medical-ocr-trainer؟
-- **السيناريو**: تريد جمع بيانات تدريب أو تصحيح يدوي أو تدريب نموذج OCR جديد
-- **الميزة**: واجهة Streamlit تفاعلية، دعم ensemble OCR متعدد المحركات، تصدير بيانات التدريب
-- **لا تستخدمه إذا**: كنت تحتاج فقط تشغيل OCR على مستندات — هذا للتدريب والجمع فقط
-
-### متى أستخدم medical-ocr-ground-truth؟
-- **السيناريو**: لديك مخرجات من ABBYY/ReadIRIS/PDF Grabber وتريد بناء بيانات أساس (Ground Truth) للقياس والتدريب
-- **الميزة**: استيراد متعدد الصيغ، مقارنة OCR مع GT (CER/WER)، توليد قواميس تصحيح تلقائي، التحقق من الحروف بالخطوط
-- **لا تستخدمه إذا**: لم يكن لديك مصدر Ground Truth خارجي — استخدم benchmarks مباشرة
-
-### متى أستخدم medical-ocr-benchmarks؟
-- **السيناريو**: تريد قياس أداء محرك OCR أو مكتبة تصحيح أو نظام كامل
-- **الميزة**: 50+ حالة اختبار، دعم 5 محركات، تقارير CI، قياس CER/WER/دقة المصطلحات الطبية
-- **لا تستخدمه إذا**: كنت تريد فقط تشغيل OCR — هذا للقياس والتقييم فقط
-
-### مخطط القرار السريع
-
-```
-هل تريد منصة كاملة؟ ─── نعم ──→ omni-medical-suite
-         │
-         لا
-         │
-هل تريد التدريب والجمع؟ ─── نعم ──→ medical-ocr-trainer
-         │
-         لا
-         │
-هل تركز على الخط اليدوي؟ ─── نعم ──→ medical-handwriting-ocr
-         │
-         لا
-         │
-هل تريد مكتبة تصحيح فقط؟ ─── نعم ──→ medical-ocr-postprocessor
-         │
-         لا
-         │
-هل لديك بيانات Ground Truth؟ ─── نعم ──→ medical-ocr-ground-truth
-         │
-         لا
-         │
-تريد قياس الأداء ──→ medical-ocr-benchmarks
-```
-
-## 📅 تاريخ التطوير / Development Timeline
-
-| التاريخ | الإنجاز |
-|---------|---------|
-| 2026-06-06 | إكمال إعادة الهيكلة الكاملة للمنظومة |
-| 2026-06-06 | ربط handwriting-ocr بمكتبة postprocessor |
-| 2026-06-06 | Docker Compose + Makefile لـ omni-medical-suite |
-| 2026-06-06 | GitHub Actions CI/CD لـ handwriting-ocr |
-| 2026-06-06 | Nightly Benchmarks لـ benchmarks |
-| 2026-06-06 | Release v0.1.0 لـ medical-ocr-postprocessor |
-| 2026-06-03 | إنشاء ground-truth + benchmarks + بيانات حوكمة |
-| 2026-06-02 | تحويل postprocessor إلى حزمة pip |
-| 2026-06-02 | تبسيط Lite mode لـ handwriting-ocr |
+*Maintained by [DrAbdulmalek](https://github.com/DrAbdulmalek)*
