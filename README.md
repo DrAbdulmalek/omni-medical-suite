@@ -1091,6 +1091,92 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 
 See [PORTFOLIO.md](./PORTFOLIO.md) for the complete project architecture and relationship diagram.
 
+## System Architecture (Full Data Lifecycle)
+
+The complete data flow and self-healing learning loop of the Omni-Medical-Suite:
+
+```mermaid
+graph TD
+    subgraph INPUT["Input Layer"]
+        A1["Medical Scans - X-Rays, Prescriptions"]
+        A2["Printed Documents - Reports, Lab Results"]
+        A3["Handwritten Notes - Clinical Notes"]
+    end
+
+    subgraph CORE["Core Processing - Omni-Medical-Suite"]
+        B1["Layout Analysis - Document Segmentation"]
+        B2{"OCR Engine Router"}
+        B3["Printed Text OCR - Standard Engine"]
+        B4["Handwriting OCR - Deep Learning Model"]
+        B5["PII Redaction - HIPAA Compliance"]
+    end
+
+    subgraph LEARNING["Continuous Learning Loop - Precise"]
+        C1["User Corrections - Hugging Face Space"]
+        C2["Training Hub - Validation and Ingestion"]
+        C3["Ground Truth - Single Source of Truth"]
+        C4["Benchmarks - Nightly Regression"]
+        C5{"Threshold Check - CER less than 5 percent / 12 percent?"}
+        C6["Model Trainer - Fine-tuning Pipeline"]
+    end
+
+    subgraph OUTPUT["Output Layer"]
+        D1["Extracted Text - Structured Data"]
+        D2["Database - Medical Records"]
+        D3["Analytics - Performance Metrics"]
+    end
+
+    A1 --> B1
+    A2 --> B1
+    A3 --> B1
+    B1 --> B2
+
+    B2 -->|Printed Text| B3
+    B2 -->|Handwriting| B4
+    B3 --> B5
+    B4 --> B5
+
+    B5 --> D1
+    D1 --> D2
+    D1 --> D3
+
+    D1 -->|User Feedback| C1
+    C1 -->|JSON + Images| C2
+    C2 -->|Validated Data| C3
+    C3 -->|Trigger| C4
+
+    C4 -->|CER Metrics| C5
+    C5 -->|Passed - Deploy| D3
+    C5 -->|Failed - Regression| C6
+    C6 -->|Updated Model| B4
+
+    style INPUT fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    style CORE fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    style LEARNING fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style OUTPUT fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+
+    style B2 fill:#ffeb3b,stroke:#f57f17,stroke-width:2px,color:#000
+    style C3 fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff
+    style C5 fill:#ff5722,stroke:#bf360c,stroke-width:3px,color:#fff
+    style C6 fill:#2196f3,stroke:#1565c0,stroke-width:2px,color:#fff
+```
+
+### Architecture Layers
+
+| Layer | Description | Key Component |
+|-------|-------------|---------------|
+| **Input Layer** | Data sources (scans, printed docs, handwritten notes) | Multi-format ingestion |
+| **Core Processing** | Main engine: layout analysis, OCR routing, PII redaction | `omni-medical-suite` |
+| **Learning Loop** | Continuous improvement: corrections, training, benchmarks, threshold checks | `training-hub` + `benchmarks` |
+| **Output Layer** | Results: extracted text, databases, analytics dashboards | API + Dashboard |
+
+### The Precise Loop (Self-Healing)
+
+The **Threshold Check** node (orange) is the decision brain of the system:
+- **Passed** (green arrow): Model meets CER thresholds, deploys to analytics and production
+- **Failed** (red arrow): Regression detected, triggers automatic retraining pipeline
+- The retrained model flows back into the OCR engine, creating a self-healing cycle
+
 ## Related Repositories
 
 | Repo | Role | Status |
