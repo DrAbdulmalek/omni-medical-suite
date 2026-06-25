@@ -1,74 +1,72 @@
 # Architectural Portfolio: Omni-Medical-Suite
 
-Welcome to the technical portfolio of the **Omni-Medical-Suite** ecosystem. This document outlines the architecture, decision rules, and integrations that power our medical document processing pipelines.
+Technical portfolio for the **Omni-Medical-Suite** ecosystem — a modular medical document processing platform with multi-engine OCR, NLP, and continuous learning.
 
 ---
 
-## Ecosystem Architecture
+## Architecture Overview
 
-The suite is a modular, data-driven network. Specialized repositories handle distinct lifecycle phases:
-
-| Repository | Role | Status |
-|:-----------|:-----|:-------|
-| **omni-medical-suite** | Core engine — pipeline, layout analysis, text extraction | Active |
-| **medical-ocr-ground-truth** | Single source of truth for verified datasets | Active |
-| **medical-ocr-training-hub** | Ingestion bridge — validates & routes user feedback | Active |
-| **medical-ocr-benchmarks** | Nightly regression testing & accuracy tracking | Active |
-| **medical-ocr-trainer** | Model training & fine-tuning | Active |
-| **telegram-forwarder** | Telegram content forwarding (Gradio/Telethon) | Active |
-| **IntelliFile-app** | AI file classification (Manjaro Linux) | Active |
-| Legacy repos (4) | Archived — migrated to omni-medical-suite | Archived |
-
----
-
-## Data Lifecycle Flow
+The suite is organized as a layered system. Each repository handles a distinct phase of the document lifecycle, from ingestion through deployment.
 
 ```mermaid
 graph TD
-    A[Medical Documents / Scans] --> B(Omni-Medical-Suite)
-    B --> C{OCR Engine}
-    C -->|Ground Truth Data| D[medical-ocr-ground-truth]
-    D --> E[medical-ocr-training-hub]
-    E -->|Continuous Retraining| F[medical-ocr-trainer]
+    A[Medical Documents / Scans] --> B[omni-medical-suite]
+    B -->|Raw OCR Output| C[HF Space Corrections]
+    C -->|User Feedback| D[medical-ocr-training-hub]
+    D -->|Validated & Cleaned| E[medical-ocr-ground-truth]
+    E --> F[medical-ocr-trainer]
     F --> G[medical-ocr-benchmarks]
-    G -->|Nightly & Regression Checks| B
+    G -->|Pass Threshold| H[Deploy to omni-medical-suite]
+    G -->|Fail Threshold| I[Alert + Retrain]
+    I --> F
+
+    style B fill:#2f80ed,stroke:#333,stroke-width:2px,color:#fff
+    style D fill:#27ae60,stroke:#333,stroke-width:2px,color:#fff
+    style E fill:#f2994a,stroke:#333,stroke-width:2px,color:#fff
+    style G fill:#e74c3c,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#2ecc71,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 ---
 
-## Decision Rules
+## Active Repositories
 
-### 1. Document Ingestion
-- Images below **150 DPI** are flagged for enhancement or rejected.
-- Skewed scans undergo adaptive thresholding before OCR.
+| Repository | Purpose |
+|:-----------|:--------|
+| **omni-medical-suite** | Core engine — OCR pipeline, layout analysis, text extraction, API |
+| **medical-ocr-ground-truth** | Single source of truth for verified training datasets |
+| **medical-ocr-training-hub** | Ingestion bridge — validates, scrubs PII, and routes corrections |
+| **medical-ocr-benchmarks** | Nightly regression testing and accuracy threshold tracking |
+| **medical-ocr-trainer** | Model training, fine-tuning, and experiment management |
+| **telegram-forwarder** | Telegram content forwarding and management tool |
+| **IntelliFile-app** | AI file classification desktop app (Manjaro Linux) |
 
-### 2. OCR Routing
-- **Printed text** → standard OCR engines (fast, efficient).
-- **Handwriting** → fine-tuned deep learning models (accurate, slower).
-
-### 3. Privacy & PII
-- All text passes through NER-based anonymization before public storage.
-- Patient names, phone numbers, and dates are redacted automatically.
-- No raw data enters ground truth without compliance validation.
-
-### 4. Quality Gates
-- Every model update must pass baseline benchmarks before production merge.
-- Nightly regression checks prevent accuracy degradation.
-
-### 5. Continuous Improvement
-- User corrections from HF Spaces feed back into training data.
-- Validated corrections trigger retraining cycles automatically.
+> 4 legacy repositories have been archived. All active development lives in the repositories above.
 
 ---
 
-## System Benchmarks
+## Five Decision Rules
 
-| Metric | Target | Tool |
-|:-------|:-------|:-----|
-| Character Error Rate (printed) | < 5% | medical-ocr-benchmarks |
-| Character Error Rate (handwritten) | < 12% | medical-ocr-benchmarks |
-| PII Redaction Accuracy | 100% on standard fields | NER Sanity Workflows |
+1. **Resolution Gate** — Images below 150 DPI are flagged for enhancement or auto-rejected before OCR processing begins.
+
+2. **OCR Routing** — Printed text routes to standard OCR engines (fast). Handwriting routes to fine-tuned deep learning models (accurate, slower).
+
+3. **PII Redaction** — All patient identifiers (names, phones, dates, IDs) are redacted before any data enters public storage or ground truth.
+
+4. **Quality Threshold** — Every model update must pass benchmarks (CER < 5% printed, < 12% handwritten) before merging to production.
+
+5. **Continuous Learning** — User corrections from HF Spaces flow back through the training hub into ground truth, triggering retraining cycles automatically.
 
 ---
 
-*Maintained by [DrAbdulmalek](https://github.com/DrAbdulmalek)*
+## Quality Benchmarks
+
+| Metric | Target | Measured By |
+|:-------|:-------|:------------|
+| CER (printed) | < 5% | Nightly regression in medical-ocr-benchmarks |
+| CER (handwritten) | < 12% | Nightly regression in medical-ocr-benchmarks |
+| PII Redaction | 100% on standard fields | NER sanity workflows |
+
+---
+
+*Part of the [Omni-Medical-Suite](https://github.com/DrAbdulmalek/omni-medical-suite) ecosystem by [DrAbdulmalek](https://github.com/DrAbdulmalek)*
