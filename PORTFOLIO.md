@@ -1,72 +1,100 @@
-# Architectural Portfolio: Omni-Medical-Suite
+# 🏛️ Architectural Portfolio: Omni-Medical-Suite
 
-Technical portfolio for the **Omni-Medical-Suite** ecosystem — a modular medical document processing platform with multi-engine OCR, NLP, and continuous learning.
+Welcome to the technical portfolio of the **Omni-Medical-Suite** ecosystem. This document outlines the core architecture, decision rules, and system health metrics.
 
 ---
 
-## Architecture Overview
+## 🏗️ Core Architecture
 
-The suite is organized as a layered system. Each repository handles a distinct phase of the document lifecycle, from ingestion through deployment.
+The suite is built as a modular, data-driven network with specialized repositories:
+
+| Layer | Repository | Primary Responsibility |
+|-------|------------|------------------------|
+| **Orchestration** | `omni-medical-suite` | Pipeline orchestration, API endpoints, core logic |
+| **Data** | `medical-ocr-ground-truth` | Single source of truth for verified datasets |
+| **Training** | `medical-ocr-training-hub` | Data ingestion, validation, PII scrubbing |
+| **Evaluation** | `medical-ocr-benchmarks` | Nightly regression tests, quality gates |
+| **Deployment** | HF Spaces | Live demos and user correction interfaces |
+
+---
+
+## 🔄 System Data Flow
 
 ```mermaid
-graph TD
-    A[Medical Documents / Scans] --> B[omni-medical-suite]
-    B -->|Raw OCR Output| C[HF Space Corrections]
-    C -->|User Feedback| D[medical-ocr-training-hub]
-    D -->|Validated & Cleaned| E[medical-ocr-ground-truth]
-    E --> F[medical-ocr-trainer]
-    F --> G[medical-ocr-benchmarks]
-    G -->|Pass Threshold| H[Deploy to omni-medical-suite]
-    G -->|Fail Threshold| I[Alert + Retrain]
-    I --> F
+graph LR
+    A[Medical Scans] --> B[Omni-Medical-Suite]
+    B --> C{OCR Engine}
+    C -->|User Corrections| D[Training Hub]
+    D -->|Validated Data| E[Ground Truth]
+    E -->|Nightly Trigger| F[Benchmarks]
+    F -->|Model Update| C
 
     style B fill:#2f80ed,stroke:#333,stroke-width:2px,color:#fff
-    style D fill:#27ae60,stroke:#333,stroke-width:2px,color:#fff
     style E fill:#f2994a,stroke:#333,stroke-width:2px,color:#fff
-    style G fill:#e74c3c,stroke:#333,stroke-width:2px,color:#fff
-    style H fill:#2ecc71,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 ---
 
-## Active Repositories
+## 🧠 Decision Rules (5 Core Rules)
 
-| Repository | Purpose |
-|:-----------|:--------|
-| **omni-medical-suite** | Core engine — OCR pipeline, layout analysis, text extraction, API |
-| **medical-ocr-ground-truth** | Single source of truth for verified training datasets |
-| **medical-ocr-training-hub** | Ingestion bridge — validates, scrubs PII, and routes corrections |
-| **medical-ocr-benchmarks** | Nightly regression testing and accuracy threshold tracking |
-| **medical-ocr-trainer** | Model training, fine-tuning, and experiment management |
-| **telegram-forwarder** | Telegram content forwarding and management tool |
-| **IntelliFile-app** | AI file classification desktop app (Manjaro Linux) |
+These rules govern all data processing and model updates:
 
-> 4 legacy repositories have been archived. All active development lives in the repositories above.
+1. **Resolution Gate**: Images below 150 DPI are auto-rejected to prevent OCR degradation.
 
----
+2. **PII Redaction**: All patient identifiers (names, phones, dates) are automatically redacted before storage.
 
-## Five Decision Rules
+3. **CER Threshold**: Character Error Rate must stay below 5% for printed text and 12% for handwritten text.
 
-1. **Resolution Gate** — Images below 150 DPI are flagged for enhancement or auto-rejected before OCR processing begins.
+4. **Data Validation**: All incoming data must pass schema validation and match `DATASETS_POLICY.md`.
 
-2. **OCR Routing** — Printed text routes to standard OCR engines (fast). Handwriting routes to fine-tuned deep learning models (accurate, slower).
-
-3. **PII Redaction** — All patient identifiers (names, phones, dates, IDs) are redacted before any data enters public storage or ground truth.
-
-4. **Quality Threshold** — Every model update must pass benchmarks (CER < 5% printed, < 12% handwritten) before merging to production.
-
-5. **Continuous Learning** — User corrections from HF Spaces flow back through the training hub into ground truth, triggering retraining cycles automatically.
+5. **Nightly Regression**: Every model update must pass baseline benchmarks before merging to production.
 
 ---
 
-## Quality Benchmarks
+## 📊 System Health Metrics
 
-| Metric | Target | Measured By |
-|:-------|:-------|:------------|
-| CER (printed) | < 5% | Nightly regression in medical-ocr-benchmarks |
-| CER (handwritten) | < 12% | Nightly regression in medical-ocr-benchmarks |
-| PII Redaction | 100% on standard fields | NER sanity workflows |
+| Metric | Target | Current Status |
+|--------|--------|----------------|
+| **Printed Text CER** | < 5% | ✅ Active Monitoring |
+| **Handwritten CER** | < 12% | ✅ Active Monitoring |
+| **Data Ingestion Speed** | < 1.5s per page | ✅ Automated |
+| **PII Redaction Accuracy** | 100% | ✅ Enforced |
+| **Image Quality Gate** | ≥ 800×600 px | ✅ Enforced |
 
 ---
 
-*Part of the [Omni-Medical-Suite](https://github.com/DrAbdulmalek/omni-medical-suite) ecosystem by [DrAbdulmalek](https://github.com/DrAbdulmalek)*
+## 🔒 Security & Governance
+
+- **No Hardcoded Secrets**: All tokens injected via environment variables
+- **Automated Auditing**: Daily pipeline reports generated automatically
+- **Privacy First**: Strict PII redaction at code level
+- **Compliance**: HIPAA/GDPR aligned data handling
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone the core repository
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
+cd omni-medical-suite
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the pipeline
+python main.py
+```
+
+---
+
+## 📚 Documentation
+
+- **Main Platform**: [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite)
+- **Ground Truth**: [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth)
+- **Training Hub**: [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub)
+- **Benchmarks**: [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks)
+
+---
+
+*Maintained with precision and care by [DrAbdulmalek](https://github.com/DrAbdulmalek).*
