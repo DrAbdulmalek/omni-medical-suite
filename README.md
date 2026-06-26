@@ -35,6 +35,37 @@
 
 ---
 
+## 🗺️ Start Here — Ecosystem Navigation
+
+```mermaid
+graph LR
+    START[⭐ You Are Here<br>omni-medical-suite] --> PRE[Scanner Fixer<br>Pre-OCR Normalization]
+    START --> GT[Ground Truth<br>Single Source of Truth]
+    START --> TH[Training Hub<br>Data Ingestion & PII Scrub]
+    START --> TR[OCR Trainer<br>Human-in-the-Loop]
+    START --> BM[Benchmarks<br>Quality Gates & Metrics]
+    START --> DEMO[🤗 Live Demo<br>Hugging Face Space]
+    START --> MC[Mission Control<br>MLOps Dashboard]
+
+    style START fill:#2196f3,stroke:#1565c0,stroke-width:3px,color:#fff
+    style DEMO fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff
+```
+
+| Step | Repository | What It Does | Go To |
+|:----:|------------|-------------|-------|
+| ⭐ **1** | **omni-medical-suite** | Main platform — OCR, NLP, API, Web UI | You are here |
+| 🔧 **2** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | Pre-OCR normalization — skew detection + auto-crop | GitHub |
+| 📊 **3** | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | Verified reference datasets (Single Source of Truth) | GitHub |
+| 🔄 **4** | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) | Data ingestion, validation, PII scrubbing, dedup | GitHub |
+| ✏️ **5** | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | Human-in-the-loop correction + ensemble collection | GitHub · [🤗 Demo](https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-trainer) |
+| 📏 **6** | [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) | Quality gates — CER/WER thresholds, nightly regressions | GitHub |
+| 🤗 **7** | [Medical Handwriting OCR](https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr) | **Flagship Live Demo** — Try it now | HuggingFace |
+| 📊 **8** | [Mission Control](https://huggingface.co/spaces/DrAbdulmalek/mission-control) | MLOps dashboard — pipeline monitoring | HuggingFace |
+
+> 💡 **New here?** Start with step ⭐1 (this repo), then try the [live demo](https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr) to see it in action.
+
+---
+
 <br>
 
 ## 🚀 Quick Start — Zero to Running in 1 Minute
@@ -1080,16 +1111,16 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 
 | Need | Use This Repository |
 |------|-------------------|
-| Complete medical document processing pipeline | omni-medical-suite |
-| OCR correction & PHI masking only | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) |
-| Production handwriting OCR with continuous learning | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) |
+| Complete medical document processing pipeline | **omni-medical-suite** (you are here) |
+| Fix skewed/cropped scans before OCR | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) |
+| Manage verified ground truth datasets | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) |
+| Ingest, validate, and scrub training data | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) |
 | Collect training data & human corrections | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) |
-| Desktop image quality review | [medical-doc-processor](https://github.com/DrAbdulmalek/medical-doc-processor) |
-| Legacy AI file processing | [OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor) |
+| Run quality benchmarks & regression tests | [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) |
 
 ## Ecosystem Map
 
-See [PORTFOLIO.md](./PORTFOLIO.md) for the complete project architecture and relationship diagram.
+See [PORTFOLIO.md](./PORTFOLIO.md) for the complete project architecture and relationship diagram. For a quick navigation guide, see [Start Here](#-start-here--ecosystem-navigation) above.
 
 ## System Architecture (Full Data Lifecycle)
 
@@ -1101,6 +1132,7 @@ graph TD
         A1["Medical Scans - X-Rays, Prescriptions"]
         A2["Printed Documents - Reports, Lab Results"]
         A3["Handwritten Notes - Clinical Notes"]
+        A0["Scanner Fixer - Skew Detection + Auto-Crop"]
     end
 
     subgraph CORE["Core Processing - Omni-Medical-Suite"]
@@ -1126,11 +1158,12 @@ graph TD
         D3["Analytics - Performance Metrics"]
     end
 
-    A1 --> B1
-    A2 --> B1
-    A3 --> B1
+    A1 --> A0
+    A2 --> A0
+    A3 --> A0
+    A0 --> B1
     B1 --> B2
-
+    
     B2 -->|Printed Text| B3
     B2 -->|Handwriting| B4
     B3 --> B5
@@ -1179,14 +1212,38 @@ The **Threshold Check** node (orange) is the decision brain of the system:
 
 ## Related Repositories
 
-| Repo | Role | Status |
-|------|------|--------|
-| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | Core Library — Correction Engine | Active |
-| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) | Production OCR Platform | Active |
-| [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | Data Collection Tool | Active |
-| [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer-hf) | HF Deployment (demo) | Deployment |
-| [medical-doc-processor](https://github.com/DrAbdulmalek/medical-doc-processor) | Review App | Legacy/Migrating |
-| [OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor) | Legacy AI Processor | Legacy/Migration |
-| [IntelliFile-app](https://github.com/DrAbdulmalek/IntelliFile-app) | File Manager (Independent) | Independent |
+### Active Ecosystem Repos
+
+| Repo | Role | Layer |
+|------|------|-------|
+| [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | Pre-OCR Normalization — skew detection + auto-crop | Input |
+| [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | Single Source of Truth for verified datasets | Data |
+| [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) | Data ingestion, validation, PII scrubbing, dedup | Data |
+| [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | Human-in-the-loop correction + ensemble collection | Learning |
+| [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) | Quality gates — CER/WER thresholds, nightly regressions | Evaluation |
+
+### Live Demos (Hugging Face)
+
+| Space | Role | Status |
+|-------|------|--------|
+| [Medical Handwriting OCR](https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr) | **Flagship Demo** — primary live showcase | Active |
+| [Medical OCR Trainer](https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-trainer) | Specialized Tool — correction interface | Active |
+| [Mission Control](https://huggingface.co/spaces/DrAbdulmalek/mission-control) | Operational Dashboard — MLOps monitoring | Active |
+
+### Archived Repos
+
+| Repo | Reason |
+|------|--------|
+| medical-ocr-postprocessor | Merged into omni-medical-suite v2.0 |
+| medical-handwriting-ocr | Merged into omni-medical-suite v2.0 |
+| medical-doc-processor | Merged into omni-medical-suite v2.0 |
+| OmniFile_Processor | Merged into omni-medical-suite v2.0 |
+
+### Independent Side Products
+
+| Repo | Domain | Note |
+|------|--------|------|
+| [IntelliFile-app](https://github.com/DrAbdulmalek/IntelliFile-app) | AI File Manager (Manjaro Linux) | Standalone — not medical |
+| [telegram-forwarder](https://github.com/DrAbdulmalek/telegram-forwarder) | Telegram Content Forwarder | Standalone — not medical |
 
 **License: MIT** — Dr. Abdulmalek Tamer Al-husseini
