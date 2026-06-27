@@ -9,6 +9,8 @@ import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
+from packages.core.base_db import validate_identifier
+
 logger = logging.getLogger(__name__)
 
 
@@ -193,21 +195,27 @@ class DatabaseManager:
         return [dict(row) for row in cursor.fetchall()]
 
     def update_document(self, doc_id: int, **kwargs) -> bool:
-        allowed = ['patient_id', 'filename', 'processed_path', 'encrypted_path',
+        allowed = {'patient_id', 'filename', 'processed_path', 'encrypted_path',
                     'document_type', 'status', 'blur_before', 'blur_after',
-                    'skew_angle', 'quality_label']
+                    'skew_angle', 'quality_label'}
         sets = []
         params = []
         for k, v in kwargs.items():
             if k in allowed:
+                validate_identifier(k)
                 sets.append(f"{k} = ?")
                 params.append(v)
 
         if not sets:
             return False
 
+        validate_identifier('updated_at')
         sets.append("updated_at = CURRENT_TIMESTAMP")
         params.append(doc_id)
+
+        # Validate all column names in the SET clause
+        for s in sets:
+            validate_identifier(s.split('=')[0].strip())
 
         try:
             self.conn.execute(f"UPDATE documents SET {', '.join(sets)} WHERE id = ?", params)
@@ -293,18 +301,23 @@ class DatabaseManager:
         return dict(row) if row else {"id": "main"}
 
     def update_settings(self, **kwargs) -> bool:
-        allowed = ['page_threshold', 'gray_threshold', 'auto_save', 'auto_deskew',
+        allowed = {'page_threshold', 'gray_threshold', 'auto_save', 'auto_deskew',
                     'auto_crop', 'padding', 'min_confidence', 'mistral_api_key',
-                    'mistral_enabled', 'encryption_enabled', 'theme', 'language']
+                    'mistral_enabled', 'encryption_enabled', 'theme', 'language'}
         sets = []
         params = []
         for k, v in kwargs.items():
             if k in allowed:
+                validate_identifier(k)
                 sets.append(f"{k} = ?")
                 params.append(v)
 
         if not sets:
             return False
+
+        # Validate all column names in the SET clause
+        for s in sets:
+            validate_identifier(s.split('=')[0].strip())
 
         try:
             self.conn.execute(

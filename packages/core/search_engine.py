@@ -22,7 +22,7 @@
 import logging
 import os
 import re
-from packages.core.base_db import BaseDB
+from packages.core.base_db import BaseDB, validate_identifier
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 
@@ -33,6 +33,15 @@ _SAFE_COLUMNS = frozenset([
     "confidence_score", "ocr_engine", "language", "page_count",
     "process_date", "processing_time", "extracted_text",
 ])
+
+# SQL keywords / aliases allowed inside dynamically built WHERE clauses
+_SAFE_WHERE_TOKENS = frozenset({
+    *_SAFE_COLUMNS,
+    "p", "f",
+    "AND", "OR", "NOT", "IN", "LIKE", "MATCH", "BETWEEN",
+    "IS", "NULL", "ASC", "DESC",
+})
+_SAFE_WHERE_TOKENS_UPPER = {t.upper() for t in _SAFE_WHERE_TOKENS}
 
 
 class SearchEngine(BaseDB):
@@ -52,6 +61,21 @@ class SearchEngine(BaseDB):
         if col not in _SAFE_COLUMNS:
             raise ValueError(f"Invalid column: {col}")
         return col
+
+    @staticmethod
+    def _validate_where_clause(clause: str) -> None:
+        """Validate that all identifiers in *clause* are in the safe set.
+
+        Called on WHERE clauses assembled internally from hardcoded
+        condition strings — every word-boundary token must be an
+        expected column name, table alias, or SQL keyword.
+        """
+        if not clause:
+            return
+        tokens = re.findall(r'\b[a-zA-Z_]\w*\b', clause)
+        for tok in tokens:
+            if tok.upper() not in _SAFE_WHERE_TOKENS_UPPER:
+                raise ValueError(f"Unsafe identifier in WHERE clause: {tok!r}")
 
     def __init__(self, db_path: str = "omni_processor.db"):
         """
@@ -159,6 +183,7 @@ class SearchEngine(BaseDB):
             params.append(date_to)
 
         where_clause = " AND ".join(conditions)
+        self._validate_where_clause(where_clause)
 
         # عدد النتائج الإجمالي
         with self.connection() as conn:
@@ -231,6 +256,7 @@ class SearchEngine(BaseDB):
                 params.append(min_confidence)
 
             where_clause = " AND ".join(conditions)
+            self._validate_where_clause(where_clause)
 
             with self.connection() as conn:
                 # عدد النتائج
@@ -349,6 +375,8 @@ class SearchEngine(BaseDB):
         if language:
             where_clause += " AND language = ?"
             all_params.append(language)
+
+        self._validate_where_clause(where_clause)
 
         # تنفيذ الاستعلام
         sql = f"""

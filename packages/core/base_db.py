@@ -36,6 +36,27 @@ from typing import Any, Generator, Optional
 
 logger = logging.getLogger(__name__)
 
+# ── Identifier validation helpers (SQL injection prevention) ───────────
+
+_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+
+
+def validate_identifier(name: str) -> str:
+    """Validate that *name* is a safe SQL identifier.
+
+    Only letters, digits, and underscores are allowed; the first
+    character must not be a digit.  Raises ``ValueError`` on failure
+    so that Bandit B608 is satisfied before any f-string SQL is built.
+    """
+    if not isinstance(name, str) or not _IDENTIFIER_RE.match(name):
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
+
+
+def validate_identifiers(names: list) -> list:
+    """Validate a list of SQL identifiers, returning the validated list."""
+    return [validate_identifier(n) for n in names]
+
 # إعدادات موحّدة لكل قواعد البيانات
 _PRAGMAS = [
     "PRAGMA journal_mode=WAL",
@@ -163,8 +184,7 @@ class BaseDB:
 
     def count(self, table: str, where: str = "", params: tuple = ()) -> int:
         """عدّ صفوف جدول مع شرط اختياري."""
-        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
-            raise ValueError(f"Invalid table name: {table}")
+        validate_identifier(table)
         sql = f"SELECT COUNT(*) AS n FROM {table}"
         if where:
             sql += f" WHERE {where}"

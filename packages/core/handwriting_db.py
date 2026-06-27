@@ -11,7 +11,7 @@ from typing import Optional
 from pathlib import Path
 from datetime import datetime
 
-from packages.core.base_db import BaseDB
+from packages.core.base_db import BaseDB, validate_identifier
 
 logger = logging.getLogger("modules.core.handwriting_db")
 
@@ -156,6 +156,10 @@ class HandwritingDB(BaseDB):
             vals.append(status)
         sets.append("updated_at=?")
         vals.append(datetime.now().isoformat())
+        # Validate column names in the SET clause
+        for s in sets:
+            validate_identifier(s.split('=')[0].strip())
+
         vals.append(image_id)
         with self.connection() as conn:
             conn.execute(
@@ -199,8 +203,15 @@ class HandwritingDB(BaseDB):
     def get_all(self) -> list[dict]:
         return self._rows("SELECT * FROM handwriting_data ORDER BY page_num, y, x")
 
+    _ALLOWED_ORDER_COLUMNS = {
+        'confidence': 'ORDER BY confidence ASC',
+        'image_id': 'ORDER BY image_id',
+    }
+
     def get_unverified(self, order_by_confidence: bool = True) -> list[dict]:
-        order = "ORDER BY confidence ASC" if order_by_confidence else "ORDER BY image_id"
+        col = 'confidence' if order_by_confidence else 'image_id'
+        validate_identifier(col)
+        order = self._ALLOWED_ORDER_COLUMNS[col]
         return self._rows(
             f"SELECT * FROM handwriting_data WHERE status='unverified' {order}"
         )
