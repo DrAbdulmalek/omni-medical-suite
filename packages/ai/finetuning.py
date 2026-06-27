@@ -10,7 +10,7 @@ import torch
 from peft import LoraConfig, get_peft_model, TaskType
 from pathlib import Path
 import logging
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict
 import os
 
 logger = logging.getLogger(__name__)

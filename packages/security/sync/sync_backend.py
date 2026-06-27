@@ -218,7 +218,7 @@ class MobileSyncBackend:
 def setup_mobile_sync(colab_workspace: str = "/content/omnifile_workspace"):
     """تهيئة المزامنة في بيئة Colab"""
     workspace = Path(colab_workspace)
-    sync_backend = MobileSyncSync(
+    sync_backend = MobileSyncBackend(
         sync_root=workspace / "mobile_sync",
         provider="local"  # يمكن تغييره لـ "gdrive" عند ربط Drive
     )

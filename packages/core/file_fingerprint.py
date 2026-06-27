@@ -97,7 +97,7 @@ class FileFingerprintManager(BaseDB):
             سلسلة hex تمثل البصمة الفريدة
         """
         if algorithm == "md5":
-            hasher = hashlib.md5()
+            hasher = hashlib.md5(usedforsecurity=False)
         else:
             hasher = hashlib.sha256()
 
@@ -119,7 +119,7 @@ class FileFingerprintManager(BaseDB):
             سلسلة hex تمثل البصمة
         """
         if algorithm == "md5":
-            hasher = hashlib.md5()
+            hasher = hashlib.md5(usedforsecurity=False)
         else:
             hasher = hashlib.sha256()
         hasher.update(data)
