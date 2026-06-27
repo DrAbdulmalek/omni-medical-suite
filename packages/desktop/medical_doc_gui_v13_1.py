@@ -626,12 +626,9 @@ class MedicalDocScanner(QMainWindow):
             x1, y1, x2, y2 = bounds
             QMessageBox.information(
                 self, "حدود الصفحة",
-                f"الحدود المكتشفة:
-"
-                f"أعلى-يسار: ({x1}, {y1})
-"
-                f"أسفل-يمين: ({x2}, {y2})
-"
+                f"الحدود المكتشفة:\n"
+                f"أعلى-يسار: ({x1}, {y1})\n"
+                f"أسفل-يمين: ({x2}, {y2})\n"
                 f"العرض: {x2-x1}, الارتفاع: {y2-y1}"
             )
 
@@ -674,10 +671,8 @@ class MedicalDocScanner(QMainWindow):
         if not TESSERACT_AVAILABLE:
             QMessageBox.critical(
                 self, "خطأ",
-                "pytesseract غير مثبت
-"
-                "ثبته عبر: pip install pytesseract
-"
+                "pytesseract غير مثبت\n"
+                "ثبته عبر: pip install pytesseract\n"
                 "وثبّت Tesseract OCR على نظامك"
             )
             return

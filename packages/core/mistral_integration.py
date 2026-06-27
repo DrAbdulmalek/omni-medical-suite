@@ -190,15 +190,20 @@ class StructuredExtractor:
                           "weight", "height", "oxygen_saturation", "respiratory_rate"]
         },
         "lab_results": {
-            "properties": ["patient_name", "mrn", "test_date", "tests": [
-                {"name": "", "value": "", "unit": "", "reference_range": "", "flag": ""}
-            ]]
+            "properties": {
+                "patient_name": "", "mrn": "", "test_date": "",
+                "tests": [
+                    {"name": "", "value": "", "unit": "", "reference_range": "", "flag": ""}
+                ]
+            }
         },
         "prescription": {
-            "properties": ["patient_name", "mrn", "prescription_date", "diagnosis",
-                          "medications": [
-                              {"name": "", "dose": "", "frequency": "", "duration": "", "route": ""}
-                          ]]
+            "properties": {
+                "patient_name": "", "mrn": "", "prescription_date": "", "diagnosis": "",
+                "medications": [
+                    {"name": "", "dose": "", "frequency": "", "duration": "", "route": ""}
+                ]
+            }
         },
         "admission_form": {
             "properties": ["patient_name", "date_of_birth", "mrn", "admission_date",
