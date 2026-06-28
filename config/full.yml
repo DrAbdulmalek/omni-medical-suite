@@ -1,0 +1,66 @@
+components:
+  ocr:
+    engine: ensemble
+    languages: [eng, ara, fr, de]
+    mode: expert
+    engines: [tesseract, easyocr, paddleocr, onnx, custom, trocr]
+    
+  correction:
+    enabled: true
+    type: expert
+    spell_check: true
+    grammar_check: true
+    context_protector: true
+    correction_memory: true
+    
+  output:
+    formats: [text, json, csv, xml, pdf]
+    compression: true
+    
+  preprocessing:
+    skew_detection: true
+    auto_crop: true
+    line_segmentation: true
+    layout_aware_parsing: true
+    
+  postprocessing:
+    pii_scrubbing: true
+    medical_term_validation: true
+    quality_gates: true
+    
+  vector_search:
+    enabled: true
+    engine: qdrant
+    embedding_model: sentence-transformers/all-mpnet-base-v2
+    shards: 3
+    
+  training:
+    enabled: true
+    continuous_learning: true
+    data_pipeline: true
+    
+  benchmarks:
+    enabled: true
+    metrics: [cer, wer, medical_terms, latency, throughput]
+    thresholds:
+      cer_printed: 0.05
+      cer_handwritten: 0.12
+      medical_terms: 0.90
+    nightly: true
+    
+  deployment:
+    type: kubernetes
+    containers: 5+
+    memory: 16GB
+    services: [api, worker, qdrant, redis, postgres]
+    
+  performance:
+    max_concurrent: 10
+    timeout: 120s
+    
+  features:
+    continuous_learning: true
+    benchmarks: true
+    training_loop: true
+    monitoring: true
+    logging: true
