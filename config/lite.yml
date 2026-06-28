@@ -1,0 +1,38 @@
+components:
+  ocr:
+    engine: tesseract
+    languages: [eng, ara]
+    mode: basic
+    
+  correction:
+    enabled: true
+    type: basic
+    spell_check: true
+    grammar_check: false
+    
+  output:
+    formats: [text]
+    compression: false
+    
+  preprocessing:
+    skew_detection: false
+    auto_crop: false
+    
+  postprocessing:
+    pii_scrubbing: false
+    medical_term_validation: false
+    
+  deployment:
+    type: docker
+    containers: 1
+    memory: 2GB
+    
+  performance:
+    max_concurrent: 1
+    timeout: 30s
+    
+  features:
+    vector_search: false
+    continuous_learning: false
+    benchmarks: false
+    training_loop: false
