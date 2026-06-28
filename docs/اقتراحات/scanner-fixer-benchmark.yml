@@ -1,0 +1,341 @@
+name: Scanner-Fixer Benchmark
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'scanner_fixer.py'
+      - 'tests/**'
+      - 'benchmarks/**'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      angle_range:
+        description: 'Test angle range (e.g. "0,5,10,15")'
+        required: false
+        default: '0,5,10,15'
+      image_count:
+        description: 'Number of synthetic test images per angle'
+        required: false
+        default: '20'
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: write
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ── Job 1: Unit Tests ──
+  test:
+    name: Unit Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov numpy opencv-python-headless
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ -v --tb=short \
+            --junitxml=test-results.xml \
+            --cov=scanner_fixer --cov-report=term-missing
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-py${{ matrix.python-version }}
+          path: test-results.xml
+          retention-days: 14
+
+  # ── Job 2: Benchmark ──
+  benchmark:
+    name: Benchmark Suite
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install numpy opencv-python-headless pillow psutil
+
+      - name: Generate synthetic test images
+        run: |
+          python3 -c "
+          import numpy as np
+          import cv2
+          import os
+
+          os.makedirs('benchmark_images', exist_ok=True)
+          angles = [${{ github.event.inputs.angle_range || '0,5,10,15' }}]
+          count = int('${{ github.event.inputs.image_count || '20' }}')
+
+          np.random.seed(42)
+          for angle in angles:
+              for i in range(count):
+                  # Create a document-like image with text lines
+                  img = np.ones((800, 600, 3), dtype=np.uint8) * 255
+                  for y in range(100, 750, 60):
+                      cv2.line(img, (50, y), (550, y), (80, 80, 80), 1)
+                      # Add noise
+                      noise = np.random.randint(0, 30, (800, 600, 3), dtype=np.uint8)
+                      img = cv2.add(img, noise)
+
+                  # Apply rotation
+                  h, w = img.shape[:2]
+                  M = cv2.getRotationMatrix2D((w // 2, h // 2), angle, 1.0)
+                  rotated = cv2.warpAffine(img, M, (w, h), borderValue=(255, 255, 255))
+
+                  cv2.imwrite(f'benchmark_images/angle_{angle}_img_{i:03d}.png', rotated)
+
+          print(f'Generated {count * len(angles)} test images')
+          "
+
+      - name: Run skew detection benchmark
+        run: |
+          python3 -c "
+          import os, time, json
+          import cv2
+          import numpy as np
+          from scanner_fixer import detect_skew_angle, deskew, auto_crop
+
+          results = []
+          img_dir = 'benchmark_images'
+          files = sorted(os.listdir(img_dir))
+
+          total_detect_time = 0
+          total_deskew_time = 0
+          total_crop_time = 0
+          angle_errors = []
+
+          for f in files:
+              if not f.endswith('.png'):
+                  continue
+              img = cv2.imread(os.path.join(img_dir, f))
+
+              # Parse ground truth angle from filename
+              gt_angle = float(f.split('_')[1])
+
+              # Benchmark detect_skew_angle
+              t0 = time.perf_counter()
+              detected = detect_skew_angle(img)
+              t1 = time.perf_counter()
+              total_detect_time += (t1 - t0)
+
+              # Benchmark deskew
+              t0 = time.perf_counter()
+              corrected = deskew(img, detected)
+              t1 = time.perf_counter()
+              total_deskew_time += (t1 - t0)
+
+              # Benchmark auto_crop
+              t0 = time.perf_counter()
+              cropped = auto_crop(corrected)
+              t1 = time.perf_counter()
+              total_crop_time += (t1 - t0)
+
+              error = abs(detected - gt_angle)
+              angle_errors.append(error)
+
+              results.append({
+                  'file': f,
+                  'ground_truth_angle': gt_angle,
+                  'detected_angle': round(detected, 2),
+                  'error': round(error, 2),
+                  'detect_ms': round((t1 - t0) * 1000, 1),  # last op time
+                  'size_before': img.shape[:2],
+              })
+
+          n = len(results)
+          avg_error = sum(angle_errors) / n if n else 0
+          max_error = max(angle_errors) if angle_errors else 0
+          within_1deg = sum(1 for e in angle_errors if e <= 1.0) / n * 100 if n else 0
+
+          report = {
+              'summary': {
+                  'total_images': n,
+                  'avg_angle_error_deg': round(avg_error, 3),
+                  'max_angle_error_deg': round(max_error, 3),
+                  'within_1_degree_pct': round(within_1deg, 1),
+                  'avg_detect_latency_ms': round(total_detect_time / n * 1000, 1) if n else 0,
+                  'avg_deskew_latency_ms': round(total_deskew_time / n * 1000, 1) if n else 0,
+                  'avg_crop_latency_ms': round(total_crop_time / n * 1000, 1) if n else 0,
+                  'total_benchmark_time_s': round(total_detect_time + total_deskew_time + total_crop_time, 2),
+              },
+              'results': results,
+          }
+
+          os.makedirs('benchmark_results', exist_ok=True)
+          with open('benchmark_results/benchmark_report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+
+          # Print summary
+          s = report['summary']
+          print(f'=== Scanner-Fixer Benchmark Results ===')
+          print(f'Images: {s[\"total_images\"]}')
+          print(f'Avg Angle Error: {s[\"avg_angle_error_deg\"]} deg')
+          print(f'Max Angle Error: {s[\"max_angle_error_deg\"]} deg')
+          print(f'Within 1 degree: {s[\"within_1_degree_pct\"]}%')
+          print(f'Avg Detect Latency: {s[\"avg_detect_latency_ms\"]} ms')
+          print(f'Avg Deskew Latency: {s[\"avg_deskew_latency_ms\"]} ms')
+          print(f'Avg Crop Latency: {s[\"avg_crop_latency_ms\"]} ms')
+          print(f'Total Time: {s[\"total_benchmark_time_s\"]} s')
+
+          # Threshold checks
+          assert s['avg_angle_error_deg'] <= 1.0, f'Avg error {s[\"avg_angle_error_deg\"]} > 1.0 deg threshold'
+          assert s['within_1_degree_pct'] >= 80.0, f'Within 1deg {s[\"within_1_degree_pct\"]}% < 80% threshold'
+          print('All threshold checks PASSED')
+          "
+
+      - name: Generate Markdown report
+        run: |
+          python3 -c "
+          import json
+
+          with open('benchmark_results/benchmark_report.json') as f:
+              data = json.load(f)
+
+          s = data['summary']
+          md = f'''## Scanner-Fixer Benchmark Results
+
+| Metric | Value |
+|--------|-------|
+| **Total Images** | {s['total_images']} |
+| **Avg Angle Error** | {s['avg_angle_error_deg']} deg |
+| **Max Angle Error** | {s['max_angle_error_deg']} deg |
+| **Within 1 Degree** | {s['within_1_degree_pct']}% |
+| **Avg Detect Latency** | {s['avg_detect_latency_ms']} ms |
+| **Avg Deskew Latency** | {s['avg_deskew_latency_ms']} ms |
+| **Avg Crop Latency** | {s['avg_crop_latency_ms']} ms |
+| **Total Benchmark Time** | {s['total_benchmark_time_s']} s |
+
+### Threshold Checks
+- Avg angle error <= 1.0 deg: {\"PASS\" if s[\"avg_angle_error_deg\"] <= 1.0 else \"FAIL\"}
+- Within 1 degree >= 80%: {\"PASS\" if s[\"within_1_degree_pct\"] >= 80.0 else \"FAIL\"}
+
+### Per-Image Results
+| File | GT Angle | Detected | Error | Latency (ms) |
+|------|----------|----------|-------|---------------|
+'''
+
+          for r in data['results'][:50]:  # Limit table size
+              md += f'| {r[\"file\"]} | {r[\"ground_truth_angle\"]} | {r[\"detected_angle\"]} | {r[\"error\"]} | {r[\"detect_ms\"]} |\n'
+
+          if len(data['results']) > 50:
+              md += f'\n... and {len(data[\"results\"]) - 50} more (see full JSON)\n'
+
+          with open('benchmark_results/benchmark_report.md', 'w') as f:
+              f.write(md)
+          print('Markdown report generated')
+          "
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark_results/
+          retention-days: 30
+
+  # ── Job 3: Comment on PR ──
+  comment:
+    name: Comment Results on PR
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark_results/
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'benchmark_results/benchmark_report.md';
+            if (!fs.existsSync(reportPath)) {
+              console.log('No benchmark report found');
+              return;
+            }
+            const report = fs.readFileSync(reportPath, 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: report
+            });
+
+  # ── Job 4: Compare with baseline (on push to main) ──
+  regression:
+    name: Regression Check
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark_results/
+
+      - name: Check for performance regression
+        run: |
+          python3 -c "
+          import json
+
+          with open('benchmark_results/benchmark_report.json') as f:
+              data = json.load(f)
+
+          s = data['summary']
+
+          # Regression thresholds (fail if significantly worse)
+          MAX_AVG_ERROR = 1.5    # deg
+          MIN_WITHIN_1DEG = 70.0  # %
+          MAX_AVG_LATENCY = 50.0  # ms
+
+          failures = []
+          if s['avg_angle_error_deg'] > MAX_AVG_ERROR:
+              failures.append(f'Avg angle error {s[\"avg_angle_error_deg\"]} > {MAX_AVG_ERROR} deg')
+          if s['within_1_degree_pct'] < MIN_WITHIN_1DEG:
+              failures.append(f'Within 1deg {s[\"within_1_degree_pct\"]}% < {MIN_WITHIN_1DEG}%')
+          if s['avg_detect_latency_ms'] > MAX_AVG_LATENCY:
+              failures.append(f'Avg detect latency {s[\"avg_detect_latency_ms\"]}ms > {MAX_AVG_LATENCY}ms')
+
+          if failures:
+              print('REGRESSION DETECTED:')
+              for f in failures:
+                  print(f'  - {f}')
+              exit(1)
+          else:
+              print('No regression detected. All metrics within thresholds.')
+          "
