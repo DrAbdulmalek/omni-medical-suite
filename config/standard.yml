@@ -1,0 +1,45 @@
+components:
+  ocr:
+    engine: ensemble
+    languages: [eng, ara]
+    mode: advanced
+    engines: [tesseract, easyocr, paddleocr, onnx, custom]
+    
+  correction:
+    enabled: true
+    type: advanced
+    spell_check: true
+    grammar_check: true
+    context_protector: true
+    
+  output:
+    formats: [text, json, csv]
+    compression: true
+    
+  preprocessing:
+    skew_detection: true
+    auto_crop: true
+    
+  postprocessing:
+    pii_scrubbing: true
+    medical_term_validation: true
+    
+  vector_search:
+    enabled: true
+    engine: qdrant
+    embedding_model: sentence-transformers/all-MiniLM-L6-v2
+    
+  deployment:
+    type: docker-compose
+    containers: 3
+    memory: 8GB
+    services: [api, worker, qdrant]
+    
+  performance:
+    max_concurrent: 4
+    timeout: 60s
+    
+  features:
+    continuous_learning: false
+    benchmarks: false
+    training_loop: false
