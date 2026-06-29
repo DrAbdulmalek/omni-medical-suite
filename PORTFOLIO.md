@@ -10,7 +10,7 @@ The suite is built as a modular, data-driven network with specialized repositori
 
 | Layer | Repository | Primary Responsibility |
 |-------|------------|------------------------|
-| **Preprocessing** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | Skew detection, auto-crop, scan normalization before OCR |
+| **Preprocessing (MANDATORY)** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | **Required** first step — skew detection, auto-crop, noise reduction, scan normalization before OCR |
 | **Orchestration** | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Pipeline orchestration, API endpoints, core logic |
 | **Data** | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | Single source of truth for verified datasets |
 | **Training** | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) | Data ingestion, validation, PII scrubbing |
@@ -22,9 +22,11 @@ The suite is built as a modular, data-driven network with specialized repositori
 
 ## System Data Flow
 
+> **⚠️ Critical**: Every medical image enters the pipeline through **Scanner Fixer** (green node below). This preprocessing step is **mandatory** — images that bypass it will suffer 40-50% higher CER and must be rejected at the Resolution Gate.
+
 ```mermaid
 graph LR
-    A[Medical Scans] --> B[Scanner Fixer]
+    A[Medical Scans] --> B[Scanner Fixer (MANDATORY)]
     B --> C[OmniMedical Suite]
     C --> D{OCR Engine}
     D -->|User Corrections| E[Training Hub]
@@ -49,7 +51,7 @@ These rules govern all data processing and model updates:
 
 1. **Resolution Gate**: Images below 150 DPI are auto-rejected to prevent OCR degradation.
 
-2. **Preprocessing First**: All scanned images pass through [Scanner Fixer](https://github.com/DrAbdulmalek/scanner-fixer) for skew correction and auto-crop before OCR processing. This reduces CER by 40-50% on printed text.
+2. **Mandatory Preprocessing**: ALL scanned images MUST pass through [Scanner Fixer](https://github.com/DrAbdulmalek/scanner-fixer) for skew correction, auto-crop, and noise reduction before OCR processing. This is a required step — not optional. Skipping it increases CER by 40-50% on printed text.
 
 3. **PII Redaction**: All patient identifiers (names, phones, dates) are automatically redacted before storage using a hybrid Regex + CamelBERT NER pipeline.
 
@@ -100,7 +102,7 @@ python main.py
 ## Ecosystem Documentation
 
 - **Main Platform**: [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite)
-- **Pre-OCR Normalization**: [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer)
+- **Pre-OCR Normalization (MANDATORY)**: [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) — required first step for all medical images
 - **Ground Truth**: [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth)
 - **Training Hub**: [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub)
 - **OCR Trainer**: [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer)

@@ -31,6 +31,10 @@
 
 ---
 
+> **Preprocessing Requirement**: All medical images MUST pass through [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) for skew correction, auto-crop, and noise reduction BEFORE OCR processing. This is a mandatory first step in the pipeline — not optional.
+
+---
+
 > **OmniMedical Suite** is a unified monorepo that merges two battle-tested projects — **medical-doc-processor** (v3.2) and **OmniFile_Processor** (v5.0) — into a single, cohesive medical document processing platform. It combines a Next.js web frontend with a Python-powered OCR/NLP backend, delivering end-to-end intelligence for Arabic and multilingual medical documents.
 
 ---
@@ -39,30 +43,31 @@
 
 ```mermaid
 graph LR
-    START[⭐ You Are Here<br>omni-medical-suite] --> PRE[Scanner Fixer<br>Pre-OCR Normalization]
-    START --> GT[Ground Truth<br>Single Source of Truth]
-    START --> TH[Training Hub<br>Data Ingestion & PII Scrub]
-    START --> TR[OCR Trainer<br>Human-in-the-Loop]
-    START --> BM[Benchmarks<br>Quality Gates & Metrics]
+    START[⭐ You Are Here<br>omni-medical-suite] --> PRE[🔧 1. Scanner Fixer<br>MANDATORY Pre-OCR Step]
+    START --> GT[📊 Ground Truth<br>Single Source of Truth]
+    START --> TH[🔄 Training Hub<br>Data Ingestion & PII Scrub]
+    START --> TR[✏️ OCR Trainer<br>Human-in-the-Loop]
+    START --> BM[📏 Benchmarks<br>Quality Gates & Metrics]
     START --> DEMO[🤗 Live Demo<br>Hugging Face Space]
-    START --> MC[Mission Control<br>MLOps Dashboard]
+    START --> MC[📊 Mission Control<br>MLOps Dashboard]
 
     style START fill:#2196f3,stroke:#1565c0,stroke-width:3px,color:#fff
+    style PRE fill:#ff5722,stroke:#bf360c,stroke-width:3px,color:#fff
     style DEMO fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff
 ```
 
 | Step | Repository | What It Does | Go To |
 |:----:|------------|-------------|-------|
-| ⭐ **1** | **omni-medical-suite** | Main platform — OCR, NLP, API, Web UI | You are here |
-| 🔧 **2** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | Pre-OCR normalization — skew detection + auto-crop | GitHub |
+| 🔧 **1** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | **MANDATORY** — Pre-OCR normalization, skew detection, auto-crop, noise reduction | GitHub |
+| ⭐ **2** | **omni-medical-suite** | Main platform — OCR, NLP, API, Web UI | You are here |
 | 📊 **3** | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | Verified reference datasets (Single Source of Truth) | GitHub |
-| 🔄 **4** | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) | Data ingestion, validation, PII scrubbing, dedup | GitHub |
+| 🔄 **4** | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) | Training & release pipeline, data ingestion, PII scrubbing, dedup | GitHub |
 | ✏️ **5** | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | Human-in-the-loop correction + ensemble collection | GitHub · [🤗 Demo](https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-trainer) |
 | 📏 **6** | [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) | Quality gates — CER/WER thresholds, nightly regressions | GitHub |
 | 🤗 **7** | [Medical Handwriting OCR](https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr) | **Flagship Live Demo** — Try it now | HuggingFace |
 | 📊 **8** | [Mission Control](https://huggingface.co/spaces/DrAbdulmalek/mission-control) | MLOps dashboard — pipeline monitoring | HuggingFace |
 
-> 💡 **New here?** Start with step ⭐1 (this repo), then try the [live demo](https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr) to see it in action.
+> 💡 **New here?** Start with step 🔧1 ([scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer)) — it's the **required** first step for all medical images before OCR. Then visit step ⭐2 (this repo) and try the [live demo](https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr).
 
 ---
 
@@ -1112,7 +1117,7 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 | Need | Use This Repository |
 |------|-------------------|
 | Complete medical document processing pipeline | **omni-medical-suite** (you are here) |
-| Fix skewed/cropped scans before OCR | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) |
+| **MANDATORY: Fix skewed/cropped scans before OCR** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) |
 | Manage verified ground truth datasets | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) |
 | Ingest, validate, and scrub training data | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) |
 | Collect training data & human corrections | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) |
@@ -1132,7 +1137,10 @@ graph TD
         A1["Medical Scans - X-Rays, Prescriptions"]
         A2["Printed Documents - Reports, Lab Results"]
         A3["Handwritten Notes - Clinical Notes"]
-        A0["Scanner Fixer - Skew Detection + Auto-Crop"]
+    end
+
+    subgraph PREPROCESSING["MANDATORY Preprocessing"]
+        A0["🔧 Scanner Fixer - Skew Detection + Auto-Crop + Noise Reduction"]
     end
 
     subgraph CORE["Core Processing - Omni-Medical-Suite"]
@@ -1184,10 +1192,12 @@ graph TD
     C6 -->|Updated Model| B4
 
     style INPUT fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    style PREPROCESSING fill:#ff5722,stroke:#bf360c,stroke-width:3px
     style CORE fill:#fff3e0,stroke:#f57c00,stroke-width:3px
     style LEARNING fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
     style OUTPUT fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 
+    style A0 fill:#fff,stroke:#bf360c,stroke-width:3px,color:#000
     style B2 fill:#ffeb3b,stroke:#f57f17,stroke-width:2px,color:#000
     style C3 fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff
     style C5 fill:#ff5722,stroke:#bf360c,stroke-width:3px,color:#fff
@@ -1198,6 +1208,7 @@ graph TD
 
 | Layer | Description | Key Component |
 |-------|-------------|---------------|
+| **Preprocessing (MANDATORY)** | **Required** first step — skew detection, auto-crop, noise reduction before any OCR | [`scanner-fixer`](https://github.com/DrAbdulmalek/scanner-fixer) |
 | **Input Layer** | Data sources (scans, printed docs, handwritten notes) | Multi-format ingestion |
 | **Core Processing** | Main engine: layout analysis, OCR routing, PII redaction | `omni-medical-suite` |
 | **Learning Loop** | Continuous improvement: corrections, training, benchmarks, threshold checks | `training-hub` + `benchmarks` |
