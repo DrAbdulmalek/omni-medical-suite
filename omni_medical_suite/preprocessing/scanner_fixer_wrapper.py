@@ -1,107 +1,157 @@
 """
-Scanner Fixer Preprocessor - Wrapper for scanner-fixer integration
-This module integrates scanner-fixer as a preprocessing step in OmniMedical Suite
+Scanner Fixer Preprocessor — Direct Python API integration.
+
+Replaces the old subprocess-based wrapper with in-process calls to
+scanner-fixer v1.0 (pip install scanner-fixer).
+
+Impact: Reduces CER by 40-50% on average on scanned medical documents.
 """
 
-import subprocess
-import tempfile
 from pathlib import Path
-from typing import Union, Optional
+from typing import Dict, Any, List, Optional, Union
 import numpy as np
 import cv2
+
+# Import scanner-fixer v1.0 Python API directly (no subprocess)
+try:
+    from scanner_fixer import fix_scan
+    SCANNER_FIXER_AVAILABLE = True
+except ImportError:
+    SCANNER_FIXER_AVAILABLE = False
+    fix_scan = None
 
 
 class ScannerFixerPreprocessor:
     """
-    Preprocessor that applies scanner-fixer to images before OCR.
-    
-    This wrapper integrates the scanner-fixer tool as a preprocessing step
-    to improve OCR quality by:
-    - Detecting and correcting skew
-    - Automatically cropping margins
-    - Improving image quality
-    
-    Impact: Reduces CER by 40-50% on average
+    Preprocessor that applies scanner-fixer v1.0 to images before OCR.
+
+    Uses the scanner-fixer Python API (fix_scan) for in-process
+    image normalization — no subprocess overhead.
+
+    Pipeline applied: crop borders → detect 180° flip → deskew → enhance (CLAHE + denoise + sharpen)
+
+    Impact: Reduces CER by 40-50% on average on scanned medical documents.
     """
-    
-    def __init__(self, auto_crop: bool = True, margin: int = 12):
+
+    def __init__(
+        self,
+        auto_crop: bool = True,
+        do_rotate: bool = True,
+        do_deskew: bool = True,
+        do_enhance: bool = True,
+        binarize: bool = False,
+        target_dpi: Optional[int] = 300,
+        deskew_method: str = "hough",
+        crop_padding: int = 10,
+    ):
         """
         Initialize the preprocessor.
-        
+
         Args:
-            auto_crop: Whether to automatically crop margins (default: True)
-            margin: Margin size for auto-crop (default: 12)
+            auto_crop: Enable border cropping (default: True)
+            do_rotate: Enable 180° rotation detection (default: True)
+            do_deskew: Enable skew correction (default: True)
+            do_enhance: Enable CLAHE contrast + denoise + sharpen (default: True)
+            binarize: Convert to B&W for text-only pages (default: False)
+            target_dpi: Target DPI — upscale if below (default: 300)
+            deskew_method: "hough" (fast) or "projection" (sparse text)
+            crop_padding: Pixels of padding around detected content
         """
         self.auto_crop = auto_crop
-        self.margin = margin
-    
+        self.do_rotate = do_rotate
+        self.do_deskew = do_deskew
+        self.do_enhance = do_enhance
+        self.binarize = binarize
+        self.target_dpi = target_dpi
+        self.deskew_method = deskew_method
+        self.crop_padding = crop_padding
+
     def process(self, image: Union[str, Path, np.ndarray]) -> np.ndarray:
         """
-        Apply scanner-fixer preprocessing to an image.
-        
+        Apply scanner-fixer preprocessing to a single image.
+
         Args:
-            image: Input image (file path or numpy array)
-            
+            image: Input image (file path, Path, or BGR numpy array)
+
         Returns:
-            Processed image as numpy array
+            Processed image as numpy array (BGR)
         """
-        # Convert to numpy array if it's a file path
+        if not SCANNER_FIXER_AVAILABLE:
+            # Graceful fallback: return original image
+            print("Warning: scanner-fixer not installed. Skipping preprocessing.")
+            if isinstance(image, (str, Path)):
+                img = cv2.imread(str(image))
+                if img is None:
+                    raise ValueError(f"Failed to read image: {image}")
+                return img
+            return image
+
+        # Convert file path to numpy array first
         if isinstance(image, (str, Path)):
             img = cv2.imread(str(image))
             if img is None:
                 raise ValueError(f"Failed to read image: {image}")
         else:
             img = image
-        
-        # Save to temporary file for scanner-fixer
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_input:
-            cv2.imwrite(tmp_input.name, img)
-            
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_output:
-                try:
-                    # Run scanner-fixer
-                    cmd = [
-                        "python", "-m", "scanner_fixer",
-                        "--input", tmp_input.name,
-                        "--output", tmp_output.name
-                    ]
-                    
-                    if self.auto_crop:
-                        cmd.extend(["--crop"])
-                    
-                    result = subprocess.run(
-                        cmd,
-                        capture_output=True,
-                        text=True,
-                        check=True
-                    )
-                    
-                    # Read processed image
-                    processed = cv2.imread(tmp_output.name)
-                    
-                    # Clean up temporary files
-                    Path(tmp_input.name).unlink(missing_ok=True)
-                    Path(tmp_output.name).unlink(missing_ok=True)
-                    
-                    return processed
-                    
-                except subprocess.CalledProcessError as e:
-                    print(f"Warning: scanner-fixer failed: {e.stderr}")
-                    # Return original image if processing fails
-                    Path(tmp_input.name).unlink(missing_ok=True)
-                    return img
-                except Exception as e:
-                    print(f"Error in scanner-fixer: {e}")
-                    Path(tmp_input.name).unlink(missing_ok=True)
-                    return img
-    
-    def process_batch(self, images: list) -> list:
+
+        # Call scanner-fixer v1.0 Python API directly (in-process)
+        result = fix_scan(
+            img,
+            do_crop=self.auto_crop,
+            do_rotate=self.do_rotate,
+            do_deskew=self.do_deskew,
+            do_enhance=self.do_enhance,
+            binarize=self.binarize,
+            target_dpi=self.target_dpi,
+            deskew_method=self.deskew_method,
+            crop_padding=self.crop_padding,
+        )
+
+        return result["image"]
+
+    def process_with_report(
+        self, image: Union[str, Path, np.ndarray]
+    ) -> Dict[str, Any]:
         """
-        Process multiple images in batch.
-        
+        Process image and return both the result and the processing report.
+
+        Args:
+            image: Input image
+
+        Returns:
+            Dict with "image" (numpy array) and "report" (processing metadata)
+        """
+        if not SCANNER_FIXER_AVAILABLE:
+            return {"image": image, "report": {"status": "scanner_fixer_unavailable"}}
+
+        if isinstance(image, (str, Path)):
+            img = cv2.imread(str(image))
+            if img is None:
+                raise ValueError(f"Failed to read image: {image}")
+        else:
+            img = image
+
+        result = fix_scan(
+            img,
+            do_crop=self.auto_crop,
+            do_rotate=self.do_rotate,
+            do_deskew=self.do_deskew,
+            do_enhance=self.do_enhance,
+            binarize=self.binarize,
+            target_dpi=self.target_dpi,
+            deskew_method=self.deskew_method,
+            crop_padding=self.crop_padding,
+        )
+
+        return result  # Already has "image", "steps", "report" keys
+
+    def process_batch(self, images: List[Union[str, Path, np.ndarray]]) -> List[np.ndarray]:
+        """
+        Process multiple images.
+
         Args:
             images: List of input images (file paths or numpy arrays)
-            
+
         Returns:
             List of processed images as numpy arrays
         """
