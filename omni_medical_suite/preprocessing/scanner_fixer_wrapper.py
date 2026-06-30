@@ -36,7 +36,7 @@ class ScannerFixerPreprocessor:
     def __init__(
         self,
         auto_crop: bool = True,
-        do_rotate: bool = True,
+        do_rotate: bool = False,  # Disabled by default — heuristic unreliable on real docs
         do_deskew: bool = True,
         do_enhance: bool = True,
         binarize: bool = False,
@@ -49,7 +49,7 @@ class ScannerFixerPreprocessor:
 
         Args:
             auto_crop: Enable border cropping (default: True)
-            do_rotate: Enable 180° rotation detection (default: True)
+            do_rotate: Enable 180° rotation detection (default: False — use use_tesseract_osd=True instead)
             do_deskew: Enable skew correction (default: True)
             do_enhance: Enable CLAHE contrast + denoise + sharpen (default: True)
             binarize: Convert to B&W for text-only pages (default: False)

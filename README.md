@@ -59,6 +59,7 @@ graph LR
 | Step | Repository | What It Does | Go To |
 |:----:|------------|-------------|-------|
 | 🔧 **1** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | **MANDATORY** — Pre-OCR normalization, skew detection, auto-crop, noise reduction | GitHub |
+| 📏 **1b** | [ocr-groundtruth](https://github.com/DrAbdulmalek/ocr-groundtruth) | Build verified ground truth from ABBYY + Readiris, measure real CER/WER | GitHub |
 | ⭐ **2** | **omni-medical-suite** | Main platform — OCR, NLP, API, Web UI | You are here |
 | 📊 **3** | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | Verified reference datasets (Single Source of Truth) | GitHub |
 | 🔄 **4** | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) | Training & release pipeline, data ingestion, PII scrubbing, dedup | GitHub |
@@ -1118,6 +1119,7 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 |------|-------------------|
 | Complete medical document processing pipeline | **omni-medical-suite** (you are here) |
 | **MANDATORY: Fix skewed/cropped scans before OCR** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) |
+| Build verified ground truth from ABBYY/Readiris, measure real CER/WER | [ocr-groundtruth](https://github.com/DrAbdulmalek/ocr-groundtruth) |
 | Manage verified ground truth datasets | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) |
 | Ingest, validate, and scrub training data | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) |
 | Collect training data & human corrections | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) |
@@ -1228,6 +1230,7 @@ The **Threshold Check** node (orange) is the decision brain of the system:
 | Repo | Role | Layer |
 |------|------|-------|
 | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | Pre-OCR Normalization — skew detection + auto-crop | Input |
+| [ocr-groundtruth](https://github.com/DrAbdulmalek/ocr-groundtruth) | Build verified ground truth from commercial OCR, measure real CER/WER | Validation |
 | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | Single Source of Truth for verified datasets | Data |
 | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) | Data ingestion, validation, PII scrubbing, dedup | Data |
 | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | Human-in-the-loop correction + ensemble collection | Learning |
