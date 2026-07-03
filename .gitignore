@@ -85,3 +85,6 @@ docker-compose.override.yml
 *.tmp
 *.temp
 .agent-ctx/
+
+# Large data files (downloaded via scripts/setup_dictionaries.sh)
+data/dictionaries/*.csv
