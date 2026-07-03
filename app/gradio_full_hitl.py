@@ -19,10 +19,15 @@ Environment Variables:
 import json
 import logging
 import os
+import re
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Tuple
 
+import cv2
+import numpy as np
 import gradio as gr
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -36,15 +41,6 @@ HF_DATASET = "DrAbdulmalek/arabic-medical-ocr-corrections"
 # ── Conditional Imports ─────────────────────────────────────────────────────
 HAS_LLM = False
 HAS_HF = False
-
-# OCR
-try:
-    import cv2
-    import numpy as np
-    HAS_CV = True
-except ImportError:
-    HAS_CV = False
-    logger.warning("OpenCV not available — image preprocessing disabled")
 
 # LLM
 if ENABLE_LLM:
@@ -65,6 +61,83 @@ try:
 except ImportError:
     logger.warning("HuggingFace libs not available — save disabled")
 
+# ── Initialize OCR Engines ──────────────────────────────────────────────────
+logger.info("Initializing OCR engines...")
+
+# PaddleOCR (primary — best Arabic support)
+paddle_ocr = None
+try:
+    from paddleocr import PaddleOCR
+    paddle_ocr = PaddleOCR(
+        use_angle_cls=True, lang="ar", show_log=False,
+        use_gpu=False, det_db_thresh=0.3, det_db_box_thresh=0.5,
+        det_db_unclip_ratio=1.6, max_text_length=800, use_mp=True,
+    )
+    logger.info("PaddleOCR initialized successfully")
+except Exception as e:
+    logger.error(f"PaddleOCR init failed: {e}")
+
+# Tesseract (secondary)
+HAS_TESSERACT = False
+try:
+    import pytesseract
+    pytesseract.get_tesseract_version()
+    HAS_TESSERACT = True
+    logger.info("Tesseract initialized successfully")
+except Exception as e:
+    logger.warning(f"Tesseract not available: {e}")
+
+# Spell Checker
+spell_checker = None
+try:
+    from packages.core.spell_checker import HybridSpellChecker
+    spell_checker = HybridSpellChecker()
+    logger.info("HybridSpellChecker v7.0 loaded")
+except Exception as e:
+    logger.warning(f"Spell checker not available: {e}")
+
+# Medical dictionary for NER
+MEDICAL_TERMS = {
+    # أدوية
+    "باراسيتامول": "medication", "ايبوبروفين": "medication",
+    "اموكسيسيلين": "medication", "ازيثرومايسين": "medication",
+    "سيفالكسين": "medication", "ميترونيدازول": "medication",
+    "اوجمنتين": "medication", "اوميبرازول": "medication",
+    "ديكلوفيناك": "medication", "نابروكسين": "medication",
+    "ترامادول": "medication", "كوديين": "medication",
+    "سالبوتامول": "medication", "لوراتادين": "medication",
+    "سيتيريزين": "medication", "رانيتيدين": "medication",
+    "فاموتيدين": "medication", "انالجين": "medication",
+    "بنادول": "medication", "ادفيل": "medication",
+    "كاتافلام": "medication", "فولتارين": "medication",
+    "مونتيلوكاست": "medication", "سودوافيدرين": "medication",
+    "سيفترياكسون": "medication", "دوكسيسيكلين": "medication",
+    "سيبروفلوكساسين": "medication", "لوفلوكساسين": "medication",
+    "ميفيناميك": "medication", "انديسيترون": "medication",
+    # أمراض
+    "سكري": "disease", "ضغط": "disease", "ربو": "disease",
+    "التهاب": "disease", "حساسية": "disease", "قرحة": "disease",
+    "التهاب رئوي": "disease", "التهاب شعبي": "disease",
+    "ارتفاع ضغط": "disease", "سرطان": "disease",
+    # أعراض
+    "صداع": "symptom", "حمى": "symptom", "سعال": "symptom",
+    "الم": "symptom", "غثيان": "symptom", "اقياء": "symptom",
+    "اسهال": "symptom", "دوار": "symptom", "تعب": "symptom",
+    "ضيق تنفس": "symptom", "الم بطن": "symptom",
+}
+
+# OCR common misrecognition corrections
+OCR_CORRECTIONS = {
+    "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
+    "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
+    "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
+    "ديكلوفيناك ": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
+    "اوميبرازول ": "اوميبرازول", "سيليبريكس ": "سيليبريكس",
+    "ترامادول ": "ترامادول", "كاتافلام ": "كاتافلام",
+    "نوفافين ": "نوفافين", "فلاميكس ": "فلاميكس",
+    "بنادول ": "بنادول", "ادفيل ": "ادفيل",
+}
+
 # ── Initialize Heavy Models (lazy) ──────────────────────────────────────────
 proofreader = None
 ner = None
@@ -80,69 +153,194 @@ if HAS_LLM:
 
 # ── Processing Functions ────────────────────────────────────────────────────
 
+def _preprocess_image(image: np.ndarray) -> Tuple[np.ndarray, List[str]]:
+    """Advanced medical document preprocessing. Returns (processed, steps_log)."""
+    steps = []
+    img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+
+    # Shadow removal
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    shadow = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+    normalized = cv2.divide(gray, shadow, scale=255)
+    steps.append("إزالة الظلال")
+
+    # Denoising
+    denoised = cv2.fastNlMeansDenoising(normalized, h=10)
+    steps.append("إزالة الضوضاء")
+
+    # CLAHE
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(denoised)
+    steps.append("تحسين التباين")
+
+    # Binarization
+    binary = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                       cv2.THRESH_BINARY, 31, 10)
+    steps.append("ثنائية الألوان")
+
+    # Deskew
+    coords = np.column_stack(np.where(binary > 0))
+    if len(coords) > 100:
+        angle = cv2.minAreaRect(coords)[-1]
+        if angle < -45:
+            angle = -(90 + angle)
+        else:
+            angle = -angle
+        if abs(angle) > 0.5:
+            (h, w) = binary.shape
+            M = cv2.getRotationMatrix2D((w // 2, h // 2), angle, 1.0)
+            binary = cv2.warpAffine(binary, M, (w, h), flags=cv2.INTER_CUBIC,
+                                     borderMode=cv2.BORDER_REPLICATE)
+            steps.append(f"تصحيح الميل {angle:.1f}°")
+
+    return cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB), steps
+
+
+def _run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict]]:
+    """Run PaddleOCR. Returns (full_text, line_details)."""
+    if paddle_ocr is None:
+        return "", []
+    try:
+        img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        result = paddle_ocr.ocr(img_bgr, cls=True)
+        lines, details = [], []
+        if result and result[0]:
+            for idx, line in enumerate(result[0]):
+                text = line[1][0].strip()
+                conf = line[1][1]
+                if text:
+                    lines.append(text)
+                    details.append({"line": idx+1, "text": text,
+                                   "confidence": round(float(conf), 4)})
+        return "\n".join(lines), details
+    except Exception as e:
+        logger.error(f"PaddleOCR error: {e}")
+        return "", []
+
+
+def _run_tesseract(image: np.ndarray) -> Tuple[str, float]:
+    """Run Tesseract. Returns (text, avg_confidence)."""
+    if not HAS_TESSERACT:
+        return "", 0.0
+    try:
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        text = pytesseract.image_to_string(gray, lang="ara+eng", config="--psm 6")
+        try:
+            data = pytesseract.image_to_data(gray, lang="ara+eng", output_type=pytesseract.Output.DICT)
+            confs = [int(c) for c in data["conf"] if int(c) > 0]
+            avg_conf = sum(confs) / len(confs) if confs else 0.0
+        except Exception:
+            avg_conf = 0.0
+        return text.strip(), round(avg_conf, 2)
+    except Exception as e:
+        logger.error(f"Tesseract error: {e}")
+        return "", 0.0
+
+
+def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
+    """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
+    changes = []
+    corrected = text
+    for wrong, right in OCR_CORRECTIONS.items():
+        if wrong in corrected:
+            count = corrected.count(wrong)
+            corrected = corrected.replace(wrong, right)
+            changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
+    # Normalize whitespace
+    corrected = re.sub(r'[ \t]+', ' ', corrected)
+    corrected = re.sub(r'\n{3,}', '\n\n', corrected).strip()
+    return corrected, changes
+
+
+def _extract_ner(text: str) -> Dict[str, List[str]]:
+    """Extract medical entities by dictionary matching."""
+    entities = {"medications": [], "diseases": [], "symptoms": [], "dosages": []}
+    for term, category in MEDICAL_TERMS.items():
+        if term in text:
+            entities.setdefault(f"{category}s", []).append(term)
+    dosage_re = r'(\d+(?:\.\d+)?)\s*(?:ملغ|mg|مغ|مللي|مل|حبة|كبسولة|قرص|امبول)'
+    for m in re.findall(dosage_re, text):
+        entities["dosages"].append(m)
+    return {k: list(set(v)) for k, v in entities.items() if v}
+
+
 def full_process(image):
     """
     Complete processing pipeline:
-    Image → Preprocess → OCR → LLM Proofread → NER
+    Image → Preprocess → OCR Ensemble → Spell Check → LLM Proofread → NER
     """
     if image is None:
         return None, "لم يتم رفع صورة", "", {}, "يرجى رفع صورة طبية"
 
+    t0 = time.time()
     try:
-        # 1. Save temp input
-        temp_input = Path("temp_input.jpg")
-        if HAS_CV:
-            cv2.imwrite(str(temp_input), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        # 1. Preprocessing
+        cleaned, prep_steps = _preprocess_image(image)
 
-            # 2. Preprocessing (basic — enhanced_preprocessor if available)
-            cleaned = image.copy()
+        # 2. OCR — run all available engines
+        paddle_text, paddle_details = _run_paddle_ocr(cleaned)
+        tesseract_text, tess_conf = _run_tesseract(cleaned)
+
+        # 3. Ensemble: PaddleOCR primary, Tesseract supplement
+        raw_text = paddle_text if (paddle_text and len(paddle_text.strip()) > 5) else tesseract_text
+        if not raw_text.strip():
+            raw_text = paddle_text or tesseract_text or "[لم يتم اكتشاف نص]"
+
+        engine_info = {}
+        if paddle_text:
+            engine_info["PaddleOCR"] = f"{len(paddle_details)} سطر"
+        if tesseract_text:
+            engine_info["Tesseract"] = f"ثقة {tess_conf:.0f}%"
+
+        # 4. Auto-correct OCR artifacts
+        corrected, corrections = _auto_correct_ocr(raw_text)
+
+        # 4.5 Spell check (HybridSpellChecker — existing v7.0)
+        spell_info = ""
+        if spell_checker:
             try:
-                import numpy as np
-                gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-                # Basic enhancements
-                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-                enhanced = clahe.apply(gray)
-                _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                cleaned = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
+                before_spell = corrected
+                corrected = spell_checker.correct_text(corrected)
+                if before_spell != corrected:
+                    spell_info = f"SpellChecker: {sum(1 for a,b in zip(before_spell, corrected) if a!=b)} تعديل"
             except Exception as e:
-                logger.debug(f"Preprocessing fallback: {e}")
-                cleaned = image
+                logger.warning(f"Spell check failed: {e}")
 
-        # 3. OCR (placeholder — integrate real OCR engines)
-        # In production, use:
-        #   from src.ocr.baseline import MedicalOCRBaseline
-        #   ocr = MedicalOCRBaseline(use_trained_model=True)
-        #   ocr_results = ocr.run_ensemble(str(temp_input))
-        #   raw_text = ocr_results.get("ensemble", "")
-        raw_text = "[OCR output — integrate PaddleOCR/TrOCR/EasyOCR engines here]"
-
-        # 4. LLM Proofreading
-        corrected = raw_text
+        # 5. LLM Proofreading (optional, GPU required)
         if proofreader:
             try:
-                proof_result = proofreader.proofread(raw_text)
+                proof_result = proofreader.proofread(corrected)
                 corrected = proof_result["corrected"]
-                logger.info(f"Proofread: {raw_text[:50]}... → {corrected[:50]}...")
+                logger.info(f"Proofread applied")
             except Exception as e:
                 logger.warning(f"Proofreading failed: {e}")
 
-        # 5. NER
+        # 6. NER
         entities = {}
         if ner:
             try:
                 entities = ner.extract_entities(corrected)
-                logger.info(f"NER extracted: {entities}")
             except Exception as e:
-                logger.warning(f"NER failed: {e}")
+                logger.warning(f"LLM NER failed: {e}")
+        # Fallback: dictionary-based NER
+        if not entities:
+            entities = _extract_ner(corrected)
 
-        # Cleanup
-        temp_input.unlink(missing_ok=True)
+        # Build status
+        elapsed = time.time() - t0
+        parts = [f"✅ معالجة مسبقة: {len(prep_steps)} خطوة"]
+        parts.extend(f"✅ {k}: {v}" for k, v in engine_info.items())
+        parts.append(f"✅ تصحيح OCR: {len(corrections)} تعديل")
+        if spell_info:
+            parts.append(f"✅ {spell_info}")
+        parts.append(f"✅ كيانات: {sum(len(v) for v in entities.values())}")
+        parts.append(f"⏱️ {elapsed:.1f} ثانية")
 
-        status_msg = "تمت المعالجة بنجاح"
         if not HAS_LLM:
-            status_msg += " (وضع أساسي — LLM غير مفعّل)"
+            parts.append("(وضع أساسي — LLM غير مفعّل)")
 
-        return cleaned, corrected, raw_text, entities, status_msg
+        return cleaned, corrected, raw_text, entities, "\n".join(parts)
 
     except Exception as e:
         logger.error(f"Processing error: {e}", exc_info=True)

@@ -122,8 +122,7 @@ class BilingualDataPipeline:
         text_file = work_dir / "text.txt"
         with open(text_file, 'w', encoding='utf-8') as f:
             for item in text_data:
-                f.write(item.get('text', '') + '
-')
+                f.write(item.get('text', '') + '\n')
         
         # Run bilingual-extractor
         cmd = [

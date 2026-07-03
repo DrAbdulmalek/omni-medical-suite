@@ -4,8 +4,13 @@ Create prompt-completion dataset for Jais NER fine-tuning.
 
 Converts HITL corrections from HuggingFace into prompt-completion pairs
 where:
-  - prompt: structured instruction to extract entities
-  - completion: expected entity output (placeholder or annotated)
+  - prompt: structured instruction to extract entities from medical text
+  - completion: entities extracted via dictionary matching (NO static placeholders)
+
+v2.0 — CRITICAL FIX:
+  Previous version used a static completion ("دواء: -\nمرض: -\n...") for EVERY
+  sample, which would train Jais to ALWAYS output "-" for every field regardless
+  of input. This version generates actual entity extractions from the text.
 
 The generated dataset is saved to disk and can be loaded by
 src/ner/fine_tune_jais_ner.py for fine-tuning.
@@ -19,18 +24,100 @@ import json
 import logging
 import re
 from pathlib import Path
-
-from datasets import Dataset, load_dataset
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
+
+# ── Medical Entity Dictionary ────────────────────────────────────────────────
+# Used for rule-based NER to generate training completions.
+# Must be kept in sync with the Gradio NER and postprocessor dictionaries.
+_MEDICATIONS = [
+    "باراسيتامول", "ايبوبروفين", "اموكسيسيلين", "ازيثرومايسين",
+    "سيفالكسين", "ميترونيدازول", "اوجمنتين", "اوميبرازول",
+    "ديكلوفيناك", "نابروكسين", "ترامادول", "كوديين",
+    "سالبوتامول", "لوراتادين", "سيتيريزين", "رانيتيدين",
+    "فاموتيدين", "انالجين", "بنادول", "ادفيل",
+    "كاتافلام", "فولتارين", "مونتيلوكاست", "سودوافيدرين",
+    "سيفترياكسون", "دوكسيسيكلين", "سيبروفلوكساسين",
+    "لوفلوكساسين", "ميفيناميك", "انديسيترون", "ميتوكلوبراميد",
+    "سلفاتيلين", "كلافولانات", "لوسارتان", "اميلوديبين",
+    "انالجين", "فولتارين", "نوفالجين", "بروجستيرون",
+    "اسبرين", "كلوبريدوجريل", "اتورفاستاتين", "ميتفورمين",
+    "انسولين", "جليمبريد", "كاربامازيبين", "فينيتوين",
+    "فالبرويك", "سيرتالين", "فلوكسيتين", "لورازيبام",
+    "ديازيبام", "سيتامول", "بوديسونيد", "فلوتيكازون",
+    "اموكسيل", "اموكسيسلاف", "اموكلاف", "زيثروماكس",
+    "كاربامازيبين", "فينيتوين", "فالبرويك", "اوجمنتين",
+]
+
+_DISEASES = [
+    "سكري", "ضغط", "ربو", "التهاب", "حساسية", "قرحة",
+    "التهاب رئوي", "التهاب شعبي", "التهاب مفاصل", "التهاب جيوب",
+    "ارتفاع ضغط", "انخفاض ضغط", "سرطان", "ورم",
+    "التهاب اللوزتين", "التهاب المعدة", "التهاب الجيوب الأنفية",
+]
+
+_SYMPTOMS = [
+    "صداع", "حمى", "سعال", "الم", "غثيان", "اقياء",
+    "اسهال", "امساك", "دوار", "تعب", "ضيق تنفس",
+    "الم بطن", "الم حلق", "الم ظهر", "الم مفاصل",
+    "الم صدر", "الم رأس", "ارتفاع حرارة",
+]
+
+_DOSAGE_RE = re.compile(r'(\d+(?:\.\d+)?)\s*(?:ملغ|mg|مغ|مللي|مل|حبة|كبسولة|قرص|امبول|مرتين|يومي|صباحا|مساء)')
+
+
+def extract_entities(text: str) -> Dict[str, List[str]]:
+    """
+    Rule-based NER using medical dictionary.
+    Returns dict with categories as keys and matched terms as values.
+    """
+    entities = {"medications": [], "diseases": [], "symptoms": [], "dosages": []}
+
+    for med in _MEDICATIONS:
+        if med in text and med not in entities["medications"]:
+            entities["medications"].append(med)
+
+    for dis in _DISEASES:
+        if dis in text and dis not in entities["diseases"]:
+            entities["diseases"].append(dis)
+
+    for sym in _SYMPTOMS:
+        if sym in text and sym not in entities["symptoms"]:
+            entities["symptoms"].append(sym)
+
+    for m in _DOSAGE_RE.findall(text):
+        if m not in entities["dosages"]:
+            entities["dosages"].append(m)
+
+    return entities
+
+
+def _entities_to_completion(entities: Dict[str, List[str]]) -> str:
+    """Convert extracted entities to Jais completion format."""
+    meds = ", ".join(entities["medications"]) if entities["medications"] else "-"
+    dis = ", ".join(entities["diseases"]) if entities["diseases"] else "-"
+    syms = ", ".join(entities["symptoms"]) if entities["symptoms"] else "-"
+    doses = ", ".join(entities["dosages"]) if entities["dosages"] else "-"
+    # التاريخ غير مدعوم بقاموس حالياً
+    return (
+        f"دواء: {meds}\n"
+        f"مرض: {dis}\n"
+        f"جرعة: {doses}\n"
+        f"عرض: {syms}\n"
+        f"تاريخ: -"
+    )
 
 
 def create_prompt_completion(text: str) -> dict:
     """
     Create a prompt-completion pair for Jais NER training.
 
-    The prompt instructs Jais to extract medical entities.
-    The completion is a placeholder — replace with actual annotated data for best results.
+    v2.0: completion is now generated from actual text content via
+    dictionary-based NER, NOT a static placeholder.
+
+    IMPORTANT: For production training, replace this with human-annotated
+    completions. Dictionary matching is a starting point, not ground truth.
     """
     # Basic normalization for the prompt
     normalized = re.sub(r'[إأٱآ]', 'ا', text)
@@ -49,13 +136,9 @@ def create_prompt_completion(text: str) -> dict:
         f"الإجابة:"
     )
 
-    completion = (
-        "دواء: -\n"
-        "مرض: -\n"
-        "جرعة: -\n"
-        "عرض: -\n"
-        "تاريخ: -"
-    )
+    # v2.0: استخراج فعلي بدل placeholder ثابت
+    entities = extract_entities(text)
+    completion = _entities_to_completion(entities)
 
     return {"prompt": prompt, "completion": completion}
 
@@ -91,6 +174,27 @@ def generate_jais_dataset(
     # Save
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True, parents=True)
+
+    # ⚠️ تحقق أمان: لا تنشئ dataset فارغ أو بـ 0% entities
+    empty_count = 0
+    for comp in data["completion"]:
+        if comp.count("-") >= 4:  # كل الحقول "-"
+            empty_count += 1
+
+    if len(data["prompt"]) == 0:
+        logger.error("No valid samples found. Dataset NOT created.")
+        raise ValueError(
+            "Dataset is empty — cannot train on 0 samples. "
+            "Ensure the HF dataset has 'correct_text' or 'incorrect_ocr_output' columns."
+        )
+
+    empty_ratio = empty_count / len(data["completion"]) if data["completion"] else 1.0
+    if empty_ratio > 0.9:
+        logger.warning(
+            f"⚠️ {empty_ratio:.0%} of completions have NO extracted entities "
+            f"(all fields are '-'). Training on this will teach the model to "
+            f"always output '-'. Add more annotated medical texts to the dataset."
+        )
 
     dataset = Dataset.from_dict(data)
     dataset.save_to_disk(output_path)

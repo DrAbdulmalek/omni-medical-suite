@@ -217,11 +217,15 @@ class HybridSpellChecker:
                 pass
 
         # 4. Difflib على arabic_fixes كـ fallback
-        if not suggestions and lang in ("ar", "mixed"):
+        # ⚠️ إصلاح حرج: لا تُشغّل difflib إذا كانت الكلمة صحيحة أصلاً (قيمة في fixes)
+        # كان يُحوّل "المريض" → "الميه" لأنهما متقاربتان في arabic_fixes.keys()
+        _is_known_correct = word in self._arabic_fixes.values()
+        if not suggestions and lang in ("ar", "mixed") and not _is_known_correct:
             pool = list(self._arabic_fixes.keys())
-            for c in get_close_matches(word, pool, n=n, cutoff=0.72):
-                if c not in suggestions:
-                    suggestions.append(c)
+            for c in get_close_matches(word, pool, n=n, cutoff=0.85):
+                # تحقق إضافي: لا تقترح كلمة من المفاتيح (هي نفسها خطأ مطبوع)
+                if c not in suggestions and c in self._arabic_fixes:
+                    suggestions.append(self._arabic_fixes[c])
 
         seen, unique = set(), []
         for s in suggestions:
@@ -299,9 +303,23 @@ class HybridSpellChecker:
 
     # ── تصحيح نص كامل ───────────────────────────────────────────────
 
+    def _looks_like_digit_corruption(self, word: str) -> bool:
+        """
+        هل تبدو الكلمة ناتجة عن خطأ OCR بصري في الأرقام؟
+        مثال: "5OO" (رقم + حروف مشابهة لأرقام)
+        """
+        if not word:
+            return False
+        has_digit = any(c.isdigit() for c in word)
+        has_letter_digit = any(c in self._DIGIT_CORRECTIONS for c in word)
+        return has_digit and has_letter_digit
+
     def correct_text(self, text: str) -> str:
         """
         تصحيح نص كامل كلمة بكلمة مع حفظ الكلمات المحمية + digit recognition.
+        ⚠️ v7.1: enhance_digit_recognition يُشغَّل *قبل* auto_correct للكلمات
+           التي تبدو كـ digit corruption (مثل 5OO). كان "5OO" يُحوَّل لـ"zoo"
+           لأن auto_correct يستدعي مصحح الإنجليزية أولاً.
         بديل متوافق مع src/correction.correct_text().
         """
         if not text or not text.strip():
@@ -313,17 +331,31 @@ class HybridSpellChecker:
             if clean and self._is_protected(clean):
                 corrected.append(w)
                 continue
-            if clean:
-                c, _ = self.auto_correct(clean)
-                corrected.append(w.replace(clean, c))
-            else:
+            if not clean:
                 corrected.append(w)
+                continue
+
+            # v7.1: digit recognition أولاً لكلمات تحتوي أرقام + حروف مشابهة
+            if self._looks_like_digit_corruption(clean):
+                digit_fixed = self.enhance_digit_recognition(clean)
+                # إذا تحولت لكلمة رقمية خالصة — لا حاجة لتصحيح إملائي
+                stripped = digit_fixed.strip(".,;:!?\"'()-")
+                if stripped and stripped.isdigit():
+                    corrected.append(w.replace(clean, digit_fixed))
+                    continue
+                # خلاف ذلك، استمر بالتصحيح العادي على النتيجة
+                clean = digit_fixed
+
+            c, _ = self.auto_correct(clean)
+            corrected.append(w.replace(clean, c))
+        # تصحيح أرقام نهائي على النص الكامل (للحالات التي لم تُمسكها الحلقة أعلاه)
         result = self.enhance_digit_recognition(" ".join(corrected))
         return result
 
     def spell_correct_word(self, word: str) -> str:
         """
         تصحيح سريع كلمة واحدة مع digit recognition.
+        v7.1: digit recognition أولاً مثل correct_text.
         بديل متوافق مع src/correction.spell_correct_word().
         """
         word = word.strip()
@@ -331,6 +363,13 @@ class HybridSpellChecker:
             return ""
         if self._is_protected(word):
             return word
+        # v7.1: digit recognition أولاً
+        if self._looks_like_digit_corruption(word):
+            digit_fixed = self.enhance_digit_recognition(word)
+            stripped = digit_fixed.strip(".,;:!?\"'()-")
+            if stripped and stripped.isdigit():
+                return digit_fixed
+            word = digit_fixed
         corrected, _ = self.auto_correct(word)
         return self.enhance_digit_recognition(corrected)
 

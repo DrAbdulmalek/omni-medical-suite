@@ -105,6 +105,17 @@ def arabic_strong_normalize(text: str, use_medical_dict: bool = True) -> str:
 
     Returns:
         Normalized text with medical terms corrected.
+
+    ⚠️ METRIC BIAS WARNING:
+        This function converts ة → ه (line below), which is applied to BOTH
+        the prediction AND the reference inside compute_metrics. While this
+        is methodologically sound (apples-to-apples comparison), it HIDES
+        real ة/ه OCR errors from CER/WER scores. In a medical context this
+        matters: "صيدلية" (pharmacy) vs "صيدليه" changes grammatical role,
+        and some clinical terms have distinct meanings with ة vs ه.
+
+        To see true ة/h error rates, run a separate evaluation WITHOUT
+        calling this function, or count ة/ه mismatches separately.
     """
     if not text:
         return ""
