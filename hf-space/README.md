@@ -1,45 +1,46 @@
 ---
-title: Medical OCR Suite
+title: Omni Medical OCR
 emoji: 🏥
-colorFrom: blue
-colorTo: green
+colorFrom: indigo
+colorTo: blue
 sdk: docker
-app_port: 7860
-pinned: false
+pinned: true
 license: mit
 ---
 
-# 🩺 Medical OCR Suite — منصة معالجة النصوص الطبية
+# Omni Medical OCR
 
-> تجربة مباشرة لمكتبة تصحيح النصوص الطبية (Arabic/English)
+نظام متكامل لاستخراج وتصحيح النصوص الطبية العربية باستخدام AI.
 
-## 🚀 الميزات
+## Pipeline
 
-- **تصحيح نصوص OCR**: تدعم العربية والإنجليزية مع قاموس طبي يضم +921,000 مصطلح
-- **حجب البيانات الصحية (PHI Masking)**: حجب تلقائي لأسماء المرضى والتواريخ والأرقام
-- **معالجة مجمعة**: معالجة عدة ملفات في وقت واحد
+**رفع صورة → تنظيف → OCR → تدقيق LLM → استخراج الكيانات (NER) → حفظ**
 
-## 🔗 نقاط الوصول (API)
+## الميزات
 
-| Endpoint | الوصف |
-|----------|-------|
-| `GET /` | حالة المنصة |
-| `GET /docs` | وثائق API التفاعلية (Swagger) |
-| `POST /correct` | تصحيح نص طبي |
-| `POST /correct/batch` | تصحيح مجموعة نصوص |
-| `POST /mask-phi` | حجب البيانات الصحية |
-| `POST /health` | فحص حالة النظام |
+- **Preprocessing**: تنظيف الصور الطبية (إزالة الظلال، تصحيح الميل، تحسين التباين)
+- **OCR Ensemble**: PaddleOCR + TrOCR + EasyOCR + Tesseract + Surya
+- **LLM Proofreading**: تصحيح سياقي باستخدام Jais-13B
+- **Medical NER**: استخراج أدوية، أمراض، أعراض، جرعات، تواريخ
+- **HITL**: واجهة Gradio للتصحيح البشري
+- **Continuous Learning**: تحديث القاموس + إعادة التدريب التلقائي
 
-## 📦 التكنولوجيا
+## المتطلبات
 
-- **FastAPI** — خادم API عالي الأداء
-- **medical-ocr-postprocessor** — محرك التصحيح الأساسي
-- **Docker** — حاوية معزولة وجاهزة للنشر
+- GPU: 24GB+ لتفعيل Jais (اختياري)
+- HuggingFace Token: للحفظ في Dataset
 
-## 👨‍⚕️ المطور
+## متغيرات البيئة
+
+| المتغير | الوصف | الافتراضي |
+|---------|-------|-----------|
+| `ENABLE_LLM` | تفعيل Jais (يتطلب GPU) | `false` |
+| `HF_TOKEN` | رمز HuggingFace | - |
+
+## المطور
 
 Dr. Abdulmalek Tamer Al-husseini
 
-## 📄 الترخيص
+## الترخيص
 
 MIT License

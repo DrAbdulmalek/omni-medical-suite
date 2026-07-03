@@ -30,17 +30,30 @@ from jiwer import cer, wer
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
+# Arabic normalization for fair CER/WER evaluation
+try:
+    from src.ocr.normalization import normalize_batch
+    _HAS_NORM = True
+except ImportError:
+    _HAS_NORM = False
+    logger.warning("src.ocr.normalization not available — metrics computed without Arabic normalization")
+
 
 def compute_metrics(pred):
-    """Compute CER and WER for evaluation."""
+    """Compute CER and WER for evaluation with Arabic normalization."""
     labels = pred.label_ids
     pred_ids = pred.predictions
 
     pred_str = processor.batch_decode(pred_ids, skip_special_tokens=True)
     label_str = processor.batch_decode(labels, skip_special_tokens=True)
 
-    pred_str = [p.strip() for p in pred_str]
-    label_str = [l.strip() for l in label_str]
+    # Apply Arabic normalization (diacritics, hamza unification, digit conversion)
+    if _HAS_NORM:
+        pred_str = normalize_batch(pred_str, use_medical_dict=True)
+        label_str = normalize_batch(label_str, use_medical_dict=True)
+    else:
+        pred_str = [p.strip() for p in pred_str]
+        label_str = [l.strip() for l in label_str]
 
     try:
         total_cer = cer(label_str, pred_str)
@@ -51,12 +64,19 @@ def compute_metrics(pred):
     exact_matches = sum(1 for p, l in zip(pred_str, label_str) if p == l)
     match_rate = exact_matches / len(label_str) if label_str else 0
 
-    logger.info(f"CER: {total_cer:.4f} | WER: {total_wer:.4f} | Match: {match_rate:.2%}")
+    # Log detailed info
+    num_samples = len(label_str)
+    logger.info(f"CER: {total_cer:.4f} | WER: {total_wer:.4f} | Match: {match_rate:.2%} | Samples: {num_samples}")
+
+    # Log first 2 examples for debugging
+    for i in range(min(2, num_samples)):
+        logger.info(f"  Example {i}: Pred: '{pred_str[i][:80]}' | Ref: '{label_str[i][:80]}'")
 
     return {
         "cer": total_cer,
         "wer": total_wer,
         "match_rate": match_rate,
+        "num_samples": num_samples,
     }
 
 

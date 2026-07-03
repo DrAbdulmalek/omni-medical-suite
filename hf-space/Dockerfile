@@ -1,29 +1,35 @@
 FROM python:3.11-slim
 
 LABEL maintainer="Dr. Abdulmalek Tamer Al-husseini <drabdulmalek@proton.me>"
-LABEL description="Medical OCR Suite - Hugging Face Space Demo"
+LABEL description="Omni Medical OCR — Full Pipeline HF Space"
 
 WORKDIR /app
 
-# Install system dependencies
+# System dependencies for OCR + OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    tesseract-ocr \
+    tesseract-ocr-ara \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app.py .
+COPY . .
 
-# Create non-root user for security
+# Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 7860
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7860/health')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7860/')" || exit 1
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["python", "app/gradio_full_hitl.py"]
