@@ -64,6 +64,21 @@ except ImportError:
 # ── Initialize OCR Engines ──────────────────────────────────────────────────
 logger.info("Initializing OCR engines...")
 
+# ImagePreprocessor (حقيقي — 582 سطر في packages/vision/)
+image_preprocessor = None
+HAS_PREPROCESSOR = False
+try:
+    from packages.vision.image_preprocessor import ImagePreprocessor
+    image_preprocessor = ImagePreprocessor(
+        apply_clahe=True, apply_denoise=True,
+        apply_deskew=True, deskew_angle_threshold=5.0,
+        apply_binarize=True,
+    )
+    HAS_PREPROCESSOR = True
+    logger.info("ImagePreprocessor loaded (CLAHE+denoise+deskew+binarize)")
+except Exception as e:
+    logger.warning(f"ImagePreprocessor not available, will use fallback: {e}")
+
 # PaddleOCR (primary — best Arabic support)
 paddle_ocr = None
 try:
@@ -77,7 +92,7 @@ try:
 except Exception as e:
     logger.error(f"PaddleOCR init failed: {e}")
 
-# Tesseract (secondary)
+# Tesseract (secondary — يعمل دائماً كضمان أساسي)
 HAS_TESSERACT = False
 try:
     import pytesseract
@@ -87,12 +102,12 @@ try:
 except Exception as e:
     logger.warning(f"Tesseract not available: {e}")
 
-# Spell Checker
+# Spell Checker (وحدة مُختبرة موجودة مسبقاً — v7.1)
 spell_checker = None
 try:
     from packages.core.spell_checker import HybridSpellChecker
     spell_checker = HybridSpellChecker()
-    logger.info("HybridSpellChecker v7.0 loaded")
+    logger.info("HybridSpellChecker v7.1 loaded")
 except Exception as e:
     logger.warning(f"Spell checker not available: {e}")
 
@@ -154,47 +169,39 @@ if HAS_LLM:
 # ── Processing Functions ────────────────────────────────────────────────────
 
 def _preprocess_image(image: np.ndarray) -> Tuple[np.ndarray, List[str]]:
-    """Advanced medical document preprocessing. Returns (processed, steps_log)."""
+    """
+    Preprocess image using ImagePreprocessor (حقيقي — 582 سطر) if available,
+    otherwise fallback to basic CLAHE+Otsu. Returns (processed, steps_log).
+    """
     steps = []
-    img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    cleaned = None
 
-    # Shadow removal
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-    shadow = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
-    normalized = cv2.divide(gray, shadow, scale=255)
-    steps.append("إزالة الظلال")
+    # المُعالج الحقيقي (CLAHE + denoise + deskew 5°+ + binarize)
+    if HAS_PREPROCESSOR and image_preprocessor is not None:
+        try:
+            cleaned = image_preprocessor.preprocess(image, return_numpy=True)
+            if cleaned.ndim == 2:  # رمادي → RGB للعرض في Gradio
+                cleaned = cv2.cvtColor(cleaned, cv2.COLOR_GRAY2RGB)
+            steps.append("ImagePreprocessor (CLAHE+denoise+deskew+binarize)")
+        except Exception as e:
+            logger.warning(f"ImagePreprocessor failed, falling back: {e}")
+            cleaned = None
 
-    # Denoising
-    denoised = cv2.fastNlMeansDenoising(normalized, h=10)
-    steps.append("إزالة الضوضاء")
+    # Fallback: CLAHE + Otsu بسيطة
+    if cleaned is None:
+        try:
+            gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            enhanced = clahe.apply(gray)
+            _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            cleaned = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
+            steps.append("Fallback CLAHE+Otsu")
+        except Exception as e:
+            logger.debug(f"Basic preprocessing fallback failed: {e}")
+            cleaned = image
+            steps.append("No preprocessing")
 
-    # CLAHE
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(denoised)
-    steps.append("تحسين التباين")
-
-    # Binarization
-    binary = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                       cv2.THRESH_BINARY, 31, 10)
-    steps.append("ثنائية الألوان")
-
-    # Deskew
-    coords = np.column_stack(np.where(binary > 0))
-    if len(coords) > 100:
-        angle = cv2.minAreaRect(coords)[-1]
-        if angle < -45:
-            angle = -(90 + angle)
-        else:
-            angle = -angle
-        if abs(angle) > 0.5:
-            (h, w) = binary.shape
-            M = cv2.getRotationMatrix2D((w // 2, h // 2), angle, 1.0)
-            binary = cv2.warpAffine(binary, M, (w, h), flags=cv2.INTER_CUBIC,
-                                     borderMode=cv2.BORDER_REPLICATE)
-            steps.append(f"تصحيح الميل {angle:.1f}°")
-
-    return cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB), steps
+    return cleaned, steps
 
 
 def _run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict]]:
@@ -329,7 +336,13 @@ def full_process(image):
 
         # Build status
         elapsed = time.time() - t0
-        parts = [f"✅ معالجة مسبقة: {len(prep_steps)} خطوة"]
+        parts = [f"✅ معالجة مسبقة: {' + '.join(prep_steps)}"]
+
+        if not HAS_TESSERACT and paddle_ocr is None:
+            parts.append("❌ لا يوجد محرك OCR مثبت — ثبّت pytesseract أو paddleocr")
+        elif not raw_text.strip():
+            parts.append("⚠️ لم يُستخرَج أي نص (تحقق من جودة الصورة)")
+
         parts.extend(f"✅ {k}: {v}" for k, v in engine_info.items())
         parts.append(f"✅ تصحيح OCR: {len(corrections)} تعديل")
         if spell_info:

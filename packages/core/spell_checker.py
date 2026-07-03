@@ -216,14 +216,17 @@ class HybridSpellChecker:
             except Exception:
                 pass
 
-        # 4. Difflib على arabic_fixes كـ fallback
+        # 4. Difflib على arabic_fixes كـ fallback (صارم عمداً)
         # ⚠️ إصلاح حرج: لا تُشغّل difflib إذا كانت الكلمة صحيحة أصلاً (قيمة في fixes)
         # كان يُحوّل "المريض" → "الميه" لأنهما متقاربتان في arabic_fixes.keys()
+        # cutoff مرتفع 0.85 بدل 0.72 القديم + تجاهل الكلمات القصيرة <4 أحرف
         _is_known_correct = word in self._arabic_fixes.values()
-        if not suggestions and lang in ("ar", "mixed") and not _is_known_correct:
+        if (not suggestions and lang in ("ar", "mixed")
+                and not _is_known_correct and len(word) >= 4):
             pool = list(self._arabic_fixes.keys())
             for c in get_close_matches(word, pool, n=n, cutoff=0.85):
                 # تحقق إضافي: لا تقترح كلمة من المفاتيح (هي نفسها خطأ مطبوع)
+                # بل اقترح التصحيح المقابل
                 if c not in suggestions and c in self._arabic_fixes:
                     suggestions.append(self._arabic_fixes[c])
 
@@ -233,11 +236,41 @@ class HybridSpellChecker:
                 seen.add(s); unique.append(s)
         return unique[:n]
 
+    def _try_digit_fix(self, word: str):
+        """
+        يحاول تفسير الكلمة كرقم OCR مشوَّه (مثل '5OO'→'500') قبل أي
+        محاولة تصحيح لغوي. يُرجع الرقم المُصحَّح إن نجح، وإلا None.
+
+        هذا يُستدعى أولاً في auto_correct() تحديداً لمنع مشكلة حقيقية:
+        بدون هذا الفحص المُبكِّر، كانت pyspellchecker (الإنجليزية) تتدخل
+        أولاً وتحوّل '5OO' لكلمة إنجليزية عشوائية غير ذات صلة (مثل
+        'goo'/'zoo') قبل أن تصل الفرصة لـ enhance_digit_recognition —
+        وهو خطر حقيقي في سياق جرعات دوائية.
+        """
+        clean = word.strip(".,;:!?\"'()-")
+        if not clean or not all(c.isalnum() or c in "_-/" for c in clean):
+            return None
+        if not any(c.isdigit() for c in clean):
+            return None  # لا رقم في الكلمة أصلاً
+        fixed = clean
+        for letter, digit in self._DIGIT_CORRECTIONS.items():
+            fixed = fixed.replace(letter, digit)
+        if fixed != clean and fixed.isdigit():
+            return fixed
+        return None
+
     def auto_correct(self, word: str) -> tuple:
         """
         تصحيح تلقائي + كشف لغة. Returns: (corrected, lang)
         الكلمات المحمية تُعاد كما هي مع lang=en.
+        ⚠️ v7.1: فحص أرقام OCR أولاً (من Patch) + حماية الكلمات الصحيحة.
         """
+        # ⛔ فحص أرقام OCR أولاً — قبل أي تصحيح لغوي
+        # (من patch المستخدم — يمنع 5OO→zoo)
+        digit_fix = self._try_digit_fix(word)
+        if digit_fix is not None:
+            return digit_fix, "en"
+
         lang = self.detect_language(word)
 
         # ⛔ تخطي الكلمات المحمية
