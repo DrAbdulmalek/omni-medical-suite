@@ -1,0 +1,34 @@
+name: Keep HF Spaces Awake
+
+on:
+  schedule:
+    # Every 12 hours
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+
+jobs:
+  wake-handwriting-ocr:
+    name: Ping handwriting-ocr Space
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake Space
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://drabdulmalek-handwriting-ocr.hf.space/")
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "503" ]; then
+            echo "Space responded with $STATUS — wake ping sent"
+          else
+            echo "Space returned $STATUS — may be sleeping or down"
+          fi
+
+  wake-medical-ocr-trainer:
+    name: Ping medical-ocr-trainer Space
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake Space
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://drabdulmalek-medical-ocr-trainer.hf.space/")
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "503" ]; then
+            echo "Space responded with $STATUS — wake ping sent"
+          else
+            echo "Space returned $STATUS — may be sleeping or down"
+          fi
