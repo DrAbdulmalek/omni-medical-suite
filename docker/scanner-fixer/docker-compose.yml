@@ -1,0 +1,110 @@
+# ============================================================================
+# Scanner Fixer Pro v2.0 - Production Docker Compose
+# Multi-service: Web (Gradio) + Desktop (Tkinter/X11) + Dev Shell
+# Run from project root: docker-compose -f docker/scanner-fixer/docker-compose.yml up -d
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # PRODUCTION: Web Mode (Gradio) - Recommended for deployment
+  # ==========================================================================
+  scanner-fixer-web:
+    build:
+      context: ../..  # project root (docker/scanner-fixer -> omni-medical-suite)
+      dockerfile: docker/scanner-fixer/Dockerfile
+      target: final
+    image: scanner-fixer-pro:v2.0
+    container_name: scanner-fixer-web
+    ports:
+      - "7860:7860"
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_USERNAME=${HF_USERNAME:-DrAbdulmalek}
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+      - GRADIO_ANALYTICS_ENABLED=false
+    volumes:
+      - scanner-data:/app/data
+      - scanner-output:/app/output
+      - scanner-backups:/app/local_dataset_backups
+      - scanner-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:7860/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ==========================================================================
+  # DEVELOPMENT: Desktop Mode (Tkinter + X11 forwarding)
+  # Linux:   xhost +local:docker && docker-compose --profile desktop up
+  # macOS:   Install XQuartz, allow connections, then run above
+  # Windows: Install VcXsrv, disable access control, then run
+  # ==========================================================================
+  scanner-fixer-desktop:
+    build:
+      context: ../..
+      dockerfile: docker/scanner-fixer/Dockerfile
+      target: final
+    image: scanner-fixer-pro:v2.0
+    container_name: scanner-fixer-desktop
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_USERNAME=${HF_USERNAME:-DrAbdulmalek}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - scanner-data:/app/data
+      - scanner-output:/app/output
+      - scanner-backups:/app/local_dataset_backups
+    profiles:
+      - desktop
+    stdin_open: true
+    tty: true
+    command: ["python", "desktop_scanner_fixer_pro_v2.py"]
+
+  # ==========================================================================
+  # DEVELOPMENT: Shell access for debugging
+  # ==========================================================================
+  scanner-fixer-shell:
+    build:
+      context: ../..
+      dockerfile: docker/scanner-fixer/Dockerfile
+      target: final
+    image: scanner-fixer-pro:v2.0
+    container_name: scanner-fixer-shell
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_USERNAME=${HF_USERNAME:-DrAbdulmalek}
+    volumes:
+      - scanner-data:/app/data
+      - scanner-output:/app/output
+      - scanner-backups:/app/local_dataset_backups
+      - scanner-logs:/app/logs
+    profiles:
+      - shell
+    stdin_open: true
+    tty: true
+    command: ["/bin/bash"]
+
+# ============================================================================
+# Persistent volumes
+# ============================================================================
+volumes:
+  scanner-data:
+    driver: local
+  scanner-output:
+    driver: local
+  scanner-backups:
+    driver: local
+  scanner-logs:
+    driver: local
