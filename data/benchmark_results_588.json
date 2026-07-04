@@ -1,0 +1,246 @@
+{
+  "image": "Scanned Document-588.jpg",
+  "ground_truth_file": "ground_truth_588.txt",
+  "benchmarks": {
+    "raw_ocr": {
+      "cer": 0.3521,
+      "cer_percent": 35.21,
+      "wer": 0.6824,
+      "wer_percent": 68.24,
+      "medical_terms_correct": 7,
+      "medical_terms_total": 29,
+      "medical_accuracy": 0.2414,
+      "confidence": 0.609
+    },
+    "corrected_ocr": {
+      "cer": 0.3028,
+      "cer_percent": 30.28,
+      "wer": 0.4,
+      "wer_percent": 40.0,
+      "medical_terms_correct": 24,
+      "medical_terms_total": 29,
+      "medical_accuracy": 0.8276,
+      "confidence": 0.75
+    }
+  },
+  "improvement": {
+    "cer_delta": 0.0493,
+    "wer_delta": 0.2824,
+    "medical_delta": 0.5862,
+    "cer_relative_improvement": 14.0,
+    "wer_relative_improvement": 41.4,
+    "medical_relative_improvement": 242.9
+  },
+  "term_analysis": {
+    "total_terms": 29,
+    "raw_correct": 7,
+    "corrected_correct": 24,
+    "newly_fixed": 17,
+    "still_incorrect": 5,
+    "terms": [
+      {
+        "term": "أذيات المشاش",
+        "in_raw": true,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": ""
+      },
+      {
+        "term": "اضطرابات النمو",
+        "in_raw": true,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": ""
+      },
+      {
+        "term": "الخرع",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "Rickets",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "التهاب المفاصل القيحي",
+        "in_raw": true,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": ""
+      },
+      {
+        "term": "الناكس",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "خلع الداغصة",
+        "in_raw": true,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": ""
+      },
+      {
+        "term": "متلازمة داء برتن",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "انزلاق مثاش",
+        "in_raw": true,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": ""
+      },
+      {
+        "term": "رأس الفخذ",
+        "in_raw": false,
+        "in_corrected": false,
+        "status": "❌",
+        "improvement": ""
+      },
+      {
+        "term": "المتلازمات",
+        "in_raw": true,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": ""
+      },
+      {
+        "term": "الجراحة العظمية",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "عسرات التصنع",
+        "in_raw": false,
+        "in_corrected": false,
+        "status": "❌",
+        "improvement": ""
+      },
+      {
+        "term": "الهيكلية",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "غياب الأطراف الخلقي",
+        "in_raw": false,
+        "in_corrected": false,
+        "status": "❌",
+        "improvement": ""
+      },
+      {
+        "term": "القدم القفداء",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "الأورام العظمية",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "مفصل شاركو",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "تشوهات العمود الفقري",
+        "in_raw": false,
+        "in_corrected": false,
+        "status": "❌",
+        "improvement": ""
+      },
+      {
+        "term": "التشوهات الخلقية",
+        "in_raw": false,
+        "in_corrected": false,
+        "status": "❌",
+        "improvement": ""
+      },
+      {
+        "term": "الزنار الكتفي",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "الشلل الدماغي",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "عقابيله",
+        "in_raw": true,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": ""
+      },
+      {
+        "term": "القيلة السحائية",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "شلل الأطفال",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "شلل الضفيرة العضلية",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "اليد الشللية",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "الحثول العضلية",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      },
+      {
+        "term": "عسرة تصنع الورك التطورية",
+        "in_raw": false,
+        "in_corrected": true,
+        "status": "✅",
+        "improvement": "🆕"
+      }
+    ]
+  }
+}

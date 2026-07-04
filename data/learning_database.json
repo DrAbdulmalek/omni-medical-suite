@@ -1,0 +1,3583 @@
+[
+  {
+    "timestamp": "2026-05-20T00:26:46.508550",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.0757574229692,
+      "contrast": 47.65354982334663,
+      "aspect_ratio": 0.607,
+      "blur_score": 584.6431506890888
+    },
+    "action": "auto_skew",
+    "params": {
+      "angle": 1.0
+    },
+    "result_quality": 584.6431506890888,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:26:55.963512",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.0757574229692,
+      "contrast": 47.65354982334663,
+      "aspect_ratio": 0.607,
+      "blur_score": 584.6431506890888
+    },
+    "action": "smart_crop",
+    "params": {
+      "crop": [
+        0,
+        1374,
+        0,
+        0
+      ]
+    },
+    "result_quality": 584.6431506890888,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:31:44.973976",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.0757574229692,
+      "contrast": 47.65354982334663,
+      "aspect_ratio": 0.607,
+      "blur_score": 584.6431506890888
+    },
+    "action": "auto_skew",
+    "params": {
+      "angle": 1.0
+    },
+    "result_quality": 584.6431506890888,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:31:55.118177",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.0757574229692,
+      "contrast": 47.65354982334663,
+      "aspect_ratio": 0.607,
+      "blur_score": 584.6431506890888
+    },
+    "action": "smart_crop",
+    "params": {
+      "crop": [
+        0,
+        1374,
+        0,
+        0
+      ]
+    },
+    "result_quality": 584.6431506890888,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:35:07.706301",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.0757574229692,
+      "contrast": 47.65354982334663,
+      "aspect_ratio": 0.607,
+      "blur_score": 584.6431506890888
+    },
+    "action": "save",
+    "params": {
+      "skew_angle": 0.0,
+      "crop": [
+        325,
+        1400,
+        375,
+        20
+      ],
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 743.6303063735376,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:35:08.386167",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.64246461251167,
+      "contrast": 47.10693763451376,
+      "aspect_ratio": 0.607,
+      "blur_score": 377.7385141359467
+    },
+    "action": "auto_skew",
+    "params": {
+      "angle": 0.0
+    },
+    "result_quality": 377.7385141359467,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:36:03.456774",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.64246461251167,
+      "contrast": 47.10693763451376,
+      "aspect_ratio": 0.607,
+      "blur_score": 377.7385141359467
+    },
+    "action": "save",
+    "params": {
+      "skew_angle": 0.0,
+      "crop": [
+        325,
+        1400,
+        375,
+        20
+      ],
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 765.1247775312007,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:36:04.044609",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.56406050420168,
+      "contrast": 48.25290119805833,
+      "aspect_ratio": 0.607,
+      "blur_score": 592.0383861856354
+    },
+    "action": "auto_skew",
+    "params": {
+      "angle": 0.0
+    },
+    "result_quality": 592.0383861856354,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:37:25.820037",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.0757574229692,
+      "contrast": 47.65354982334663,
+      "aspect_ratio": 0.607,
+      "blur_score": 584.6431506890888
+    },
+    "action": "auto_skew",
+    "params": {
+      "angle": 1.0
+    },
+    "result_quality": 584.6431506890888,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T00:37:32.395188",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.0757574229692,
+      "contrast": 47.65354982334663,
+      "aspect_ratio": 0.607,
+      "blur_score": 584.6431506890888
+    },
+    "action": "smart_crop",
+    "params": {
+      "crop": [
+        0,
+        1374,
+        0,
+        0
+      ]
+    },
+    "result_quality": 584.6431506890888,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:16:30.457825",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.0757574229692,
+      "contrast": 47.65354982334663,
+      "aspect_ratio": 0.607,
+      "blur_score": 584.6431506890888
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        320,
+        1500,
+        335,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 725.9096926301983,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:16:36.147921",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.64246461251167,
+      "contrast": 47.10693763451376,
+      "aspect_ratio": 0.607,
+      "blur_score": 377.7385141359467
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        320,
+        1500,
+        335,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 474.64460335202045,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:19:13.620110",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.56406050420168,
+      "contrast": 48.25290119805833,
+      "aspect_ratio": 0.607,
+      "blur_score": 592.0383861856354
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        355,
+        1469,
+        300,
+        20
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 704.1359672924858,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:19:17.085340",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.35631232492997,
+      "contrast": 47.758277746876836,
+      "aspect_ratio": 0.607,
+      "blur_score": 451.04548982161725
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        355,
+        1469,
+        300,
+        20
+      ],
+      "deskew_angle": -1.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 567.5374061891649,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:19:33.934105",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 223.9935096171802,
+      "contrast": 50.65445212199706,
+      "aspect_ratio": 0.607,
+      "blur_score": 233.55797880929802
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        355,
+        1469,
+        300,
+        20
+      ],
+      "deskew_angle": 1.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 182.6125966375601,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:20:27.189962",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.427556302521,
+      "contrast": 46.7372259504036,
+      "aspect_ratio": 0.607,
+      "blur_score": 427.584800542994
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        265,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 859.9148868450309,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:20:53.893583",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.79735648926237,
+      "contrast": 46.8721264200879,
+      "aspect_ratio": 0.607,
+      "blur_score": 576.4019945688044
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        358,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1212.0133007651666,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:20:58.468823",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 226.94529719887956,
+      "contrast": 45.7419170171387,
+      "aspect_ratio": 0.607,
+      "blur_score": 214.09730821971453
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        358,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 440.60712870550714,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:21:31.809912",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.19900074696545,
+      "contrast": 46.65768030334422,
+      "aspect_ratio": 0.607,
+      "blur_score": 483.14271287955114
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1011.6308062561749,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:21:47.131290",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 220.66328562091502,
+      "contrast": 54.560946560948985,
+      "aspect_ratio": 0.607,
+      "blur_score": 300.7335283409295
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 234.13223140767403,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:02.714940",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.73666377217555,
+      "contrast": 47.18378217010713,
+      "aspect_ratio": 0.607,
+      "blur_score": 511.4452556676189
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 658.4113843758879,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:12.079958",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 223.41011344537816,
+      "contrast": 51.20526380391922,
+      "aspect_ratio": 0.607,
+      "blur_score": 281.7017970121146
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 585.2697151668385,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:19.554110",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.63076199813258,
+      "contrast": 46.107005721003105,
+      "aspect_ratio": 0.607,
+      "blur_score": 427.4510549868648
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 892.9345237999771,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:26.746212",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 226.766229318394,
+      "contrast": 50.674773874162085,
+      "aspect_ratio": 0.607,
+      "blur_score": 439.1245066157399
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 900.1561284129225,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:31.181695",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.31776890756302,
+      "contrast": 48.18782659917155,
+      "aspect_ratio": 0.607,
+      "blur_score": 511.68667417520726
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1062.9551863971215,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:34.934631",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.11009953314658,
+      "contrast": 48.71759041182604,
+      "aspect_ratio": 0.607,
+      "blur_score": 591.4167752082982
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1249.7626601766272,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:38.455232",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.69033090569562,
+      "contrast": 47.320647837648224,
+      "aspect_ratio": 0.607,
+      "blur_score": 531.7729575204895
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1117.5315062499824,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:41.445927",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.5582056022409,
+      "contrast": 47.28053863366781,
+      "aspect_ratio": 0.607,
+      "blur_score": 521.756486003204
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 672.8479241174695,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:50.274970",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 221.91701083099906,
+      "contrast": 53.17379111056941,
+      "aspect_ratio": 0.607,
+      "blur_score": 325.84460338723227
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 247.2075271033699,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:22:59.242688",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 226.34910569561157,
+      "contrast": 51.609145236014164,
+      "aspect_ratio": 0.607,
+      "blur_score": 503.9846639621858
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 539.2752658250856,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:23:08.971360",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 234.00479056956115,
+      "contrast": 47.462881609160796,
+      "aspect_ratio": 0.607,
+      "blur_score": 553.9933584139029
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 684.6210797779856,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:23:19.270780",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 219.5463806722689,
+      "contrast": 53.563964095091066,
+      "aspect_ratio": 0.607,
+      "blur_score": 314.00883284795486
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 242.608688033973,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:23:29.961421",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.89155060690942,
+      "contrast": 48.27313504735907,
+      "aspect_ratio": 0.607,
+      "blur_score": 617.5254428041883
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1469,
+        356,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 771.7687591214242,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:28:45.638280",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.66932605042018,
+      "contrast": 49.970419365878996,
+      "aspect_ratio": 0.607,
+      "blur_score": 678.2932327412879
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1397,
+        321,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1368.2110769128503,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:29:13.208729",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 230.65101073762838,
+      "contrast": 48.17169582514494,
+      "aspect_ratio": 0.607,
+      "blur_score": 452.73738841279436
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1420,
+        369,
+        20
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 503.35486481840985,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:29:26.309330",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.12985770308123,
+      "contrast": 49.35832811725533,
+      "aspect_ratio": 0.607,
+      "blur_score": 622.3525048349745
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1420,
+        369,
+        20
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 779.7423552698746,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:29:36.020103",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.56988394024276,
+      "contrast": 48.637826152644585,
+      "aspect_ratio": 0.607,
+      "blur_score": 622.9830593412671
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1420,
+        369,
+        20
+      ],
+      "deskew_angle": 0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 761.8448658225426,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:29:40.278294",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.32796610644257,
+      "contrast": 48.99199283695163,
+      "aspect_ratio": 0.607,
+      "blur_score": 549.4920463910944
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1420,
+        369,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1123.0230074454284,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:29:44.086421",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.19103725490197,
+      "contrast": 47.19420357896275,
+      "aspect_ratio": 0.607,
+      "blur_score": 556.3033929543185
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1420,
+        369,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1127.9525161239376,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:29:47.250866",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.45204547152196,
+      "contrast": 48.38486555369264,
+      "aspect_ratio": 0.607,
+      "blur_score": 523.3987348049808
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1420,
+        369,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1066.4969041645809,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:29:55.262013",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.41149075630253,
+      "contrast": 48.581674749668665,
+      "aspect_ratio": 0.607,
+      "blur_score": 578.6890157679092
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1420,
+        369,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1190.727645921472,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:30:14.896602",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.3948344537815,
+      "contrast": 47.2151354153523,
+      "aspect_ratio": 0.607,
+      "blur_score": 538.2081659671394
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        361,
+        1420,
+        388,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1106.4142889576788,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:30:35.025561",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.66340830999067,
+      "contrast": 48.661922366334416,
+      "aspect_ratio": 0.607,
+      "blur_score": 658.0039475482165
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        388,
+        20
+      ],
+      "deskew_angle": 0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 832.8638729672078,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:30:39.529928",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 220.2584254901961,
+      "contrast": 62.96960942420763,
+      "aspect_ratio": 0.607,
+      "blur_score": 523.3061342438882
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        388,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1082.2764072114194,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:30:43.515481",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.05355704948647,
+      "contrast": 47.693229403087024,
+      "aspect_ratio": 0.607,
+      "blur_score": 573.0379434162879
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        388,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1195.6194097629352,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:30:57.713974",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.55889925303455,
+      "contrast": 48.703632658621736,
+      "aspect_ratio": 0.607,
+      "blur_score": 590.9157150148446
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 744.644663881181,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:31:08.311833",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 225.8619405228758,
+      "contrast": 44.87647038277279,
+      "aspect_ratio": 0.607,
+      "blur_score": 263.9617499374526
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 209.03890395946732,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:31:17.795256",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 221.83498039215687,
+      "contrast": 56.96366102360785,
+      "aspect_ratio": 0.607,
+      "blur_score": 605.0404106054482
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 657.5884264941128,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:31:26.167129",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.93772549019607,
+      "contrast": 49.04542187074412,
+      "aspect_ratio": 0.607,
+      "blur_score": 696.4906538639256
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 884.0004591778265,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:31:30.024735",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 220.60967703081232,
+      "contrast": 51.44377448283141,
+      "aspect_ratio": 0.607,
+      "blur_score": 326.5701497137572
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 653.7335033397796,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:31:37.360059",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.36238590102707,
+      "contrast": 48.2744449099179,
+      "aspect_ratio": 0.607,
+      "blur_score": 603.0290395912954
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1252.8218436261352,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:31:45.799061",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 221.87469859943977,
+      "contrast": 49.59061673529044,
+      "aspect_ratio": 0.607,
+      "blur_score": 326.51473255422826
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 243.4735647908362,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:32:06.266478",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.35352670401494,
+      "contrast": 48.990676119992585,
+      "aspect_ratio": 0.607,
+      "blur_score": 625.8591462208698
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        341,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1282.7758720323188,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:32:20.879566",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 224.7083421101774,
+      "contrast": 46.08309580994755,
+      "aspect_ratio": 0.607,
+      "blur_score": 319.9175306582565
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        352,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 233.540982463505,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:32:27.266595",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.45272464985993,
+      "contrast": 50.00356216778,
+      "aspect_ratio": 0.607,
+      "blur_score": 725.5224860748905
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        352,
+        20
+      ],
+      "deskew_angle": 1.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 906.1236437443629,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:32:43.923157",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 224.35858151260504,
+      "contrast": 53.65769192376304,
+      "aspect_ratio": 0.607,
+      "blur_score": 489.00399603198974
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        371,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 538.1299349834155,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:32:47.251624",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.41004351073764,
+      "contrast": 48.36957785714494,
+      "aspect_ratio": 0.607,
+      "blur_score": 639.4107675212682
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        371,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 812.8789339772457,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:32:51.831557",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.58665873015872,
+      "contrast": 48.310884340142984,
+      "aspect_ratio": 0.607,
+      "blur_score": 502.1593405274156
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        371,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 640.6573059573603,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:32:55.471345",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.0151567693744,
+      "contrast": 49.100518735687636,
+      "aspect_ratio": 0.607,
+      "blur_score": 701.5093760766642
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        379,
+        1420,
+        371,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 884.213765297887,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:33:19.338018",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.05805350140056,
+      "contrast": 48.12542789707436,
+      "aspect_ratio": 0.607,
+      "blur_score": 525.6139300956648
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        352,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 656.2942367538802,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:33:26.003131",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 223.7065807656396,
+      "contrast": 53.578612617251565,
+      "aspect_ratio": 0.607,
+      "blur_score": 544.4532220558232
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        352,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 581.7794800819228,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:33:30.304591",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 221.250614659197,
+      "contrast": 52.77704174218528,
+      "aspect_ratio": 0.607,
+      "blur_score": 341.14084956237633
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        352,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 703.3754425028736,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:33:34.571356",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.7088243697479,
+      "contrast": 48.07562040136806,
+      "aspect_ratio": 0.607,
+      "blur_score": 610.540627970385
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        352,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1270.3865718288926,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:33:36.644994",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 230.24475891690008,
+      "contrast": 49.91569875635289,
+      "aspect_ratio": 0.607,
+      "blur_score": 644.8683148385339
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        352,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1326.2033097865287,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:33:40.466166",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 227.95826479925304,
+      "contrast": 48.22212230164484,
+      "aspect_ratio": 0.607,
+      "blur_score": 534.1417524418617
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        352,
+        1420,
+        368,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1091.6835364690296,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:40:22.791832",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 224.35394089635855,
+      "contrast": 47.57239343230798,
+      "aspect_ratio": 0.607,
+      "blur_score": 271.4486630354381
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        346,
+        1402,
+        300,
+        20
+      ],
+      "deskew_angle": 3.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 193.3834973237643,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:40:49.004113",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.93278188608778,
+      "contrast": 48.73829564614259,
+      "aspect_ratio": 0.607,
+      "blur_score": 642.4511830586376
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        321,
+        1402,
+        324,
+        20
+      ],
+      "deskew_angle": -2.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 771.229427808253,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:40:52.813776",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.58925490196077,
+      "contrast": 48.427458645236094,
+      "aspect_ratio": 0.607,
+      "blur_score": 548.7841376834037
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        321,
+        1402,
+        324,
+        20
+      ],
+      "deskew_angle": -1.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 648.5490769606251,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:40:56.922340",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.49871344537814,
+      "contrast": 48.11707057865432,
+      "aspect_ratio": 0.607,
+      "blur_score": 625.8744880821132
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        321,
+        1402,
+        324,
+        20
+      ],
+      "deskew_angle": 1.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 743.2407295844936,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:41:30.612256",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 224.08086946778712,
+      "contrast": 54.32057260917417,
+      "aspect_ratio": 0.607,
+      "blur_score": 540.6728231121024
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        291,
+        1402,
+        324,
+        20
+      ],
+      "deskew_angle": -2.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 568.3956606364254,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:41:47.181215",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.63682082166198,
+      "contrast": 49.04421611380648,
+      "aspect_ratio": 0.607,
+      "blur_score": 674.0307217637938
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        335,
+        1402,
+        324,
+        20
+      ],
+      "deskew_angle": 2.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 806.9842086655298,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:41:57.445244",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.7355238095238,
+      "contrast": 48.734692339291136,
+      "aspect_ratio": 0.607,
+      "blur_score": 611.1438698403438
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        335,
+        1402,
+        344,
+        20
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 747.3293444034558,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:53:34.385155",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.5481452847806,
+      "contrast": 45.45181754626957,
+      "aspect_ratio": 0.607,
+      "blur_score": 447.10753526476896
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        350,
+        1395,
+        300,
+        20
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 502.1858930639337,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:55:04.661904",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.01369262371614,
+      "contrast": 48.178795627187334,
+      "aspect_ratio": 0.607,
+      "blur_score": 568.4667913715572
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        300,
+        1374,
+        300,
+        20
+      ],
+      "deskew_angle": -2.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 664.814437383905,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:55:09.359133",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.41090476190476,
+      "contrast": 47.76650004606849,
+      "aspect_ratio": 0.607,
+      "blur_score": 629.9571991257503
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        300,
+        1374,
+        300,
+        20
+      ],
+      "deskew_angle": 2.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 729.0213694920076,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:55:19.534106",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.4359669467787,
+      "contrast": 48.58147850600802,
+      "aspect_ratio": 0.607,
+      "blur_score": 605.8247881083412
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        300,
+        1374,
+        300,
+        20
+      ],
+      "deskew_angle": -1.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 714.831344674618,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:55:27.692156",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 219.41766414565825,
+      "contrast": 55.515295242552575,
+      "aspect_ratio": 0.607,
+      "blur_score": 338.1054794896458
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        300,
+        1374,
+        300,
+        20
+      ],
+      "deskew_angle": 2.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 254.41933670030699,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:56:13.489851",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 230.93873977591036,
+      "contrast": 49.26584532539408,
+      "aspect_ratio": 0.607,
+      "blur_score": 673.4256657077694
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        270,
+        1409,
+        351,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1314.253299179534,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:56:34.893519",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.14926732026143,
+      "contrast": 48.18961887924085,
+      "aspect_ratio": 0.607,
+      "blur_score": 685.6419973384484
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        354,
+        1409,
+        351,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1381.517468086389,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:57:03.779387",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.25934836601309,
+      "contrast": 48.30018927102105,
+      "aspect_ratio": 0.607,
+      "blur_score": 560.822634893444
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        274,
+        1409,
+        351,
+        20
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 679.0265902307502,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:57:10.440149",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 218.14314537815127,
+      "contrast": 55.39412758020266,
+      "aspect_ratio": 0.607,
+      "blur_score": 357.73461585625057
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        274,
+        1409,
+        351,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 687.0349727929904,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:57:21.175486",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.8494532212885,
+      "contrast": 48.31921898329637,
+      "aspect_ratio": 0.607,
+      "blur_score": 519.2224953345202
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        274,
+        1409,
+        351,
+        20
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 597.7343418424823,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:57:35.488760",
+    "features": {
+      "width": 2550,
+      "height": 2805,
+      "brightness": 224.63285337807136,
+      "contrast": 52.75952137422401,
+      "aspect_ratio": 0.909,
+      "blur_score": 690.4094418996369
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        274,
+        0,
+        351,
+        20
+      ],
+      "deskew_angle": 0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 536.699834499309,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:57:40.323242",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.23112138188608,
+      "contrast": 47.67530218043235,
+      "aspect_ratio": 0.607,
+      "blur_score": 575.6246751605568
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        274,
+        0,
+        351,
+        20
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 452.3679213202957,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T01:58:14.932912",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 224.71613183940244,
+      "contrast": 54.93389905142831,
+      "aspect_ratio": 0.607,
+      "blur_score": 544.1601070562599
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        300,
+        1500,
+        300,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1070.82851950904,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:30:48.050014",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.86584229691877,
+      "contrast": 48.439486103201624,
+      "aspect_ratio": 0.607,
+      "blur_score": 604.0292416577312
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        403,
+        1649,
+        328,
+        191
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1486.722244163368,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:30:53.370033",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 224.7057669467787,
+      "contrast": 53.45041404645671,
+      "aspect_ratio": 0.607,
+      "blur_score": 506.03040938908225
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        403,
+        1649,
+        328,
+        191
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1231.2878180875343,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:31:16.713069",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.64665620915034,
+      "contrast": 48.0307654914328,
+      "aspect_ratio": 0.607,
+      "blur_score": 513.7820293085243
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        494,
+        1433,
+        319,
+        188
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1213.4599998600293,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:31:20.732417",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 222.41122931839402,
+      "contrast": 57.98720462284333,
+      "aspect_ratio": 0.607,
+      "blur_score": 436.4432573703635
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        494,
+        1433,
+        319,
+        188
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1012.7353742616049,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:51:31.126560",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 224.48621195144725,
+      "contrast": 53.9899215012263,
+      "aspect_ratio": 0.607,
+      "blur_score": 406.75559923676707
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        300,
+        1471,
+        358,
+        20
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 830.031553072237,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:52:03.214924",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.90805714285713,
+      "contrast": 47.4214354167734,
+      "aspect_ratio": 0.607,
+      "blur_score": 541.2866865662598
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        480,
+        1633,
+        299,
+        182
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 804.2417369523192,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:52:28.032870",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.55974808590102,
+      "contrast": 48.447058208183385,
+      "aspect_ratio": 0.607,
+      "blur_score": 537.8226431893089
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        487,
+        1629,
+        330,
+        193
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 813.6408821342316,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:52:57.030437",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 228.56695107376285,
+      "contrast": 47.70242969870296,
+      "aspect_ratio": 0.607,
+      "blur_score": 532.7202148384243
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        318,
+        1629,
+        330,
+        193
+      ],
+      "deskew_angle": 0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 652.2356936823669,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:53:11.098475",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.19809589169,
+      "contrast": 48.818938153584064,
+      "aspect_ratio": 0.607,
+      "blur_score": 570.9792765784568
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        318,
+        1629,
+        330,
+        193
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 786.7211044855296,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:53:24.762562",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 221.00830485527544,
+      "contrast": 57.33450525993046,
+      "aspect_ratio": 0.607,
+      "blur_score": 484.1097334412557
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        480,
+        1661,
+        493,
+        160
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 700.491720648758,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:53:40.930888",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.22466937441644,
+      "contrast": 49.5571250600128,
+      "aspect_ratio": 0.607,
+      "blur_score": 633.1673540799549
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        500,
+        1678,
+        306,
+        167
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1601.7649778918378,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:53:50.629818",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.57854603174604,
+      "contrast": 48.35248798162263,
+      "aspect_ratio": 0.607,
+      "blur_score": 546.2650916550552
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        494,
+        1681,
+        470,
+        169
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 925.5491610098268,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:53:58.240131",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 233.11356134453783,
+      "contrast": 47.712800935410115,
+      "aspect_ratio": 0.607,
+      "blur_score": 640.2466502064602
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        483,
+        1608,
+        352,
+        176
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 939.4213371013751,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:54:21.857601",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.18440373482727,
+      "contrast": 49.906898687714445,
+      "aspect_ratio": 0.607,
+      "blur_score": 677.9572021182161
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        476,
+        1634,
+        268,
+        186
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1665.1676812311764,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:54:31.546292",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 230.89666367880486,
+      "contrast": 50.935674345634204,
+      "aspect_ratio": 0.607,
+      "blur_score": 708.9128735957796
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        330,
+        1650,
+        330,
+        191
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1685.2505884266188,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:54:45.143936",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.64422455648926,
+      "contrast": 48.07399144283278,
+      "aspect_ratio": 0.607,
+      "blur_score": 586.0748937841977
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        483,
+        1657,
+        291,
+        196
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1473.2563433880086,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:55:07.398148",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 218.94535648926237,
+      "contrast": 53.892885767996574,
+      "aspect_ratio": 0.607,
+      "blur_score": 307.3043522849556
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        626,
+        1734,
+        580,
+        189
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 413.6474439650116,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:55:15.792778",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 221.94286554621848,
+      "contrast": 50.565790810257305,
+      "aspect_ratio": 0.607,
+      "blur_score": 277.23806552966386
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        536,
+        1704,
+        667,
+        193
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 349.71561447327036,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:55:23.560859",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.49283323996266,
+      "contrast": 48.388852967338394,
+      "aspect_ratio": 0.607,
+      "blur_score": 611.0452722154482
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        527,
+        1636,
+        307,
+        174
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 940.6808770030062,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:55:40.607257",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.19854649859943,
+      "contrast": 50.09962557207885,
+      "aspect_ratio": 0.607,
+      "blur_score": 622.9851083263957
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        334,
+        1538,
+        336,
+        208
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 853.602100348504,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:55:47.389613",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.48326330532214,
+      "contrast": 50.31461005568648,
+      "aspect_ratio": 0.607,
+      "blur_score": 673.8774454367548
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        474,
+        1629,
+        360,
+        202
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1015.1150709779871,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:56:11.273114",
+    "features": {
+      "width": 2550,
+      "height": 2771,
+      "brightness": 226.2464767444329,
+      "contrast": 49.01546739291641,
+      "aspect_ratio": 0.92,
+      "blur_score": 246.94392412920132
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        486,
+        207,
+        342,
+        206
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 244.61735569916848,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:59:47.577940",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.30905873015874,
+      "contrast": 48.56656530207788,
+      "aspect_ratio": 0.607,
+      "blur_score": 478.9298156173363
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        295,
+        1481,
+        438,
+        194
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 661.921340474918,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T02:59:54.222151",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.57046629318393,
+      "contrast": 50.03883068042994,
+      "aspect_ratio": 0.607,
+      "blur_score": 670.8085447909824
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        483,
+        1668,
+        362,
+        191
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1042.6524374242115,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:00:19.445383",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 226.7410899159664,
+      "contrast": 49.80528543215351,
+      "aspect_ratio": 0.607,
+      "blur_score": 462.0627399111276
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        500,
+        1654,
+        440,
+        197
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 648.1092107383027,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:00:30.186022",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.9750782446312,
+      "contrast": 47.57618071314377,
+      "aspect_ratio": 0.607,
+      "blur_score": 524.7999860095391
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        440,
+        1637,
+        380,
+        96
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 735.3314636407139,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:00:38.476865",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.18947021475256,
+      "contrast": 48.91858981528167,
+      "aspect_ratio": 0.607,
+      "blur_score": 539.0469708086856
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        433,
+        1639,
+        354,
+        174
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 793.3836327657436,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:00:51.517789",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 222.23914995331467,
+      "contrast": 55.18645470267111,
+      "aspect_ratio": 0.607,
+      "blur_score": 559.909189343773
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        443,
+        1464,
+        420,
+        172
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 686.8312799909089,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:01:14.286529",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 223.3615741363212,
+      "contrast": 55.4379831969983,
+      "aspect_ratio": 0.607,
+      "blur_score": 542.2763595553274
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        444,
+        1633,
+        408,
+        192
+      ],
+      "deskew_angle": 0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 721.1927590353224,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:01:22.256296",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.72193996265173,
+      "contrast": 48.37462185263058,
+      "aspect_ratio": 0.607,
+      "blur_score": 610.877806548719
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        376,
+        1618,
+        315,
+        0
+      ],
+      "deskew_angle": 0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 785.9525695947527,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:01:28.857518",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.28382707749768,
+      "contrast": 49.50560033570992,
+      "aspect_ratio": 0.607,
+      "blur_score": 546.2112008661359
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        455,
+        1657,
+        395,
+        166
+      ],
+      "deskew_angle": 0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 824.7372221531543,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:01:38.138210",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.05375807656395,
+      "contrast": 49.40564409200398,
+      "aspect_ratio": 0.607,
+      "blur_score": 713.7061451336692
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        466,
+        1662,
+        277,
+        184
+      ],
+      "deskew_angle": -0.1,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1758.5991069321726,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:01:52.830987",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 219.8694629318394,
+      "contrast": 50.656977446304516,
+      "aspect_ratio": 0.607,
+      "blur_score": 345.32298563648266
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        575,
+        1624,
+        482,
+        202
+      ],
+      "deskew_angle": -1.1,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 362.525019030084,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:02:05.356443",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.02363529411764,
+      "contrast": 49.78490165109585,
+      "aspect_ratio": 0.607,
+      "blur_score": 640.7089315467364
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        452,
+        1637,
+        309,
+        197
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 953.9647905054544,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:02:13.241402",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 230.13925826330532,
+      "contrast": 50.16429040821213,
+      "aspect_ratio": 0.607,
+      "blur_score": 544.0618219297437
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        461,
+        1666,
+        341,
+        184
+      ],
+      "deskew_angle": 1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 847.7622220681159,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:02:21.742476",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 222.2425431372549,
+      "contrast": 49.065684293208804,
+      "aspect_ratio": 0.607,
+      "blur_score": 282.57958545221464
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        663,
+        1767,
+        537,
+        156
+      ],
+      "deskew_angle": -0.9,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 344.5493563655675,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:02:34.586896",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 222.2293949579832,
+      "contrast": 49.73460996315019,
+      "aspect_ratio": 0.607,
+      "blur_score": 270.79698986645286
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        541,
+        1705,
+        626,
+        193
+      ],
+      "deskew_angle": 0.6,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 309.0102023876279,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:02:49.021332",
+    "features": {
+      "width": 2550,
+      "height": 2855,
+      "brightness": 222.7100650389753,
+      "contrast": 52.19085508296074,
+      "aspect_ratio": 0.893,
+      "blur_score": 496.2063920415915
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        483,
+        191,
+        344,
+        192
+      ],
+      "deskew_angle": -0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 489.67462932474183,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:11:35.225255",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 228.8509045751634,
+      "contrast": 46.669586756015555,
+      "aspect_ratio": 0.607,
+      "blur_score": 563.503548615631
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        511,
+        1602,
+        362,
+        197
+      ],
+      "deskew_angle": -0.6,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 725.7740759477027,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:11:44.137183",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 221.90212007469654,
+      "contrast": 56.69656577095744,
+      "aspect_ratio": 0.607,
+      "blur_score": 613.1537626362627
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        554,
+        1590,
+        385,
+        192
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 891.3857225883669,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:12:00.534805",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 229.52011465919702,
+      "contrast": 51.2387322064755,
+      "aspect_ratio": 0.607,
+      "blur_score": 648.4806367119396
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        336,
+        1631,
+        346,
+        196
+      ],
+      "deskew_angle": -0.5,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 918.9462024356991,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:12:10.317344",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 229.606283286648,
+      "contrast": 50.76397609285154,
+      "aspect_ratio": 0.607,
+      "blur_score": 775.2838817910222
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        429,
+        1642,
+        372,
+        188
+      ],
+      "deskew_angle": 0.6,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1146.3405545778392,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:12:22.436512",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 223.61634042950513,
+      "contrast": 54.494052620203945,
+      "aspect_ratio": 0.607,
+      "blur_score": 668.7883238801527
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        326,
+        1656,
+        378,
+        184
+      ],
+      "deskew_angle": -1.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 884.5205072306658,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:12:49.354680",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.1875324929972,
+      "contrast": 47.930960136366444,
+      "aspect_ratio": 0.607,
+      "blur_score": 527.5251758209139
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        468,
+        1654,
+        389,
+        180
+      ],
+      "deskew_angle": 0.0,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 1375.5436120282345,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:13:07.898191",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 230.0088797385621,
+      "contrast": 49.89651865422383,
+      "aspect_ratio": 0.607,
+      "blur_score": 671.5548051644388
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        400,
+        1560,
+        350,
+        167
+      ],
+      "deskew_angle": 0.6,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 938.2137296131037,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:13:18.437306",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.29002268907564,
+      "contrast": 48.41305953967396,
+      "aspect_ratio": 0.607,
+      "blur_score": 517.5739888334629
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        334,
+        1474,
+        469,
+        176
+      ],
+      "deskew_angle": -0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 703.5888676357145,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:13:31.684067",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 221.4965710550887,
+      "contrast": 57.710314447746995,
+      "aspect_ratio": 0.607,
+      "blur_score": 519.684409984386
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        450,
+        1619,
+        370,
+        179
+      ],
+      "deskew_angle": 0.6,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 658.1225982199206,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:13:42.467619",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.22700821662,
+      "contrast": 48.33109467283206,
+      "aspect_ratio": 0.607,
+      "blur_score": 489.553745759672
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        512,
+        1597,
+        345,
+        191
+      ],
+      "deskew_angle": -0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 774.4151290949002,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:16:13.003494",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 231.97109253034546,
+      "contrast": 48.86565218744761,
+      "aspect_ratio": 0.607,
+      "blur_score": 607.0471136131874
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        483,
+        1664,
+        432,
+        0
+      ],
+      "deskew_angle": -0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 921.605465999093,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:16:25.882921",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.3777015873016,
+      "contrast": 47.93148327014722,
+      "aspect_ratio": 0.607,
+      "blur_score": 515.998320101671
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        472,
+        1637,
+        378,
+        173
+      ],
+      "deskew_angle": -0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 811.8208572475094,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:16:33.688337",
+    "features": {
+      "width": 2550,
+      "height": 2774,
+      "brightness": 226.0864524930376,
+      "contrast": 48.797054794766694,
+      "aspect_ratio": 0.919,
+      "blur_score": 242.83636318581276
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        529,
+        233,
+        459,
+        175
+      ],
+      "deskew_angle": -0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 258.6260229477503,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:16:44.190745",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.73542633053222,
+      "contrast": 47.6294291350177,
+      "aspect_ratio": 0.607,
+      "blur_score": 445.55789052041774
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        485,
+        1423,
+        495,
+        198
+      ],
+      "deskew_angle": -0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 710.1172950064315,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:16:52.608940",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.53423492063493,
+      "contrast": 47.69439604165111,
+      "aspect_ratio": 0.607,
+      "blur_score": 582.9889211717367
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        468,
+        1642,
+        316,
+        41
+      ],
+      "deskew_angle": -0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 826.0178323060701,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:17:18.973538",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 220.46395901027077,
+      "contrast": 49.86967858739688,
+      "aspect_ratio": 0.607,
+      "blur_score": 320.5578056425916
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        597,
+        1483,
+        554,
+        185
+      ],
+      "deskew_angle": -0.6,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 343.3159281001985,
+    "success": true
+  },
+  {
+    "timestamp": "2026-05-20T03:17:30.025868",
+    "features": {
+      "width": 2550,
+      "height": 4200,
+      "brightness": 232.33021325863677,
+      "contrast": 48.004748246972134,
+      "aspect_ratio": 0.607,
+      "blur_score": 544.1930271261896
+    },
+    "action": "save",
+    "params": {
+      "crop": [
+        455,
+        1655,
+        363,
+        190
+      ],
+      "deskew_angle": 0.4,
+      "rotation": 0,
+      "flip_h": false,
+      "sharpen": false
+    },
+    "result_quality": 836.5899940178628,
+    "success": true
+  }
+]

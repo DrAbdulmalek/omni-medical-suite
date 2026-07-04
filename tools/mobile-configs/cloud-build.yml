@@ -1,0 +1,169 @@
+# .github/workflows/cloud-build.yml
+# Cloud Build: Build APK in GitHub Actions, deploy to Firebase
+
+name: Cloud Build & Deploy
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'Deploy target'
+        required: true
+        default: 'firebase'
+        type: choice
+        options:
+          - firebase
+          - playstore
+          - both
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: mobile/package-lock.json
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Cache Gradle
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
+
+    - name: Install dependencies
+      working-directory: ./mobile
+      run: npm ci
+
+    - name: Build React app
+      working-directory: ./mobile
+      run: npm run build
+
+    - name: Sync Capacitor
+      working-directory: ./mobile
+      run: npx cap sync android
+
+    - name: Build Debug APK
+      working-directory: ./mobile/android
+      run: ./gradlew assembleDebug
+
+    - name: Build Release APK (signed)
+      working-directory: ./mobile/android
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        if [ -f ../../medocr.keystore ]; then
+          ./gradlew assembleRelease             -Pandroid.injected.signing.store.file=../../medocr.keystore             -Pandroid.injected.signing.store.password=${KEYSTORE_PASSWORD}             -Pandroid.injected.signing.key.alias=medocr             -Pandroid.injected.signing.key.password=${KEY_PASSWORD}
+        else
+          ./gradlew assembleRelease
+        fi
+
+    - name: Upload APK artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: medocr-apk-${{ github.run_number }}
+        path: |
+          mobile/android/app/build/outputs/apk/debug/*.apk
+          mobile/android/app/build/outputs/apk/release/*.apk
+        retention-days: 30
+
+    - name: Generate build report
+      run: |
+        mkdir -p cloud-build
+        cat > cloud-build/build-report.json << EOF
+        {
+          "build_id": "${{ github.run_number }}",
+          "version": "${{ github.ref_name }}",
+          "commit": "${{ github.sha }}",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "actor": "${{ github.actor }}"
+        }
+        EOF
+
+    - name: Upload build report
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-report
+        path: cloud-build/
+
+  deploy-firebase:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+    - name: Download APK
+      uses: actions/download-artifact@v4
+      with:
+        name: medocr-apk-${{ github.run_number }}
+        path: ./apk
+
+    - name: Setup Firebase CLI
+      run: npm install -g firebase-tools
+
+    - name: Deploy to Firebase
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+      run: |
+        firebase appdistribution:distribute ./apk/debug/app-debug.apk           --app "$FIREBASE_APP_ID"           --groups "testers"           --release-notes "Build ${{ github.run_number }} — ${{ github.sha }}"           --token "$FIREBASE_TOKEN"
+
+    - name: Notify Slack
+      if: env.SLACK_WEBHOOK != ''
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      run: |
+        curl -X POST -H 'Content-type: application/json'           --data "{"text":"🩺 MedOCR deployed to Firebase! Build ${{ github.run_number }}"}"           "$SLACK_WEBHOOK"
+
+  deploy-playstore:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: medocr-apk-${{ github.run_number }}
+        path: ./apk
+
+    - name: Setup Ruby & Fastlane
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+
+    - name: Install Fastlane
+      run: gem install fastlane
+
+    - name: Setup Play Store key
+      run: |
+        echo '${{ secrets.PLAY_STORE_KEY }}' > play-store-key.json
+
+    - name: Upload to Play Store (Internal)
+      run: |
+        fastlane supply           aab:./apk/release/app-release.aab           track:internal           json_key:play-store-key.json           package_name:com.medicalocr.app           skip_upload_metadata:true           skip_upload_images:true           skip_upload_screenshots:true
+
+    - name: Cleanup
+      run: rm -f play-store-key.json
