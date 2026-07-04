@@ -82,7 +82,7 @@ MEDICAL_TERMS = {
     "انالجين": "analgin", "نوفالجين": "novalgin", "ديبيرون": "dipyrone",
     "ترامادول": "tramadol", "كوديين": "codeine", "مورفين": "morphine",
     "امبول": "ampoule", "كبسولة": "capsule", "قرص": "tablet", "ملعقة": "spoon",
-    "مللي": "ml", "ملigram": "mg", "جرام": "gram",
+    "مللي": "ml", "ملغ": "mg", "جرام": "gram",
     # أمراض (Diseases)
     "سكري": "diabetes", "ضغط": "hypertension", "ربو": "asthma",
     "التهاب": "inflammation", "حساسية": "allergy", "قرحة": "ulcer",
@@ -146,8 +146,8 @@ OCR_CORRECTIONS = {
     "كبسولة ": "كبسولة",
     "قرص ": "قرص",
     "ملعق ": "ملعقة",
-    "ميغ": "ملigram",
-    "مغ": "ملigram",
+    "ميغ": "ملغ",
+    "مغ": "ملغ",
     "مليمتر": "مللي",
     "م.ل": "مللي",
     "حبوب": "حبوب",
@@ -390,7 +390,7 @@ def extract_ner_entities(text: str) -> Dict[str, List[str]]:
 
     # Dosage pattern: number + unit
     dosage_patterns = [
-        r'(\d+(?:\.\d+)?)\s*(?:ملigram|mg|مغ|مللي|مل|جرام|g|حبة|كبسولة|قرص|ملعقة|amp|امبول)',
+        r'(\d+(?:\.\d+)?)\s*(?:ملغ|mg|مغ|مللي|مل|جرام|g|حبة|كبسولة|قرص|ملعقة|amp|امبول)',
         r'(\d+(?:\.\d+)?)\s*(?:×|x)\s*(?:يومي|daily|daily|أسبوعي|week)',
     ]
     for pattern in dosage_patterns:

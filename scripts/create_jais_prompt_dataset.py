@@ -26,6 +26,8 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
+from datasets import load_dataset, Dataset
+
 logger = logging.getLogger(__name__)
 
 # ── Medical Entity Dictionary ────────────────────────────────────────────────

@@ -169,6 +169,56 @@ def full_arabic_normalize(text: str) -> str:
     return arabic_strong_normalize(text)
 
 
+def _fix_digit_letter_confusion(text: str) -> str:
+    """Fix common OCR confusions between Arabic letters and digits/look-alikes.
+
+    Medical OCR frequently misreads:
+      - Arabic 'ح' (haa) <-> digit '7'
+      - Arabic 'د' (daal) <-> digit '3' (or Persian numeral)
+      - Arabic 'ط' (taa) <-> digit '6'
+      - Arabic 'ه' (haa) <-> digit '5'
+      - Arabic 'و' (waaw) <-> digit '9'
+      - Arabic 'ب' (baa) <-> digit '3' (context: mg)
+      - Latin 'O' <-> digit '0'
+      - Latin 'l' <-> digit '1'
+      - Latin 'S' <-> digit '5'
+      - Latin 'B' <-> digit '8'
+
+    Uses surrounding medical context to decide the correct character.
+    """
+    if not text:
+        return text
+
+    confusion_rules = [
+        # "mg" misread as "m7" (Arabic haa looks like 7)
+        (r'\bm[757]\b', 'ملغ'),
+        (r'\b[757]g\b', 'ملغ'),
+        # "500 mg" with Arabic mim or Latin m
+        (r'(\d+)\s*[مm][757]', r'\1 ملغ'),
+        (r'(\d{2,4})\s*[مm][757]', r'\1 ملغ'),
+        # "ml" misread as "m1" or "m|"
+        (r'(\d+)\s*m[l1]', r'\1 مل'),
+        # "cm" with O/0 confusion
+        (r'(\d+)\s*c[0oO]m(?!\w)', r'\1 سم'),
+        # "mm" with Arabic mim
+        (r'(\d+)\s*m[مm]{2}(?!\w)', r'\1 مم'),
+        # Temperature: "37C" variants (Arabic sin or Latin C)
+        (r'3[77][\.\s]*[cCس]', '37 درجة مئوية'),
+        # Latin O/0 confusion inside numbers
+        (r'(?<=\d)O(?=\d)', '0'),
+        (r'(?<=\d)o(?=\d)', '0'),
+        # "IV" (intravenous) confused with "1V"
+        (r'\b1V\b', 'IV'),
+        # "tab" confused with "7ab"
+        (r'\b7ab(?!\w)', 'tab'),
+    ]
+
+    result = text
+    for pattern, replacement in confusion_rules:
+        result = re.sub(pattern, replacement, result)
+    return result
+
+
 # ── Load medical dict on import ─────────────────────────────────────────────
 try:
     load_medical_dict()
