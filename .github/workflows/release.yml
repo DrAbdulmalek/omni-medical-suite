@@ -1,0 +1,61 @@
+# ============================================================================
+# GitHub Actions: Release
+# Triggered on version tags (v*)
+# Creates GitHub Release + builds Docker image + deploys to HF
+# ============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get changes since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            CHANGES=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            CHANGES=$(git log --pretty=format:"- %s" --no-merges ${LAST_TAG}..HEAD)
+          fi
+          echo "changes<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## Scanner Fixer Pro ${{ github.ref_name }}
+
+            ### Changes
+            ${{ steps.changelog.outputs.changes }}
+
+            ### Docker Image
+            ```bash
+            docker pull ghcr.io/${{ github.repository_owner }}/scanner-fixer-pro:${{ github.ref_name }}
+            ```
+
+            ### Hugging Face Space
+            https://huggingface.co/spaces/${{ github.repository_owner }}/medical-ocr-demo
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

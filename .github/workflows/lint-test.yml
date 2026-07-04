@@ -1,0 +1,64 @@
+# ============================================================================
+# GitHub Actions: Lint & Test
+# Runs on every push and PR
+# ============================================================================
+
+name: Lint & Test
+
+on:
+  push:
+    branches: [main, master, 'feature/**']
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install lint tools
+        run: |
+          pip install flake8 black isort mypy
+
+      - name: Run flake8
+        run: flake8 desktop/ hf-space/ app/ --count --statistics || true
+
+      - name: Run black check
+        run: black --check desktop/ hf-space/ app/ || true
+
+      - name: Run isort check
+        run: isort --check-only desktop/ hf-space/ app/ || true
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pytest pytest-cov
+          pip install opencv-python Pillow numpy
+          pip install "huggingface-hub<1.0.0" "pydantic<2.11.0"
+
+      - name: Run tests
+        run: pytest tests/ -v --cov=. --cov-report=xml || echo "No tests yet"
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false

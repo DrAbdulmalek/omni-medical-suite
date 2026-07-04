@@ -1,25 +1,94 @@
 version: 2
+
 updates:
-  - package-ecosystem: "npm"
-    directory: "/apps/web"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependencies"
-      - "frontend"
-
-  - package-ecosystem: "pip"
-    directory: "/services/api"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependencies"
-      - "backend"
-
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     labels:
       - "dependencies"
-      - "ci"
+      - "github-actions"
+    commit-message:
+      prefix: "deps"
+    # Group all GitHub Actions updates
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Python (pip) — main requirements
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "python"
+    allow:
+      - dependency-type: "direct"
+    ignore:
+      # CRITICAL: Do not update these — they break HF Space (gradio#11722)
+      - dependency-name: "pydantic"
+        versions: [">=2.11.0"]
+      - dependency-name: "huggingface-hub"
+        versions: [">=1.0.0"]
+      - dependency-name: "gradio"
+        versions: [">=5.0.0"]
+      - dependency-name: "gradio-client"
+        versions: [">=1.0.0"]
+
+  # Python (pip) — hf-space requirements
+  - package-ecosystem: "pip"
+    directory: "/hf-space"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "python"
+      - "hf-space"
+    ignore:
+      - dependency-name: "pydantic"
+        versions: [">=2.11.0"]
+      - dependency-name: "huggingface-hub"
+        versions: [">=1.0.0"]
+      - dependency-name: "gradio"
+        versions: [">=5.0.0"]
+      - dependency-name: "gradio-client"
+        versions: [">=1.0.0"]
+
+  # Python (pip) — desktop requirements
+  - package-ecosystem: "pip"
+    directory: "/desktop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "python"
+      - "desktop"
+    ignore:
+      - dependency-name: "pydantic"
+        versions: [">=2.11.0"]
+      - dependency-name: "huggingface-hub"
+        versions: [">=1.0.0"]
+
+  # npm (if web frontend exists)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "npm"
+    allow:
+      - dependency-type: "direct"
+    groups:
+      npm-minor:
+        update-types:
+          - "minor"
+          - "patch"
