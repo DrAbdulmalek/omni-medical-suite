@@ -9,7 +9,7 @@
 
 # === Database ===
 sqlalchemy>=2.0.25
-alembic>=1.13.1
+alembic>=1.18.5
 qdrant-client>=1.7.0
 
 # === Redis & Async ===
