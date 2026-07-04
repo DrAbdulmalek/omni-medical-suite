@@ -14,11 +14,25 @@
 # peft>=0.7.0
 # accelerate>=0.25.0
 # onnxruntime>=1.16.0
-# easyocr>=1.7.0
-# paddlepaddle>=2.5.0
-# paddleocr>=2.7.0
-# surya-ocr>=0.4.0
 # timm>=0.9.0
+
+# === OCR Engines (src/ocr/ensemble.py) ===
+# PaddlePaddle 2.x retired — only 3.x available now
+# paddlepaddle>=3.0.0
+# paddleocr>=2.7.3
+# easyocr>=1.7.0
+# surya-ocr>=0.4.0
+# pytesseract>=0.3.10
+
+# === LLM Post-Processing (src/llm/ollama_proofreader.py) ===
+# Requires Ollama server running locally: curl -fsSL https://ollama.com/install.sh | sh
+# No pip package needed — uses requests (already in base.txt)
+
+# === FHIR Export (src/ner/fhir_exporter.py) ===
+# No additional dependencies — pure Python
+
+# === NER (src/ner/medical_ner.py) ===
+# No additional dependencies — pure Python regex
 
 # === AI Enhancement (set API keys in .env) ===
 # openai>=1.0.0
@@ -29,9 +43,18 @@
 # gradio>=4.0.0
 # streamlit>=1.28.0
 
-# === HuggingFace (model training) ===
-# huggingface_hub>=0.19.0
-# datasets>=2.15.0
+# === HuggingFace (model training, src/ integration) ===
+# huggingface_hub>=0.19.0,<1.0.0  # CRITICAL: <1.0 for gradio 4.x (HfFolder removal)
+# datasets>=2.14.0
+
+# === SinaTools NER (optional, src/ner/) ===
+# git+https://github.com/SinaLab/sinatools.git
+
+# === pyonb Unified OCR API (optional) ===
+# pyonb
+
+# === KITAB-Bench Evaluation (optional, src/benchmarks/) ===
+# kitab-bench
 
 # === Rate Limiting ===
 # slowapi>=0.1.9
