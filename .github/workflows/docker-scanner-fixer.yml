@@ -1,0 +1,107 @@
+# =============================================================================
+# Scanner Fixer Pro — Docker Build & Push to GHCR
+# =============================================================================
+# Triggers when desktop/ or docker/scanner-fixer/ files change on main.
+# Builds the scanner-fixer-pro image and pushes to GitHub Container Registry.
+# =============================================================================
+
+name: Docker — Scanner Fixer Pro
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - "docker/scanner-fixer/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - "docker/scanner-fixer/**"
+  # Allow manual trigger
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/scanner-fixer-pro
+
+jobs:
+  # ===========================================================================
+  # Build and test the Docker image
+  # ===========================================================================
+  build:
+    name: Build Scanner Fixer Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/scanner-fixer/Dockerfile
+          target: final
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=scanner-fixer
+          cache-to: type=gha,mode=max,scope=scanner-fixer
+
+      # ── Verify the built image works ─────────────────────────────────────
+      - name: Smoke test — verify imports
+        if: github.event_name != 'pull_request'
+        run: |
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            python -c "
+          import cv2
+          import numpy as np
+          from PIL import Image
+          import gradio
+          print('OpenCV:', cv2.__version__)
+          print('NumPy:', np.__version__)
+          print('Gradio:', gradio.__version__)
+          print('All imports OK')
+          "
+
+      - name: Smoke test — verify scanner fixer module
+        if: github.event_name != 'pull_request'
+        run: |
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from gradio_scanner_app import AdvancedScannerFixer
+          fixer = AdvancedScannerFixer()
+          import numpy as np
+          dummy = np.zeros((100, 100, 3), dtype=np.uint8)
+          result, metrics = fixer.process(dummy)
+          assert result.shape == dummy.shape
+          print('Scanner Fixer pipeline OK')
+          print('Metrics:', metrics)
+          "
