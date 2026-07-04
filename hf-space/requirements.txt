@@ -3,6 +3,12 @@ gradio>=4.44.0,<5.0.0
 # (gradio 4.x)، فيتعطّل الـSpace بالكامل عند الإقلاع دون هذا السقف.
 # انظر: https://github.com/gradio-app/gradio/issues (HfFolder removed)
 huggingface_hub<1.0.0
+# pydantic 2.11+ غيّر توليد JSON schema ليضع additionalProperties:true
+# (boolean حرفي) بدل dict فارغ لحقول dict العامة — وgradio_client المرافق
+# لـgradio 4.44.x لا يتوقّع boolean هنا فيتعطّل عند demo.launch() بخطأ
+# "TypeError: argument of type 'bool' is not iterable"
+# (gradio-app/gradio#11722 — مشكلة معروفة موثَّقة، لا خطأ في كود هذا المشروع)
+pydantic<2.11
 opencv-python-headless>=4.8.0
 pytesseract>=0.3.10
 Pillow>=10.0.0
