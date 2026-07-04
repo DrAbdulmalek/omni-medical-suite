@@ -204,9 +204,13 @@ def _fix_digit_letter_confusion(text: str) -> str:
         (r'(\d+)\s*m[مm]{2}(?!\w)', r'\1 مم'),
         # Temperature: "37C" variants (Arabic sin or Latin C)
         (r'3[77][\.\s]*[cCس]', '37 درجة مئوية'),
-        # Latin O/0 confusion inside numbers
-        (r'(?<=\d)O(?=\d)', '0'),
-        (r'(?<=\d)o(?=\d)', '0'),
+        # Latin O/0 confusion — token-level replacement (not single-char
+        # surrounded by digits). Old `(?<=\d)O(?=\d)` failed on consecutive
+        # letters like "5OO" (first O not followed by digit, second not
+        # preceded by digit). Also handles "5OOmg" where \b fails between
+        # O and m (both word chars), so we use (?![0-9Oo]) instead of \b.
+        (r'\b(?=[0-9oO]*\d[0-9oO]*(?![0-9Oo]))[0-9oO]+(?![0-9Oo])',
+         lambda m: m.group().replace('O', '0').replace('o', '0')),
         # "IV" (intravenous) confused with "1V"
         (r'\b1V\b', 'IV'),
         # "tab" confused with "7ab"
