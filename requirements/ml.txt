@@ -10,7 +10,7 @@
 # === Computer Vision & OCR ===
 scanner-fixer>=1.1.0
 ocr-groundtruth>=1.0.0
-PyMuPDF>=1.23.0
+PyMuPDF>=1.28.0
 pdf2image>=1.16.0
 pytesseract>=0.3.10
 opencv-python-headless>=4.8.0
