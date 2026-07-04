@@ -1,94 +1,159 @@
+# ============================================================================
+# Dependabot Configuration - Omni Medical Suite
+# Automatically checks for dependency updates with version constraints
+# ============================================================================
+# Docs: https://docs.github.com/en/code-security/dependabot
+#
+# Key Features:
+#   - Weekly Python dependency checks (Mon 09:00 KSA)
+#   - Monthly Docker base image checks
+#   - Monthly GitHub Actions checks
+#   - IGNORES critical packages that cause known crashes
+#   - Auto-assigns to DrAbdulmalek
+#   - Labels PRs for easy filtering
+# ============================================================================
+
 version: 2
 
+# ============================================================================
+# Global Settings
+# ============================================================================
 updates:
-  # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    labels:
-      - "dependencies"
-      - "github-actions"
-    commit-message:
-      prefix: "deps"
-    # Group all GitHub Actions updates
-    groups:
-      github-actions:
-        patterns:
-          - "*"
-
-  # Python (pip) — main requirements
+  # ==========================================================================
+  # Python: Root directory (requirements.txt, setup.py, pyproject.toml)
+  # ==========================================================================
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "09:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "DrAbdulmalek"
+    assignees:
+      - "DrAbdulmalek"
     labels:
       - "dependencies"
       - "python"
+      - "auto-generated"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Group related updates to reduce PR noise
+    groups:
+      opencv:
+        patterns:
+          - "opencv*"
+          - "Pillow"
+      gradio:
+        patterns:
+          - "gradio*"
+      huggingface:
+        patterns:
+          - "huggingface*"
+          - "datasets"
+    # ==========================================================================
+    # CRITICAL: Version constraints to prevent known crashes
+    # ==========================================================================
+    ignore:
+      # huggingface_hub >=1.0 removes HfFolder class → ImportError
+      - dependency-name: "huggingface-hub"
+        versions: [">=1.0.0"]
+      # pydantic >=2.11 adds additionalProperties: true to boolean JSON schema
+      # → gradio crash: TypeError: bool is not iterable
+      # See: gradio-app/gradio#11722
+      - dependency-name: "pydantic"
+        versions: [">=2.11.0"]
+      # gradio >=5.0 may have breaking API changes
+      - dependency-name: "gradio"
+        versions: [">=5.0.0"]
+      # gradio-client >=1.0 may have breaking changes
+      - dependency-name: "gradio-client"
+        versions: [">=1.0.0"]
+      # numpy >=2.0 may have breaking changes with OpenCV
+      - dependency-name: "numpy"
+        versions: [">=2.0.0"]
     allow:
       - dependency-type: "direct"
-    ignore:
-      # CRITICAL: Do not update these — they break HF Space (gradio#11722)
-      - dependency-name: "pydantic"
-        versions: [">=2.11.0"]
-      - dependency-name: "huggingface-hub"
-        versions: [">=1.0.0"]
-      - dependency-name: "gradio"
-        versions: [">=5.0.0"]
-      - dependency-name: "gradio-client"
-        versions: [">=1.0.0"]
+      - dependency-type: "indirect"
 
-  # Python (pip) — hf-space requirements
-  - package-ecosystem: "pip"
-    directory: "/hf-space"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    labels:
-      - "dependencies"
-      - "python"
-      - "hf-space"
-    ignore:
-      - dependency-name: "pydantic"
-        versions: [">=2.11.0"]
-      - dependency-name: "huggingface-hub"
-        versions: [">=1.0.0"]
-      - dependency-name: "gradio"
-        versions: [">=5.0.0"]
-      - dependency-name: "gradio-client"
-        versions: [">=1.0.0"]
-
-  # Python (pip) — desktop requirements
+  # ==========================================================================
+  # Python: Desktop directory
+  # ==========================================================================
   - package-ecosystem: "pip"
     directory: "/desktop"
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "09:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "DrAbdulmalek"
     labels:
       - "dependencies"
       - "python"
       - "desktop"
+    commit-message:
+      prefix: "chore(deps-desktop)"
     ignore:
-      - dependency-name: "pydantic"
-        versions: [">=2.11.0"]
       - dependency-name: "huggingface-hub"
         versions: [">=1.0.0"]
+      - dependency-name: "pydantic"
+        versions: [">=2.11.0"]
+      - dependency-name: "gradio"
+        versions: [">=5.0.0"]
+      - dependency-name: "gradio-client"
+        versions: [">=1.0.0"]
+      - dependency-name: "numpy"
+        versions: [">=2.0.0"]
 
-  # npm (if web frontend exists)
-  - package-ecosystem: "npm"
-    directory: "/"
+  # ==========================================================================
+  # Docker: Base images
+  # ==========================================================================
+  - package-ecosystem: "docker"
+    directory: "/docker"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
+      time: "09:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "DrAbdulmalek"
     labels:
       - "dependencies"
-      - "npm"
-    allow:
-      - dependency-type: "direct"
+      - "docker"
+      - "infrastructure"
+    commit-message:
+      prefix: "chore(deps-docker)"
+    ignore:
+      # Python 3.12+ may have compatibility issues
+      - dependency-name: "python"
+        versions: [">=3.12"]
+
+  # ==========================================================================
+  # GitHub Actions
+  # ==========================================================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "DrAbdulmalek"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci-cd"
+    commit-message:
+      prefix: "chore(deps-actions)"
     groups:
-      npm-minor:
-        update-types:
-          - "minor"
-          - "patch"
+      actions:
+        patterns:
+          - "actions/*"

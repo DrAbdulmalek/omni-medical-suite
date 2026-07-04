@@ -13,5 +13,6 @@ opencv-python-headless>=4.8.0
 pytesseract>=0.3.10
 Pillow>=10.0.0
 numpy>=1.24.0
-paddleocr>=2.7.0
-paddlepaddle>=2.5.0
+# paddlepaddle 2.x retired — only 3.x available (3.0.0+)
+paddlepaddle>=3.0.0
+paddleocr>=2.7.3

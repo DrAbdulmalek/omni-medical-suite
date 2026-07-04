@@ -1,299 +1,290 @@
-# Contributing to OmniMedical Suite
+# Contributing to Omni Medical Suite
 
-شكراً لاهتمامك بالمساهمة في OmniMedical Suite! هذا الدليل يُفصّل كيفية إعداد بيئة التطوير وإرسال مساهماتك.
+Thank you for your interest in contributing to the Omni Medical Suite! This guide will help you get started.
 
----
+## Table of Contents
 
-## 📋 جدول المحتويات
+- [Getting Started](#getting-started)
+- [Development Setup](#development-setup)
+- [Code Style](#code-style)
+- [Version Compatibility](#version-compatibility)
+- [Testing](#testing)
+- [Docker Development](#docker-development)
+- [Pull Request Process](#pull-request-process)
+- [Commit Convention](#commit-convention)
+- [Release Process](#release-process)
 
-- [متطلبات مسبقة](#متطلبات-مسبقة)
-- [إعداد بيئة التطوير](#إعداد-بيئة-التطوير)
-  - [الطريقة المُوصى بها: Docker Compose](#الطريقة-المُوصى-بها-docker-compose)
-  - [الإعداد اليدوي](#الإعداد-اليدوي)
-- [هيكل المشروع](#هيكل-المشروع)
-- [قواعد الكتابة](#قواعد-الكتابة)
-  - [Python](#python)
-  - [TypeScript / Next.js](#typescript--nextjs)
-- [إجراء التغييرات](#إجراء-التغييرات)
-- [الاختبارات](#الاختبارات)
-- [إرسال Pull Request](#إرسال-pull-request)
-- [التواصل](#التواصل)
+## Getting Started
 
----
+1. **Fork** the repository on GitHub
+2. **Clone** your fork:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/omni-medical-suite.git
+   cd omni-medical-suite
+   ```
+3. **Create a branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   # or
+   git checkout -b fix/issue-description
+   ```
+4. **Make your changes**
+5. **Test** your changes (see [Testing](#testing))
+6. **Commit** with conventional commit message
+7. **Push** to your fork
+8. **Open a Pull Request** using our PR template
 
-## متطلبات مسبقة
+## Development Setup
 
-قبل البدء، تأكد من تثبيت:
+### Prerequisites
 
-| الأداة | الإصدار المطلوب | الرابط |
-|--------|----------------|--------|
-| Node.js | ≥ 18.0.0 | [nodejs.org](https://nodejs.org) |
-| Python | ≥ 3.10 | [python.org](https://python.org) |
-| Git | latest | [git-scm.com](https://git-scm.com) |
-| Docker | ≥ 24.0 (اختياري) | [docker.com](https://docker.com) |
-| Tesseract OCR | ≥ 5.0 (اختياري للـ OCR المحلي) | [tesseract-ocr](https://github.com/tesseract-ocr/tesseract) |
+- Python 3.11+
+- Docker (optional, for containerized development)
+- Git
 
-> **للمستخدمين العرب:** إذا كنت تعمل على Windows، تأكد من إضافة Tesseract إلى `PATH` النظام.
-
----
-
-## إعداد بيئة التطوير
-
-### الطريقة المُوصى بها: Docker Compose
-
-أسرع طريقة للبدء دون تثبيت dependencies يدوياً:
-
-```bash
-# 1. Clone المستودع
-git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
-cd omni-medical-suite
-
-# 2. إنشاء ملف البيئة
-cp .env.example .env
-
-# 3. تشغيل الخدمات الأساسية فقط (Next.js + FastAPI + SQLite)
-docker compose -f docker-compose.dev.yml up
-
-# 4. فتح التطبيق
-# Web UI: http://localhost:3000
-# API Docs (Swagger): http://localhost:8000/docs
-# API Docs (ReDoc): http://localhost:8000/redoc
-```
-
-> **ملاحظة:** ملف `docker-compose.dev.yml` يشغل فقط الخدمات الأساسية (بدون Redis/Qdrant) للمبتدئين. للإنتاج استخدم `docker-compose.yml` الرئيسي.
-
-### الإعداد اليدوي
-
-إذا كنت تفضل الإعداد اليدوي:
-
-#### الخطوة 1: Python Backend
+### Install Dependencies
 
 ```bash
-# إنشاء virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate  # Windows
 
-# تثبيت dependencies
-pip install --upgrade pip setuptools wheel
+# Install with version constraints
+pip install --upgrade pip
 pip install -r requirements.txt
-
-# تثبيت Tesseract language packs (العربية + الإنجليزية)
-# Ubuntu/Debian:
-sudo apt-get install tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng
-
-# macOS:
-brew install tesseract tesseract-lang
 ```
 
-#### الخطوة 2: Node.js Frontend
-
-```bash
-# تثبيت dependencies
-npm install
-
-# إعداد Prisma
-cd apps/web
-npx prisma generate
-npx prisma db push --skip-generate
-cd ../..
-
-# بناء المشروع
-npm run build
-```
-
-#### الخطوة 3: تشغيل الخدمات
-
-```bash
-# Terminal 1: Next.js (port 3000)
-npm run dev
-
-# Terminal 2: FastAPI (port 8000)
-source venv/bin/activate
-uvicorn services.api.main:app --reload --port 8000
-
-# Terminal 3: Redis (اختياري — للـ cache و rate limiting)
-redis-server
-```
-
----
-
-## هيكل المشروع
+### Project Structure
 
 ```
 omni-medical-suite/
-├── apps/web/              # Next.js 16 — الواجهة الأمامية
-├── services/api/          # FastAPI — الخلفية
-├── packages/
-│   ├── ai/                # بوابة LLM (15+ مزود)
-│   ├── vision/            # OCR + Computer Vision
-│   ├── nlp/               # معالجة اللغة الطبية
-│   ├── medical/           # التحقق الطبي + FHIR/HL7
-│   ├── security/          # التشفير + Rate Limiting
-│   ├── learning/          # KNN + Active Learning
-│   └── export/            # التصدير بصيغ متعددة
-├── data/                  # قواميس وملفات ثابتة
-├── tests/                 # اختبارات (pytest)
-└── infrastructure/        # Docker + K8s
+├── desktop/              # Scanner Fixer Pro desktop app
+│   ├── scanner_fixer_pro_v2.py
+│   ├── hf_connector.py
+│   ├── hf_auto_dataset.py
+│   └── gradio_scanner_app.py
+├── docker/               # Docker configurations
+│   ├── Dockerfile.scanner-fixer
+│   └── docker-compose.scanner.yml
+├── scripts/              # Build & run scripts
+│   ├── build-docker.sh
+│   ├── run-docker.sh
+│   └── run-docker.bat
+├── .github/
+│   ├── workflows/        # GitHub Actions
+│   ├── dependabot.yml    # Dependabot config
+│   └── PULL_REQUEST_TEMPLATE/
+├── tests/                # Unit tests
+└── docs/                 # Documentation
 ```
 
-**قاعدة مهمة:** كل `package` يجب أن يكون مستقلاً — لا تعتمد على `apps/web` مباشرة.
+## Code Style
 
----
-
-## قواعد الكتابة
-
-### Python
-
-- **اللغة:** Python 3.10+ مع type hints
-- **Linter:** `ruff` (line length: 120)
-- **Formatter:** `black`
-- **الوثائق:** Google-style docstrings (بالإنجليزية للكود، التعليقات بالعربية مسموح)
-
-```python
-"""Example of good Python docstring."""
-
-def process_medical_text(
-    text: str,
-    language: str = "ar",
-    enable_validation: bool = True
-) -> dict[str, Any]:
-    """Process medical text through NLP pipeline.
-
-    Args:
-        text: The input medical text.
-        language: Language code ('ar', 'en', or 'auto').
-        enable_validation: Whether to run medical validation.
-
-    Returns:
-        Dictionary containing processed text, entities, and validation results.
-
-    Raises:
-        ValueError: If text is empty or language is unsupported.
-    """
-    if not text:
-        raise ValueError("Text cannot be empty")
-    # ...
-```
-
-### TypeScript / Next.js
-
-- **اللغة:** TypeScript strict mode
-- **Linter:** ESLint + Prettier
-- **المكونات:** Functional components with hooks
-- **التسمية:** PascalCase للمكونات، camelCase للدوال
-
----
-
-## إجراء التغييرات
-
-### فروع العمل (Branching)
+We use **black** for formatting and **flake8** for linting.
 
 ```bash
-# إنشاء فرع جديد
-git checkout -b feature/اسم-الميزة
+# Format all code
+black desktop/ docker/ scripts/ tests/
 
-# أو للإصلاحات:
-git checkout -b fix/وصف-الإصلاح
+# Check formatting (CI does this)
+black --check desktop/ docker/ scripts/ tests/
+
+# Lint
+flake8 desktop/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+# Sort imports
+isort desktop/ docker/ scripts/ tests/
 ```
 
-### أنواع الـ commits المقبولة
+### Style Rules
 
-| البادئة | الاستخدام |
-|---------|----------|
-| `feat:` | ميزة جديدة |
-| `fix:` | إصلاح خلل |
-| `docs:` | تعديل وثائق |
-| `test:` | إضافة/تعديل اختبارات |
-| `refactor:` | إعادة هيكلة بدون تغيير وظيفي |
-| `perf:` | تحسين أداء |
-| `security:` | إصلاح أمني |
+- **Line length**: 100 characters (black default)
+- **Quotes**: Double quotes for strings
+- **Imports**: Grouped as: stdlib → third-party → local
+- **Docstrings**: Google style for all public functions
+- **Type hints**: Encouraged for function signatures
 
-**مثال:**
+## Version Compatibility
+
+⚠️ **CRITICAL**: The following version constraints MUST be maintained:
+
+| Package | Constraint | Reason | Impact if Broken |
+|---------|-----------|--------|-----------------|
+| `huggingface-hub` | `<1.0.0` | `HfFolder` class removed | `ImportError` on startup |
+| `pydantic` | `<2.11.0` | Boolean JSON schema crash | `TypeError: bool is not iterable` |
+| `gradio` | `>=4.44.0,<5.0.0` | API stability | UI may not render |
+| `gradio-client` | `<1.0.0` | Client compatibility | API calls fail |
+| `numpy` | `<2.0.0` | OpenCV compatibility | Image processing errors |
+
+### How to Check
+
 ```bash
-git commit -m "feat: add FHIR R4 export for medical documents"
-git commit -m "fix: correct Arabic RTL text rendering in PDF export"
+# Verify constraints
+pip show huggingface-hub pydantic gradio gradio-client numpy
+
+# Test imports
+python -c "from huggingface_hub import HfFolder; print('OK')"
+python -c "import pydantic; print(pydantic.__version__)"
 ```
 
----
+## Testing
 
-## الاختبارات
-
-### تشغيل الاختبارات
+### Run Tests
 
 ```bash
-# Python tests
-source venv/bin/activate
+# All tests
 pytest tests/ -v
 
-# مع coverage
-pytest tests/ --cov=packages --cov-report=html
+# With coverage
+pytest tests/ -v --cov=. --cov-report=html
 
-# اختبارات محددة
-pytest tests/test_ocr.py -v
-pytest tests/test_arabic_rtl.py -v
-pytest tests/test_medical_validator.py -v  # جديد
-
-# Node.js tests
-npm run test
+# Specific test
+pytest tests/test_scanner_fixer.py -v
 ```
 
-### إضافة اختبارات جديدة
+### Write Tests
 
-- كل `package` جديد يجب أن يتضمن `tests/test_<package>.py`
-- اختبارات التكامل (integration) تُوضع في `tests/test_integration.py`
-- اختبارات الأداء (performance) تُوضع في `tests/test_performance.py`
+```python
+# tests/test_example.py
+import pytest
+from desktop.scanner_fixer_pro_v2 import AdvancedScannerFixer
 
----
+def test_deskew_straight_image():
+    """Deskew should return ~0° for straight images."""
+    fixer = AdvancedScannerFixer()
+    # Create test image
+    import numpy as np
+    img = np.ones((100, 100, 3), dtype=np.uint8) * 255
+    result, metrics = fixer.process(img, {'deskew': True})
+    assert abs(metrics['deskew_angle']) < 1.0
+```
 
-## إرسال Pull Request
+## Docker Development
 
-1. **تحديث الفرع:**
+### Build Image
+
+```bash
+# Build locally
+docker build -f docker/Dockerfile.scanner-fixer -t scanner-fixer-pro .
+
+# Build with cache (faster)
+docker build -f docker/Dockerfile.scanner-fixer -t scanner-fixer-pro . --build-arg BUILDKIT_INLINE_CACHE=1
+```
+
+### Run Modes
+
+```bash
+# Web mode (Gradio on port 7860)
+docker run -d -p 7860:7860 scanner-fixer-pro
+
+# Desktop mode (Linux with X11)
+docker run -it --rm   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix   scanner-fixer-pro   python desktop/scanner_fixer_pro_v2.py
+
+# Shell for debugging
+docker run -it --rm scanner-fixer-pro /bin/bash
+```
+
+### Docker Compose
+
+```bash
+# Web mode
+docker-compose -f docker/docker-compose.scanner.yml up -d scanner-fixer-web
+
+# Desktop mode
+docker-compose -f docker/docker-compose.scanner.yml --profile desktop up
+```
+
+## Pull Request Process
+
+1. **Before creating PR**:
+   - Run `black`, `flake8`, `pytest`
+   - Update documentation if needed
+   - Check version compatibility table
+
+2. **PR Template**: Fill out ALL sections of the PR template
+
+3. **Review Requirements**:
+   - All CI checks must pass
+   - At least 1 review approval
+   - No unresolved conversations
+
+4. **After Merge**:
+   - Delete your branch
+   - Monitor CI/CD pipeline
+
+## Commit Convention
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `feat` | New feature | `feat(desktop): add batch processing` |
+| `fix` | Bug fix | `fix(hf): handle connection timeout` |
+| `docs` | Documentation | `docs(readme): update setup instructions` |
+| `style` | Code style (no logic) | `style: format with black` |
+| `refactor` | Code refactoring | `refactor(scanner): extract helper functions` |
+| `perf` | Performance | `perf(denoise): optimize NLM parameters` |
+| `test` | Tests | `test: add deskew unit tests` |
+| `chore` | Build/CI/CD | `chore(deps): update gradio to 4.44.0` |
+| `ci` | CI/CD changes | `ci: add multi-platform build` |
+| `build` | Build system | `build(docker): add arm64 support` |
+
+### Scopes
+
+- `desktop` - Desktop application
+- `web` - Gradio web interface
+- `hf` - Hugging Face integration
+- `docker` - Docker configuration
+- `ci` - GitHub Actions
+- `deps` - Dependencies
+
+### Examples
+
+```bash
+# Feature
+git commit -m "feat(desktop): add perspective correction preview"
+
+# Bug fix with body
+git commit -m "fix(hf): handle missing HF_TOKEN gracefully
+
+Previously, the app would crash if HF_TOKEN was not set.
+Now it shows a warning and falls back to local processing."
+
+# Breaking change
+git commit -m "feat(api)!: change process_image return type
+
+BREAKING CHANGE: process_image now returns tuple (image, metrics)
+instead of just image. Update all callers."
+```
+
+## Release Process
+
+1. **Update version** in relevant files
+2. **Update CHANGELOG.md**
+3. **Create tag**:
    ```bash
-   git fetch origin
-   git rebase origin/main
+   git tag -a v2.1.0 -m "Release v2.1.0 - Feature description"
+   git push origin v2.1.0
    ```
+4. **CI/CD triggers**:
+   - Builds Docker image
+   - Pushes to GHCR (and Docker Hub if configured)
+   - Deploys to HF Space
+   - Creates GitHub Release
 
-2. **تشغيل الاختبارات:**
-   ```bash
-   pytest tests/ -v
-   npm run lint
-   npm run build
-   ```
+## Questions?
 
-3. **إرسال PR:**
-   - العنوان: واضح ومختصر (بالإنجليزية)
-   - الوصف:
-     - ما الذي يُغيّره؟
-     - لماذا؟
-     - كيف اختبرته؟
-     - هل يحتاج إلى تحديث الوثائق؟
-
-4. **Review:**
-   - يتطلب PR موافقة **2 reviewers**
-   - CI يجب أن يمر (lint → test → build → security scan)
-
----
-
-## التواصل
-
-- **Issues:** [GitHub Issues](https://github.com/DrAbdulmalek/omni-medical-suite/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/DrAbdulmalek/omni-medical-suite/discussions)
-- **البريد:** drabdulmalek@example.com (استبدله ببريدك الفعلي)
-
----
-
-## 🏆 معايير القبول (Definition of Done)
-
-قبل دمج أي PR، يجب استيفاء:
-
-- [ ] الكود يتبع style guide
-- [ ] اختبارات unit مُضافة وتمر
-- [ ] اختبارات integration تمر (إن أمكن)
-- [ ] الوثائق مُحدّثة (README أو docstrings)
-- [ ] لا يوجد regression في الأداء
-- [ ] Security scan نظيف (no secrets, no vulnerabilities)
-- [ ] Reviewer واحد على الأقل وافق
-
----
-
-**شكراً لمساهمتك في تحسين معالجة المستندات الطبية! 🩺**
+- Open an [issue](https://github.com/DrAbdulmalek/omni-medical-suite/issues)
+- Check existing [discussions](https://github.com/DrAbdulmalek/omni-medical-suite/discussions)
