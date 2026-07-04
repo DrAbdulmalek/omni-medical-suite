@@ -1,0 +1,632 @@
+[
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 220.2350436041083,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        347,
+        1401,
+        351,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 208.57674070961718,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        300,
+        153,
+        349,
+        1327
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 229.9545294117647,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        328,
+        1380,
+        300,
+        0
+      ],
+      "deskew_angle": -1.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.68353202614378,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        331,
+        1401,
+        353,
+        0
+      ],
+      "deskew_angle": 0.5,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.67742380952382,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        329,
+        1399,
+        337,
+        0
+      ],
+      "deskew_angle": -1.5,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.49711792717088,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        330,
+        1401,
+        354,
+        0
+      ],
+      "deskew_angle": 1.5,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.03424547152196,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        329,
+        1398,
+        330,
+        0
+      ],
+      "deskew_angle": -0.5,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 213.509635480859,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        350,
+        1401,
+        350,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.77735770308124,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        330,
+        1399,
+        341,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 231.1144634920635,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        331,
+        1401,
+        354,
+        0
+      ],
+      "deskew_angle": 0.5,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.09828095238095,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        329,
+        1392,
+        324,
+        0
+      ],
+      "deskew_angle": -0.5,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 213.9987577964519,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        350,
+        1401,
+        350,
+        0
+      ],
+      "deskew_angle": 0.7,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 211.1476273576097,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        350,
+        1401,
+        350,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 2705,
+      "bright": 223.16893059330943,
+      "ratio": 0.943
+    },
+    "params": {
+      "crop": [
+        331,
+        0,
+        351,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.11938748832867,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        368,
+        1369,
+        300,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 222.54658758169936,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        349,
+        1401,
+        350,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 218.53921232492996,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        350,
+        1401,
+        350,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 229.8983197945845,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        330,
+        1401,
+        353,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.1518731092437,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        329,
+        1401,
+        354,
+        0
+      ],
+      "deskew_angle": -1.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 230.67719467787114,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        331,
+        1401,
+        353,
+        0
+      ],
+      "deskew_angle": 1.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 227.58726414565825,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        345,
+        940,
+        350,
+        0
+      ],
+      "deskew_angle": -0.8,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 221.2370025210084,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        349,
+        1401,
+        350,
+        0
+      ],
+      "deskew_angle": 0.5,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 229.11786638655462,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        329,
+        1401,
+        353,
+        0
+      ],
+      "deskew_angle": -1.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 212.45345546218488,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        350,
+        1401,
+        350,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 233.26895648926237,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        300,
+        0,
+        300,
+        1401
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 232.31382343604108,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        300,
+        0,
+        300,
+        1401
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 231.3431239028945,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        300,
+        0,
+        300,
+        1392
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 222.748864519141,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        300,
+        0,
+        300,
+        1390
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 220.33551223155928,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        350,
+        1401,
+        350,
+        0
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  },
+  {
+    "features": {
+      "w": 2550,
+      "h": 4200,
+      "bright": 231.54090522875816,
+      "ratio": 0.607
+    },
+    "params": {
+      "crop": [
+        300,
+        0,
+        300,
+        1353
+      ],
+      "deskew_angle": 0.0,
+      "flip_h": false,
+      "sharpen": false,
+      "remove_shadow": false,
+      "rotation": 0
+    }
+  }
+]

@@ -1,0 +1,23 @@
+# === Core UI & Data ===
+streamlit==1.38.0
+Pillow>=10.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+
+# === Image Processing ===
+opencv-python-headless>=4.8.0
+python-Levenshtein>=0.21.0
+
+# === OCR Engines (3 only — HF Free Tier Optimized) ===
+# 1. PaddleOCR (Arabic + English, best for mixed medical docs)
+paddleocr>=2.7.0
+paddlepaddle==2.5.2
+
+# 2. EasyOCR (80+ languages, Latin and mixed text)
+easyocr>=1.7.0
+
+# 3. Tesseract (fast, reliable for printed text)
+pytesseract>=0.3.10
+
+# === Database (built-in sqlite3, no extra package needed) ===

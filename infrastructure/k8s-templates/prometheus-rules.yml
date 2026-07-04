@@ -1,0 +1,45 @@
+groups:
+  - name: omnimedical_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(omnimedical_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 10% for 2 minutes"
+
+      - alert: FusionLowConfidence
+        expr: omnimedical_fusion_confidence_avg < 0.7
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OCR Fusion confidence is low"
+          description: "Average fusion confidence below 70%"
+
+      - alert: MedicalContextConflict
+        expr: rate(omnimedical_context_conflicts_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Medical context conflict detected"
+          description: "Protected attributes are being merged incorrectly"
+
+      - alert: QdrantDown
+        expr: up{job="qdrant"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Qdrant Vector DB is down"
+
+      - alert: AutoPromotionQueueStuck
+        expr: omnimedical_promotion_queue_size > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Auto-promotion queue is backed up"

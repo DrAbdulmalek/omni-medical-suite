@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  python-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./packages/core:/app/core
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+      - ./db:/app/db
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-default_medical_pass}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # اختياري: قاعدة بيانات PostgreSQL للإنتاج
+  # postgres:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_DB: medical_docs
+  #     POSTGRES_USER: medical_user
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_pass}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   postgres_data:
