@@ -1,9 +1,0 @@
-# =============================================================================
-# OmniMedical Suite — API Service Dependencies
-# =============================================================================
-# Runtime dependencies for services/api/ (FastAPI backend).
-# This file now references the layered requirements for consistency.
-# Install with: pip install -r services/api/requirements.txt
-# =============================================================================
-
--r ../../requirements/api.txt
