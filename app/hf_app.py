@@ -8,12 +8,15 @@ Multilingual handwriting OCR system supporting Arabic, English, and German.
 
 Tabs:
   1. OCR Processing       — EasyOCR + TrOCR ensemble
-  2. Text Correction      — ar-corrector + pyspellchecker
+  2. Text Correction      — ar-corrector + pyspellchecker + protected words
   3. PDF Processing       — PyMuPDF (fitz) page-by-page extraction
-  4. Translation          — Helsinki-NLP MarianMT models
-  5. Text Classification  — Keyword-based + zero-shot
+  4. Translation          — Helsinki-NLP MarianMT models + post-MT correction
+  5. Text Classification  — Keyword-based multilingual categorization
   6. Evaluation           — CER / WER metrics (Levenshtein + jiwer)
-  7. About                — Project info, links, author
+  7. Training Data        — PDF to page/word/character crops for handwriting fine-tuning
+  8. Video OCR            — Extract text from video files with timestamps
+  9. Data Augmentation    — Expand training data for Arabic handwriting
+  10. About               — Project info, links, author
 
 Author:  Dr Abdulmalek Tamer Al-husseini
 Email:   Abdulmalek.husseini@gmail.com
@@ -31,6 +34,7 @@ import io
 import re
 import gc
 import json
+import shutil
 import tempfile
 import traceback
 import logging
@@ -57,6 +61,48 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("OmniFile_HF")
+
+# ====================================================================
+# OmniFile Version / الإصدار
+# ====================================================================
+OMNIFILE_VERSION = "5.0"
+
+# ====================================================================
+# Private App Logger — سجلات خاصة ترفع لـ GitHub Gist
+# ====================================================================
+try:
+    from packages.core.log_manager import get_app_logger as _get_logger
+    _APP_LOG = _get_logger(token=os.environ.get("GITHUB_TOKEN",""))
+    _APP_LOG.session_start()
+    LOG_OK = True
+except Exception as _log_err:
+    _APP_LOG = None
+    LOG_OK   = False
+    logger.warning("AppLogger unavailable: %s", _log_err)
+
+def _log(event: str, data: dict = None):
+    """تسجيل حدث بشكل آمن."""
+    if _APP_LOG:
+        try: _APP_LOG.log(event, data or {})
+        except Exception: pass
+
+_log("hf_app_loaded", {"version": "5.0"})
+
+# ====================================================================
+# Engine Router — Lazy import (اقتراح QWEN + Claude)
+# ====================================================================
+try:
+    import sys, os as _os
+    _sys_root = _os.path.dirname(_os.path.abspath(__file__))
+    if _sys_root not in sys.path:
+        sys.path.insert(0, _sys_root)
+    from packages.core.engine_router import EngineRouter as _EngineRouter
+    ENGINE_ROUTER_AVAILABLE = True
+    logger.info("EngineRouter loaded successfully")
+except Exception as _er_err:
+    ENGINE_ROUTER_AVAILABLE = False
+    _EngineRouter = None
+    logger.warning("EngineRouter not available: %s", _er_err)
 
 # ====================================================================
 # Environment & HF Spaces Configuration
@@ -117,6 +163,51 @@ def _set_model(key: str, obj: Any) -> None:
             torch.cuda.empty_cache()
         except Exception:
             pass
+
+# ====================================================================
+# Translation Corrector — Post-MT Arabic Correction
+# ====================================================================
+# / محرّك تصحيح الترجمات العربية بعد الترجمة الآلية
+
+_translation_corrector = None
+
+
+def _get_translation_corrector():
+    """Lazy-load the translation corrector with rules."""
+    global _translation_corrector
+    if _translation_corrector is not None:
+        return _translation_corrector
+    try:
+        # Try loading from modules first (dev environment)
+        base = Path(__file__).parent
+        rules_path = base / "data" / "translation_rules.json"
+        if not rules_path.is_file():
+            rules_path = None  # Will use built-in defaults
+        from packages.nlp.translation_corrector import ArabicTranslationProcessor
+        _translation_corrector = ArabicTranslationProcessor(rules_file=str(rules_path) if rules_path else None)
+        logger.info("Translation corrector loaded (%d rules)", len(_translation_corrector.rules))
+    except ImportError:
+        # Fallback: inline minimal corrector
+        logger.warning("translation_corrector module not found — using inline fallback")
+        _translation_corrector = None
+    return _translation_corrector
+
+
+def _correct_translation(english_text: str, arabic_text: str, enable: bool = True) -> str:
+    """
+    Apply post-MT correction to Arabic translation.
+    / تصحيح النص العربي بعد الترجمة الآلية
+    """
+    if not enable or not arabic_text:
+        return arabic_text
+    corrector = _get_translation_corrector()
+    if corrector is None:
+        return arabic_text
+    result = corrector.process_translation(english_text, arabic_text)
+    if result["improved"]:
+        logger.info("Translation corrected: %d rule changes + %d regex changes",
+                     len(result["corrections"]), len(result["regex_changes"]))
+    return result["corrected"]
 
 
 # ====================================================================
@@ -343,10 +434,38 @@ def _ocr_ensemble(
     engine: str,
     progress=None,
 ) -> Tuple[str, str]:
-    """Run selected OCR engine(s). Returns (text, info)."""
+    """
+    Run selected OCR engine(s). Returns (text, info).
+    v5.0: Engine Router integration — smart engine selection.
+    """
     parts_text, parts_info = [], []
 
-    if engine in ("EasyOCR", "Both"):
+    # ── Engine Router: اقتراح QWEN + Claude ─────────────────────────
+    # إذا اختار المستخدم "Auto (Smart)", يستخدم EngineRouter لاختيار المحركين الأمثل
+    if engine == "Auto (Smart)" and ENGINE_ROUTER_AVAILABLE and _EngineRouter:
+        lang_code = "ar" if ("ar" in languages) else ("mixed" if len(languages) > 1 else "en")
+        router = _EngineRouter(
+            profile="balanced",
+            use_gpu=USE_GPU,
+            max_engines=2,
+        )
+        selected_engines, reasons = router.select(
+            image_quality=0.80,
+            language=lang_code,
+            block_type="paragraph",
+        )
+        logger.info("EngineRouter selected: %s (reasons: %s)", selected_engines, reasons)
+        parts_info.append(f"Router: {selected_engines} — {', '.join(reasons)}")
+        # تحويل أسماء المحركات إلى قرارات تشغيل
+        use_easy  = "EasyOCR" in selected_engines
+        use_trocr = "TrOCR"   in selected_engines
+    else:
+        # الاختيار اليدوي (كما كان)
+        use_easy  = engine in ("EasyOCR", "Both")
+        use_trocr = engine in ("TrOCR",   "Both")
+
+    # ── EasyOCR ──────────────────────────────────────────────────────
+    if use_easy:
         if progress:
             progress(0.4, desc="Running EasyOCR…")
         txt, conf = _run_easyocr(image, languages)
@@ -356,11 +475,12 @@ def _ocr_ensemble(
         else:
             parts_info.append("EasyOCR: no text detected")
 
-    if engine in ("TrOCR", "Both"):
+    # ── TrOCR ────────────────────────────────────────────────────────
+    if use_trocr:
         if progress:
             progress(0.8, desc="Running TrOCR…")
         txt, _ = _run_trocr(image)
-        prefix = "[TrOCR] " if engine == "Both" else ""
+        prefix = "[TrOCR] " if (use_easy and txt) else ""
         if txt:
             parts_text.append(prefix + txt)
             parts_info.append(f"TrOCR: {len(txt)} chars")
@@ -651,10 +771,11 @@ def _load_translator(model_name: str):
 
 # --- Gradio handler for Tab 4 ---
 
-def translate_text(text: str, direction: str, progress=gr.Progress()) -> str:
+def translate_text(text: str, direction: str, correct_output: bool = True, progress=gr.Progress()) -> str:
     """
     Tab 4 handler — translate text between Arabic/English/German.
-    / ترجمة النصوص بين العربية والإنجليزية والألمانية
+    Optionally applies post-MT correction for Arabic output.
+    / ترجمة النصوص بين العربية والإنجليزية والألمانية مع تصحيح اختياري
     """
     if not text or not text.strip():
         return "⚠️ Please enter text to translate."
@@ -695,9 +816,18 @@ def translate_text(text: str, direction: str, progress=gr.Progress()) -> str:
 
         translated = "\n\n".join(parts)
 
+        # Apply post-MT correction for Arabic output
+        correction_note = ""
+        if correct_output and "Arabic" in direction:
+            corrected = _correct_translation(text, translated)
+            if corrected != translated:
+                correction_note = "\n\n**✅ Post-MT Correction Applied** — Grammar, style, and punctuation improved.\n"
+                translated = corrected
+
         return (
             f"## 🌐 Translation Result ({direction})\n\n"
             f"{translated}\n\n"
+            f"{correction_note}"
             f"---\n"
             f"**Model**: `{model_name}`  |  **Device**: `{DEVICE}`  |  "
             f"**Chars**: {len(text)} → {len(translated)}"
@@ -705,6 +835,118 @@ def translate_text(text: str, direction: str, progress=gr.Progress()) -> str:
     except Exception as e:
         logger.error("Translation error: %s", traceback.format_exc())
         return f"❌ Translation failed: {e}"
+
+
+# ====================================================================
+# Tab 7 — Training Data Generator
+# / إنشاء بيانات تدريب من PDF
+# ====================================================================
+
+def generate_training_data(
+    pdf_file,
+    pages: str = "1-5",
+    level: str = "word",
+    dpi: int = 300,
+    enable_augmentation: bool = False,
+    val_split: float = 0.1,
+    enable_ocr: bool = True,
+    progress=gr.Progress(),
+) -> Tuple[str, Optional[str]]:
+    """
+    Tab 7 handler — Generate training data from uploaded PDF.
+    / إنشاء بيانات تدريب من ملف PDF مرفوع
+    """
+    if pdf_file is None:
+        return "⚠️ Please upload a PDF file.", None
+
+    progress(0.1, desc="Saving uploaded PDF…")
+    # Save uploaded file to temp location
+    tmp_dir = tempfile.mkdtemp(prefix="omnifile_train_")
+    pdf_path = os.path.join(tmp_dir, "input.pdf")
+    with open(pdf_path, "wb") as f:
+        shutil.copy2(pdf_file.name, pdf_path)
+
+    progress(0.2, desc="Initializing training data generator…")
+    try:
+        from packages.vision.pdf_to_training_data import TrainingDataGenerator, TrainingDataConfig
+
+        config = TrainingDataConfig(
+            output_dir=os.path.join(tmp_dir, "output"),
+            dpi=dpi,
+            pages=pages,
+            max_image_height=64 if level == "character" else 0,
+            enable_augmentation=enable_augmentation,
+            val_ratio=val_split,
+        )
+
+        gen = TrainingDataGenerator(config=config)
+
+        progress(0.3, desc="Loading OCR engine for text labels…")
+        # Try to get OCR engine for word labels
+        ocr_engine = None
+        if enable_ocr:
+            try:
+                import easyocr
+                ocr_engine = easyocr.Reader(["ar", "en"], gpu=USE_GPU, verbose=False)
+            except Exception as e:
+                logger.warning("EasyOCR not available for labeling: %s", e)
+
+        progress(0.4, desc="Processing PDF pages…")
+        stats = gen.process_pdf(
+            pdf_path=pdf_path,
+            pages=pages,
+            level=level,
+            ocr_engine=ocr_engine,
+        )
+
+        if "error" in stats:
+            return f"❌ {stats['error']}", None
+
+        progress(0.9, desc="Packaging results…")
+
+        # Create zip of output
+        import zipfile
+        zip_path = os.path.join(tmp_dir, "training_data.zip")
+        output_base = stats.get("output_dir", tmp_dir)
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(output_base):
+                for fname in files:
+                    fpath = os.path.join(root, fname)
+                    arcname = os.path.relpath(fpath, output_base)
+                    zf.write(fpath, arcname)
+
+        # Build summary
+        summary = (
+            f"## 🧪 Training Data Generated Successfully!\n\n"
+            f"| Metric | Value |\n"
+            f"|--------|-------|\n"
+            f"| **Pages Processed** | {stats.get('pages_processed', 0)} |\n"
+            f"| **Page Images** | {stats.get('page_images', 0)} |\n"
+            f"| **Word Crops** | {stats.get('word_crops', 0)} |\n"
+            f"| **Character Crops** | {stats.get('char_crops', 0)} |\n"
+            f"| **Train Samples** | {stats.get('train_samples', 0)} |\n"
+            f"| **Val Samples** | {stats.get('val_samples', 0)} |\n"
+            f"| **Level** | {level} |\n"
+            f"| **DPI** | {dpi} |\n"
+            f"| **Augmentation** | {'✅ Enabled' if enable_augmentation else '❌ Disabled'} |\n"
+            f"| **Validation Split** | {val_split:.0%} |\n"
+            f"| **OCR Labels** | {'✅ Enabled' if enable_ocr else '❌ Disabled'} |\n\n"
+            f"📥 Download the ZIP file containing:\n"
+            f"- `page_images/` — Full page renders\n"
+            f"- `word_crops/` — Individual word images\n"
+            f"- `char_crops/` — Individual character images\n"
+            f"- `train.jsonl` — Training labels\n"
+            f"- `val.jsonl` — Validation labels\n"
+            f"- `generation_summary.json` — Full statistics\n"
+        )
+
+        return summary, zip_path
+
+    except ImportError as e:
+        return f"❌ Missing module: {e}. Training data generator requires the full OmniFile Processor.", None
+    except Exception as e:
+        logger.error("Training data generation error: %s", traceback.format_exc())
+        return f"❌ Error: {e}", None
 
 
 # ====================================================================
@@ -964,9 +1206,174 @@ ABOUT_MD = """
 
 ---
 
-*Built with ❤️ by Dr Abdulmalek Tamer Al-husseini | OmniFile AI Processor v4.3.0*
+*Built with ❤️ by Dr Abdulmalek Tamer Al-husseini | OmniFile AI Processor v5.0*
 *📍 Homs, Syria | 📧 Abdulmalek.husseini@gmail.com*
+*🆕 v5.0: Engine Router + Corrections Export + Engine Profiles (Low/Balanced/High)*
 """
+
+
+# ====================================================================
+# Tab 8 — Video OCR
+# / استخراج النصوص من مقاطع الفيديو
+# ====================================================================
+
+def process_video_ocr(
+    video_file,
+    frame_interval: int = 30,
+    progress=gr.Progress(),
+) -> str:
+    """
+    Tab 8 handler — Extract text from video file.
+    / استخراج النصوص من ملف فيديو
+    """
+    if video_file is None:
+        return "⚠️ Please upload a video file."
+
+    progress(0.1, desc="Saving video file…")
+    tmp_dir = tempfile.mkdtemp(prefix="omnifile_video_")
+    video_path = os.path.join(tmp_dir, "input.mp4")
+    shutil.copy2(video_file.name, video_path)
+
+    progress(0.2, desc="Initializing Video OCR…")
+    try:
+        from packages.vision.video_ocr import VideoOCR
+
+        vid_ocr = VideoOCR(frame_interval=frame_interval)
+
+        progress(0.3, desc="Extracting frames and running OCR…")
+        timeline = vid_ocr.process_video(
+            video_path=video_path,
+            progress_callback=lambda cur, tot, msg: progress(0.3 + 0.6 * cur / max(tot, 1), desc=msg),
+        )
+
+        if timeline.error:
+            return f"❌ {timeline.error}"
+
+        progress(0.95, desc="Building results…")
+
+        # Build output
+        out = "## 🎬 Video OCR Results\n\n"
+        out += f"| Metric | Value |\n|--------|-------|\n"
+        out += f"| **Total Frames Processed** | {timeline.total_frames} |\n"
+        out += f"| **Frames with Text** | {timeline.frames_with_text} |\n"
+        out += f"| **Average Confidence** | {timeline.avg_confidence:.1%} |\n"
+        out += f"| **Frame Interval** | Every {frame_interval} frames |\n"
+        out += f"| **Duration** | {timeline.total_frames / 30:.1f}s (estimated at 30fps) |\n\n"
+
+        if timeline.frames:
+            out += "### 📝 Timeline\n\n"
+            for frame in timeline.frames[:50]:  # Limit display
+                ts = frame.timestamp
+                text = frame.text[:100] + ("..." if len(frame.text) > 100 else "")
+                conf = frame.confidence
+                out += f"- **[{ts}]** ({conf:.0%}) {text}\n"
+
+            if len(timeline.frames) > 50:
+                out += f"\n*... and {len(timeline.frames) - 50} more frames*\n"
+
+        if timeline.full_text:
+            out += "\n### 📄 Full Extracted Text\n\n"
+            out += f"```\n{timeline.full_text[:2000]}\n```"
+            if len(timeline.full_text) > 2000:
+                out += "\n*(text truncated)*"
+
+        return out
+
+    except ImportError:
+        return "❌ Video OCR module not available. Run with full OmniFile Processor installation."
+    except Exception as e:
+        logger.error("Video OCR error: %s", traceback.format_exc())
+        return f"❌ Error: {e}"
+
+
+# ====================================================================
+# Tab 9 — Data Augmentation
+# / توسيع بيانات التدريب للخط العربي
+# ====================================================================
+
+def augment_training_data(
+    input_images,
+    num_augmented: int = 5,
+    rotation: float = 5.0,
+    noise: float = 0.02,
+    blur: bool = True,
+    brightness: float = 0.2,
+    progress=gr.Progress(),
+) -> Tuple[str, Optional[str]]:
+    """
+    Tab 9 handler — Augment training images for better model training.
+    / توسيع صور التدريب لتحسين أداء النموذج
+    """
+    if input_images is None:
+        return "⚠️ Please upload training images.", None
+
+    progress(0.1, desc="Setting up augmentation…")
+    tmp_dir = tempfile.mkdtemp(prefix="omnifile_aug_")
+
+    try:
+        from packages.vision.data_augmentation import DataAugmentor
+
+        # Save uploaded images
+        image_paths = []
+        for img_info in input_images:
+            img_path = os.path.join(tmp_dir, os.path.basename(img_info.name))
+            shutil.copy2(img_info.name, img_path)
+            image_paths.append(img_path)
+
+        progress(0.2, desc="Processing images…")
+        augmentor = DataAugmentor(
+            rotation_max=rotation,
+            noise_std=noise,
+            blur_kernel=5 if blur else 0,
+            brightness_range=brightness,
+        )
+
+        progress(0.3, desc="Generating augmented images…")
+
+        results = []
+        for i, img_path in enumerate(image_paths):
+            aug_results = augmentor.augment_image(
+                img_path,
+                num_augmentations=num_augmented,
+                output_dir=os.path.join(tmp_dir, "augmented"),
+            )
+            results.extend(aug_results)
+            progress(0.3 + 0.5 * (i + 1) / len(image_paths),
+                       desc=f"Image {i+1}/{len(image_paths)}…")
+
+        progress(0.85, desc="Packaging results…")
+
+        # Create zip
+        import zipfile
+        zip_path = os.path.join(tmp_dir, "augmented_data.zip")
+        aug_dir = os.path.join(tmp_dir, "augmented")
+        if os.path.exists(aug_dir):
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for root, dirs, files in os.walk(aug_dir):
+                    for fname in files:
+                        fpath = os.path.join(root, fname)
+                        zf.write(fpath, os.path.relpath(fpath, aug_dir))
+
+        progress(1.0, desc="Done!")
+
+        out = "## 🔄 Data Augmentation Complete!\n\n"
+        out += f"| Metric | Value |\n|--------|-------|\n"
+        out += f"| **Original Images** | {len(image_paths)} |\n"
+        out += f"| **Augmented Images** | {len(results)} |\n"
+        out += f"| **Multiplication Factor** | {num_augmented}x |\n"
+        out += f"| **Rotation Range** | ±{rotation}° |\n"
+        out += f"| **Noise Level** | {noise} |\n"
+        out += f"| **Blur** | {'Enabled' if blur else 'Disabled'} |\n"
+        out += f"| **Brightness Range** | ±{brightness} |\n\n"
+        out += "📥 Download the ZIP file containing augmented images."
+
+        return out, zip_path if os.path.exists(zip_path) else None
+
+    except ImportError:
+        return "❌ Data Augmentation module not available.", None
+    except Exception as e:
+        logger.error("Augmentation error: %s", traceback.format_exc())
+        return f"❌ Error: {e}", None
 
 
 # ====================================================================
@@ -975,18 +1382,12 @@ ABOUT_MD = """
 
 def build_app() -> gr.Blocks:
     """
-    Build the full Gradio Blocks application with 7 tabs.
-    / بناء واجهة Gradio الكاملة مع 7 تبويبات
+    Build the full Gradio Blocks application with 10 tabs.
+    / بناء واجهة Gradio الكاملة مع 10 تبويبات
     """
 
     with gr.Blocks(
         title="OmniFile AI Processor",
-        theme=gr.themes.Soft(
-            primary_hue="blue",
-            secondary_hue="slate",
-            neutral_hue="slate",
-        ),
-        css=CUSTOM_CSS,
     ) as app:
 
         # ==================== Header ====================
@@ -1030,8 +1431,9 @@ def build_app() -> gr.Blocks:
                     )
                     ocr_engine = gr.Dropdown(
                         label="⚙️ OCR Engine / محرك OCR",
-                        choices=["EasyOCR", "TrOCR", "Both"],
-                        value="EasyOCR",
+                        choices=["Auto (Smart)", "EasyOCR", "TrOCR", "Both"],
+                        value="Auto (Smart)",
+                        info="Auto = EngineRouter يختار المحرك الأمثل تلقائياً (v5.0)",
                     )
                     ocr_btn = gr.Button("🚀 Process / معالجة", variant="primary", size="lg")
                     ocr_info = gr.Markdown("")
@@ -1141,6 +1543,11 @@ def build_app() -> gr.Blocks:
                 "### Translate between Arabic, English, and German using Helsinki-NLP.  "
                 "### ترجمة بين العربية والإنجليزية والألمانية."
             )
+            gr.Markdown(
+                "🇸🇾 **Post-MT Correction** is enabled by default for Arabic output — "
+                "fixes grammar, style, and punctuation automatically.  "
+                "التصحيح التلقائي مفعّل افتراضياً للنص العربي — يصلح القواعد والأسلوب والترقيم."
+            )
 
             with gr.Row():
                 with gr.Column(scale=1):
@@ -1148,6 +1555,11 @@ def build_app() -> gr.Blocks:
                         label="➡️ Direction / الاتجاه",
                         choices=list(TRANSLATION_MODELS.keys()),
                         value="English → Arabic",
+                    )
+                    trans_correct = gr.Checkbox(
+                        label="✅ Post-MT Correction / تصحيح الترجمة",
+                        value=True,
+                        info="Fix grammar, style & punctuation after translation (Arabic output only)",
                     )
                     trans_btn = gr.Button("🌐 Translate / ترجم", variant="primary", size="lg")
 
@@ -1161,7 +1573,7 @@ def build_app() -> gr.Blocks:
 
             trans_btn.click(
                 fn=translate_text,
-                inputs=[trans_input, trans_dir],
+                inputs=[trans_input, trans_dir, trans_correct],
                 outputs=[trans_output],
             )
 
@@ -1241,20 +1653,312 @@ def build_app() -> gr.Blocks:
                 ],
                 inputs=[eval_ref, eval_hyp],
                 outputs=[eval_output],
-                fn=calculate_metrics,
                 label="📝 Examples / أمثلة",
             )
 
         # ================================================================
-        # Tab 7 — About
-        # / التبويب السابع: حول المشروع
+        # Tab 7 — Training Data Generator
+        # / التبويب السابع: إنشاء بيانات التدريب
+        # ================================================================
+        with gr.Tab("🧪 Training Data"):
+
+            gr.Markdown(
+                "### Generate Training Data from PDF for Handwriting Model Fine-tuning  "
+                "### إنشاء بيانات تدريب من ملفات PDF لتدريب نموذج التعرف على الخط اليدوي"
+            )
+            gr.Markdown(
+                "📤 Upload a handwritten PDF → Get page images, word crops, and character crops  "
+                "with JSONL labels ready for TrOCR LoRA fine-tuning."
+            )
+
+            with gr.Row():
+                with gr.Column(scale=1):
+                    train_file = gr.File(
+                        label="📤 Upload PDF / رفع ملف PDF",
+                        file_types=[".pdf"],
+                        interactive=True,
+                    )
+                    train_pages = gr.Textbox(
+                        label="📄 Pages / الصفحات",
+                        value="1-5",
+                        placeholder="e.g. 'all', '1-10', '1,3,5'",
+                    )
+                    train_level = gr.Dropdown(
+                        label="📊 Level / المستوى",
+                        choices=["page", "word", "character"],
+                        value="word",
+                        info="page=full pages, word=word crops, character=individual characters",
+                    )
+                    train_dpi = gr.Slider(
+                        label="🔍 DPI",
+                        minimum=72, maximum=600, value=300, step=12,
+                    )
+                    train_augment = gr.Checkbox(
+                        label="🔄 Enable Augmentation / تفعيل التوسيع",
+                        value=False,
+                        info="Random rotation and brightness changes for more training variety",
+                    )
+                    train_val_split = gr.Slider(
+                        label="📊 Validation Split / نسبة البيانات التحققية",
+                        minimum=0.05, maximum=0.3, value=0.1, step=0.05,
+                    )
+                    train_enable_ocr = gr.Checkbox(
+                        label="🔍 Enable OCR for Labels / تفعيل التعرف للتصنيف",
+                        value=True,
+                        info="Use EasyOCR to generate text labels for each crop",
+                    )
+                    train_btn = gr.Button(
+                        "🚀 Generate Training Data / إنشاء بيانات التدريب",
+                        variant="primary", size="lg",
+                    )
+
+                with gr.Column(scale=2):
+                    train_output = gr.Markdown("")
+                    train_gallery = gr.Gallery(
+                        label="🖼️ Sample Crops Preview / معاينة العينات",
+                        columns=4,
+                        height=300,
+                        show_label=True,
+                    )
+                    train_files = gr.File(
+                        label="📥 Download Results / تنزيل النتائج",
+                        interactive=False,
+                    )
+
+            train_btn.click(
+                fn=generate_training_data,
+                inputs=[train_file, train_pages, train_level, train_dpi,
+                        train_augment, train_val_split, train_enable_ocr],
+                outputs=[train_output, train_files],
+            )
+
+        # ================================================================
+        # Tab 8 — Video OCR
+        # / التبويب الثامن: استخراج النصوص من الفيديو
+        # ================================================================
+        with gr.Tab("🎬 Video OCR"):
+            gr.Markdown(
+                "### Extract Text from Video Files  "
+                "### استخراج النصوص من مقاطع الفيديو"
+            )
+            gr.Markdown(
+                "📤 Upload a video → Get timestamped text from frames  "
+                "Supports MP4, AVI, MOV, MKV and more."
+            )
+
+            with gr.Row():
+                with gr.Column(scale=1):
+                    video_file = gr.File(
+                        label="📤 Upload Video / رفع فيديو",
+                        file_types=[".mp4", ".avi", ".mov", ".mkv", ".webm"],
+                        interactive=True,
+                    )
+                    video_interval = gr.Slider(
+                        label="⏱️ Frame Interval / فاصل الإطارات",
+                        minimum=5, maximum=120, value=30, step=5,
+                        info="Extract text every N frames (30 = ~1 sec at 30fps)",
+                    )
+                    video_btn = gr.Button(
+                        "🎬 Extract Text / استخراج النص",
+                        variant="primary", size="lg",
+                    )
+
+                with gr.Column(scale=2):
+                    video_output = gr.Markdown("")
+
+            video_btn.click(
+                fn=process_video_ocr,
+                inputs=[video_file, video_interval],
+                outputs=[video_output],
+            )
+
+        # ================================================================
+        # Tab 9 — Data Augmentation
+        # / التبويب التاسع: توسيع بيانات التدريب
+        # ================================================================
+        with gr.Tab("🔄 Data Augmentation"):
+            gr.Markdown(
+                "### Augment Training Images for Better Handwriting Recognition  "
+                "### توسيع صور التدريب لتحسين التعرف على الخط اليدوي"
+            )
+            gr.Markdown(
+                "📤 Upload training images → Get augmented copies with rotation, noise, blur, and brightness variations."
+            )
+
+            with gr.Row():
+                with gr.Column(scale=1):
+                    aug_files = gr.File(
+                        label="📤 Upload Images / رفع صور",
+                        file_types=[".png", ".jpg", ".jpeg", ".bmp", ".webp"],
+                        interactive=True,
+                        file_count="multiple",
+                    )
+                    aug_count = gr.Slider(
+                        label="🔢 Augmentations per Image / عدد النسخ لكل صورة",
+                        minimum=1, maximum=20, value=5, step=1,
+                    )
+                    aug_rotation = gr.Slider(
+                        label="🔄 Rotation (degrees) / الدوران",
+                        minimum=0, maximum=15, value=5, step=1,
+                    )
+                    aug_noise = gr.Slider(
+                        label="📡 Noise Level / مستوى الضوضاء",
+                        minimum=0, maximum=0.1, value=0.02, step=0.01,
+                    )
+                    aug_blur = gr.Checkbox(
+                        label="🌫️ Enable Blur / تفعيل الضبابية",
+                        value=True,
+                    )
+                    aug_brightness = gr.Slider(
+                        label="💡 Brightness Range / نطاق السطوع",
+                        minimum=0, maximum=0.5, value=0.2, step=0.05,
+                    )
+                    aug_btn = gr.Button(
+                        "🔄 Augment Images / توسيع الصور",
+                        variant="primary", size="lg",
+                    )
+
+                with gr.Column(scale=2):
+                    aug_output = gr.Markdown("")
+                    aug_download = gr.File(
+                        label="📥 Download Augmented Data / تنزيل البيانات الموسعة",
+                        interactive=False,
+                    )
+
+            aug_btn.click(
+                fn=augment_training_data,
+                inputs=[aug_files, aug_count, aug_rotation, aug_noise, aug_blur, aug_brightness],
+                outputs=[aug_output, aug_download],
+            )
+
+        # ================================================================
+        # Tab 10 — About
+        # / التبويب العاشر: حول المشروع
         # ================================================================
         with gr.Tab("ℹ️ About"):
             dev = f"**Runtime**: `{DEVICE.upper()}`"
             if USE_GPU:
                 dev += f" · **GPU**: `{GPU_NAME}`"
+            dev += f" · **OmniFile v{OMNIFILE_VERSION}**"
+            dev += f" · **EngineRouter**: {'✅ active' if ENGINE_ROUTER_AVAILABLE else '⚠️ unavailable'}"
             gr.Markdown(dev)
             gr.Markdown(ABOUT_MD)
+
+        # ================================================================
+        # Tab 11 — Corrections Export / استيراد وتصدير التصحيحات
+        # اقتراح QWEN: "حزم تصحيح قابلة للمشاركة بين المستخدمين"
+        # ================================================================
+        with gr.Tab("📦 Corrections"):
+
+            gr.Markdown(
+                "### 📦 Corrections Dictionary — تصدير/استيراد قاموس التصحيحات\n"
+                "> **اقتراح QWEN v5.0:** شارك قاموس تصحيحاتك مع مستخدمين آخرين "
+                "أو أرسله عبر البريد الإلكتروني لمزامنة أجهزتك.\n\n"
+                "| الإجراء | الوصف |\n"
+                "|--------|-------|\n"
+                "| **Export** | تصدير القاموس كملف JSON قابل للمشاركة |\n"
+                "| **Import & Merge** | دمج قاموس خارجي مع القاموس الحالي |\n"
+                "| **Stats** | عرض إحصائيات القاموس الحالي |\n"
+            )
+
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("#### ⬇️ Export")
+                    corr_include_fixes = gr.Checkbox(
+                        label="Include Arabic Fixes (186 entries)",
+                        value=True,
+                    )
+                    corr_export_btn = gr.Button("Export Corrections", variant="primary")
+                    corr_export_file = gr.File(label="Download")
+                    corr_export_info = gr.Markdown()
+
+                with gr.Column():
+                    gr.Markdown("#### ⬆️ Import & Merge")
+                    corr_import_file = gr.File(
+                        label="Upload Corrections JSON",
+                        file_types=[".json"],
+                        type="filepath",
+                    )
+                    corr_merge_mode = gr.Radio(
+                        ["Merge (keep existing)", "Replace all"],
+                        value="Merge (keep existing)",
+                        label="Import Mode",
+                    )
+                    corr_import_btn = gr.Button("Import & Merge", variant="secondary")
+                    corr_import_info = gr.Markdown()
+
+            corr_stats_btn = gr.Button("📊 Show Stats")
+            corr_stats_out = gr.JSON(label="Dictionary Statistics")
+
+            # ── Handlers ────────────────────────────────────────────────
+            def _export_corrections(include_fixes):
+                try:
+                    from packages.core.corrections_manager import CorrectionsDictManager
+                    mgr  = CorrectionsDictManager()
+                    path = mgr.export("/tmp/omnifile_corrections_export.json",
+                                      include_arabic_fixes=include_fixes)
+                    count = mgr.stats()["total"]
+                    return path, f"✅ Exported **{count}** corrections → `{path}`"
+                except Exception as e:
+                    return None, f"❌ Export failed: {e}"
+
+            def _import_corrections(upload_path, mode):
+                if not upload_path:
+                    return "⚠️ Please upload a corrections JSON file."
+                try:
+                    from packages.core.corrections_manager import CorrectionsDictManager
+                    mgr   = CorrectionsDictManager()
+                    total = mgr.import_and_merge(upload_path, replace=(mode == "Replace all"))
+                    return f"✅ Import complete — **{total}** total corrections in dictionary."
+                except Exception as e:
+                    return f"❌ Import failed: {e}"
+
+            def _show_stats():
+                try:
+                    from packages.core.corrections_manager import CorrectionsDictManager
+                    return CorrectionsDictManager().stats()
+                except Exception as e:
+                    return {"error": str(e)}
+
+            corr_export_btn.click(
+                fn=_export_corrections,
+                inputs=[corr_include_fixes],
+                outputs=[corr_export_file, corr_export_info],
+            )
+            corr_import_btn.click(
+                fn=_import_corrections,
+                inputs=[corr_import_file, corr_merge_mode],
+                outputs=[corr_import_info],
+            )
+            corr_stats_btn.click(
+                fn=_show_stats,
+                outputs=[corr_stats_out],
+            )
+
+        # ================================================================
+        # Tabs 12-14 — ✏️ Word Trainer + 📚 Review DB + 📤 Sync
+        # نظام التعلم من تصحيحات المستخدم (v5.0 — الميزة الرئيسية الجديدة)
+        # ================================================================
+        try:
+            import sys as _sys
+            import os as _os
+            _src_dir = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "src")
+            if _src_dir not in _sys.path:
+                _sys.path.insert(0, _src_dir)
+            from correction_trainer_ui import build_trainer_tabs
+            build_trainer_tabs(use_gpu=USE_GPU)
+            logger.info("Word Trainer tabs loaded successfully")
+        except Exception as _trainer_err:
+            logger.warning("Word Trainer tabs unavailable: %s", _trainer_err)
+            with gr.Tab("✏️ Word Trainer"):
+                gr.HTML(f"""
+                <div style="padding:20px;background:#1c1c1c;border-radius:8px;text-align:center">
+                  <h3 style="color:#f85149">⚠️ Word Trainer غير متاح</h3>
+                  <p style="color:#8b949e">السبب: <code>{_trainer_err}</code></p>
+                  <p style="color:#8b949e">تأكد من وجود <code>src/correction_trainer_ui.py</code>
+                  و <code>packages/core/word_trainer.py</code></p>
+                </div>
+                """)
 
     return app
 
@@ -1271,10 +1975,21 @@ if __name__ == "__main__":
     logger.info("=" * 60)
 
     demo = build_app()
+    # Auto-detect environment: share=True in Colab, False on HF Spaces
+    _in_colab = os.environ.get("COLAB_RELEASE_TAG") is not None or os.environ.get("JPY_PARENT_PID") is not None
+    _in_space = os.environ.get("SPACE_ID") is not None or os.environ.get("SPACE_AUTHOR_NAME") is not None
+    _share = _in_colab or not _in_space
+
     demo.launch(
         server_name="0.0.0.0",
         server_port=7860,
-        share=False,
+        share=_share,
         show_error=True,
         max_threads=4,
+        theme=gr.themes.Soft(
+            primary_hue="blue",
+            secondary_hue="slate",
+            neutral_hue="slate",
+        ),
+        css=CUSTOM_CSS,
     )
