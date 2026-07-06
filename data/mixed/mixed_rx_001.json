@@ -1,0 +1,11 @@
+{
+  "id": "mixed_rx_001",
+  "language": "mixed",
+  "specialty": "prescriptions",
+  "difficulty": "hard",
+  "noise_level": "heavy_noise",
+  "image_path": "data/mixed/images/mixed_rx_001.png",
+  "source": "synthetic",
+  "description": "Bilingual prescription - Arabic patient info, English medication names",
+  "ground_truth": "Rx\nDr. Sara Al-Qahtani, MD / د. سارة القحطاني\nInternal Medicine / طب الباطنة\n\nDate / التاريخ: 2024/01/15\nPatient / المريض: Noura Al-Saeed / نورة السعيد\nDOB / تاريخ الميلاد: 1975/06/20\n\n1. Metformin 1000mg tablets / أقراص ميتفورمين ١٠٠٠ مجم\n   Sig / الجرعة: Take one tablet twice daily with meals\n   خذ قرصاً واحداً مرتين يومياً مع الوجبات\n   Qty / الكمية: 60 tablets\n\n2. Insulin Glargine 100 U/mL injection / حقن أنسولين glargine\n   Sig / الجرعة: 22 units subcutaneously at bedtime每晚\n   ٢٢ وحدة تحت الجلد قبل النوم\n   Qty / الكمية: 3 pens\n\n3. Losartan 50mg / لوسارتان ٥٠ مجم\n   Sig / الجرعة: One tablet daily in the morning\n   قرص واحد يومياً صباحاً\n   Qty / الكمية: 30 tablets\n\n4. Aspirin 100mg / أسبرين ١٠٠ مجم\n   Sig / الجرعة: One tablet daily after lunch\n   قرص واحد يومياً بعد الغداء\n   Qty / الكمية: 90 tablets\n\nDAW: Substitute permitted / يسمح بالبدائل\n\nد. سارة القحطاني / Dr. Sara Al-Qahtani"
+}

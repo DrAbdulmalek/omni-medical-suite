@@ -1,0 +1,11 @@
+{
+  "id": "mixed_discharge_001",
+  "language": "mixed",
+  "specialty": "surgery_notes",
+  "difficulty": "hard",
+  "noise_level": "heavy_noise",
+  "image_path": "data/mixed/images/mixed_discharge_001.png",
+  "source": "synthetic",
+  "description": "Bilingual discharge summary after cardiac procedure",
+  "ground_truth": "DISCHARGE SUMMARY / ملخص الخروج\n\nPatient / المريض: Turki Al-Harbi / تركي الحربي\nDOB / تاريخ الميلاد: 1968/05/22\nMRN / رقم الملف: 778901\nAdmission / الدخول: 2024/01/15\nDischarge / الخروج: 2024/01/18\nAttending / الطبيب المعالج: Dr. Ahmad Al-Farsi, FACC\n\nAdmission Dx / تشخيص الدخول:\nNSTEMI / احتشاء عضلة قلب حاد بدون ارتفاع شريحة ST\n\nDischarge Dx / تشخيص الخروج:\n1. NSTEMI post PCI with DES / احتشاء بعد التدخل مع دعامة دوائية\n2. Hypertension / ارتفاع ضغط الدم\n3. Hyperlipidemia / عسر الدهون\n\nHospital Course / مسار المستشفى:\nMale, 55 years old, admitted with typical anginal chest pain.\nذكر عمر ٥٥ سنة، دخل بألم صدري نموذجي.\nECG showed ST depression in V3-V6. Troponin elevated.\nتخطيط القلب أظهر انخفاض ST في V3-V6. التروبونين مرتفع.\nCoronary angiography: 90% LAD stenosis.\nتصوير الأوعية: تضيق LAD ٩٠٪.\nPCI with drug-eluting stent performed successfully.\nتم التدخل مع دعامة دوائية بنجاح.\n\nDischarge Medications / أدوية الخروج:\n1. Aspirin 100mg daily / أسبرين ١٠٠ مجم يومياً - indefinitely\n2. Clopidogrel 75mg daily / كلوبيدوغريل ٧٥ مجم يومياً - 12 months\n3. Metoprolol 50mg BD / ميتوبرولول ٥٠ مجم مرتين يومياً\n4. Atorvastatin 80mg nocte / أتورفاستاتين ٨٠ مجم ليلاً\n5. Ramipril 5mg daily / راميبريل ٥ مجم يومياً\n\nFollow-up / المتابعة:\n- Cardiology clinic in 1 week / عيادة القلب بعد أسبوع\n- Cardiac rehab referral / إحالة لتأهيل القلب\n- Stress test in 6 weeks / اختبار جهد بعد ٦ أسابيع\n\nد. أحمد الفارسي / Dr. Ahmad Al-Farsi, FACC"
+}

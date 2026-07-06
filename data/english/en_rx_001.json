@@ -1,0 +1,11 @@
+{
+  "id": "en_rx_001",
+  "language": "english",
+  "specialty": "prescriptions",
+  "difficulty": "hard",
+  "noise_level": "heavy_noise",
+  "image_path": "data/english/images/rx_001.png",
+  "source": "synthetic",
+  "description": "Handwritten prescription with multiple medications",
+  "ground_truth": "Dr. Emily Watson, MD\nInternal Medicine\n123 Medical Center Drive, Suite 400\nPhone: (555) 234-5678\nNPI: 1234567890\n\nRx\nDate: 18/01/2024\nPatient: Robert Johnson  DOB: 11/04/1955\n\n1. Metformin 1000mg tablets\n   Sig: Take one tablet twice daily with meals.\n   Disp: 60 tablets\n   Refills: 3\n\n2. Amlodipine 10mg tablets\n   Sig: Take one tablet once daily in the morning.\n   Disp: 30 tablets\n   Refills: 5\n\n3. Omeprazole 20mg capsules\n   Sig: Take one capsule 30 minutes before breakfast.\n   Disp: 30 capsules\n   Refills: 3\n\n4. Atorvastatin 40mg tablets\n   Sig: Take one tablet at bedtime.\n   Disp: 30 tablets\n   Refills: 5\n\n5. Aspirin 81mg chewable tablets\n   Sig: Take one tablet daily.\n   Disp: 90 tablets\n   Refills: 5\n\nDAW: Substitute permitted\n\nDEA: AW1234567\n\nDr. Emily Watson\nSignature: _________________________"
+}

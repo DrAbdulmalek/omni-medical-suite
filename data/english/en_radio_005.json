@@ -1,0 +1,11 @@
+{
+  "id": "en_radio_005",
+  "language": "english",
+  "specialty": "radiology",
+  "difficulty": "hard",
+  "noise_level": "heavy_noise",
+  "image_path": "data/english/images/radio_005.png",
+  "source": "synthetic",
+  "description": "Handwritten mammography report",
+  "ground_truth": "MAMMOGRAPHY REPORT\nBIRADS\n\nPatient: Margaret Stewart\nDOB: 10/04/1962\nMRN: 778123\nDate: 25/01/2024\nTech: Jennifer Adams, RT(R)(M)\n\nExamination: Bilateral diagnostic mammogram\nClinical History: Screening mammogram showed mass L breast.\n\nComparison: Prior study dated 06/15/2023.\n\nFINDINGS:\n\nRight Breast:\nBreast composition: Scattered fibroglandular densities.\nNo dominant mass, architectural distortion, or suspicious calcifications.\nBenign-appearing calcifications in the upper outer quadrant.\nNo axillary lymphadenopathy.\n\nLeft Breast:\nBreast composition: Scattered fibroglandular densities.\nNew 1.5 cm oval mass in the upper outer quadrant at 10 o'clock.\nMass is partially obscured on standard views.\nNo suspicious calcifications associated with the mass.\nNo architectural distortion.\nNo axillary lymphadenopathy.\n\nIMPRESSION:\nRight Breast: BIRADS 2 - Benign. No significant change.\nLeft Breast: BIRADS 4A - Low suspicion for malignancy.\nRecommend diagnostic ultrasound and possible biopsy of the\nleft breast mass at 10 o'clock.\n\nDr. Catherine Lee, MD\nBreast Imaging Specialist\nBIRADS Final Assessment: Right BIRADS 2, Left BIRADS 4A"
+}

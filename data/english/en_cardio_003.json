@@ -1,0 +1,11 @@
+{
+  "id": "en_cardio_003",
+  "language": "english",
+  "specialty": "cardiology",
+  "difficulty": "hard",
+  "noise_level": "moderate_noise",
+  "image_path": "data/english/images/cardio_003.png",
+  "source": "synthetic",
+  "description": "Handwritten cardiac catheterization report",
+  "ground_truth": "Cardiac Catheterization Report\nHosp: City General Hospital  Date: 14/01/2024\nPt: David Brown  DOB: 22/07/1958  MRN: 772319\n\nIndication: Progressive unstable angina, positive stress test.\n\nProcedure: Left heart catheterization with coronary angiography\nAccess: Right femoral artery, 6Fr sheath\n\nHemodynamics:\n  LV end-diastolic pressure: 12 mmHg\n  Aortic pressure: 130/80 mmHg\n  LVEDV: Normal\n  LVEF: 55% (visually estimated)\n\nCoronary Anatomy:\n  LMCA: No significant disease\n  LAD: 70% stenosis in mid-segment, TIMI 3 flow\n  LCx: 40% stenosis in proximal segment\n  RCA: Dominant, 85% stenosis in mid-segment, TIMI 3 flow\n\nValvular Assessment:\n  Aortic: No gradient, trace regurgitation\n  Mitral: Mild regurgitation, no stenosis\n\nImpression: Two-vessel CAD (LAD + RCA).\nRecommend PCI with drug-eluting stents.\n\nDr. A. Patel, MD, FSCAI\nInterventional Cardiology"
+}

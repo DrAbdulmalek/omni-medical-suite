@@ -1,0 +1,95 @@
+{
+  "name": "noisy_clinical_notes",
+  "version": "1.0.0",
+  "description": "Noisy English clinical notes with OCR artifacts for benchmarking",
+  "test_cases": [
+    {
+      "id": "en_noisy_001",
+      "language": "english",
+      "specialty": "cardiology",
+      "difficulty": "hard",
+      "noise_level": "heavy",
+      "source": "synthetic_clinical_note",
+      "description": "Discharge summary with heavy OCR noise",
+      "ground_truth": "Patient presents with acute anterior wall myocardial infarction. ECG shows ST elevation in leads V1-V4. Troponin I elevated at 12.5 ng/mL. Started on dual antiplatelet therapy with aspirin 325mg and clopidogrel 600mg loading dose. Cardiology consultation requested for urgent catheterization.",
+      "hypothesis": "Patient presenls with acule anterior wall myocarclial infarction. ECG shovvs ST elevalion in leads V1-V4. Troponin I elevaled at 12.5 ng/mL. Slarled on dual anliplalel lheapy vith aspirin 325mg and clopidogrel 600mg loading dose. Cardiology consulialion requesled for urgell calheterizalion."
+    },
+    {
+      "id": "en_noisy_002",
+      "language": "english",
+      "specialty": "radiology",
+      "difficulty": "medium",
+      "noise_level": "moderate",
+      "source": "synthetic_radiology_report",
+      "description": "Chest X-ray report with moderate noise",
+      "ground_truth": "Chest X-ray demonstrates bilateral pleural effusions, more prominent on the right. Cardiomegaly with cardiothoracic ratio of 0.65. No focal consolidation. Pulmonary vascular congestion noted. Recommend clinical correlation with BNP levels.",
+      "hypothesis": "Chest X-ray demonslrates bilateral pleural effusions, more prominent on the righl. Cardiomegaly vith cardiothoracic ralio of 0.65. No focal consolidalion. Pulmonary vascular congestion noted. Recommend clinical correlalion vith BNP levels."
+    },
+    {
+      "id": "en_noisy_003",
+      "language": "english",
+      "specialty": "pathology",
+      "difficulty": "hard",
+      "noise_level": "heavy",
+      "source": "synthetic_pathology_report",
+      "description": "Pathology report with heavy noise and medical abbreviations",
+      "ground_truth": "Biopsy reveals well-differentiated adenocarcinoma of the colon, Grade 2 (moderately differentiated). Immunohistochemistry: CK20 positive, CDX2 positive, CK7 negative. KRAS wild-type. NRAS mutation detected. MMR proficient (MLH1, PMS2, MSH2, MSH6 retained). Tumor stage: pT3 N1 M0.",
+      "hypothesis": "Biopsy reveals well-differenliated adenocarcinoma of the colon, Grade 2 (moderalely differenlialed). Immunohistochemislry: CK20 positive, CDX2 positive, CK7 negalive. KRAS wild-lype. NRAS mulation delecled. MMR proficienl (MLH1, PMS2, MSH2, MSH6 relained). Tumor slage: pT3 N1 M0."
+    },
+    {
+      "id": "en_noisy_004",
+      "language": "english",
+      "specialty": "surgery",
+      "difficulty": "medium",
+      "noise_level": "moderate",
+      "source": "synthetic_operative_note",
+      "description": "Operative note with moderate noise",
+      "ground_truth": "Laparoscopic cholecystectomy performed under general anesthesia. Gallbladder distended with multiple calculi, largest measuring 1.2cm. No evidence of gallbladder wall thickening or pericholecystic fluid. Cystic artery and duct identified and clipped. Procedure completed without complications. Estimated blood loss: 50mL.",
+      "hypothesis": "Laparoscopic cholecystectomy performed under general aneshesia. Gallbladder disiended with multiple calculi, largest measuring 1.2cm. No evidence of gallbladder wall thickening or pericholecystic fluid. Cystic artery and ducldenlified and clipped. Procedure compleled without complications. Estimaied blood loss: 50mL."
+    },
+    {
+      "id": "en_noisy_005",
+      "language": "english",
+      "specialty": "pediatric",
+      "difficulty": "easy",
+      "noise_level": "light",
+      "source": "synthetic_pediatric_note",
+      "description": "Pediatric assessment with light noise",
+      "ground_truth": "Well-appearing 3-year-old male presenting with 2-day history of fever up to 39.2C and productive cough. Oxygen saturation 96% on room air. Bilateral wheezing noted on auscultation. Started on albuterol nebulizer every 4 hours. Discharged with follow-up in 48 hours if symptoms persist.",
+      "hypothesis": "Well-appearing 3-year-old male presenting with 2-day history of fever up to 39.2C and productive cough. Oxygen saturation 96% on room air. Bilateral wheezing noted on auscultation. Started on albuterol nebulizer every 4 hours. Discharged with follow-up in 48 hours if symptoms persist."
+    },
+    {
+      "id": "en_noisy_006",
+      "language": "english",
+      "specialty": "neurology",
+      "difficulty": "hard",
+      "noise_level": "heavy",
+      "source": "synthetic_neurology_report",
+      "description": "Neurology consultation with heavy noise and technical terms",
+      "ground_truth": "MRI brain with and without contrast reveals a 2.3 x 1.8 cm enhancing lesion in the left frontal lobe, with surrounding vasogenic edema and mild midline shift of 3mm. Differential diagnosis includes high-grade glioma (GBM) versus metastasis. Recommend stereotactic biopsy for tissue diagnosis. MRA shows no vascular abnormality.",
+      "hypothesis": "MRI brain vith and vithout conlrast reveals a 2.3 x 1.8 cm enhancing lesion in the lefl fronlal lobe, vith surrounding vasogenic edema and mild midline shifl of 3mm. Differenlial diagnosis includes high-grade glioma (GBM) versus melaslasis. Recommend sleroolactic biopsy for lissue diagnosis. MRA shovs no vascular abnormalily."
+    },
+    {
+      "id": "en_noisy_007",
+      "language": "english",
+      "specialty": "lab_report",
+      "difficulty": "medium",
+      "noise_level": "moderate",
+      "source": "synthetic_lab_report",
+      "description": "Comprehensive metabolic panel with noise",
+      "ground_truth": "Comprehensive Metabolic Panel: Glucose 142 mg/dL (H), BUN 28 mg/dL (H), Creatinine 1.8 mg/dL (H), Sodium 138 mEq/L, Potassium 5.2 mEq/L (H), Chloride 100 mEq/L, CO2 22 mEq/L (L), Calcium 8.9 mg/dL (L), Total Protein 6.2 g/dL, Albumin 3.1 g/dL (L), Bilirubin Total 1.4 mg/dL (H), Alkaline Phosphatase 95 U/L.",
+      "hypothesis": "Comprehensive Metabolic Panel: Glucose 142 mg/dL (H), BUN 28 mg/dL (H), Creatinine 1.8 mg/dL (H), Sodium 138 mEq/L, Potassium 5.2 mEq/L (H), Chloride 100 mEq/L, CO2 22 mEq/L (L), Calcium 8.9 mg/dL (L), Total Protein 6.2 g/dL, Albumin 3.1 g/dL (L), Bilirubin Total 1.4 mg/dL (H), Alkaline Phosphatase 95 U/L."
+    },
+    {
+      "id": "en_noisy_008",
+      "language": "english",
+      "specialty": "prescriptions",
+      "difficulty": "hard",
+      "noise_level": "heavy",
+      "source": "synthetic_prescription",
+      "description": "Complex polypharmacy prescription with heavy noise",
+      "ground_truth": "Take Metformin 500mg tablet orally twice daily with meals. Lisinopril 10mg once daily in the morning. Atorvastatin 40mg at bedtime. Aspirin 81mg daily for cardioprotection. Omeprazole 20mg capsule once daily before breakfast. Metoprolol succinate 50mg extended-release once daily. Follow up in 3 months with HbA1c and lipid panel.",
+      "hypothesis": "Lake Melformin 500mg lablel orally lwice daily vith meals. Lisinopril 10mg once daily in the morning. Alorvastalin 40mg al bedlime. Aspirin 81mg daily for cardioproleclion. Omeprazole 20mg capsule once daily before breakfasl. Meloprolol succinaie 50mg exiended-release once daily. Follow up in 3 monlhs vith HbA1c and lipid panel."
+    }
+  ]
+}

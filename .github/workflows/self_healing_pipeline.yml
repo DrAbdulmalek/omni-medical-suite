@@ -1,0 +1,97 @@
+name: Self-Healing MLOps Pipeline
+
+on:
+  workflow_run:
+    workflows: ["Nightly Benchmarks"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  threshold-check:
+    runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.check.outputs.decision }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install huggingface_hub
+
+      - name: Download Benchmark Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results
+          path: data/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Run Threshold Checker
+        id: check
+        run: python -m src.threshold.threshold_checker
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          MODEL_PATH: './model'
+          HF_MODEL_REPO: 'DrAbdulmalek/medical-ocr-model'
+
+      - name: Publish Report to Summary
+        if: always()
+        run: |
+          if [ -f threshold_report.md ]; then
+            cat threshold_report.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: threshold-report
+          path: threshold_report.md
+
+      - name: Send Telegram Notification
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            DECISION="${{ steps.check.outputs.decision }}"
+            if [ "$DECISION" = "deploy" ]; then
+              MESSAGE="✅ [Omni-Medical-Suite] Threshold Check PASSED! Model is ready for deployment."
+            else
+              MESSAGE="❌ [Omni-Medical-Suite] Threshold Check FAILED! Auto-triggering retraining pipeline."
+            fi
+            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+              -d "chat_id=$TELEGRAM_CHAT_ID" \
+              -d "text=$MESSAGE" \
+              -d "parse_mode=Markdown" || true
+          fi
+
+      - name: Trigger Retraining Pipeline
+        if: steps.check.outputs.decision == 'retrain'
+        run: |
+          echo "Dispatching retrain event to medical-ocr-training-hub..."
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/DrAbdulmalek/medical-ocr-training-hub/dispatches \
+            -d '{"event_type":"retrain-model","client_payload":{"reason":"threshold_regression","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}}'
+
+      - name: Notify on Deploy Success
+        if: steps.check.outputs.decision == 'deploy'
+        run: |
+          echo "Model deployed successfully to Hugging Face!"
+          echo "omni-medical-suite will automatically use the new model"

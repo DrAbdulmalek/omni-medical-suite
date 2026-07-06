@@ -1,0 +1,11 @@
+{
+  "id": "en_radio_002",
+  "language": "english",
+  "specialty": "radiology",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/english/images/radio_002.png",
+  "source": "synthetic",
+  "description": "MRI brain report with contrast",
+  "ground_truth": "MRI BRAIN WITH AND WITHOUT CONTRAST\n\nDate: 13/01/2024\nPatient: Jennifer Lee  DOB: 14/09/1990  MRN: 882671\nOrdering Physician: Dr. Martinez, Neurology\n\nClinical Indication: Headache, visual disturbance, rule out mass lesion.\n\nTechnique:\nMultiplanar multisequence MRI of the brain was performed prior to and following administration of 15 mL gadolinium contrast.\n\nFindings:\n\nParenchymal:\nNo abnormal signal intensity or enhancement within the brain parenchyma.\nNo mass, mass effect, or midline shift.\nNo diffusion restriction to suggest acute infarct.\nNo susceptibility artifact to suggest hemorrhage.\n\nVentricles:\nNormal size. No hydrocephalus.\n\nExtra-axial Spaces:\nNo extra-axial fluid collection.\n\nSella:\nPituitary gland is normal in size and enhancement.\n\nCerebellopontine Angles:\nNo enhancing mass.\n\nMeninges:\nNo abnormal meningeal enhancement.\n\nVascular:\nMajor intracranial flow voids are preserved.\n\nCalvarium:\nNo calvarial abnormality.\n\nParanasal Sinuses:\nMinimal mucosal thickening in the maxillary sinuses bilaterally.\n\nImpression:\n1. No intracranial mass, hemorrhage, or acute infarct.\n2. Normal MRI brain with contrast.\n3. Incidental finding: Mild bilateral maxillary sinus mucosal thickening.\n\nDr. Patricia Gomez, MD\nNeuroradiology"
+}

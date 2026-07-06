@@ -1,0 +1,100 @@
+{
+  "version": "1.0",
+  "description": "Index of all benchmark test cases for medical OCR evaluation",
+  "description_ar": "فهرس جميع حالات الاختبار لقياس جودة التعرف البصري للوثائق الطبية",
+  "total_cases": 50,
+  "languages": {
+    "english": 20,
+    "arabic": 20,
+    "mixed": 10
+  },
+  "specialties": {
+    "cardiology": 15,
+    "radiology": 13,
+    "prescriptions": 12,
+    "pathology": 6,
+    "surgery_notes": 7,
+    "lab_reports": 6,
+    "discharge": 2
+  },
+  "difficulty": {
+    "easy": 15,
+    "medium": 22,
+    "hard": 13
+  },
+  "noise_levels": {
+    "clean": 15,
+    "light_noise": 18,
+    "moderate_noise": 10,
+    "heavy_noise": 7
+  },
+  "datasets": {
+    "english": [
+      {"id": "en_cardio_001", "specialty": "cardiology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "en_cardio_002", "specialty": "cardiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "en_cardio_003", "specialty": "cardiology", "difficulty": "hard", "noise_level": "moderate_noise"},
+      {"id": "en_cardio_004", "specialty": "cardiology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "en_cardio_005", "specialty": "cardiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "en_cardio_006", "specialty": "cardiology", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "en_radio_001", "specialty": "radiology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "en_radio_002", "specialty": "radiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "en_radio_003", "specialty": "radiology", "difficulty": "hard", "noise_level": "moderate_noise"},
+      {"id": "en_radio_004", "specialty": "radiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "en_radio_005", "specialty": "radiology", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "en_rx_001", "specialty": "prescriptions", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "en_rx_002", "specialty": "prescriptions", "difficulty": "medium", "noise_level": "moderate_noise"},
+      {"id": "en_rx_003", "specialty": "prescriptions", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "en_rx_004", "specialty": "prescriptions", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "en_rx_005", "specialty": "prescriptions", "difficulty": "medium", "noise_level": "moderate_noise"},
+      {"id": "en_path_001", "specialty": "pathology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "en_path_002", "specialty": "pathology", "difficulty": "hard", "noise_level": "moderate_noise"},
+      {"id": "en_path_003", "specialty": "pathology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "en_surg_001", "specialty": "surgery_notes", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "en_surg_002", "specialty": "surgery_notes", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "en_surg_003", "specialty": "surgery_notes", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "en_lab_001", "specialty": "lab_reports", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "en_lab_002", "specialty": "lab_reports", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "en_discharge_001", "specialty": "surgery_notes", "difficulty": "medium", "noise_level": "moderate_noise"}
+    ],
+    "arabic": [
+      {"id": "ar_cardio_001", "specialty": "cardiology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "ar_cardio_002", "specialty": "cardiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "ar_cardio_003", "specialty": "cardiology", "difficulty": "hard", "noise_level": "moderate_noise"},
+      {"id": "ar_cardio_004", "specialty": "cardiology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "ar_cardio_005", "specialty": "cardiology", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "ar_cardio_006", "specialty": "cardiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "ar_radio_001", "specialty": "radiology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "ar_radio_002", "specialty": "radiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "ar_radio_003", "specialty": "radiology", "difficulty": "hard", "noise_level": "moderate_noise"},
+      {"id": "ar_radio_004", "specialty": "radiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "ar_radio_005", "specialty": "radiology", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "ar_rx_001", "specialty": "prescriptions", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "ar_rx_002", "specialty": "prescriptions", "difficulty": "medium", "noise_level": "moderate_noise"},
+      {"id": "ar_rx_003", "specialty": "prescriptions", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "ar_rx_004", "specialty": "prescriptions", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "ar_rx_005", "specialty": "prescriptions", "difficulty": "medium", "noise_level": "moderate_noise"},
+      {"id": "ar_path_001", "specialty": "pathology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "ar_path_002", "specialty": "pathology", "difficulty": "hard", "noise_level": "moderate_noise"},
+      {"id": "ar_surg_001", "specialty": "surgery_notes", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "ar_surg_002", "specialty": "surgery_notes", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "ar_surg_003", "specialty": "surgery_notes", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "ar_lab_001", "specialty": "lab_reports", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "ar_lab_002", "specialty": "lab_reports", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "ar_lab_003", "specialty": "lab_reports", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "ar_discharge_001", "specialty": "surgery_notes", "difficulty": "medium", "noise_level": "moderate_noise"}
+    ],
+    "mixed": [
+      {"id": "mixed_cardio_001", "specialty": "cardiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "mixed_cardio_002", "specialty": "cardiology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "mixed_cardio_003", "specialty": "cardiology", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "mixed_rx_001", "specialty": "prescriptions", "difficulty": "hard", "noise_level": "heavy_noise"},
+      {"id": "mixed_rx_002", "specialty": "prescriptions", "difficulty": "medium", "noise_level": "moderate_noise"},
+      {"id": "mixed_lab_001", "specialty": "lab_reports", "difficulty": "medium", "noise_level": "light_noise"},
+      {"id": "mixed_radio_001", "specialty": "radiology", "difficulty": "hard", "noise_level": "moderate_noise"},
+      {"id": "mixed_radio_002", "specialty": "radiology", "difficulty": "easy", "noise_level": "clean"},
+      {"id": "mixed_surg_001", "specialty": "surgery_notes", "difficulty": "medium", "noise_level": "moderate_noise"},
+      {"id": "mixed_path_001", "specialty": "pathology", "difficulty": "hard", "noise_level": "moderate_noise"},
+      {"id": "mixed_discharge_001", "specialty": "surgery_notes", "difficulty": "hard", "noise_level": "heavy_noise"}
+    ]
+  }
+}

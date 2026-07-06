@@ -1,0 +1,78 @@
+name: Scanner Fixer Benchmark
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:
+    inputs:
+      input_dir:
+        description: 'Input directory with test images'
+        required: false
+        default: 'test-images'
+      reference_file:
+        description: 'JSON file with reference texts'
+        required: false
+        default: 'references.json'
+
+jobs:
+  benchmark:
+    name: Run Scanner Fixer Benchmark
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.11-slim
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install dependencies
+        run: |
+          apt-get update && apt-get install -y             tesseract-ocr             libtesseract-dev             libopencv-dev             python3-opencv
+          pip install --upgrade pip
+          pip install pytesseract pillow numpy pandas
+          
+      - name: Clone scanner-fixer
+        run: |
+          git clone https://github.com/DrAbdulmalek/scanner-fixer.git
+          cd scanner-fixer
+          pip install -e .
+      
+      - name: Download test dataset
+        run: |
+          # Create test directory
+          mkdir -p test-images
+          # In a real scenario, you would download actual test images here
+          # For now, we'll use placeholder
+          echo "Test dataset would be downloaded here" > test-images/placeholder.txt
+      
+      - name: Run benchmark
+        run: |
+          python scanner_fixer_benchmark.py             --input test-images             --output benchmark-results             --format json             --report
+      
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanner-fixer-benchmark-results
+          path: benchmark-results/
+          retention-days: 30
+      
+      - name: Generate summary
+        run: |
+          python -c "
+          import json
+          with open('benchmark-results/benchmark_results.json', 'r') as f:
+              results = json.load(f)
+          summary = results.get('summary', {})
+          print(f'::notice::CER Improvement: {summary.get("avg_cer_improvement", 0):.2%}')
+          print(f'::notice::WER Improvement: {summary.get("avg_wer_improvement", 0):.2%}')
+          print(f'::notice::Medical Terms Improvement: {summary.get("avg_medical_improvement", 0):.2%}')
+          print(f'::notice::Total Images: {summary.get("total_images", 0)}')
+          " >> $GITHUB_STEP_SUMMARY
+      
+      - name: Update dashboard (if available)
+        run: |
+          if [ -f "update_dashboard.py" ]; then
+            python update_dashboard.py benchmark-results/
+          fi

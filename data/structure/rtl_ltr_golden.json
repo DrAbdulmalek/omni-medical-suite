@@ -1,0 +1,123 @@
+{
+  "version": "1.0.0",
+  "description": "Golden dataset for mixed RTL/LTR medical text benchmarks",
+  "cases": [
+    {
+      "id": "rtl_ltr_001",
+      "category": "lab_mixed",
+      "original": "Hemoglobin 12.5 g/dL - هيموغلوبين",
+      "language_ratio": "50ar/50en",
+      "difficulty": "easy",
+      "expected_segments": [
+        {"text": "Hemoglobin", "dir": "ltr"},
+        {"text": "12.5", "dir": "ltr"},
+        {"text": "g/dL", "dir": "ltr"},
+        {"text": "هيموغلوبين", "dir": "rtl"}
+      ]
+    },
+    {
+      "id": "rtl_ltr_002",
+      "category": "prescription_mixed",
+      "original": "الجرعة 500 mg مرتين يومياً before meals",
+      "language_ratio": "60ar/40en",
+      "difficulty": "medium",
+      "expected_segments": [
+        {"text": "الجرعة", "dir": "rtl"},
+        {"text": "500", "dir": "ltr"},
+        {"text": "mg", "dir": "ltr"},
+        {"text": "مرتين يومياً", "dir": "rtl"},
+        {"text": "before meals", "dir": "ltr"}
+      ]
+    },
+    {
+      "id": "rtl_ltr_003",
+      "category": "diagnosis_mixed",
+      "original": "التشخيص: Type 2 Diabetes Mellitus - السكري النوع الثاني",
+      "language_ratio": "55ar/45en",
+      "difficulty": "medium",
+      "expected_segments": [
+        {"text": "التشخيص:", "dir": "rtl"},
+        {"text": "Type 2 Diabetes Mellitus", "dir": "ltr"},
+        {"text": "السكري النوع الثاني", "dir": "rtl"}
+      ]
+    },
+    {
+      "id": "rtl_ltr_004",
+      "category": "vitals_mixed",
+      "original": "BP 120/80 mmHg - ضغط الدم 120/80 - HR 72 bpm",
+      "language_ratio": "30ar/70en",
+      "difficulty": "easy",
+      "expected_segments": [
+        {"text": "BP", "dir": "ltr"},
+        {"text": "120/80", "dir": "ltr"},
+        {"text": "mmHg", "dir": "ltr"},
+        {"text": "ضغط الدم", "dir": "rtl"},
+        {"text": "120/80", "dir": "ltr"},
+        {"text": "HR", "dir": "ltr"},
+        {"text": "72", "dir": "ltr"},
+        {"text": "bpm", "dir": "ltr"}
+      ]
+    },
+    {
+      "id": "rtl_ltr_005",
+      "category": "surgical_mixed",
+      "original": "عملية ACL Reconstruction - ترميم الرباط الصليبي الأمامي using arthroscopy",
+      "language_ratio": "50ar/50en",
+      "difficulty": "hard",
+      "expected_segments": [
+        {"text": "عملية", "dir": "rtl"},
+        {"text": "ACL Reconstruction", "dir": "ltr"},
+        {"text": "ترميم الرباط الصليبي الأمامي", "dir": "rtl"},
+        {"text": "using arthroscopy", "dir": "ltr"}
+      ]
+    },
+    {
+      "id": "rtl_ltr_006",
+      "category": "units_mixed",
+      "original": "الطول 175 cm والوزن 85 kg - BMI 27.8 kg/m2",
+      "language_ratio": "40ar/60en",
+      "difficulty": "easy",
+      "expected_segments": [
+        {"text": "الطول", "dir": "rtl"},
+        {"text": "175", "dir": "ltr"},
+        {"text": "cm", "dir": "ltr"},
+        {"text": "والوزن", "dir": "rtl"},
+        {"text": "85", "dir": "ltr"},
+        {"text": "kg", "dir": "ltr"},
+        {"text": "BMI", "dir": "ltr"},
+        {"text": "27.8", "dir": "ltr"},
+        {"text": "kg/m2", "dir": "ltr"}
+      ]
+    },
+    {
+      "id": "rtl_ltr_007",
+      "category": "medication_ar_en",
+      "original": "Metformin 500 mg - ميتفورمين 500 ملغ - الصيدلية: Al-Noor Pharmacy",
+      "language_ratio": "45ar/55en",
+      "difficulty": "hard",
+      "expected_segments": [
+        {"text": "Metformin", "dir": "ltr"},
+        {"text": "500", "dir": "ltr"},
+        {"text": "mg", "dir": "ltr"},
+        {"text": "ميتفورمين", "dir": "rtl"},
+        {"text": "500", "dir": "ltr"},
+        {"text": "ملغ", "dir": "rtl"},
+        {"text": "الصيدلية:", "dir": "rtl"},
+        {"text": "Al-Noor Pharmacy", "dir": "ltr"}
+      ]
+    },
+    {
+      "id": "rtl_ltr_008",
+      "category": "report_header",
+      "original": "King Fahad Medical City - مدينة الملك فهد الطبية | Radiology Report - تقرير الأشعة",
+      "language_ratio": "50ar/50en",
+      "difficulty": "medium",
+      "expected_segments": [
+        {"text": "King Fahad Medical City", "dir": "ltr"},
+        {"text": "مدينة الملك فهد الطبية", "dir": "rtl"},
+        {"text": "Radiology Report", "dir": "ltr"},
+        {"text": "تقرير الأشعة", "dir": "rtl"}
+      ]
+    }
+  ]
+}

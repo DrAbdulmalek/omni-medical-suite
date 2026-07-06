@@ -1,0 +1,11 @@
+{
+  "id": "en_surg_003",
+  "language": "english",
+  "specialty": "surgery_notes",
+  "difficulty": "easy",
+  "noise_level": "clean",
+  "image_path": "data/english/images/surg_003.png",
+  "source": "synthetic",
+  "description": "Pre-operative assessment form",
+  "ground_truth": "PRE-OPERATIVE ASSESSMENT\n\nPatient: Dorothy Adams  DOB: 09/01/1948\nMRN: 223456\nScheduled Procedure: Total knee arthroplasty, right\nDate of Surgery: 25/01/2024\nSurgeon: Dr. Anderson, Orthopedics\n\nAmerican Society of Anesthesiologists (ASA) Classification: III\n\nMedical History:\n1. Osteoarthritis, right knee (primary indication)\n2. Hypertension - controlled on Lisinopril\n3. Type 2 Diabetes Mellitus - controlled on Metformin\n4. Hyperlipidemia\n5. BMI: 32 (obese)\n\nMedications:\n- Lisinopril 20mg daily\n- Metformin 1000mg twice daily\n- Atorvastatin 40mg daily\n- Metoprolol 25mg twice daily\n\nAllergies: Penicillin (rash)\n\nPre-operative Labs: CBC, CMP, PT/INR, type and screen - ordered\nPre-operative ECG: Ordered\nChest X-ray: Not indicated\n\nAnesthesia Plan: Spinal anesthesia with sedation\n\nRisk Assessment:\nDVT Prophylaxis: Sequential compression devices + Enoxaparin\nAntibiotic Prophylaxis: Cefazolin 2g IV within 1 hour of incision\n\nNotes: Hold Metformin 24h prior to surgery. Hold Lisinopril morning of surgery.\n\nDr. Anderson, MD\nReviewed: 23/01/2024"
+}

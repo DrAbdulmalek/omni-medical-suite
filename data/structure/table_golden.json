@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "description": "Golden dataset for table extraction benchmarks in medical documents",
+  "tables": [
+    {
+      "id": "lab_report_001",
+      "type": "lab_report",
+      "language": "english",
+      "rows": [
+        ["Test Name", "Value", "Unit", "Reference Range"],
+        ["Hemoglobin", "12.5", "g/dL", "13.5-17.5"],
+        ["WBC", "7500", "cells/uL", "4500-11000"],
+        ["Platelets", "250000", "cells/uL", "150000-400000"],
+        ["Glucose (Fasting)", "95", "mg/dL", "70-100"],
+        ["Creatinine", "0.9", "mg/dL", "0.7-1.3"],
+        ["TSH", "2.5", "mIU/L", "0.4-4.0"]
+      ]
+    },
+    {
+      "id": "arabic_lab_001",
+      "type": "lab_report",
+      "language": "arabic",
+      "rows": [
+        ["اسم التحليل", "القيمة", "الوحدة", "المعدل الطبيعي"],
+        ["هيموغلوبين", "11.8", "g/dL", "12.0-15.5"],
+        ["كريات الدم البيضاء", "6800", "خلية/ميكرولتر", "4500-11000"],
+        ["صفيحات الدم", "220000", "خلية/ميكرولتر", "150000-400000"],
+        ["سكر الدم", "110", "mg/dL", "70-100"]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "mixed_cardio_002",
+  "language": "mixed",
+  "specialty": "cardiology",
+  "difficulty": "easy",
+  "noise_level": "clean",
+  "image_path": "data/mixed/images/mixed_cardio_002.png",
+  "source": "synthetic",
+  "description": "Bilingual echocardiogram report - structured bilingual format",
+  "ground_truth": "ECHOCARDIOGRAM REPORT / تقرير صدى القلب\n\nPatient / المريض: Hassan Al-Otaibi / حسن العتيبي\nDOB / تاريخ الميلاد: 1952/11/30\nDate of Study / تاريخ الفحص: 2024/01/14\n\nLeft Ventricle / البطين الأيسر:\n  LVEDD: 5.2 cm (dilated / متسع)\n  LVESD: 3.8 cm\n  LVEF: 45% (reduced / منخفض)\n  Regional wall motion: Hypokinesia of anterior and lateral walls\n  حركة جدارية: نقص حركة الجدران الأمامية والجانبية\n\nLeft Atrium / الأذين الأيسر: 4.2 cm (enlarged / متسع)\nRight Ventricle / البطين الأيمن: Normal / طبيعي\n\nValves / الصمامات:\n  Mitral / التاجي: Moderate functional MR / ارتجاع تاجي وظيفي متوسط\n  Aortic / الأبهري: Trileaflet, no stenosis / ثلاثي الشرفات، لا تضيق\n  Tricuspid / ثلاثي: Mild TR / ارتجاع ثلاثي خفيف\n  Pulmonic / الرئوي: Normal / طبيعي\n\nDoppler / الدوبلر:\n  E/A ratio: 0.8 (grade I diastolic dysfunction)\n  انقباض انبساطي درجة أولى\n  TR velocity: 2.8 m/s (estimated PASP 42 mmHg)\n\nConclusions / النتائج:\n1. Reduced LV systolic function (LVEF 45%) / ضعف وظيفة انقباضية\n2. LV dilation / اتساع البطين الأيسر\n3. Moderate functional mitral regurgitation / ارتجاع تاجي وظيفي متوسط\n4. Grade I diastolic dysfunction / خلل وظيفي انبساطي درجة أولى\n5. Possible pulmonary hypertension / احتمال ارتفاع ضغط رئوي\n\nRecommendation / التوصية:\nConsider cardiac MRI for further evaluation.\nالنظر في رنين مغناطيسي للقلب.\n\nDr. Karen Lee, FASE / د. كارن لي"
+}

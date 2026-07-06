@@ -1,0 +1,11 @@
+{
+  "id": "en_lab_002",
+  "language": "english",
+  "specialty": "lab_reports",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/english/images/lab_002.png",
+  "source": "synthetic",
+  "description": "Complete blood count with differential",
+  "ground_truth": "HEMATOLOGY LABORATORY REPORT\n\nPatient: Nancy Thompson  DOB: 23/04/1988\nMRN: 445678\nOrdering: Dr. Roberts\nDate Collected: 19/01/2024 07:45\nDate Reported: 19/01/2024 09:12\nSpecimen: EDTA whole blood\n\nCOMPLETE BLOOD COUNT WITH DIFFERENTIAL\n\nTest                         Result    Ref Range   Flag\nWBC                         12.3 x10^3/uL  4.5-11.0    H\nRBC                          4.85 x10^6/uL  4.0-5.2\nHemoglobin                  13.2 g/dL     12.0-16.0\nHematocrit                  39.8 %        36.0-46.0\nMCV                           82.1 fL      80-100\nMCH                           27.2 pg      27-33\nMCHC                          33.2 g/dL    32-36\nRDW                           12.5 %        11.5-14.5\nPlatelets                   245 x10^3/uL   150-400\nMPV                            8.2 fL       6.0-10.0\n\nDIFFERENTIAL\nNeutrophils %                78 %        40-70        H\nNeutrophils #               9.6 x10^3/uL  1.8-7.7      H\nLymphocytes %                16 %        20-45        L\nLymphocytes #              2.0 x10^3/uL  0.8-4.4\nMonocytes %                   4 %          2-10\nMonocytes #               0.49 x10^3/uL  0.1-0.9\nEosinophils %                 1 %          0-6\nEosinophils #              0.12 x10^3/uL  0.0-0.5\nBasophils %                   1 %          0-2\nBasophils #               0.12 x10^3/uL  0.0-0.2\n\nComment: Leukocytosis with neutrophilia. Suggest clinical correlation\nfor possible infection or inflammation.\n\nTechnologist: R. Martinez, MT(ASCP)"
+}

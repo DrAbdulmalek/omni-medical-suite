@@ -1,0 +1,11 @@
+{
+  "id": "en_surg_001",
+  "language": "english",
+  "specialty": "surgery_notes",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/english/images/surg_001.png",
+  "source": "synthetic",
+  "description": "Operative report - laparoscopic cholecystectomy",
+  "ground_truth": "OPERATIVE REPORT\n\nPatient: Linda Martinez  DOB: 07/06/1970\nMRN: 556789\nDate: 22/01/2024\nSurgeon: Dr. William Harris, MD, FACS\nAssistant: Dr. P. Singh\nAnesthesia: General (endotracheal)\n\nPreoperative Diagnosis: Symptomatic cholelithiasis\nPostoperative Diagnosis: Same\n\nProcedure: Laparoscopic cholecystectomy\n\nIndications: Recurrent biliary colic. Ultrasound showed multiple\ngallstones. Patient failed conservative management.\n\nDescription of Procedure:\nThe patient was placed supine and general anesthesia was induced.\nThe abdomen was prepped and draped in standard sterile fashion.\n\nA Veress needle was inserted at the umbilicus and pneumoperitoneum\nwas established to 15 mmHg. A 10mm trocar was placed at the\numbilicus and the laparoscope was inserted, revealing a distended\ngallbladder with multiple stones visible through the wall.\n\nTwo additional 5mm trocars were placed in the right upper quadrant.\nThe fundus was retracted superiorly. The infundibulum was identified\nand dissected free. The cystic artery and cystic duct were\nclipped with three clips each and divided.\n\nThe gallbladder was dissected from the liver bed using hook\nelectrocautery. Hemostasis was achieved. The specimen was placed\nin an endoscopic retrieval bag and extracted through the umbilical\nport.\n\nThe abdomen was desufflated. Ports were removed under direct\nvisualization. Fascia at the umbilical site was closed with 0-Vicryl.\nSkin closed with subcuticular 4-0 Monocryl. Sterile dressings applied.\n\nEstimated Blood Loss: 25 mL\nSpecimens: Gallbladder with stones (pathology)\nDrains: None\n\nDr. William Harris, MD, FACS\nDictated: 22/01/2024"
+}

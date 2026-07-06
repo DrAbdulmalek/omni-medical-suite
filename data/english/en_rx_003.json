@@ -1,0 +1,11 @@
+{
+  "id": "en_rx_003",
+  "language": "english",
+  "specialty": "prescriptions",
+  "difficulty": "hard",
+  "noise_level": "heavy_noise",
+  "image_path": "data/english/images/rx_003.png",
+  "source": "synthetic",
+  "description": "Controlled substance prescription - handwritten",
+  "ground_truth": "Dr. Michael Torres, MD\nPain Management\n789 Healthcare Blvd\nPhone: (555) 111-2222\nNPI: 9876543210\nDEA: AT7891234\n\nRx - C-II\nDate: 20/01/2024\nPatient: James Wilson  DOB: 20/09/1972\nAddress: 321 Pine Street, Apt 5B\n\nOxycodone 5mg tablets\nSig: Take one tablet every 6 hours as needed for severe pain.\nNot to exceed 4 tablets in 24 hours.\nDisp: 60 tablets\nRefills: 0\n\nDiagnosis: Chronic lower back pain, lumbar radiculopathy\n\nState ID: XX1234567\nPharmacy: City Pharmacy, 555 Main Street\n\nDr. Michael Torres, MD\nSignature: _________________________\nDate Written: 20/01/2024"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "mixed_surg_001",
+  "language": "mixed",
+  "specialty": "surgery_notes",
+  "difficulty": "medium",
+  "noise_level": "moderate_noise",
+  "image_path": "data/mixed/images/mixed_surg_001.png",
+  "source": "synthetic",
+  "description": "Bilingual operative report - Arabic consent form, English procedure note",
+  "ground_truth": "OPERATIVE REPORT / تقرير العمليات\n\nPatient / المريض: Khaled Al-Mansour / خالد المنصور\nDOB / تاريخ الميلاد: 1970/09/18\nMRN / رقم الملف: 667890\nDate / التاريخ: 2024/01/22\nSurgeon / الجراح: Dr. William Harris, MD\n\nInformed Consent / موافقة مستنيرة:\nالإجراء: استئصال المرارة بالمنظار / Laparoscopic Cholecystectomy\nتم شرح المخاطر والفوائد والبدائل بالتفصيل للمريض.\nالموافقة: الموافق / Patient consented\nالتوقيع: _______________\n\nPre-op Dx / التشخيص قبل العملية:\nSymptomatic cholelithiasis / حصوات المرارة مع أعراض\n\nPost-op Dx / التشخيص بعد العملية: Same / نفس التشخيص\n\nProcedure / العملية:\nLaparoscopic cholecystectomy performed under general anesthesia.\nتم إجراء استئصال المرارة بالمنظار تحت التخدير العام.\n\nFindings / النتائج:\n- Gallbladder distended with multiple pigmented stones\n  المرارة منتفخة مع حصوات صبغية متعددة\n- No evidence of gangrene or perforation\n  لا يوجد دليل على غرغرينا أو انثقاب\n- Cystic duct and artery identified and clipped\n  تم تحديد القناة والشريان الكيسي وربطهما\n- Specimen sent to pathology\n  تم إرسال العينة لعلم الأمراض\n\nEBL / فقدان الدم: 20 mL\nComplications / المضاعفات: None / لا يوجد\n\nDischarge Plan / خطة الخروج:\nDischarge same day / خروج في نفس اليوم\nFollow-up in 7 days / متابعة بعد ٧ أيام\nDiet: Low fat diet / نظام غذائي قليل الدسم\n\nDr. William Harris, MD / د. وليام هاريس"
+}

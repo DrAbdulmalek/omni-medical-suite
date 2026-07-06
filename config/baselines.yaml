@@ -1,0 +1,191 @@
+# Baseline Snapshots — medical-ocr-benchmarks
+# اللقطات المرجعية — معايير تقييم OCR للوثائق الطبية
+#
+# These are the baseline metric values for each engine.
+# CI compares current results against these baselines.
+# يتم مقارنة النتائج الحالية مع هذه اللقطات المرجعية في نظام CI.
+
+# Baseline date: 2024-01-15
+# تاريخ المرجعية: ١٥ يناير ٢٠٢٤
+
+version: "1.0"
+date: "2024-01-15"
+commit: "initial"
+
+engines:
+  paddleocr:
+    overall:
+      cer: 0.105
+      wer: 0.195
+      medical_accuracy: 0.843
+      latency_avg: 12.3
+      throughput: 1.2
+    english:
+      cer: 0.082
+      wer: 0.155
+      medical_accuracy: 0.891
+    arabic:
+      cer: 0.128
+      wer: 0.235
+      medical_accuracy: 0.795
+    mixed:
+      cer: 0.145
+      wer: 0.268
+      medical_accuracy: 0.760
+
+  tesseract:
+    overall:
+      cer: 0.155
+      wer: 0.275
+      medical_accuracy: 0.768
+      latency_avg: 6.1
+      throughput: 2.5
+    english:
+      cer: 0.122
+      wer: 0.220
+      medical_accuracy: 0.820
+    arabic:
+      cer: 0.198
+      wer: 0.340
+      medical_accuracy: 0.715
+    mixed:
+      cer: 0.210
+      wer: 0.365
+      medical_accuracy: 0.690
+
+  easyocr:
+    overall:
+      cer: 0.130
+      wer: 0.240
+      medical_accuracy: 0.812
+      latency_avg: 18.5
+      throughput: 0.6
+    english:
+      cer: 0.105
+      wer: 0.195
+      medical_accuracy: 0.855
+    arabic:
+      cer: 0.155
+      wer: 0.285
+      medical_accuracy: 0.770
+    mixed:
+      cer: 0.170
+      wer: 0.310
+      medical_accuracy: 0.740
+
+  trocr:
+    overall:
+      cer: 0.085
+      wer: 0.155
+      medical_accuracy: 0.892
+      latency_avg: 22.1
+      throughput: 0.35
+    english:
+      cer: 0.068
+      wer: 0.128
+      medical_accuracy: 0.925
+    arabic:
+      cer: 0.102
+      wer: 0.185
+      medical_accuracy: 0.860
+    mixed:
+      cer: 0.120
+      wer: 0.210
+      medical_accuracy: 0.830
+
+  surya:
+    overall:
+      cer: 0.095
+      wer: 0.175
+      medical_accuracy: 0.870
+      latency_avg: 19.8
+      throughput: 0.45
+    english:
+      cer: 0.075
+      wer: 0.142
+      medical_accuracy: 0.905
+    arabic:
+      cer: 0.118
+      wer: 0.210
+      medical_accuracy: 0.835
+    mixed:
+      cer: 0.135
+      wer: 0.245
+      medical_accuracy: 0.800
+
+# Per-specialty baselines (paddleocr as reference)
+specialties:
+  cardiology:
+    cer: 0.095
+    wer: 0.180
+    medical_accuracy: 0.860
+  radiology:
+    cer: 0.110
+    wer: 0.200
+    medical_accuracy: 0.840
+  prescriptions:
+    cer: 0.130
+    wer: 0.230
+    medical_accuracy: 0.810
+  pathology:
+    cer: 0.100
+    wer: 0.190
+    medical_accuracy: 0.850
+  surgery_notes:
+    cer: 0.120
+    wer: 0.215
+    medical_accuracy: 0.830
+  lab_reports:
+    cer: 0.090
+    wer: 0.165
+    medical_accuracy: 0.875
+
+# Table Extraction Baselines (2026-06-11)
+table_extraction:
+  overall:
+    avg_cell_accuracy: 0.92
+    avg_row_completeness: 0.88
+    header_preservation_rate: 0.95
+    structure_preservation_rate: 0.85
+  by_type:
+    lab_report:
+      avg_cell_accuracy: 0.95
+      avg_row_completeness: 0.92
+    prescription:
+      avg_cell_accuracy: 0.90
+      avg_row_completeness: 0.85
+    vital_signs:
+      avg_cell_accuracy: 0.93
+      avg_row_completeness: 0.90
+
+# Mixed RTL/LTR Baselines (2026-06-11)
+rtl_ltr:
+  overall:
+    avg_cer: 0.065
+    total_direction_errors: 1
+    avg_segment_accuracy: 0.90
+    avg_numeric_preservation: 0.97
+  by_difficulty:
+    easy:
+      avg_cer: 0.03
+    medium:
+      avg_cer: 0.07
+    hard:
+      avg_cer: 0.12
+  by_category:
+    lab_mixed:
+      avg_cer: 0.05
+    prescription_mixed:
+      avg_cer: 0.08
+    diagnosis_mixed:
+      avg_cer: 0.06
+    vitals_mixed:
+      avg_cer: 0.04
+    surgical_mixed:
+      avg_cer: 0.10
+    units_mixed:
+      avg_cer: 0.03
+    medication_ar_en:
+      avg_cer: 0.11
+    report_header:
+      avg_cer: 0.07

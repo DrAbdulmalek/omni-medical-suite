@@ -1,0 +1,11 @@
+{
+  "id": "en_path_003",
+  "language": "english",
+  "specialty": "pathology",
+  "difficulty": "easy",
+  "noise_level": "clean",
+  "image_path": "data/english/images/path_003.png",
+  "source": "synthetic",
+  "description": "Clinical pathology - urine analysis",
+  "ground_truth": "CLINICAL PATHOLOGY - URINALYSIS REPORT\n\nPatient: Brian Campbell  DOB: 17/11/1992\nMRN: 112345\nOrdering: Dr. Nelson, Nephrology\nDate Collected: 20/01/2024 09:00\nDate Reported: 20/01/2024 09:45\nSpecimen: Clean-catch midstream urine\n\nURINALYSIS, AUTOMATED WITH MICROSCOPIC\n\nPhysical Characteristics:\nColor: Yellow         Clarity: Clear\nSpecific Gravity: 1.018  pH: 6.0\n\nChemical Analysis (Dipstick):\nProtein:          Negative\nGlucose:          Negative\nKetones:          Negative\nBilirubin:        Negative\nBlood:            Negative\nNitrite:          Negative\nUrobilinogen:     Normal\nLeukocyte Esterase: Negative\n\nMicroscopic:\nWBC:     0-2/HPF\nRBC:     0-1/HPF\nSquamous Epithelial Cells: Occasionally\nBacteria: None\nCasts: None\nCrystals: None\n\nImpression: Normal urinalysis.\n\nReported by: Automated, verified by M. Brown, MT(ASCP)"
+}

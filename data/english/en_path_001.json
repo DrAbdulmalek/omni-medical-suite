@@ -1,0 +1,11 @@
+{
+  "id": "en_path_001",
+  "language": "english",
+  "specialty": "pathology",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/english/images/path_001.png",
+  "source": "synthetic",
+  "description": "Surgical pathology report - skin biopsy",
+  "ground_truth": "SURGICAL PATHOLOGY REPORT\n\nAccession: S24-01156\nDate Received: 16/01/2024\nDate Reported: 18/01/2024\n\nPatient: Susan Mitchell  DOB: 19/02/1968\nMRN: 442356\nClinician: Dr. Park, Dermatology\nSpecimen: Skin biopsy, left forearm\nClinical Diagnosis: Suspicious pigmented lesion\n\nGross Description:\nReceived in formalin is a single 0.8 x 0.5 x 0.3 cm skin ellipse\nwith a central brown-black macule measuring 0.4 cm. Inked margins.\n\nMicroscopic Description:\nSections show skin with a proliferation of atypical melanocytes\nat the dermal-epidermal junction and in the superficial dermis.\nThe lesion demonstrates architectural atypia with irregular nests\nand single cells at periphery. Cytologic atypia is present.\nNo ulceration identified.\nMitotic rate: 0/mm2\nNo lymphovascular invasion.\nNo regression.\nMargins: Inked peripheral and deep margins are clear.\nBreslow thickness: 0.5 mm\nClark level: III\n\nDiagnosis:\nLeft forearm, skin biopsy:\n- Malignant melanoma, invasive\n  Breslow thickness: 0.5 mm\n  Clark level: III\n  No ulceration\n  Mitotic rate: 0/mm2\n  Margins clear\n\nDr. Helen Ross, MD\nBoard Certified Anatomic Pathology & Dermatopathology"
+}

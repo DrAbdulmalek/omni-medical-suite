@@ -1,0 +1,11 @@
+{
+  "id": "en_discharge_001",
+  "language": "english",
+  "specialty": "surgery_notes",
+  "difficulty": "medium",
+  "noise_level": "moderate_noise",
+  "image_path": "data/english/images/discharge_001.png",
+  "source": "synthetic",
+  "description": "Discharge summary - pneumonia admission",
+  "ground_truth": "DISCHARGE SUMMARY\n\nPatient: Paul Robinson  DOB: 13/07/1959\nMRN: 445678\nAdmission Date: 15/01/2024\nDischarge Date: 20/01/2024\nAttending: Dr. Kenneth Brown, MD, FACP\n\nAdmission Diagnosis:\nCommunity-acquired pneumonia, right lower lobe\n\nDischarge Diagnosis:\n1. Community-acquired pneumonia, resolving\n2. Type 2 Diabetes Mellitus\n3. Essential hypertension\n\nHospital Course:\n58-year-old male admitted with fever (102.4F), productive cough,\nand right pleuritic chest pain of 3 days duration. CXR on admission\nshowed right lower lobe consolidation. Started on IV Ceftriaxone\nand Azithromycin. Blood cultures negative. Sputum culture grew S.\npneumoniae, sensitive to Ceftriaxone. Fever resolved by day 3.\nTransitioned to oral Amoxicillin-Clavulanate on day 4. Clinically\nimproved and discharged home.\n\nDischarge Medications:\n1. Amoxicillin-Clavulanate 875/125mg - take one tablet BID x 7 days\n2. Metformin 500mg - resume one tablet twice daily\n4. Lisinopril 10mg - resume once daily\n\nFollow-up:\n- Primary care in 7 days\n- CXR in 6 weeks to confirm resolution\n\nDr. Kenneth Brown, MD, FACP\nDictated: 20/01/2024"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "mixed_radio_002",
+  "language": "mixed",
+  "specialty": "radiology",
+  "difficulty": "easy",
+  "noise_level": "clean",
+  "image_path": "data/mixed/images/mixed_radio_002.png",
+  "source": "synthetic",
+  "description": "Bilingual chest X-ray - standard Arabic hospital format",
+  "ground_truth": "X-RAY REPORT / تقرير الأشعة\n\nPatient / المريض: Abdullah Al-Salam / عبدالله السلام\nMRN / رقم الملف: 334567\nExam / الفحص: Chest PA + Lateral / صورة صدر أمامية وجانبية\nDate / التاريخ: 2024/01/11\n\nTechnique / التقنية:\nPA and lateral chest radiograph obtained.\nتم الحصول على صورة صدر أمامية وجانبية.\n\nFindings / النتائج:\n\nPA View / المنظور الأمامي:\n- Heart size is normal / حجم القلب طبيعي\n- Mediastinum unremarkable / الظل المنصفي بدون ملاحظات\n- Lungs are clear bilaterally / الرئتان صافيتان ثنائياً\n- No pleural effusion / لا يوجد انصباب جنبي\n- No pneumothorax / لا يوجد استرواح صدر\n- No focal consolidation / لا يوجد تليف بؤري\n- Osseous structures intact / العظام سليمة\n\nLateral View / المنظور الجانبي:\n- Clear retrosternal space / مساحة خلف sternum صافية\n- No lower lobe consolidation / لا يوجد تليف في الفص السفلي\n\nImpression / التأثير:\nNormal chest radiograph / صورة صدر طبيعية\nNo acute cardiopulmonary abnormality / لا يوجد مرض قلبي رئوي حاد\n\nComparison / المقارنة: Prior CXR 2023/06/15 - no significant change\n\nDr. James Wilson, MD / د. جيمس ويلسون\nRadiology / قسم الأشعة"
+}

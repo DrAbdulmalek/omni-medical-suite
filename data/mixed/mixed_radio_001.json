@@ -1,0 +1,11 @@
+{
+  "id": "mixed_radio_001",
+  "language": "mixed",
+  "specialty": "radiology",
+  "difficulty": "hard",
+  "noise_level": "moderate_noise",
+  "image_path": "data/mixed/images/mixed_radio_001.png",
+  "source": "synthetic",
+  "description": "Bilingual radiology report - Arabic findings, English impression",
+  "ground_truth": "CT CHEST WITH CONTRAST / مقطعي صدر مع صبغة\n\nPatient / المريض: Layla Al-Harbi / ليلى الحربي\nDOB / تاريخ الميلاد: 1985/12/03\nMRN / رقم الملف: 889012\nDate / التاريخ: 2024/01/12\nReferring / المحيل: Dr. Al-Zahrani, Pulmonology\nIndication / الدليل: Chronic cough, rule out pulmonary embolism\nسعال مزمن، استبعاد انصمام رئوي\n\nTechnique / التقنية:\nCT angiography of the chest with IV contrast.\nمقطعي وعائي للصدر مع صبغة وريدية.\n\nFindings / النتائج:\n\nLungs / الرئتان:\nNo pulmonary embolism. Main pulmonary arteries are patent.\nلا يوجد انصمام رئوي. الشرايين الرئوية الرئيسية سالكة.\n\nBilateral lower lobe ground-glass opacities noted.\nتم ملاحظة تعتيم زجاجي ثنائي الجانب في الفصوص السفلية.\nNo consolidation, pleural effusion, or pneumothorax.\nلا يوجد تليف أو انصباب جنبي أو استرواح صدر.\n\nHeart / القلب:\nHeart size is normal. No pericardial effusion.\nحجم القلب طبيعي. لا يوجد انصباب تاموري.\n\nLymph Nodes / العقد الليمفاوية:\nNo pathologic mediastinal or hilar lymphadenopathy.\nلا يوجد تضخم ليمفاوي مرضي.\n\nImpression / التأثير:\n1. No pulmonary embolism / لا يوجد انصمام رئوي\n2. Bilateral GGOs - likely infectious or inflammatory\n   تعتيم زجاجي ثنائي الجانب - على الأرجح التهابي\n3. Recommend clinical correlation and possible follow-up CT\n   يوصى بالربط السريري وربما مقطعي متابعة\n\nDr. Khalid Al-Ghamdi, MD / د. خالد الغامدي\nRadiology / الأشعة التشخيصية"
+}

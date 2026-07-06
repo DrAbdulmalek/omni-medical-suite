@@ -1,0 +1,62 @@
+{
+  "name": "noisy_clinical_mixed",
+  "version": "1.0.0",
+  "description": "Mixed Arabic/English clinical text with OCR noise",
+  "test_cases": [
+    {
+      "id": "mixed_noisy_001",
+      "language": "mixed",
+      "specialty": "cardiology",
+      "difficulty": "hard",
+      "noise_level": "heavy",
+      "source": "synthetic_mixed_report",
+      "description": "Mixed Arabic/English cardiology report",
+      "ground_truth": "التشخيص: Acute Coronary Syndrome - متلازمة إكليلية حادة. ECG: ST elevation في V2-V4. Troponin: 8.5 ng/mL (مرتفع). العلاج: إعطاء Aspirin 300mg فموياً، Clopidogrel 600mg loading dose، Heparin IV. تحويل لقسم العناية المركزة Coronary Care Unit لإجراء قسطرة قلبية عاجلة.",
+      "hypothesis": "التشخيص: Acule Coronary Syndrome - متلازمة اكليلية حادة. ECG: ST elevalion في V2-V4. Troponin: 8.5 ng/mL (مرتفع). العلاج: اعطاء Aspirin 300mg فمويا، Clopidogrel 600mg loading dose، Heparin IV. تحويل لقسم العناية المركزة Coronary Care Unit لاجراء قسطرة قلبية عاجلة."
+    },
+    {
+      "id": "mixed_noisy_002",
+      "language": "mixed",
+      "specialty": "laboratory",
+      "difficulty": "medium",
+      "noise_level": "moderate",
+      "source": "synthetic_mixed_lab",
+      "description": "Mixed Arabic/English lab report header",
+      "ground_truth": "King Fahad Medical City — مدينة الملك فهد الطبية\nLab Report — تقرير المختبر\nPatient ID: -----\nHbA1c: 8.2% (High) — السكري التراكمي مرتفع\nLDL: 165 mg/dL (High) — الكوليسترول الضار مرتفع\nTSH: 3.8 mIU/L (Normal) — هرمون الدرقية طبيعي",
+      "hypothesis": "King Fahad Medical Cily — مدينة الملك فهد الطبية\nLab Reporl — تقرير المختبر\nPalielll ID: -----\nHbA1c: 8.2% (High) — السكري التراكمي مرتفع\nLDL: 165 mg/dL (High) — الكوليسترول الضار مرتفع\nTSH: 3.8 mIU/L (Normal) — هرمون الدرقية طبيعي"
+    },
+    {
+      "id": "mixed_noisy_003",
+      "language": "mixed",
+      "specialty": "surgery",
+      "difficulty": "hard",
+      "noise_level": "heavy",
+      "source": "synthetic_mixed operative",
+      "description": "Mixed Arabic/English operative note",
+      "ground_truth": "عملية: Laparoscopic Appendectomy — استئصال الزائدة الدودية بالمنظار. المريض: أنثى عمرها 28 سنة. التخدير: General Anesthesia. النتيجة: Appendicitis acuta — التهاب الزائدة الحاد. المضاعفات: لا يوجد. تعليمات ما بعد العملية: صيام 6 ساعات ثم السوائل الخفيفة، مسكن Paracetamol 500mg كل 6 ساعات، مراجعة العيادة بعد أسبوع.",
+      "hypothesis": "عملية: Laparoscopic Appendeclemy — استئصال الزائدة الدودية بالمنظار. المريض: انثى عمرها 28 سنة. التخدير: General Aneshesia. النتيجة: Appendicilis acula — التهاب الزائدة الحاد. المضاعفات: لا يوجد. تعليمات ما بعد العملية: صيام 6 ساعات ثم السوائل الخفيفة، مسكن Paracelamol 500mg كل 6 ساعات، مراجعة العيادة بعد اسبوع."
+    },
+    {
+      "id": "mixed_noisy_004",
+      "language": "mixed",
+      "specialty": "prescriptions",
+      "difficulty": "medium",
+      "noise_level": "moderate",
+      "source": "synthetic_mixed_prescription",
+      "description": "Mixed Arabic/English prescription",
+      "ground_truth": "الاسم: -----\nالتاريخ: 2026-01-15\n\n1. Amoxicillin-Clavulanate 875/125 mg — قرص مرتين يومياً لمدة 7 أيام\n2. Ibuprofen 400 mg — عند الحاجة كل 8 ساعات بعد الأكل\n3. Cetrizine 10 mg — قرص واحد مساءً للحساسية\n\nالصيدلية: Al-Noor Pharmacy — صيدلية النور\nالتوقيع: Dr. -----",
+      "hypothesis": "الاسم: -----\nالتاريخ: 2026-01-15\n\n1. Amoxicillin-Clavulanale 875/125 mg — قرص مرتين يوميا لمدة 7 ايام\n2. Ibuprofen 400 mg — عند الحاجة كل 8 ساعات بعد الاكل\n3. Cetrizine 10 mg — قرص واحد مساء للحساسية\n\nالصيدلية: Al-Noor Pharmacy — صيدلية النور\nالتوقيع: Dr. -----"
+    },
+    {
+      "id": "mixed_noisy_005",
+      "language": "mixed",
+      "specialty": "neurology",
+      "difficulty": "hard",
+      "noise_level": "heavy",
+      "source": "synthetic_mixed_neurology",
+      "description": "Mixed Arabic/English neurology consult",
+      "ground_truth": "الاستشارة العصبية: Clinical presentation suggests Migraine with aura — الصداع النصفي مع هالة. MRI Brain: Normal — الرنين المغناطيسي طبيعي. EEG: No epileptiform activity — تخطيط الدماغ بدون نشاط صرعي. العلاج: Sumatriptan 50mg عند بداية النوبة، Propranolol 20mg يومياً للوقاية. Metoclopramide 10mg للغثيان المصاحب.",
+      "hypothesis": "الاستشارة العصبية: Clinical presenlalion suggesls Migraine vith aura — الصداع النصفي مع هالة. MRI Brain: Normal — الرنين المغناطيسي طبيعي. EEG: No epilepliform activily — تخطيط الدماغ بدون نشاط صرعي. العلاج: Sumalriplan 50mg عند بداية النوبة, Propranolol 20mg يوميا للوقاية. Metoclopramide 10mg للغثيان المصاحب."
+    }
+  ]
+}

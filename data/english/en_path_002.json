@@ -1,0 +1,11 @@
+{
+  "id": "en_path_002",
+  "language": "english",
+  "specialty": "pathology",
+  "difficulty": "hard",
+  "noise_level": "moderate_noise",
+  "image_path": "data/english/images/path_002.png",
+  "source": "synthetic",
+  "description": "Cytopathology report - thyroid FNA",
+  "ground_truth": "CYTOPATHOLOGY REPORT\n\nAccession: C24-00892\nDate Received: 14/01/2024\nDate Reported: 16/01/2024\n\nPatient: Karen White  DOB: 30/11/1983\nMRN: 771234\nClinician: Dr. Adams, Endocrinology\nSpecimen: Fine needle aspiration, thyroid, right nodule\nClinical Dx: Thyroid nodule, 2.3 cm, evaluate.\n\nSpecimen Adequacy: Adequate (Bethesda Category I)\n\nMicroscopic Description:\nSmears are cellular and show a mixture of follicular cells in\nspherical clusters, sheets, and single cells.\nColloid is abundant, thin, and watery.\nNo significant nuclear atypia, nuclear grooves, or inclusions.\nNo psammoma bodies.\nNo atypical lymphoid cells.\nMacrofollicular pattern predominates.\n\nCYTOLOGIC DIAGNOSIS:\nRight thyroid nodule, FNA:\nBENIGN (Bethesda Category II)\nBenign follicular nodule / colloid nodule\n\nNote: Correlation with clinical, radiological, and laboratory findings\nis recommended.\n\nDr. Steven Park, MD\nCytopathology Section"
+}

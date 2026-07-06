@@ -1,0 +1,11 @@
+{
+  "id": "mixed_cardio_001",
+  "language": "mixed",
+  "specialty": "cardiology",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/mixed/images/mixed_cardio_001.png",
+  "source": "synthetic",
+  "description": "Bilingual cardiology report - English headers with Arabic content",
+  "ground_truth": "CARDIOLOGY CONSULTATION - استشارة طب القلب\n\nPatient Name / اسم المريض: Fahad Al-Rashidi\nDOB / تاريخ الميلاد: 1960/03/15\nDate / التاريخ: 2024/01/10\n\nChief Complaint / الشكوى الرئيسية:\nألم صدري عند المجهود منذ ٣ أسابيع\nChest pain on exertion for 3 weeks\n\nHistory / القصة المرضية:\nMale, 63 years old, presents with substernal chest pain grade 3/10.\nيحدث مع النشاط البدني وينتشر إلى الذراع الأيسر.\nAssociated with mild dyspnea. No diaphoresis or syncope.\n\nPast Medical History / الأمراض السابقة:\n- Hypertension / ارتفاع ضغط الدم (diagnosed 2015)\n- Type 2 DM / داء السكري النوع الثاني (diagnosed 2019)\n- Dyslipidemia / عسر الدهون\n\nMedications / الأدوية الحالية:\n- Metformin 850mg BD / ميتفورمين ٨٥٠ مجم مرتين يومياً\n- Amlodipine 5mg daily / أملوديبين ٥ مجم يومياً\n- Atorvastatin 20mg nocte / أتورفاستاتين ٢٠ مجم ليلاً\n\nExamination / الفحص السريري:\nBP: 150/95 mmHg | HR: 82 bpm | RR: 16/min\nCVS: Normal S1, S2. No murmur.\n\nAssessment / التقييم:\n1. Stable angina pectoris / ذبحة صدرية مستقرة (CCS Class II)\n2. Uncontrolled hypertension / ارتفاع ضغط الدم غير المسيطر\n\nPlan / الخطة:\n- ECG + Echocardiogram ordered / طلب تخطيط قلب وصدى قلب\n- Treadmill stress test / اختبار جهد مجدول\n- Titrate Amlodipine to 10mg / زيادة أملوديبين إلى ١٠ مجم\n- Add Clopidogrel 75mg / إضافة كلوبيدوغريل ٧٥ مجم\n- Follow-up in 2 weeks / متابعة بعد أسبوعين\n\nDr. Ahmad Hassan, MD / د. أحمد حسن\nCardiology / طب القلب"
+}
