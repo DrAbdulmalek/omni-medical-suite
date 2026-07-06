@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import time
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -272,6 +273,225 @@ def _extract_ner(text: str) -> Dict[str, List[str]]:
     return {k: list(set(v)) for k, v in entities.items() if v}
 
 
+# ====================================================================
+# منقول من OmniFile_Processor/hf_app.py (اندماج مؤكَّد الجودة — 6 يوليو 2026)
+# ملاحظة: correct_text()/pyspellchecker الخاصة بـhf_app.py لم تُنقَل عمداً —
+# اختبار فعلي أظهر أنها تُفسد أرقام الجرعات ("5OO"→"TOO")، بينما
+# HybridSpellChecker أعلاه يحمي منها عبر _try_digit_fix(). لا داعي لمصحّح
+# ثانٍ أضعف بجانب الأقوى.
+# ====================================================================
+
+_translation_corrector = None
+_model_cache: Dict[str, object] = {}
+
+DEVICE = "cpu"
+try:
+    import torch
+    if torch.cuda.is_available():
+        DEVICE = "cuda"
+except ImportError:
+    pass
+
+TRANSLATION_MODELS = {
+    "Arabic → English": "Helsinki-NLP/opus-mt-ar-en",
+    "English → Arabic": "Helsinki-NLP/opus-mt-en-ar",
+    "Arabic → German": "Helsinki-NLP/opus-mt-ar-de",
+    "German → Arabic": "Helsinki-NLP/opus-mt-de-ar",
+}
+
+
+def _get_translation_corrector():
+    """Lazy-load the translation corrector with rules."""
+    global _translation_corrector
+    if _translation_corrector is not None:
+        return _translation_corrector
+    try:
+        # app/ -> جذر المستودع (كان المسار الأصلي في hf_app.py يشير خطأً
+        # لـ app/data/ بدل data/ بعد نقل الملف من جذر OmniFile_Processor)
+        base = Path(__file__).parent.parent
+        rules_path = base / "data" / "translation_rules.json"
+        if not rules_path.is_file():
+            rules_path = None
+        from packages.nlp.translation_corrector import ArabicTranslationProcessor
+        _translation_corrector = ArabicTranslationProcessor(rules_file=str(rules_path) if rules_path else None)
+        logger.info("Translation corrector loaded (%d rules)", len(_translation_corrector.rules))
+    except ImportError:
+        logger.warning("translation_corrector module not found — using inline fallback")
+        _translation_corrector = None
+    return _translation_corrector
+
+
+def _correct_translation(english_text: str, arabic_text: str, enable: bool = True) -> str:
+    """Apply post-MT correction to Arabic translation."""
+    if not enable or not arabic_text:
+        return arabic_text
+    corrector = _get_translation_corrector()
+    if corrector is None:
+        return arabic_text
+    result = corrector.process_translation(english_text, arabic_text)
+    if result["improved"]:
+        logger.info("Translation corrected: %d rule changes + %d regex changes",
+                     len(result["corrections"]), len(result["regex_changes"]))
+    return result["corrected"]
+
+
+def _get_model(key: str):
+    return _model_cache.get(key)
+
+
+def _set_model(key: str, obj) -> None:
+    _model_cache[key] = obj
+
+
+def _load_translator(model_name: str):
+    cache_key = f"translator_{model_name}"
+    cached = _get_model(cache_key)
+    if cached:
+        return cached
+    try:
+        from transformers import MarianMTModel, MarianTokenizer
+        tok = MarianTokenizer.from_pretrained(model_name)
+        mdl = MarianMTModel.from_pretrained(model_name).to(DEVICE)
+        _set_model(cache_key, (tok, mdl))
+        return tok, mdl
+    except Exception as e:
+        logger.error("Failed to load translator %s: %s", model_name, e)
+        return None, None
+
+
+def translate_text(text: str, direction: str, correct_output: bool = True, progress=gr.Progress()) -> str:
+    """ترجمة النصوص بين العربية والإنجليزية والألمانية مع تصحيح اختياري."""
+    if not text or not text.strip():
+        return "⚠️ الرجاء إدخال نص للترجمة."
+
+    model_name = TRANSLATION_MODELS.get(direction)
+    if not model_name:
+        return f"❌ اتجاه غير مدعوم: {direction}"
+
+    progress(0.2, desc=f"تحميل النموذج ({direction})…")
+    tok, mdl = _load_translator(model_name)
+    if tok is None or mdl is None:
+        return "❌ فشل تحميل النموذج. راجع السجل."
+
+    try:
+        import torch
+        chunks: List[str] = []
+        cur = ""
+        for para in re.split(r"\n\s*\n", text.strip()):
+            if len(cur) + len(para) + 2 <= 400:
+                cur += ("\n\n" if cur else "") + para
+            else:
+                if cur:
+                    chunks.append(cur)
+                cur = para
+        if cur:
+            chunks.append(cur)
+
+        parts: List[str] = []
+        for i, chunk in enumerate(chunks):
+            progress(0.3 + 0.7 * ((i + 1) / len(chunks)), desc=f"ترجمة الجزء {i+1}/{len(chunks)}…")
+            inputs = tok(chunk, return_tensors="pt", truncation=True, max_length=512, padding=True)
+            inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
+            with torch.no_grad():
+                gen = mdl.generate(**inputs, max_length=512)
+            parts.append(tok.decode(gen[0], skip_special_tokens=True))
+
+        translated = "\n\n".join(parts)
+
+        correction_note = ""
+        if correct_output and "Arabic" in direction:
+            corrected = _correct_translation(text, translated)
+            if corrected != translated:
+                correction_note = "✅ تم تطبيق تصحيح ما بعد الترجمة\n\n"
+                translated = corrected
+
+        return (
+            f"{translated}\n\n"
+            f"{correction_note}"
+            f"---\n"
+            f"**النموذج**: `{model_name}`  |  **الجهاز**: `{DEVICE}`  |  "
+            f"**الأحرف**: {len(text)} → {len(translated)}"
+        )
+    except Exception as e:
+        logger.error("خطأ ترجمة: %s", traceback.format_exc())
+        return f"❌ فشلت الترجمة: {e}"
+
+
+def _normalize_text_metrics(text: str) -> str:
+    """تطبيع بسيط للمقارنة (تشكيل + همزات فقط، بلا تحيّز ة/ه)."""
+    text = re.sub(r'[\u064B-\u065F\u0670]', '', text)  # إزالة التشكيل
+    text = re.sub(r'[إأآا]', 'ا', text)
+    return text.strip()
+
+
+def _levenshtein(s1, s2) -> int:
+    m, n = len(s1), len(s2)
+    if m == 0:
+        return n
+    if n == 0:
+        return m
+    dp = list(range(n + 1))
+    for i in range(1, m + 1):
+        prev = dp[0]
+        dp[0] = i
+        for j in range(1, n + 1):
+            temp = dp[j]
+            if s1[i - 1] == s2[j - 1]:
+                dp[j] = prev
+            else:
+                dp[j] = 1 + min(prev, dp[j], dp[j - 1])
+            prev = temp
+    return dp[n]
+
+
+def calculate_metrics(reference: str, hypothesis: str) -> str:
+    """حساب CER/WER بين نص مرجعي ونص فعلي — مُختبَرة (مطابقة لـjiwer)."""
+    if not reference or not hypothesis:
+        return "⚠️ الرجاء إدخال النصين المرجعي والفعلي."
+
+    ref = _normalize_text_metrics(reference)
+    hyp = _normalize_text_metrics(hypothesis)
+    ref_w = ref.split()
+    hyp_w = hyp.split()
+
+    cer_val = _levenshtein(ref, hyp) / max(len(ref), 1)
+    wer_val = _levenshtein(ref_w, hyp_w) / max(len(ref_w), 1)
+
+    if cer_val < 0.05:
+        grade = "A (ممتاز) ✅"
+    elif cer_val < 0.15:
+        grade = "B (جيد) 🟢"
+    elif cer_val < 0.30:
+        grade = "C (متوسط) 🟡"
+    else:
+        grade = "D (ضعيف) ❌"
+
+    out = "## 📊 نتائج تقييم OCR\n\n"
+    out += "| المقياس | القيمة |\n|---|---|\n"
+    out += f"| **CER** (معدل خطأ الأحرف) | **{cer_val:.2%}** |\n"
+    out += f"| **WER** (معدل خطأ الكلمات) | **{wer_val:.2%}** |\n"
+    out += f"| **دقة الأحرف** | **{(1 - cer_val) * 100:.1f}%** |\n"
+    out += f"| **التقييم** | **{grade}** |\n\n"
+    out += "| تفصيل | القيمة |\n|---|---|\n"
+    out += f"| أحرف مرجعية | {len(ref)} |\n"
+    out += f"| كلمات مرجعية | {len(ref_w)} |\n"
+    out += f"| مسافة تحرير الأحرف | {_levenshtein(ref, hyp)} |\n"
+    out += f"| مسافة تحرير الكلمات | {_levenshtein(ref_w, hyp_w)} |\n"
+
+    try:
+        import jiwer
+        out += "\n### تحقق مستقل عبر jiwer\n"
+        out += "| المقياس | القيمة |\n|---|---|\n"
+        out += f"| CER | {jiwer.cer(reference, hypothesis):.2%} |\n"
+        out += f"| WER | {jiwer.wer(reference, hypothesis):.2%} |\n"
+    except ImportError:
+        out += "\n> ℹ️ ثبّت `jiwer` للتحقق المستقل."
+    except Exception:
+        pass
+
+    return out
+
+
 def full_process(image):
     """
     Complete processing pipeline:
@@ -506,6 +726,31 @@ with gr.Blocks(
                 dict_btn = gr.Button("تحديث القاموس الطبي", variant="primary")
                 dict_status = gr.Textbox(label="حالة القاموس", lines=8, interactive=False)
 
+    # ── الترجمة (منقول من hf_app.py) ────────────────────────────────────
+    with gr.Accordion("🌐 ترجمة النصوص", open=False):
+        with gr.Row():
+            with gr.Column():
+                translate_input = gr.Textbox(label="النص المصدر", lines=6)
+                translate_direction = gr.Dropdown(
+                    choices=list(TRANSLATION_MODELS.keys()),
+                    value="Arabic → English",
+                    label="اتجاه الترجمة",
+                )
+                translate_correct = gr.Checkbox(value=True, label="تصحيح ما بعد الترجمة (للعربية)")
+                translate_btn = gr.Button("ترجم", variant="primary")
+            with gr.Column():
+                translate_output = gr.Textbox(label="النص المترجَم", lines=8, interactive=False)
+
+    # ── حاسبة CER/WER (منقولة من hf_app.py) ─────────────────────────────
+    with gr.Accordion("📊 حاسبة دقة OCR (CER/WER)", open=False):
+        with gr.Row():
+            with gr.Column():
+                metrics_ref = gr.Textbox(label="النص المرجعي (الصحيح)", lines=4)
+                metrics_hyp = gr.Textbox(label="نص OCR الفعلي", lines=4)
+                metrics_btn = gr.Button("احسب المقاييس", variant="primary")
+            with gr.Column():
+                metrics_output = gr.Markdown()
+
     # ── Events ──────────────────────────────────────────────────────────
     process_btn.click(
         fn=full_process,
@@ -527,6 +772,18 @@ with gr.Blocks(
     retrain_btn.click(
         fn=retrain_now,
         outputs=[retrain_status],
+    )
+
+    translate_btn.click(
+        fn=translate_text,
+        inputs=[translate_input, translate_direction, translate_correct],
+        outputs=[translate_output],
+    )
+
+    metrics_btn.click(
+        fn=calculate_metrics,
+        inputs=[metrics_ref, metrics_hyp],
+        outputs=[metrics_output],
     )
 
 
