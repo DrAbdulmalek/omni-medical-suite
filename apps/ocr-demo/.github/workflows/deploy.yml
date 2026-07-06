@@ -1,0 +1,51 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild (touch a file to trigger)'
+        required: false
+        default: 'true'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to HuggingFace
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "ERROR: HF_TOKEN secret not configured!"
+            echo "Go to: https://github.com/DrAbdulmalek/medical-ocr-demo/settings/secrets/actions"
+            echo "Add a secret named HF_TOKEN with your HuggingFace access token"
+            echo "Get token from: https://huggingface.co/settings/tokens"
+            exit 1
+          fi
+          
+          # Configure git
+          git config user.name "DrAbdulmalek"
+          git config user.email "drabdulmalek@proton.me"
+          
+          # Create HF Space repo if not exists
+          curl -s -X POST \
+            -H "Authorization: Bearer $HF_TOKEN" \
+            -H "Content-Type: application/json" \
+            https://huggingface.co/api/repos/create \
+            -d '{"name":"medical-ocr-demo","type":"space","sdk":"docker","private":false}' \
+            || echo "Space may already exist, continuing..."
+          
+          # Push to HF
+          git remote add hf https://DrAbdulmalek:$HF_TOKEN@huggingface.co/spaces/DrAbdulmalek/medical-ocr-demo.git
+          git push hf main --force
+          
+          echo "✅ Space deployed successfully!"
+          echo "🔗 https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-demo"
