@@ -1,0 +1,80 @@
+# =============================================================================
+# Worker Service Docker Image - For background jobs
+# =============================================================================
+
+# Stage 1: Build stage
+FROM python:3.10-slim as builder
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create and activate virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+WORKDIR /app
+COPY requirements-base.txt requirements-api.txt requirements-ocr.txt requirements-ml.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-base.txt -r requirements-api.txt -r requirements-ocr.txt -r requirements-ml.txt
+
+# =============================================================================
+# Final Stage
+# =============================================================================
+
+FROM python:3.10-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# Install system dependencies for OCR
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    tesseract-ocr \
+    libtesseract-dev \
+    libleptonica-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install additional OCR engines (EasyOCR, PaddleOCR)
+RUN pip install easyocr paddleocr
+
+# Create directories
+RUN mkdir -p /app /app/uploads /app/outputs /app/temp /app/models /app/datasets
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application code
+COPY . .
+
+# Install runtime dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-base.txt -r requirements-api.txt -r requirements-ocr.txt -r requirements-ml.txt
+
+# Create non-root user
+RUN useradd -m -u 1000 omni && \
+    chown -R omni:omni /app
+USER omni
+
+# Expose port (for monitoring)
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c \"import redis; r = redis.Redis(); r.ping()\" || exit 1
+
+# Entry point
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["celery", "-A", "services.worker", "worker", "--loglevel=info"]
