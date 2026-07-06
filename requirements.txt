@@ -1,0 +1,38 @@
+# Core
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Segmenter
+tiktoken>=0.5.0
+
+# Classifier
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+qdrant-client>=1.7.0
+
+# Export
+jsonlines>=4.0.0
+pandas>=2.0.0
+pyarrow>=12.0.0
+openpyxl>=3.0.0
+
+# Active Learning (built-in sqlite3)
+
+# Monitoring
+prometheus-client>=0.17.0
+
+# NLP
+scikit-learn>=1.3.0
+numpy>=1.24.0
+
+# Optional: LLM providers
+google-generativeai>=0.3.0
+openai>=1.0.0
+
+# Dev
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0

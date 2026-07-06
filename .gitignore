@@ -1,0 +1,50 @@
+# AI Fuel specific
+datasets/
+data/*.pdf
+data/*.txt
+*.db
+*.sqlite
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+.mypy_cache/
+.pytest_cache/
+notebooks/.ipynb_checkpoints/
+
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Distribution
+*.tar.gz
+*.whl
+
+# Logs
+*.log
+
+# Model artifacts
+models/*.bin
+models/*.pt
+models/*.onnx
