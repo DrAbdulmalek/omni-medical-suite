@@ -1,0 +1,47 @@
+# =============================================
+# قائمة المستودعات — تم جلبها تلقائياً من GitHub API + HuggingFace API
+# تاريخ التحديث: 2026-06-28
+# =============================================
+# الصيغة: repo_name|local_path|github_url|branch
+
+# ── GitHub Repositories (28) ──
+omni-medical-suite|~/github~/omni-medical-suite|https://github.com/DrAbdulmalek/omni-medical-suite.git|main
+scanner-fixer|~/github~/scanner-fixer|https://github.com/DrAbdulmalek/scanner-fixer.git|main
+medical-ocr-ground-truth|~/github~/medical-ocr-ground-truth|https://github.com/DrAbdulmalek/medical-ocr-ground-truth.git|main
+medical-ocr-training-hub|~/github~/medical-ocr-training-hub|https://github.com/DrAbdulmalek/medical-ocr-training-hub.git|main
+medical-ocr-trainer|~/github~/medical-ocr-trainer|https://github.com/DrAbdulmalek/medical-ocr-trainer.git|main
+medical-ocr-benchmarks|~/github~/medical-ocr-benchmarks|https://github.com/DrAbdulmalek/medical-ocr-benchmarks.git|main
+medical-handwriting-ocr|~/github~/medical-handwriting-ocr|https://github.com/DrAbdulmalek/medical-handwriting-ocr.git|main
+medical-ocr-trainer-hf|~/github~/medical-ocr-trainer-hf|https://github.com/DrAbdulmalek/medical-ocr-trainer-hf.git|main
+medical-ocr-postprocessor|~/github~/medical-ocr-postprocessor|https://github.com/DrAbdulmalek/medical-ocr-postprocessor.git|main
+medical-doc-processor|~/github~/medical-doc-processor|https://github.com/DrAbdulmalek/medical-doc-processor.git|main
+medical-ocr-work-data|~/github~/medical-ocr-work-data|https://github.com/DrAbdulmalek/medical-ocr-work-data.git|main
+telegram-forwarder|~/github~/telegram-forwarder|https://github.com/DrAbdulmalek/telegram-forwarder.git|main
+telegram-channel-copier|~/github~/telegram-channel-copier|https://github.com/DrAbdulmalek/telegram-channel-copier.git|main
+telegram-pipeline|~/github~/telegram-pipeline|https://github.com/DrAbdulmalek/telegram-pipeline.git|main
+OmniFile_Processor|~/github~/OmniFile_Processor|https://github.com/DrAbdulmalek/OmniFile_Processor.git|main
+bilingual-extractor|~/github~/bilingual-extractor|https://github.com/DrAbdulmalek/bilingual-extractor.git|main
+IntelliFile-app|~/github~/IntelliFile-app|https://github.com/DrAbdulmalek/IntelliFile-app.git|main
+omniparse|~/github~/omniparse|https://github.com/DrAbdulmalek/omniparse.git|main
+omniparse-study|~/github~/omniparse-study|https://github.com/DrAbdulmalek/omniparse-study.git|main
+ai-fuel-engine|~/github~/ai-fuel-engine|https://github.com/DrAbdulmalek/ai-fuel-engine.git|main
+github-file-uploader|~/github~/github-file-uploader|https://github.com/DrAbdulmalek/github-file-uploader.git|main
+DrAbdulmalek|~/github~/DrAbdulmalek|https://github.com/DrAbdulmalek/DrAbdulmalek.git|main
+ponytail|~/github~/ponytail|https://github.com/DrAbdulmalek/ponytail.git|main
+archive|~/github~/archive|https://github.com/DrAbdulmalek/archive.git|main
+arabic-dictionaries-collection|~/github~/arabic-dictionaries-collection|https://github.com/DrAbdulmalek/arabic-dictionaries-collection.git|main
+text_snippets|~/github~/text_snippets|https://github.com/DrAbdulmalek/text_snippets.git|main
+manjaro-ultimate-control-center|~/github~/manjaro-ultimate-control-center|https://github.com/DrAbdulmalek/manjaro-ultimate-control-center.git|main
+
+# ── HuggingFace Spaces (11) ──
+hf-translation-processor|~/github~/hf-translation-processor|https://huggingface.co/spaces/DrAbdulmalek/translation-processor|main
+hf-arabic-translation-corrector|~/github~/hf-arabic-translation-corrector|https://huggingface.co/spaces/DrAbdulmalek/arabic-translation-corrector|main
+hf-handwriting-ocr|~/github~/hf-handwriting-ocr|https://huggingface.co/spaces/DrAbdulmalek/handwriting-ocr|main
+hf-OmniFile-Processor|~/github~/hf-OmniFile-Processor|https://huggingface.co/spaces/DrAbdulmalek/OmniFile-Processor|main
+hf-omnifile-processor-lab|~/github~/hf-omnifile-processor-lab|https://huggingface.co/spaces/DrAbdulmalek/omnifile-processor-lab|main
+hf-medical-handwriting-ocr|~/github~/hf-medical-handwriting-ocr|https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr|main
+hf-medical-ocr-trainer|~/github~/hf-medical-ocr-trainer|https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-trainer|main
+hf-telegram-channel-copier|~/github~/hf-telegram-channel-copier|https://huggingface.co/spaces/DrAbdulmalek/telegram-channel-copier|main
+hf-tg-forwarder|~/github~/hf-tg-forwarder|https://huggingface.co/spaces/DrAbdulmalek/tg-forwarder|main
+hf-telegram-forwarder|~/github~/hf-telegram-forwarder|https://huggingface.co/spaces/DrAbdulmalek/telegram-forwarder|main
+hf-mission-control|~/github~/hf-mission-control|https://huggingface.co/spaces/DrAbdulmalek/mission-control|main
