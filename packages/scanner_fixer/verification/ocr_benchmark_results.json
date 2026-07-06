@@ -1,0 +1,206 @@
+{
+  "A_tilted": {
+    "before": {
+      "word_count": 72,
+      "avg_confidence": 83.5,
+      "min_confidence": 18,
+      "word_accuracy": {
+        "matched": 35,
+        "total_gt": 49,
+        "accuracy_pct": 71.4,
+        "missed_words": [
+          "(target:",
+          "7.0%)",
+          "al-harthi",
+          "al-rashid",
+          "at",
+          "diagnosis:",
+          "dr.",
+          "fasting",
+          "follow-up:",
+          "glucose:",
+          "hba1c:",
+          "medications:",
+          "name:",
+          "pressure:"
+        ]
+      },
+      "text_preview": "KING FAHAD MEDICAL CITY Patient Nome: Ahmed ‘Al-Rashid Dote of Birth: 15/03/1965 Potient 1D: MRN-2024-00847 Diagnosis: Type 2 Diabetes Mellitus HbAtc: 8.2% (Target: < 7.0%) Fosting Glucose: 180 mg/dL Blood Pressure: 145/92 mmHg Current Medications: 1. Metformin 500mg — twice daily 2. Lisinopril 10mg"
+    },
+    "after": {
+      "word_count": 67,
+      "avg_confidence": 71.2,
+      "min_confidence": 4,
+      "word_accuracy": {
+        "matched": 29,
+        "total_gt": 49,
+        "accuracy_pct": 59.2,
+        "missed_words": [
+          "(target:",
+          "10mg",
+          "145/92",
+          "20mg",
+          "500mg",
+          "7.0%)",
+          "81mg",
+          "ahmed",
+          "al-harthi",
+          "al-rashid",
+          "diagnosis:",
+          "dr.",
+          "follow-up:",
+          "glucose:",
+          "hba1c:"
+        ]
+      },
+      "text_preview": "KING FAHAD MEDICAL CITY Patient Nome: Al-Roshid Date of Birth: 15/03/1965 Potient 1D: Diagnosis: Type 2 Diabetes Mellitus HbAtc: 8.2% (Target: < 7.0%) Fasting Glucose: 180 mg/d Blood Pressure: 445/92 mmHg Current Medications: 1. Metformin 5009 twice daily 2. Lisinopril 109 ~ once daily 3, Atorvastat"
+    },
+    "improvement": {
+      "accuracy_delta_pct": -12.2,
+      "confidence_delta": -12.3
+    },
+    "scanner_fixer_report": {
+      "source": "array",
+      "estimated_dpi": null,
+      "crop": "850x1188",
+      "rotation_applied_deg": 0,
+      "skew_corrected_deg": -3.03,
+      "final_size": "850x1188",
+      "is_color": true
+    }
+  },
+  "B_flipped": {
+    "before": {
+      "word_count": 51,
+      "avg_confidence": 37.0,
+      "min_confidence": 1,
+      "word_accuracy": {
+        "matched": 0,
+        "total_gt": 49,
+        "accuracy_pct": 0.0,
+        "missed_words": [
+          "(target:",
+          "10mg",
+          "145/92",
+          "180",
+          "2",
+          "20mg",
+          "3",
+          "500mg",
+          "7.0%)",
+          "8.2%",
+          "81mg",
+          "<",
+          "ahmed",
+          "al-harthi",
+          "al-rashid"
+        ]
+      },
+      "text_preview": "Aug PoueS bum juawyodeg euisipan POWWOUON 40 sujuow ¢ fyop 2ouo - Susie “¥ ewypeq yo — 6woz Ayop 2ouo - °~ Ayop eo — BwOOS Ye22ND syww ogi :eseoni (“ork > %7°8 HGH snyien Z -s1s0ubo1g =O! Ww9Hed 3° 2100 piysoy—v pawuy welled are nee ance ar qWoIdaN GVHVS ONIX"
+    },
+    "after": {
+      "word_count": 69,
+      "avg_confidence": 66.6,
+      "min_confidence": 5,
+      "word_accuracy": {
+        "matched": 27,
+        "total_gt": 49,
+        "accuracy_pct": 55.1,
+        "missed_words": [
+          "(target:",
+          "10mg",
+          "145/92",
+          "180",
+          "20mg",
+          "500mg",
+          "7.0%)",
+          "8.2%",
+          "81mg",
+          "ahmed",
+          "al-harthi",
+          "al-rashid",
+          "at",
+          "diagnosis:",
+          "dr."
+        ]
+      },
+      "text_preview": "cm FAHAD MEDICAL CITY Patient Nome: AI-Rashid Dote of Birth: 15/03/1965 potient 10: MMRN-2024-00847 Diagnosis: TyPe 2 Diabetes Mellitus HbAte: 8-2% (Torget: < 7.0%) Fasting Glucose 480 mg/dl Blood Pressure 445/92 mmHg Current Medications: 4. Metformin ~ twice daily 2. Lisinopril 10m9 — once daily 3,"
+    },
+    "improvement": {
+      "accuracy_delta_pct": 55.1,
+      "confidence_delta": 29.6
+    },
+    "scanner_fixer_report": {
+      "source": "array",
+      "estimated_dpi": null,
+      "crop": "850x1188",
+      "rotation_applied_deg": 180,
+      "skew_corrected_deg": -2.97,
+      "final_size": "850x1188",
+      "is_color": true
+    }
+  },
+  "C_borders": {
+    "before": {
+      "word_count": 72,
+      "avg_confidence": 88.1,
+      "min_confidence": 36,
+      "word_accuracy": {
+        "matched": 38,
+        "total_gt": 49,
+        "accuracy_pct": 77.6,
+        "missed_words": [
+          "(target:",
+          "7.0%)",
+          "al-harthi",
+          "diagnosis:",
+          "dr.",
+          "follow-up:",
+          "glucose:",
+          "hba1c:",
+          "medications:",
+          "name:",
+          "pressure:"
+        ]
+      },
+      "text_preview": "KING FAHAD MEDICAL CITY Patient Name: Ahmed Al-Rashid Date of Birth: 15/03/1965 Patient ID: MRN-2024-00847 Diagnosis: Type 2 Diabetes Mellitus HbA1c: 8.2% (Target: < 7.0%) Fasting Glucose: 180 mg/dL Blood Pressure: 145/92 mmHg Current Medications: 1. Metformin 500mg — twice daily 2. Lisinopril 10mg "
+    },
+    "after": {
+      "word_count": 72,
+      "avg_confidence": 87.9,
+      "min_confidence": 28,
+      "word_accuracy": {
+        "matched": 38,
+        "total_gt": 49,
+        "accuracy_pct": 77.6,
+        "missed_words": [
+          "(target:",
+          "7.0%)",
+          "al-harthi",
+          "diagnosis:",
+          "dr.",
+          "follow-up:",
+          "glucose:",
+          "hba1c:",
+          "medications:",
+          "name:",
+          "pressure:"
+        ]
+      },
+      "text_preview": "KING FAHAD MEDICAL CITY Patient Name: Ahmed Al-Rashid Date of Birth: 15/03/1965 Patient ID: MRN-2024-00847 Diagnosis: Type 2 Diabetes Mellitus HbA1c: 8.2% (Target: < 7.0%) Fasting Glucose: 180 mg/dL Blood Pressure: 145/92 mmHg Current Medications: 1. Metformin 500mg — twice daily 2. Lisinopril 10mg "
+    },
+    "improvement": {
+      "accuracy_delta_pct": 0.0,
+      "confidence_delta": -0.2
+    },
+    "scanner_fixer_report": {
+      "source": "array",
+      "estimated_dpi": null,
+      "crop": "790x1140",
+      "rotation_applied_deg": 0,
+      "skew_corrected_deg": 0.0,
+      "final_size": "790x1140",
+      "is_color": true
+    }
+  }
+}

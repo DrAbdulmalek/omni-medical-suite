@@ -1,0 +1,348 @@
+{
+  "part1_interaction_test": {
+    "baseline": {
+      "word_count": 72,
+      "avg_confidence": 83.5,
+      "min_confidence": 18,
+      "matched_words": 0,
+      "total_gt_words": 43,
+      "accuracy_pct": 0.0,
+      "missed_words": [
+        "أتورفاستاتين",
+        "أحمد",
+        "أسبرين",
+        "أشهر",
+        "اسم",
+        "الأدوية",
+        "الباطني",
+        "التراكمي",
+        "التشخيص",
+        "الثاني",
+        "الحارثي",
+        "الحالية",
+        "الحد",
+        "الدم",
+        "الرشيد"
+      ],
+      "text_preview": "KING FAHAD MEDICAL CITY Patient Nome: Ahmed ‘Al-Rashid Dote of Birth: 15/03/1965 Potient 1D: MRN-2024-00847 Diagnosis: Type 2 Diabetes Mellitus HbAtc: 8.2% (Target: < 7.0%) Fosting Glucose: 180 mg/dL Blood Pressure: 145/92 mmHg Current Medications: 1. Metformin 500mg — twice daily 2. Lisinopril 10mg — once doily 3, Atorvastatin 20mg — ot bedtime 4."
+    },
+    "deskew_only": {
+      "word_count": 66,
+      "avg_confidence": 74.1,
+      "min_confidence": 6,
+      "matched_words": 0,
+      "total_gt_words": 43,
+      "accuracy_pct": 0.0,
+      "missed_words": [
+        "أتورفاستاتين",
+        "أحمد",
+        "أسبرين",
+        "أشهر",
+        "اسم",
+        "الأدوية",
+        "الباطني",
+        "التراكمي",
+        "التشخيص",
+        "الثاني",
+        "الحارثي",
+        "الحالية",
+        "الحد",
+        "الدم",
+        "الرشيد"
+      ],
+      "text_preview": "KING FAHAD MEDICAL CITY Patient Nome: Al-Roshid Dote of Birth: 15/03/1965 Potient 10: Diagnosis: Type 2 Diabetes Mellitus 8.2% (Torget= < 7.0%) Fosting Glucose: 180 mg/dl Blood Pressure: 145/92 mela Current Medications: 1. Metformin 5009 ~ twice daily 2. Lisinopril 10m9 = once doily 3. Atorvastatin 20M9 cot bedtime 4, Aspirin 819 — once daily 5 mon"
+    },
+    "enhance_only": {
+      "word_count": 72,
+      "avg_confidence": 78.6,
+      "min_confidence": 7,
+      "matched_words": 0,
+      "total_gt_words": 43,
+      "accuracy_pct": 0.0,
+      "missed_words": [
+        "أتورفاستاتين",
+        "أحمد",
+        "أسبرين",
+        "أشهر",
+        "اسم",
+        "الأدوية",
+        "الباطني",
+        "التراكمي",
+        "التشخيص",
+        "الثاني",
+        "الحارثي",
+        "الحالية",
+        "الحد",
+        "الدم",
+        "الرشيد"
+      ],
+      "text_preview": "KING FAHAD MEDICAL CITY Potient Nome: Ahmed Al-Roshid Dote of Birth: 15/03/1965 Patient ID: MRN-2024-00847 Diagnosis: Type 2 Diabetes Mellitus bate: 8.2% (Target: < 7.0%) Fasting Glucose: 180 mg/dL Blood Pressure: 145/92 mmHg Current Medications: 1. Metformin 500mg — twice daily 2. Lisinopril 10mg — once daily 3. Atorvostatin 20mg — ot bedtime 44. "
+    },
+    "deskew_then_enhance": {
+      "word_count": 67,
+      "avg_confidence": 71.2,
+      "min_confidence": 4,
+      "matched_words": 0,
+      "total_gt_words": 43,
+      "accuracy_pct": 0.0,
+      "missed_words": [
+        "أتورفاستاتين",
+        "أحمد",
+        "أسبرين",
+        "أشهر",
+        "اسم",
+        "الأدوية",
+        "الباطني",
+        "التراكمي",
+        "التشخيص",
+        "الثاني",
+        "الحارثي",
+        "الحالية",
+        "الحد",
+        "الدم",
+        "الرشيد"
+      ],
+      "text_preview": "KING FAHAD MEDICAL CITY Patient Nome: Al-Roshid Date of Birth: 15/03/1965 Potient 1D: Diagnosis: Type 2 Diabetes Mellitus HbAtc: 8.2% (Target: < 7.0%) Fasting Glucose: 180 mg/d Blood Pressure: 445/92 mmHg Current Medications: 1. Metformin 5009 twice daily 2. Lisinopril 109 ~ once daily 3, Atorvastatin 20M9 at bedtime 4, Aspirin 819 — once daily Fol"
+    },
+    "interaction_delta_pct": 0.0
+  },
+  "part2_arabic_benchmark": {
+    "A": {
+      "label": "4° tilt + borders",
+      "before": {
+        "word_count": 98,
+        "avg_confidence": 54.0,
+        "min_confidence": 1,
+        "matched_words": 1,
+        "total_gt_words": 43,
+        "accuracy_pct": 2.3,
+        "missed_words": [
+          "أتورفاستاتين",
+          "أحمد",
+          "أسبرين",
+          "أشهر",
+          "اسم",
+          "الأدوية",
+          "الباطني",
+          "التراكمي",
+          "التشخيص",
+          "الثاني",
+          "الحارثي",
+          "الحالية",
+          "الحد",
+          "الدم",
+          "الرشيد"
+        ],
+        "text_preview": "قيبطاا حهذ كلملا قنيدم حيشرلا نب حمحاً نض يردلا مسا نقيوهلا م قر 12/5 :لايملا خيرات مقر: 20247 تير عوداا ىركسلا عاد تصريخشتاا يحكارتلا يركسلا 8.296 ب 711 0 نم لقا جولطملا دولا لد لغام 180 نم خاصاا يركدلا مز مام 92/ 5 مدا طفض تقيلادلا يودلاً| ليمود نيترم -غلم 500 نيمروفتيم.1 ايموي قرم - غلم 10 ليربونيزيا .2 عونلا حنء - غلم 20 زيتاتسافروتاً .3 ايموي "
+      },
+      "after": {
+        "word_count": 71,
+        "avg_confidence": 48.5,
+        "min_confidence": 2,
+        "matched_words": 0,
+        "total_gt_words": 43,
+        "accuracy_pct": 0.0,
+        "missed_words": [
+          "أتورفاستاتين",
+          "أحمد",
+          "أسبرين",
+          "أشهر",
+          "اسم",
+          "الأدوية",
+          "الباطني",
+          "التراكمي",
+          "التشخيص",
+          "الثاني",
+          "الحارثي",
+          "الحالية",
+          "الحد",
+          "الدم",
+          "الرشيد"
+        ],
+        "text_preview": "قيبطاا حهة حيشرلا نض ا نقيوهلام قر 65١1م‏ لق او غلا مقر: ا ي ناذلا عوذلا يركسلا ءاد يحكارتلا يركسلا 8.296 علطت مر لدلغام 180 تخاصا يركرن ملز مام 145/92 نهدلا طذضز نقيلادلا قيودلاًا المعو نيترم -غامم 500 نيمروغتيم.1 ليمور قزم - يغام 0ليربونيير :2 حجن - هام 20 و قرم \"غلم 81 4 نهث أ ةثارو :قعباتولا دعوم حص ن ينطابلا بطلا مر قيبطلا جه كلملا جلاعملا بيب"
+      },
+      "improvement": {
+        "accuracy_delta": -2.3,
+        "confidence_delta": -5.5
+      },
+      "scanner_fixer_report": {
+        "source": "array",
+        "estimated_dpi": null,
+        "crop": "850x1188",
+        "rotation_applied_deg": 0,
+        "skew_corrected_deg": -4.0,
+        "final_size": "850x1188",
+        "is_color": true
+      }
+    },
+    "B": {
+      "label": "180° flip + 4° tilt + borders",
+      "before": {
+        "word_count": 51,
+        "avg_confidence": 36.8,
+        "min_confidence": 5,
+        "matched_words": 1,
+        "total_gt_words": 43,
+        "accuracy_pct": 2.3,
+        "missed_words": [
+          "أتورفاستاتين",
+          "أحمد",
+          "أسبرين",
+          "أشهر",
+          "اسم",
+          "الأدوية",
+          "الباطني",
+          "التراكمي",
+          "التشخيص",
+          "الثاني",
+          "الحارثي",
+          "الحالية",
+          "الحد",
+          "الدم",
+          "الرشيد"
+        ],
+        "text_preview": "م اا ا اا 77 رضي >< رصت 1777 مج امم ا يور روج 7 2م همع 1ص 6-7 بوهيم ]1 اتوي مجم 5 1 - ل صخي 77 ووو اا حوريو ميم يورو 6س ورحرومتهك الاح الح د 1 حو ججح 20 0/10 /توو؟ أرب ا حصي متسس ال 77و"
+      },
+      "after": {
+        "word_count": 87,
+        "avg_confidence": 59.4,
+        "min_confidence": 9,
+        "matched_words": 1,
+        "total_gt_words": 43,
+        "accuracy_pct": 2.3,
+        "missed_words": [
+          "أتورفاستاتين",
+          "أحمد",
+          "أسبرين",
+          "أشهر",
+          "اسم",
+          "الأدوية",
+          "الباطني",
+          "التراكمي",
+          "التشخيص",
+          "الثاني",
+          "الحارثي",
+          "الحالية",
+          "الحد",
+          "الدم",
+          "الرشيد"
+        ],
+        "text_preview": "قيبطلا هذ علدا قنيدم ديشرا ١!‏ الأصبء نب حمداً نض يرهاا مسا 5 بقيههلا مقر 5 مبلايماا خيراة مقر: ىناذلا عوذاا يركساا ءاد نص يخشتاا يحكارةلا يركسلا قسن 8.296 :110/10 0 :بولطملا دحلا لد/غلم 180 تمتاصلا يركسلا قبتزمام 145/92 :جداا طغض بقيلادلا قيودلاًا ايمود نيترم - غلم 500 نيمروفتيه :1 ايمود قرم - غلم 10 يربونيزيا .2 مودلا حنء - غلم 20 يتاتسافروتاً .3"
+      },
+      "improvement": {
+        "accuracy_delta": 0.0,
+        "confidence_delta": 22.6
+      },
+      "scanner_fixer_report": {
+        "source": "array",
+        "estimated_dpi": null,
+        "crop": "850x1188",
+        "rotation_applied_deg": 180,
+        "skew_corrected_deg": 6.83,
+        "final_size": "850x1188",
+        "is_color": true
+      }
+    },
+    "C": {
+      "label": "dark borders only",
+      "before": {
+        "word_count": 93,
+        "avg_confidence": 60.8,
+        "min_confidence": 4,
+        "matched_words": 1,
+        "total_gt_words": 43,
+        "accuracy_pct": 2.3,
+        "missed_words": [
+          "أتورفاستاتين",
+          "أحمد",
+          "أسبرين",
+          "أشهر",
+          "اسم",
+          "الأدوية",
+          "الباطني",
+          "التراكمي",
+          "التشخيص",
+          "الثاني",
+          "الحارثي",
+          "الحالية",
+          "الحد",
+          "الدم",
+          "الرشيد"
+        ],
+        "text_preview": "ل ا ا قيبطاا حهذ علدلا قنيدم حيشرلا اللصبء نب حمحاً نض يردلامسا 5 نتقيههاا مقر 5 نرنلايماا خيرات غلماا مقر: 1/1827-2024-00847 يناذاا عونا يركساا ءاد نص يخشةاا يحكارتاا يركداا قبسذ 8.296 :1108162 0 :بولطملا حدلا لد/غام 180 نم تاصاا يركسلا قبنز مام 145/92 :هداا طغض بقيلاداا ةيودلاًا ايموي نيترم - غام 500 نيمروفتيم .1 ايموي قرم - غلم 10 ل يربونيزيا .2"
+      },
+      "after": {
+        "word_count": 87,
+        "avg_confidence": 65.0,
+        "min_confidence": 1,
+        "matched_words": 1,
+        "total_gt_words": 43,
+        "accuracy_pct": 2.3,
+        "missed_words": [
+          "أتورفاستاتين",
+          "أحمد",
+          "أسبرين",
+          "أشهر",
+          "اسم",
+          "الأدوية",
+          "الباطني",
+          "التراكمي",
+          "التشخيص",
+          "الثاني",
+          "الحارثي",
+          "الحالية",
+          "الحد",
+          "الدم",
+          "الرشيد"
+        ],
+        "text_preview": "قيبطلا حهذ كلملا قنيدم حيشرلا نب حمحاً نض يردلا مسا 5 نبتقيوهاا مقر 5 خيرات غلماا مقر: ي ناذلا عونلا يركسلا ءاد صيخشتلا يحكارةلا يركداا قبسن 8.296 :11810 0 نملقاً بولطملا حدلا لد لغلم 180 نم ناصلا يركسلا قجتز مام 145/92 :جداا طفض تقيلادلا قيودلاًا ايمودٍ نيترم - غلم 500 نيمروفتيم.1 ايمود قرم - غام 10 ليربونيزيا .2 جوذلا حنء - هلم 20 زيتاتسافروتاً ."
+      },
+      "improvement": {
+        "accuracy_delta": 0.0,
+        "confidence_delta": 4.2
+      },
+      "scanner_fixer_report": {
+        "source": "array",
+        "estimated_dpi": null,
+        "crop": "790x1106",
+        "rotation_applied_deg": 0,
+        "skew_corrected_deg": -1.94,
+        "final_size": "790x1106",
+        "is_color": true
+      }
+    }
+  },
+  "clean_reference": {
+    "word_count": 83,
+    "avg_confidence": 58.3,
+    "min_confidence": 12,
+    "matched_words": 1,
+    "total_gt_words": 43,
+    "accuracy_pct": 2.3,
+    "missed_words": [
+      "أتورفاستاتين",
+      "أحمد",
+      "أسبرين",
+      "أشهر",
+      "اسم",
+      "الأدوية",
+      "الباطني",
+      "التراكمي",
+      "التشخيص",
+      "الثاني",
+      "الحارثي",
+      "الحالية",
+      "الحد",
+      "الدم",
+      "الرشيد"
+    ],
+    "text_preview": "0 ديشرلا الأسدبء نب حمحاً :ضر يردلا مسا 5 نتقيههاا مقر 5 نرنلايماا خيرات غلماا مقر: يناذا عونا يركداا ماد بصمبهتد!! يحكارتاا يركداا قبسذ 8.296 :1108162 0 :بولطملا حدلا لد/غام 180 نم تاصاا يركسلا قبنز مام 145/92 :هداا طغض بقيلا<لا يودلاًا ايموي نيترم - غام 500 نيمروفتيم .1 ايمود قرم - غلم 10 ليربونيزيا .2 جوذاا حنء - غلم 20 زيتاتسافروتاً .3 ايمود قر"
+  },
+  "metadata": {
+    "tesseract_version": "5.5.0",
+    "font": "Noto Naskh Arabic (variable)",
+    "arabic_libs": "arabic-reshaper 3.0.1 + python-bidi 0.6.10",
+    "ground_truth_terms": 44,
+    "image_size": "850x1200"
+  }
+}
