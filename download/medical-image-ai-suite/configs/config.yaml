@@ -1,0 +1,189 @@
+# ============================================================
+# Medical Image AI Suite - Project Configuration
+# ============================================================
+
+# ===== مسارات البيانات =====
+paths:
+  raw_data: "./data/raw"
+  processed_data: "./data/processed"
+  labels: "./data/labels"
+  synthetic_data: "./data/synthetic"
+  reports: "./data/reports"
+  models: "./models"
+  logs: "./logs"
+
+# ===== إعدادات المعالجة المسبقة =====
+preprocessing:
+  # حجم الصورة الموحد
+  target_size: [512, 512]
+  # تطبيع البيكسلات
+  normalize: true
+  normalize_range: [0.0, 1.0]
+  # Windowing لأشعة الصدر
+  windowing:
+    lung:
+      center: -600
+      width: 1500
+    mediastinum:
+      center: 40
+      width: 400
+    bone:
+      center: 400
+      width: 1800
+  # معالجة 3D
+  volume:
+    enabled: false
+    slice_thickness: 2.5  # mm
+    interpolation: "linear"
+  # تحويل DICOM إلى JPG
+  dicom_to_jpg:
+    quality: 95
+    apply_windowing: true
+    default_window: "lung"
+  # تحسين الصور
+  augmentation:
+    enabled: true
+    rotation_range: 15
+    zoom_range: 0.1
+    brightness_range: [0.8, 1.2]
+    contrast_range: [0.9, 1.1]
+    horizontal_flip: true
+    vertical_flip: false
+
+# ===== إعدادات NER =====
+ner:
+  language: "ar"  # ar أو en أو both
+  models:
+    arabic: "aubmindlab/bert-base-arabertv02"
+    english: "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
+  entity_types:
+    - "DISEASE"        # أمراض
+    - "ANATOMY"        # تشريح
+    - "FINDING"        # نتائج
+    - "PROCEDURE"      # إجراءات
+    - "MEDICATION"     # أدوية
+    - "DOSAGE"         # جرعات
+    - "LATERALITY"     # جانبية (يمين/يسار)
+    - "SEVERITY"       # شدة
+    - "MEASUREMENT"    # قياسات
+  # قاموس طبي مخصص
+  custom_dictionary: "./configs/medical_dictionary.json"
+  confidence_threshold: 0.75
+
+# ===== إعدادات التعلّم شبه الخاضع للإشراف =====
+semisupervised:
+  # النموذج الأساسي
+  backbone: "resnet50"
+  pretrained: true
+  # عدد الفئات
+  num_classes: 10
+  # الإشارات الضعيفة
+  weak_labels:
+    min_confidence: 0.8
+    label_smoothing: 0.1
+    threshold_method: "adaptive"  # fixed أو adaptive
+  # التدريب
+  training:
+    batch_size: 16
+    learning_rate: 1.0e-4
+    epochs: 100
+    patience: 15
+    optimizer: "AdamW"
+    scheduler: "CosineAnnealingLR"
+    mixed_precision: true
+  # التقسيم
+  labeled_ratio: 0.2
+  validation_ratio: 0.1
+  test_ratio: 0.1
+  # التقسيم الدلالي (Segmentation)
+  segmentation:
+    architecture: "UNet"
+    encoder: "resnet50"
+    decoder_channels: [256, 128, 64, 32, 16]
+    loss: "DiceLoss"
+
+# ===== إعدادات توليد البيانات الاصطناعية =====
+synthetic:
+  method: "MedGAN"
+  # GAN
+  generator:
+    latent_dim: 128
+    hidden_dims: [256, 512, 1024]
+    output_activation: "tanh"
+  discriminator:
+    hidden_dims: [512, 256, 128]
+  training:
+    batch_size: 32
+    learning_rate_g: 2.0e-4
+    learning_rate_d: 1.0e-4
+    epochs: 500
+    beta1: 0.5
+    beta2: 0.999
+    n_critic: 1
+    gradient_penalty: 10.0
+  # عدد الصور المطلوب توليدها
+  num_synthetic: 100
+  # فحص الجودة
+  quality_check:
+    fid_threshold: 50.0
+    ssim_threshold: 0.85
+
+# ===== إعدادات توليد التقارير =====
+reportgen:
+  model_type: "VLM"
+  models:
+    vision_encoder: "google/vit-base-patch16-224"
+    text_decoder: "aubmindlab/aragpt2-base"
+    fusion: "cross_attention"
+  # اللغة
+  report_language: "ar"
+  # قالب التقرير
+  report_template:
+    header: true
+    findings: true
+    impression: true
+    recommendations: false
+  # التدريب
+  training:
+    batch_size: 8
+    learning_rate: 3.0e-5
+    epochs: 50
+    max_text_length: 512
+    beam_size: 5
+    temperature: 0.7
+    top_k: 50
+    top_p: 0.95
+
+# ===== إعدادات عامة =====
+general:
+  seed: 42
+  num_workers: 4
+  device: "auto"  # auto, cpu, cuda, mps
+  mixed_precision: true
+  deterministic: false
+  log_level: "INFO"
+  checkpoint_interval: 5  # حفظ كل N epochs
+
+# ===== التقييم =====
+evaluation:
+  metrics:
+    classification:
+      - "accuracy"
+      - "precision"
+      - "recall"
+      - "f1"
+      - "auc_roc"
+    segmentation:
+      - "dice_coefficient"
+      - "iou"
+      - "hausdorff_distance"
+    generation:
+      - "fid"
+      - "ssim"
+      - "psnr"
+    report:
+      - "bleu"
+      - "rouge"
+      - "meteor"
+      - "bertscore"
+  cross_validation: 5

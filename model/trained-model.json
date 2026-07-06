@@ -1,0 +1,43 @@
+{
+  "entries": [
+    {
+      "features": {
+        "width": 2514,
+        "height": 3304,
+        "aspectRatio": 0.7608958837772397,
+        "blurScore": 15.698411068983361,
+        "brightness": 0.9911847643605532,
+        "edgeDensity": 0.008413417549374833,
+        "borderNoise": 0.02632331072444079
+      },
+      "settings": {
+        "pageThreshold": 230,
+        "grayThreshold": 230,
+        "padding": 5
+      }
+    }
+  ],
+  "normalizedFeatures": {
+    "min": {
+      "width": 2514,
+      "height": 3304,
+      "aspectRatio": 0.7608958837772397,
+      "blurScore": 15.698411068983361,
+      "brightness": 0.9911847643605532,
+      "edgeDensity": 0.008413417549374833,
+      "borderNoise": 0.02632331072444079
+    },
+    "max": {
+      "width": 2514,
+      "height": 3304,
+      "aspectRatio": 0.7608958837772397,
+      "blurScore": 15.698411068983361,
+      "brightness": 0.9911847643605532,
+      "edgeDensity": 0.008413417549374833,
+      "borderNoise": 0.02632331072444079
+    }
+  },
+  "trainedAt": "2026-05-26T06:21:44.925Z",
+  "totalEntries": 1,
+  "avgConfidence": 1
+}
