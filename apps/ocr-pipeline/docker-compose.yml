@@ -1,0 +1,26 @@
+services:
+  omni-medical-ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omni-medical-ocr
+    ports:
+      - "7860:7860"   # Gradio web interface
+      - "8000:8000"   # FastAPI (run separately)
+    volumes:
+      - ./data:/app/data        # Medical dictionary and data files
+      - ./models:/app/models    # Cached model weights
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TRANSFORMERS_CACHE=/app/models
+      - HF_HOME=/app/models
+      - TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
+    restart: unless-stopped
+    # Uncomment for GPU support (requires nvidia-container-toolkit):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
