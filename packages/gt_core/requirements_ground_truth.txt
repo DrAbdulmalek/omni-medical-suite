@@ -1,0 +1,28 @@
+# Ground Truth Import System Dependencies
+# ========================================
+
+# Document parsing
+python-docx>=0.8.11      # For .docx files (ABBYY output)
+striprtf>=0.0.26         # For .rtf files (ReadIRIS output)
+beautifulsoup4>=4.12.0   # For .html structured export
+PyMuPDF>=1.23.0          # For PDF font/glyph extraction (fitz)
+
+# OCR engines (optional, for pipeline)
+pytesseract>=0.3.10
+easyocr>=1.7.0
+paddleocr>=2.7.0
+
+# Arabic text processing
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
+
+# Data handling
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Image processing (for pipeline)
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# Utilities
+tqdm>=4.65.0             # Progress bars

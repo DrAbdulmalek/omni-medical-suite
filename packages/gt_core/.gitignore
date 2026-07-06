@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.db
+.snippets/
+*.egg-info/
+dist/
+build/
+.venv/
+.env
+pipeline_output*/
+training_output/
+ocr_snippets.db
+*.log
+.DS_Store
+
