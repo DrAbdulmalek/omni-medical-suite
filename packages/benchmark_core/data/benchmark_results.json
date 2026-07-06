@@ -1,0 +1,18 @@
+[
+  {
+    "model_name": "medical-ocr-v2.1",
+    "test_type": "printed",
+    "cer": 0.042,
+    "wer": 0.085,
+    "timestamp": "2026-06-25T00:00:00",
+    "dataset_size": 1500
+  },
+  {
+    "model_name": "medical-ocr-v2.1",
+    "test_type": "handwritten",
+    "cer": 0.115,
+    "wer": 0.185,
+    "timestamp": "2026-06-25T00:00:00",
+    "dataset_size": 800
+  }
+]

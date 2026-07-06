@@ -1,0 +1,11 @@
+{
+  "id": "en_cardio_005",
+  "language": "english",
+  "specialty": "cardiology",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/english/images/cardio_005.png",
+  "source": "synthetic",
+  "description": "Holter monitor interpretation",
+  "ground_truth": "24-HOUR HOLTER MONITOR REPORT\n\nPatient: Carol Henderson  DOB: 15/08/1955\nMRN: 665432\nOrdering: Dr. Martinez, Cardiology\nDate of Study: 22/01/2024\nMonitoring Duration: 23 hours 45 minutes\n\nMonitoring Lead Configuration: 3-channel\n\nSUMMARY:\n\nTotal QRS Count: 98,456\nAverage Heart Rate: 69 bpm (range: 48-112 bpm)\nMinimum Heart Rate: 48 bpm (sleeping, 02:15)\nMaximum Heart Rate: 112 bpm (walking stairs, 14:22)\n\nRhythm Analysis:\n- Predominant rhythm: Normal sinus rhythm (99.2%)\n- Supraventricular ectopy: 18 PACs (0.02%), 1 pair of PACs\n- Ventricular ectopy: 3 PVCs (0.003%), no pairs or runs\n- Pauses: None (longest RR interval: 1.25 seconds)\n\nST Segment Analysis:\n- No significant ST-segment deviation noted\n\nPatient Diary:\n  08:00 - Patient reports palpitations (HR 95, SVPCs noted)\n  14:00 - Exercised on treadmill for 20 min (HR peaked at 112)\n  22:00 - Went to sleep (HR gradually decreased to 48)\n\nCLINICAL IMPRESSION:\n1. Normal sinus rhythm with normal heart rate variability\n2. Rare PACs and PVCs (physiologic)\n3. No sustained arrhythmia\n4. No ST changes\n5. Normal autonomic function\n\nRecommendation: No further cardiac rhythm monitoring indicated.\nContinue current management.\n\nDr. Diana Foster, MD\nElectrophysiology"
+}

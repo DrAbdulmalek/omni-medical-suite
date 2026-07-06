@@ -1,0 +1,11 @@
+{
+  "id": "en_radio_004",
+  "language": "english",
+  "specialty": "radiology",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/english/images/radio_004.png",
+  "source": "synthetic",
+  "description": "Ultrasound abdomen report",
+  "ground_truth": "ULTRASOUND ABDOMEN (COMPLETE)\n\nDate: 17/01/2024\nPatient: Anna Richardson  DOB: 25/08/1975\nMRN: 667834\nIndication: RUQ pain, evaluate gallbladder.\n\nTechnique: Real-time ultrasound of the abdomen was performed.\n\nLiver:\nNormal size and echotexture. No focal lesion.\nHepatic and portal veins are patent.\nCommon bile duct measures 4 mm (normal).\n\nGallbladder:\nWell-distended, thin walls. No gallstones or sludge.\nNo pericholecystic fluid. Positive Murphy sign.\nNo cholecystitis.\n\nPancreas:\nHead, body, and tail visualized. Normal.\nPancreatic duct is not dilated.\n\nSpleen:\nNormal size at 10.2 cm. Homogeneous echotexture.\n\nKidneys:\nRight kidney: 11.2 cm, normal cortex and echogenicity. No hydronephrosis.\nLeft kidney: 11.5 cm, normal. No hydronephrosis.\nNo renal calculi identified.\n\nAorta:\nNormal caliber, no aneurysm.\n\nImpression:\n1. Unremarkable complete abdominal ultrasound.\n2. No evidence of cholelithiasis or cholecystitis.\n3. Normal liver, pancreas, spleen, kidneys, and aorta.\n\nSonographer: Rebecca Taylor\nSupervising: Dr. Mark Stevens, MD"
+}

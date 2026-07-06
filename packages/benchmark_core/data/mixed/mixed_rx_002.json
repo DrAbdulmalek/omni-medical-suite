@@ -1,0 +1,11 @@
+{
+  "id": "mixed_rx_002",
+  "language": "mixed",
+  "specialty": "prescriptions",
+  "difficulty": "medium",
+  "noise_level": "moderate_noise",
+  "image_path": "data/mixed/images/mixed_rx_002.png",
+  "source": "synthetic",
+  "description": "Bilingual pediatric prescription with Arabic instructions",
+  "ground_truth": "Pediatric Clinic / عيادة طب الأطفال\nDr. Lama Al-Shehri, MD / د. لمى الشهري\n\nRx / وصفة طبية\nDate / التاريخ: 2024/01/19\n\nPatient / المريض: Omar Al-Ghamdi / عمر الغامدي\nDOB / تاريخ الميلاد: 2020/08/10\nWeight / الوزن: 12 kg\n\nAllergy / الحساسية: No known drug allergy / لا توجد حساسية دوائية معروفة\n\nDiagnosis / التشخيص:\nAcute tonsillitis / التهاب اللوزتين الحاد\n\nMedications / الأدوية:\n\n1. Amoxicillin 250mg/5mL suspension\n   أموكسيسيلين ٢٥٠ مجم/٥ مل معلق\n   Dose / الجرعة: 10 mg/kg/dose TID = 5 mL three times daily\n   ٥ مليلتر ثلاث مرات يومياً\n   Duration / المدة: 10 days / ١٠ أيام\n\n2. Ibuprofen 100mg/5mL syrup\n   إيبوبروفين ١٠٠ مجم/٥ مل شراب\n   Dose / الجرعة: 5 mg/kg/dose q6h PRN = 6 mL every 6h as needed\n   ٦ مليلتر كل ٦ ساعات حسب الحاجة للحمى أو الألم\n\nInstructions for parents / تعليمات للأهل:\n- Complete full course of antibiotics / أكمل دورة المضاد كاملة\n- Give ibuprofen only if fever > 38.5C / الإيبوبروفين فقط إذا الحمى > ٣٨.٥\n- Plenty of fluids / الكثير من السوائل\n- Follow up if no improvement in 48h / متابعة إذا لم يتحسن خلال ٤٨ ساعة\n\nد. لمى الشهري / Dr. Lama Al-Shehri, MD"
+}

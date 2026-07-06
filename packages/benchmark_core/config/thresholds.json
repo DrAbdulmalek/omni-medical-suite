@@ -1,0 +1,7 @@
+{
+  "printed_cer_threshold": 0.05,
+  "handwritten_cer_threshold": 0.12,
+  "printed_wer_threshold": 0.10,
+  "handwritten_wer_threshold": 0.20,
+  "min_improvement_percent": 2.0
+}

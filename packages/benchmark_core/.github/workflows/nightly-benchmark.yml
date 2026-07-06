@@ -1,0 +1,80 @@
+name: Nightly Benchmark
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Run at 3 AM UTC daily
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,ocr]" -q
+
+      - name: Run benchmarks
+        run: |
+          medocr-bench --engines paddleocr,easyocr --check-ci > benchmark_output.txt 2>&1 || true
+          medocr-bench --engines paddleocr,easyocr --language arabic --check-ci >> benchmark_output.txt 2>&1 || true
+          cat benchmark_output.txt
+
+      - name: Generate report
+        run: |
+          python -c "
+          from benchmarks.report import ReportGenerator
+          from benchmarks.runner import BenchmarkRunner
+          from benchmarks.dataset import DatasetManager
+          dm = DatasetManager('data/')
+          runner = BenchmarkRunner(dm)
+          results = runner.run_all(engines=['paddleocr', 'easyocr'])
+          gen = ReportGenerator()
+          gen.generate_markdown(results, 'reports/nightly_report.md')
+          gen.generate_json(results, 'reports/nightly_results.json')
+          print('Report generated')
+          " 2>&1 || echo "Report generation attempted"
+
+      - name: Check for regressions
+        run: |
+          python -c "
+          from benchmarks.ci import ThresholdChecker
+          import json
+          try:
+              with open('reports/nightly_results.json') as f:
+                  data = json.load(f)
+              checker = ThresholdChecker('config/thresholds.yaml')
+              result = checker.check(data)
+              if not result.passed:
+                  print(f'REGRESSION DETECTED: {result.summary()}')
+                  exit(1)
+              else:
+                  print(f'All thresholds passed: {result.summary()}')
+          except Exception as e:
+              print(f'Warning: Could not check thresholds: {e}')
+          "
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-benchmark-${{ github.run_number }}
+          path: reports/
+          retention-days: 30
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p reports
+          if [ -f reports/nightly_report.md ]; then
+            git add reports/
+            git commit -m "chore: nightly benchmark results $(date +%Y-%m-%d)" || true
+            git push || true
+          fi

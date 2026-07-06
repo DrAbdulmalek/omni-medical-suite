@@ -1,0 +1,119 @@
+{
+  "name": "expanded_specialty_benchmarks",
+  "version": "1.0.0",
+  "description": "Expanded specialty coverage beyond the original 6 specialties",
+  "cases": [
+    {
+      "id": "spec_neuro_001",
+      "specialty": "neurology",
+      "ground_truth": "EEG: Normal alpha rhythm, no epileptiform discharges. MRI Brain: No acute infarct or hemorrhage.",
+      "language": "english",
+      "difficulty": "medium"
+    },
+    {
+      "id": "spec_neuro_002",
+      "specialty": "neurology",
+      "ground_truth": "تشخيص: صداع نصفي، ينصح بـ Rizatriptan 10mg عند الحاجة بحد أقصى مرتين يوميا",
+      "language": "arabic",
+      "difficulty": "medium"
+    },
+    {
+      "id": "spec_ortho_001",
+      "specialty": "orthopedics",
+      "ground_truth": "X-Ray Right Knee: Mild joint space narrowing, no acute fracture. Osteoarthritis Grade 2.",
+      "language": "english",
+      "difficulty": "easy"
+    },
+    {
+      "id": "spec_ortho_002",
+      "specialty": "orthopedics",
+      "ground_truth": "عملية استبدال مفصل الركبة اليمنى بنجاح، ينصح بـ Physiotherapy لمدة ٦ أسابيع",
+      "language": "arabic",
+      "difficulty": "medium"
+    },
+    {
+      "id": "spec_derm_001",
+      "specialty": "dermatology",
+      "ground_truth": "Biopsy: Superficial spreading melanoma, Breslow thickness 0.8mm, Clark Level III.",
+      "language": "english",
+      "difficulty": "medium"
+    },
+    {
+      "id": "spec_derm_002",
+      "specialty": "dermatology",
+      "ground_truth": "تشخيص: إكزيما مزمنة، ينصح بـ Betamethasone cream 0.05% مرتين يوميا لمدة أسبوعين",
+      "language": "arabic",
+      "difficulty": "easy"
+    },
+    {
+      "id": "spec_ophthal_001",
+      "specialty": "ophthalmology",
+      "ground_truth": "Visual Acuity: OD 6/6, OS 6/9. Intraocular Pressure: OD 14 mmHg, OS 16 mmHg.",
+      "language": "english",
+      "difficulty": "medium"
+    },
+    {
+      "id": "spec_icu_001",
+      "specialty": "icu_critical_care",
+      "ground_truth": "Ventilator Settings: SIMV, FiO2 40%, PEEP 8 cmH2O, Rate 14/min. ABG: pH 7.38, PaO2 85, PaCO2 42.",
+      "language": "english",
+      "difficulty": "hard"
+    },
+    {
+      "id": "spec_icu_002",
+      "specialty": "icu_critical_care",
+      "ground_truth": "العناية المركزة: المريض على جهاز تنفس صناعي، FiO2 60%, فيnoreادين 0.1 ميكروغرام/كغ/دقيقة",
+      "language": "arabic",
+      "difficulty": "hard"
+    },
+    {
+      "id": "spec_obgyn_001",
+      "specialty": "obstetrics_gynecology",
+      "ground_truth": "Gravida 3 Para 2, GA: 36 weeks. Ultrasound: Biophysical Profile 8/8, EFW 2800g.",
+      "language": "english",
+      "difficulty": "medium"
+    },
+    {
+      "id": "spec_emergency_001",
+      "specialty": "emergency_medicine",
+      "ground_truth": "Triage: ESI Level 2. GCS 13/15 (E3V4M6). FAST exam positive. Prepare for emergent laparotomy.",
+      "language": "english",
+      "difficulty": "hard"
+    },
+    {
+      "id": "spec_emergency_002",
+      "specialty": "emergency_medicine",
+      "ground_truth": "حالة طوارئ: حادث سير، ضغط دم 90/60، نبض 120، ينصح بـ نقل دم فوري ونقل لغرفة العمليات",
+      "language": "arabic",
+      "difficulty": "hard"
+    },
+    {
+      "id": "spec_gastro_001",
+      "specialty": "gastroenterology",
+      "ground_truth": "Endoscopy: Gastric ulcer 1.5cm on lesser curvature, no active bleeding. H. pylori: Positive.",
+      "language": "english",
+      "difficulty": "medium"
+    },
+    {
+      "id": "spec_gastro_002",
+      "specialty": "gastroenterology",
+      "ground_truth": "تنظير القولون: سالب، ينصح بـ Omeprazole 20mg صباحا لمدة ٦ أسابيع وإعادة التنظير",
+      "language": "arabic",
+      "difficulty": "medium"
+    },
+    {
+      "id": "spec_peds_001",
+      "specialty": "pediatrics",
+      "ground_truth": "Weight: 12kg, Height: 85cm, Head Circumference: 48cm. Vaccinations up to date per national schedule.",
+      "language": "english",
+      "difficulty": "easy"
+    },
+    {
+      "id": "spec_anesth_001",
+      "specialty": "anesthesiology",
+      "ground_truth": "Pre-op: ASA II. Induction: Propofol 2mg/kg, Fentanyl 2mcg/kg, Rocuronium 0.6mg/kg. Maintenance: Sevoflurane 2%.",
+      "language": "english",
+      "difficulty": "hard"
+    }
+  ]
+}

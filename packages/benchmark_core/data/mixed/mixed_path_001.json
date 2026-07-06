@@ -1,0 +1,11 @@
+{
+  "id": "mixed_path_001",
+  "language": "mixed",
+  "specialty": "pathology",
+  "difficulty": "hard",
+  "noise_level": "moderate_noise",
+  "image_path": "data/mixed/images/mixed_path_001.png",
+  "source": "synthetic",
+  "description": "Bilingual pathology report - Arabic specimen, English diagnosis",
+  "ground_truth": "PATHOLOGY REPORT / تقرير علم الأمراض\n\nAccession / رقم العينة: S24-01200\nDate / التاريخ: 2024/01/16\n\nPatient / المريض: Fatima Al-Zahrani / فاطمة الزهراني\nDOB / تاريخ الميلاد: 1978/04/25\nMRN / رقم الملف: 553678\n\nSpecimen / العينة:\nColon biopsy, sigmoid / خزعة قولون سيني\nClinical Diagnosis / التشخيص السريري: Rectal bleeding / نزيف مستقيمي\n\nGross Description / الوصف المجهري:\nReceived are 3 fragments of tan-brown tissue measuring\n0.3 x 0.2 x 0.1 cm each, submitted in total.\nتم استلام ٣ قطع نسيج بنية بحجم ٠.٣ × ٠.٢ × ٠.١ سم\n\nMicroscopic / مجهري:\nThe sections show colonic mucosa with features of\nchronic active colitis. There is crypt architectural distortion\nwith branching and shortening. Increased lamina propria\ninflammatory cell infiltrate including lymphocytes, plasma cells,\nand occasional neutrophils within crypt lumens (cryptitis).\nNo dysplasia identified. No granulomas.\n\nالنسيج يظهر غشاء مخاطي قولوني مع علامات التهاب قولون\nمزمن نشط. تشوه معماري للغدد مع تفرع وقصر.\nخلية التهابية في اللامينا بروبريا. لا يوجد خلل تنسج.\n\nDiagnosis / التشخيص:\nSigmoid colon, biopsy:\n- Chronic active colitis without dysplasia\n  التهاب قولون مزمن نشط بدون خلل تنسج\n- Recommend correlation with clinical findings and\n  endoscopic appearance for IBD classification\n  يوصى بالربط مع النتائج السريرية لتحديد نوع المرض\n\nDr. Helen Ross, MD / د. هيلين روس\nAnatomic Pathology / علم الأمراض التشريحي"
+}

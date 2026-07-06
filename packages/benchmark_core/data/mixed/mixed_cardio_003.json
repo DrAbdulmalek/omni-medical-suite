@@ -1,0 +1,11 @@
+{
+  "id": "mixed_cardio_003",
+  "language": "mixed",
+  "specialty": "cardiology",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/mixed/images/mixed_cardio_003.png",
+  "source": "synthetic",
+  "description": "Bilingual cardiac catheterization report",
+  "ground_truth": "CARDIAC CATHETERIZATION / قسطرة قلبية\n\nPatient / المريض: Majed Al-Shahrani / ماجد الشهري\nDOB / تاريخ الميلاد: 1956/02/14\nDate / التاريخ: 2024/01/14\nOperator / المشغل: Dr. Patel, Interventional Cardiology\nIndication / الدليل: Positive stress test, typical angina\nاختبار جهد إيجابي، ذبحة صدرية نموذجية\n\nHemodynamics / الديناميكا الدموية:\n  Ao pressure / ضغط الأبهر: 145/85 mmHg\n  LVEDP: 14 mmHg\n  LVEF: 52% (angiographic)\n\nCoronary Angiography / تصوير الأوعية التاجية:\n\nLMCA / الجذع الأيسر: No disease / لا يوجد مرض\n\nLAD / الشريان الأمامي النازل:\n  75% stenosis mid-segment / تضيق ٧٥٪ في المنتصف\n  TIMI 3 flow / تدفق طبيعي\n  Recommendation: PCI recommended / يوصى بالتدخل\n\nLCx / الشريان الالتفافي:\n  30% stenosis proximal / تضيق ٣٠٪ قريب\n  TIMI 3 flow / تدفق طبيعي\n\nRCA / الشريان التاجي الأيمن:\n  Dominant vessel / وعاء سائد\n  80% stenosis mid-RCA / تضيق ٨٠٪ في المنتصف\n  TIMI 3 flow / تدفق طبيعي\n  Recommendation: PCI recommended / يوصى بالتدخل\n\nValves / الصمامات:\n  No significant valvular disease / لا يوجد مرض صمامي مهم\n\nImpression / التأثير:\nTwo-vessel CAD (LAD + RCA) / مرض وعائيين\nStaged PCI recommended / يوصى بالتدخل على مراحل\n\nد. باتيل / Dr. Patel, MD, FSCAI"
+}

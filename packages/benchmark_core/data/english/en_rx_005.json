@@ -1,0 +1,11 @@
+{
+  "id": "en_rx_005",
+  "language": "english",
+  "specialty": "prescriptions",
+  "difficulty": "medium",
+  "noise_level": "moderate_noise",
+  "image_path": "data/english/images/rx_005.png",
+  "source": "synthetic",
+  "description": "Prescription with drug interactions noted",
+  "ground_truth": "University Medical Center - Cardiology\nDr. Richard Lee, MD, FACC\n456 Heart Center Drive\nPhone: (555) 999-8888\nNPI: 5556667778\n\nRx\nDate: 24/01/2024\nPatient: George Miller  DOB: 28/02/1963\nMRN: 334567\n\nPost-MI Medication Regimen\n\n1. Clopidogrel 75mg tablets\n   Sig: Take one tablet daily with breakfast.\n   Disp: 90 tablets\n   Refills: 5\n\n2. Bisoprolol 5mg tablets\n   Sig: Take one tablet daily in the morning.\n   Disp: 90 tablets\n   Refills: 5\n\n3. Ramipril 5mg capsules\n   Sig: Take one capsule daily in the morning.\n   Disp: 90 capsules\n   Refills: 5\n\n4. Atorvastatin 80mg tablets\n   Sig: Take one tablet at bedtime.\n   Disp: 90 tablets\n   Refills: 5\n\n5. Omega-3 fatty acids 1g capsules\n   Sig: Take two capsules daily.\n   Disp: 180 capsules\n   Refills: 5\n\nDrug Interaction Alert: Avoid NSAIDs. Use Tylenol for pain.\n\nDiagnosis: Acute MI (NSTEMI), s/p PCI, stent placement\n\nDr. Richard Lee, MD, FACC"
+}

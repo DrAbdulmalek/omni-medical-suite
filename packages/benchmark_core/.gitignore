@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Benchmark outputs (generated at runtime)
+results/
+reports/
+*.log
+
+# OCR model caches
+.paddleocr/
+surya_models/
+trocr_models/
+
+# Sensitive data (if any real medical images are added)
+data/**/images/
+!data/**/.gitkeep
+
+# Environment
+.env
+.env.*

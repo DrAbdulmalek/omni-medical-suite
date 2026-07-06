@@ -1,0 +1,11 @@
+{
+  "id": "en_rx_004",
+  "language": "english",
+  "specialty": "prescriptions",
+  "difficulty": "easy",
+  "noise_level": "clean",
+  "image_path": "data/english/images/rx_004.png",
+  "source": "synthetic",
+  "description": "Printed prescription - dermatology",
+  "ground_truth": "Clear Skin Dermatology Clinic\nDr. Lisa Park, MD, FAAD\n1012 Dermatology Drive\nPhone: (555) 333-4444\n\nRx\nDate: 21/01/2024\nPatient: Amanda Foster  DOB: 02/03/1995\n\n1. Tretinoin 0.025% cream 45g tube\n   Sig: Apply a pea-sized amount to face at bedtime.\n   Use sunscreen SPF 30+ during the day.\n   Disp: 1 tube\n   Refills: 3\n\n2. Clindamycin 1% gel 30g\n   Sig: Apply thin layer to affected areas every morning.\n   Disp: 1 tube\n   Refills: 3\n\n3. Benzoyl Peroxide 5% wash 170mL\n   Sig: Use as face wash, lather and leave on 2 minutes, rinse.\n   Once daily in the morning.\n   Disp: 1 bottle\n   Refills: 3\n\nDiagnosis: Acne vulgaris, moderate\n\nDr. Lisa Park, MD, FAAD"
+}

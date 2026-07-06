@@ -1,0 +1,11 @@
+{
+  "id": "en_rx_002",
+  "language": "english",
+  "specialty": "prescriptions",
+  "difficulty": "medium",
+  "noise_level": "moderate_noise",
+  "image_path": "data/english/images/rx_002.png",
+  "source": "synthetic",
+  "description": "Pediatric prescription with weight-based dosing",
+  "ground_truth": "Dr. Sarah Kim, MD\nPediatrics\nChildren's Hospital, 456 Oak Avenue\nPhone: (555) 876-5432\n\nRx\nDate: 19/01/2024\nPatient: Emily Chen  DOB: 15/06/2018  Weight: 18 kg\n\n1. Amoxicillin 250mg/5mL suspension\n   Sig: 15 mg/kg/day divided q8h (9 mL three times daily)\n   Disp: 150 mL\n   Refills: 0\n\n2. Acetaminophen 160mg/5mL oral solution\n   Sig: 10 mg/kg/dose q4-6h PRN fever (6 mL q4-6h as needed)\n   Disp: 120 mL\n   Refills: 1\n\nDiagnosis: Acute otitis media, bilateral\n\nImportant: Complete full course of antibiotics.\n\nDr. Sarah Kim\nSignature: _________________________"
+}

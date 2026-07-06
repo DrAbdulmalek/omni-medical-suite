@@ -1,0 +1,79 @@
+{
+  "name": "noise_type_benchmarks",
+  "version": "1.0.0",
+  "description": "Test OCR accuracy under specific noise conditions commonly found in medical documents",
+  "cases": [
+    {
+      "id": "noise_blur_001",
+      "noise_type": "motion_blur",
+      "description": "Camera motion blur during photo capture of prescription",
+      "ground_truth": "Diclofenac Sodium 50mg ثلاث مرات يوميا بعد الأكل",
+      "difficulty": "medium",
+      "language": "mixed",
+      "specialty": "prescription"
+    },
+    {
+      "id": "noise_blur_002",
+      "noise_type": "out_of_focus",
+      "description": "Out-of-focus scan of lab report header",
+      "ground_truth": "Laboratory Results - Complete Blood Count",
+      "difficulty": "medium",
+      "language": "english",
+      "specialty": "lab_report"
+    },
+    {
+      "id": "noise_rotate_001",
+      "noise_type": "rotation_skew",
+      "description": "Skewed discharge summary from flatbed scanner",
+      "ground_truth": "ملخص الخروج: المريض سعيد أحمد، تشخيص: ارتفاع ضغط الدم الأساسي",
+      "difficulty": "hard",
+      "language": "arabic",
+      "specialty": "discharge"
+    },
+    {
+      "id": "noise_lowres_001",
+      "noise_type": "low_resolution",
+      "description": "Low-res photo (72 DPI) of vital signs monitor",
+      "ground_truth": "HR: 88 BPM, BP: 140/90 mmHg, SpO2: 97%, Temp: 37.2 C",
+      "difficulty": "hard",
+      "language": "english",
+      "specialty": "vitals"
+    },
+    {
+      "id": "noise_watermark_001",
+      "noise_type": "watermark_overlay",
+      "description": "Hospital watermark across prescription text",
+      "ground_truth": "Metformin 850mg صباحا ومساء مع الطعام لمدة ٣٠ يوما",
+      "difficulty": "hard",
+      "language": "mixed",
+      "specialty": "prescription"
+    },
+    {
+      "id": "noise_fax_001",
+      "noise_type": "fax_artifacts",
+      "description": "Fax transmission of referral letter",
+      "ground_truth": "Referral to Cardiology: Patient presents with chest pain, ECG shows ST elevation",
+      "difficulty": "medium",
+      "language": "english",
+      "specialty": "cardiology"
+    },
+    {
+      "id": "noise_stamp_001",
+      "noise_type": "stamp_annotation",
+      "description": "Hospital stamp overlapping lab values",
+      "ground_truth": "Glucose: 180 mg/dL, HbA1c: 8.2%, Creatinine: 1.4 mg/dL",
+      "difficulty": "hard",
+      "language": "english",
+      "specialty": "lab_report"
+    },
+    {
+      "id": "noise_grid_001",
+      "noise_type": "grid_lines",
+      "description": "Background grid lines from structured form",
+      "ground_truth": "الاسم: فاطمة المحمد، العمر: ٤٥ سنة، التشخيص: سكري نوع ٢",
+      "difficulty": "medium",
+      "language": "arabic",
+      "specialty": "discharge"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "mixed-medical-v1",
+  "language": "mixed",
+  "category": "medical",
+  "test_cases": [
+    {
+      "id": "MX001",
+      "category": "cardiology",
+      "reference": "Diagnosis: احتشاء عضلة القلب Acute Myocardial Infarction — Troponin elevated",
+      "hypothesis": "Diagnosis: احتشاء عضله القلب Acute Myocardial Infarction — Troponin elevated",
+      "medical_terms": ["احتشاء عضلة القلب", "Myocardial Infarction", "Troponin"],
+      "ocr_confidence": 0.80
+    },
+    {
+      "id": "MX002",
+      "category": "general",
+      "reference": "Patient Name: محمد أحمر — تاريخ الميلاد: 15/03/1985 — Blood Type: A+",
+      "hypothesis": "Patient Name: محمد احمر — تاريخ الميلاد: 15/03/1985 — Blood Type: A+",
+      "medical_terms": ["Blood Type"],
+      "phi_fields": ["patient_name", "date_of_birth"],
+      "ocr_confidence": 0.82
+    },
+    {
+      "id": "MX003",
+      "category": "radiology",
+      "reference": "الأشعة السينية Chest X-ray: علامات تراكم السوائل في الرئة Pleural effusion",
+      "hypothesis": "الاشعه السينيه Chest X-ray: علامات تراكم السوائل في الرئه Pleural effusion",
+      "medical_terms": ["Pleural effusion", "الأشعة السينية"],
+      "ocr_confidence": 0.73
+    }
+  ]
+}

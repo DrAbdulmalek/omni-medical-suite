@@ -1,0 +1,11 @@
+{
+  "id": "en_cardio_001",
+  "language": "english",
+  "specialty": "cardiology",
+  "difficulty": "easy",
+  "noise_level": "clean",
+  "image_path": "data/english/images/cardio_001.png",
+  "source": "synthetic",
+  "description": "Printed cardiology consultation note",
+  "ground_truth": "Patient Name: John Smith\nDOB: 15/03/1965\nDate: 10/01/2024\n\nCARDIOLOGY CONSULTATION\n\nChief Complaint: Chest pain on exertion for 2 weeks.\n\nHistory of Present Illness:\nA 58-year-old male presenting with substernal chest pain, grade 3/10, occurring with physical activity. Pain radiates to left arm. No associated dyspnea, diaphoresis, or syncope.\n\nPast Medical History:\n- Hypertension, diagnosed 2018\n- Type 2 Diabetes Mellitus, diagnosed 2020\n- Hyperlipidemia\n\nMedications:\n- Metformin 500mg twice daily\n- Lisinopril 10mg once daily\n- Atorvastatin 20mg at bedtime\n\nPhysical Examination:\nBP: 145/92 mmHg | HR: 78 bpm | RR: 16/min\nCVS: S1, S2 normal. No murmur or gallop.\nRespiratory: Clear bilateral breath sounds.\n\nAssessment:\n1. Stable angina pectoris (Canadian Cardiovascular Society Class II)\n2. Hypertension (Stage 1)\n3. Type 2 DM with good glycemic control\n\nPlan:\n- ECG and echocardiogram ordered\n- Treadmill stress test scheduled\n- Titrate Lisinopril to 20mg\n- Add Aspirin 81mg daily\n- Follow-up in 2 weeks\n\nDr. Sarah Johnson, MD, FACC\nCardiology Department"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "en_cardio_002",
+  "language": "english",
+  "specialty": "cardiology",
+  "difficulty": "medium",
+  "noise_level": "light_noise",
+  "image_path": "data/english/images/cardio_002.png",
+  "source": "synthetic",
+  "description": "Handwritten ECG interpretation note",
+  "ground_truth": "ECG Report\nDate: 12/01/2024  Time: 09:30\nPatient: Mary Williams  MRN: 445621\n\n12-Lead ECG Interpretation:\nRate: 82 bpm\nRhythm: Normal sinus rhythm\nIntervals: PR 0.16s, QRS 0.09s, QTc 420ms\nAxis: Normal axis\n\nFindings:\n- Normal sinus rhythm, rate 82 bpm\n- No ST-segment elevation or depression\n- T waves upright in all leads\n- No pathological Q waves\n- Normal QRS duration\n- PR interval within normal limits\n\nImpression: Normal electrocardiogram.\nNo acute ischemic changes.\n\nCompared to prior ECG (03/11/2023): No significant change.\n\nDr. Robert Chen\nElectrophysiology Fellow"
+}

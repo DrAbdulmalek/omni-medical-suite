@@ -1,0 +1,47 @@
+{
+  "name": "en-medical-v1",
+  "language": "en",
+  "category": "medical",
+  "test_cases": [
+    {
+      "id": "EN001",
+      "category": "cardiology",
+      "reference": "Patient diagnosed with patent ductus arteriosus. Blood pressure: 140/90 mmHg. Heart rate: 88 bpm. Prescribed: Lisinopril 10mg daily.",
+      "hypothesis": "Patient diagnosed with patent ductus arteriosus. Blood pressure: 140/90 mmHg. Heart rate: 88 bpm. Prescribed: Lisinopril 10mg daily.",
+      "medical_terms": ["patent ductus arteriosus", "blood pressure", "heart rate", "Lisinopril"],
+      "ocr_confidence": 0.95
+    },
+    {
+      "id": "EN002",
+      "category": "oncology",
+      "reference": "Biopsy revealed adenocarcinoma of the colon. Stage III. Recommend chemotherapy with FOLFOX regimen.",
+      "hypothesis": "Biopsy revealed adenocarcinoma of the colon. Stage III. Recommend chemotherapy with FOLFOX regimen.",
+      "medical_terms": ["adenocarcinoma", "chemotherapy", "FOLFOX"],
+      "ocr_confidence": 0.92
+    },
+    {
+      "id": "EN003",
+      "category": "pharmacology",
+      "reference": "Medications: Metformin 500mg BID, Atorvastatin 20mg QHS, Aspirin 81mg daily. Monitor HbA1c and lipid panel.",
+      "hypothesis": "Medications: Metformin 500mg BID, Atorvastatin 20mg QHS, Aspirin 81mg daily. Monitor HbA1c and lipid panel.",
+      "medical_terms": ["Metformin", "Atorvastatin", "Aspirin", "HbA1c", "lipid panel"],
+      "ocr_confidence": 0.97
+    },
+    {
+      "id": "EN004",
+      "category": "pulmonology",
+      "reference": "Chest X-ray shows bilateral pleural effusion. Pulmonary function test: FEV1 65% predicted. Diagnosis: COPD exacerbation.",
+      "hypothesis": "Chest X-ray shows bilateral pleural effusion. Pulmonary function test: FEV1 65% predicted. Diagnosis: COPD exacerbation.",
+      "medical_terms": ["pleural effusion", "FEV1", "COPD"],
+      "ocr_confidence": 0.90
+    },
+    {
+      "id": "EN005",
+      "category": "neurology",
+      "reference": "MRI brain: Multiple sclerosis plaques in periventricular white matter. EDSS score: 3.5. Start interferon beta-1a.",
+      "hypothesis": "MRI brain: Multiple sclerosis plaques in periventricular white matter. EDSS score: 3.5. Start interferon beta-1a.",
+      "medical_terms": ["multiple sclerosis", "periventricular", "EDSS", "interferon beta-1a"],
+      "ocr_confidence": 0.88
+    }
+  ]
+}

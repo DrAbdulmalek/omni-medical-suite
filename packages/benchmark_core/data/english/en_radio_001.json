@@ -1,0 +1,11 @@
+{
+  "id": "en_radio_001",
+  "language": "english",
+  "specialty": "radiology",
+  "difficulty": "easy",
+  "noise_level": "clean",
+  "image_path": "data/english/images/radio_001.png",
+  "source": "synthetic",
+  "description": "Printed chest X-ray report",
+  "ground_truth": "CHEST RADIOGRAPH REPORT\n\nExamination: PA and Lateral chest radiograph\nDate: 11/01/2024\nPatient: Thomas Anderson  DOB: 30/05/1980  MRN: 553412\n\nTechnique: PA and lateral views obtained.\n\nFindings:\n\nPA View:\n- Heart size is normal (CTR < 50%)\n- Mediastinal silhouette is unremarkable\n- No pleural effusion\n- No pneumothorax\n- Lungs are clear bilaterally without focal consolidation, mass, or pleural abnormality\n- No hilar lymphadenopathy\n- Visualized osseous structures are intact without acute fracture\n- No acute osseous abnormality\n\nLateral View:\n- Clear retrosternal and retrocardiac spaces\n- No consolidation in the lower lobes\n- Hemidiaphragms are clear\n\nImpression:\nNo acute cardiopulmonary abnormality.\nNormal chest radiograph.\n\nComparison: None available.\n\nDr. James Wilson, MD\nRadiology Department\nBoard Certified Diagnostic Radiology"
+}

@@ -1,0 +1,87 @@
+{
+  "name": "handwriting_style_benchmarks",
+  "version": "1.0.0",
+  "description": "Benchmark for different handwriting styles common in medical settings",
+  "cases": [
+    {
+      "id": "hw_print_ar_001",
+      "style": "arabic_print",
+      "description": "Clear Arabic printed handwriting (Naskh-like)",
+      "ground_truth": "الاسم: أحمد محمد، العمر: 55 سنة، التشخيص: ارتفاع ضغط الدم",
+      "difficulty": "easy",
+      "language": "arabic"
+    },
+    {
+      "id": "hw_cursive_ar_001",
+      "style": "arabic_cursive",
+      "description": "Connected Arabic cursive with overlapping letters",
+      "ground_truth": "Ceftriaxone 1g حقنة عضلية مرة واحدة يوميا لمدة 7 أيام",
+      "difficulty": "hard",
+      "language": "mixed"
+    },
+    {
+      "id": "hw_print_en_001",
+      "style": "english_print",
+      "description": "Clear English print handwriting",
+      "ground_truth": "Patient: John Smith, DOB: 15/03/1965, Diagnosis: Type 2 Diabetes",
+      "difficulty": "easy",
+      "language": "english"
+    },
+    {
+      "id": "hw_cursive_en_001",
+      "style": "english_cursive",
+      "description": "English cursive handwriting with connected letters",
+      "ground_truth": "Continue Aspirin 100mg daily, Atorvastatin 40mg at bedtime",
+      "difficulty": "hard",
+      "language": "english"
+    },
+    {
+      "id": "hw_doctor_001",
+      "style": "doctor_scratch",
+      "description": "Classic illegible doctor handwriting - prescription",
+      "ground_truth": "Amoxicillin-Clavulanate 625mg TDS x 5/7",
+      "difficulty": "very_hard",
+      "language": "english"
+    },
+    {
+      "id": "hw_doctor_002",
+      "style": "doctor_scratch",
+      "description": "Arabic doctor handwriting - abbreviated prescription",
+      "ground_truth": "بنسلين V 500000 وحدة كل 6 ساعات لمدة 10 أيام",
+      "difficulty": "very_hard",
+      "language": "arabic"
+    },
+    {
+      "id": "hw_mixed_script_001",
+      "style": "mixed_script",
+      "description": "Arabic text with embedded English medical terms and drug names",
+      "ground_truth": "التحاليل: CBC طبيعي، LFT مرتفع قليلا، Kidney Function ضمن الحدود الطبيعية",
+      "difficulty": "medium",
+      "language": "mixed"
+    },
+    {
+      "id": "hw_numerals_001",
+      "style": "mixed_numerals",
+      "description": "Mixed Arabic-Indic and Western numerals in dosage instructions",
+      "ground_truth": "الجرعة: ٢ قرص مرتين يوميا (2 tablets twice daily) بعد الطعام",
+      "difficulty": "medium",
+      "language": "mixed"
+    },
+    {
+      "id": "hw_shorthand_001",
+      "style": "medical_shorthand",
+      "description": "Medical abbreviations and symbols commonly used in notes",
+      "ground_truth": "Hx: HTN x 5yrs, DM2 x 3yrs. Rx: Amlodipine 10mg OD, Metformin 500mg BD. F/U in 4 wks.",
+      "difficulty": "hard",
+      "language": "english"
+    },
+    {
+      "id": "hw_marginal_001",
+      "style": "marginal_notes",
+      "description": "Text written in margins of existing form, common in KSA hospitals",
+      "ground_truth": "ملاحظة: المريض لديه حساسية من البنسلين، استبدل بـ Erythromycin",
+      "difficulty": "hard",
+      "language": "mixed"
+    }
+  ]
+}

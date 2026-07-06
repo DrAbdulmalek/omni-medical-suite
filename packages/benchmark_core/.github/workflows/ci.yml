@@ -1,0 +1,239 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+          pip install -e .
+
+      - name: Run flake8
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 benchmarks/ scripts/ \
+            --count \
+            --select=E9,F63,F7,F82 \
+            --show-source \
+            --statistics
+          # Warnings as informational (don't fail)
+          flake8 benchmarks/ scripts/ \
+            --count \
+            --exit-zero \
+            --max-complexity=10 \
+            --max-line-length=100 \
+            --statistics
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          pip install -e .
+
+      - name: Validate golden datasets
+        run: |
+          python -c "
+          from benchmarks.datasets.golden import GoldenDataset
+          loader = GoldenDataset('data/golden')
+          for name in loader.list_datasets():
+              ds = loader.load(name)
+              s = loader.summary(name)
+              print(f'✓ {name}: {s[\"total_cases\"]} cases, lang={s[\"language\"]}')
+          "
+
+      - name: Test core metrics
+        run: |
+          python -c "
+          from benchmarks.core.metrics import EditDistance, LatencyProfiler, MedicalTermEvaluator, BenchmarkSuite
+
+          # Test EditDistance
+          ed = EditDistance.distance('kitten', 'sitting')
+          assert ed == 3, f'Expected 3, got {ed}'
+
+          cer = EditDistance.cer('hello world', 'helo world')
+          assert cer['cer'] == 1/11, f'Expected 0.0909, got {cer[\"cer\"]}'
+          assert cer['deletions'] == 1
+
+          wer = EditDistance.wer('the cat sat', 'the cat')
+          assert wer['wer'] == 1/3
+          assert wer['deletions'] == 1
+
+          # Test LatencyProfiler
+          profiler = LatencyProfiler(warmup_runs=1, benchmark_runs=5)
+          timing = profiler.measure(lambda: sum(range(1000)))
+          assert 'mean' in timing
+          assert timing['runs'] == 5
+          s = profiler.summary()
+          assert s['runs'] == 5
+
+          # Test MedicalTermEvaluator
+          evaluator = MedicalTermEvaluator(['adenocarcinoma', 'FOLFOX'])
+          result = evaluator.evaluate(
+              'Biopsy revealed adenocarcinoma of the colon. FOLFOX regimen.',
+              'Biopsy revealed adenocarcinoma of the colon. FOLFOX regimen.'
+          )
+          assert result['found_exact'] == 2
+          assert result['accuracy'] == 1.0
+
+          # Test BenchmarkSuite
+          suite = BenchmarkSuite('test-suite')
+          suite.add_result('bench-a', {'cer': 0.05, 'wer': 0.12})
+          suite.add_result('bench-b', {'cer': 0.08, 'wer': 0.15})
+          summary = suite.summary()
+          assert summary['total_benchmarks'] == 2
+          assert abs(summary['metrics_summary']['cer']['mean'] - 0.065) < 0.0001
+
+          print('✓ All core metric tests passed')
+          "
+
+      - name: Test reporter
+        run: |
+          python -c "
+          from benchmarks.core.reporter import BenchmarkReporter
+
+          results = {
+              'suite_name': 'test',
+              'results': [
+                  {
+                      'benchmark_name': 'correction',
+                      'dataset': 'en_medical',
+                      'metrics': {'mean_cer': 0.045, 'mean_latency_s': 0.0023},
+                      'metadata': {},
+                  }
+              ],
+              'summary': {
+                  'metrics_summary': {
+                      'mean_cer': {'mean': 0.045, 'median': 0.045, 'stdev': 0.0, 'min': 0.045, 'max': 0.045},
+                  }
+              },
+          }
+
+          reporter = BenchmarkReporter(results)
+          md = reporter.to_markdown()
+          assert '# ' in md
+          assert '0.045' in md
+
+          js = reporter.to_json()
+          assert js['_metadata']['generator'] == 'medical-ocr-benchmarks'
+
+          html = reporter.to_html()
+          assert '<!DOCTYPE html>' in html
+          assert '<table>' in html
+
+          print('✓ All reporter tests passed')
+          "
+
+      - name: Test runner
+        run: |
+          python -c "
+          from benchmarks.core.runner import BenchmarkRunner
+
+          runner = BenchmarkRunner()
+          results = runner.run_all()
+          assert 'results' in results
+          assert 'summary' in results
+          assert len(results['results']) > 0
+          print(f'✓ Runner executed {len(results[\"results\"])} benchmarks')
+          "
+
+      - name: Test benchmarks
+        run: |
+          python -c "
+          from benchmarks.postprocessor.correction import CorrectionBenchmark
+          from benchmarks.postprocessor.phi import PHIBenchmark
+
+          # Correction benchmark
+          correction = CorrectionBenchmark()
+          correction_result = correction.run({
+              'name': 'test',
+              'test_cases': [
+                  {
+                      'id': 'T1',
+                      'reference': 'Patient diagnosed with adenocarcinoma.',
+                      'hypothesis': 'Patient diagnosed with adenocarcnoma.',
+                      'medical_terms': ['adenocarcinoma'],
+                  }
+              ]
+          })
+          assert correction_result['status'] == 'success'
+          assert correction_result['total_cases'] == 1
+
+          # PHI benchmark
+          phi = PHIBenchmark()
+          phi_result = phi.run({
+              'name': 'test',
+              'test_cases': [
+                  {
+                      'id': 'T1',
+                      'reference': 'Patient Name: John Smith — DOB: 01/15/1990',
+                      'hypothesis': 'Patient Name: John Smith — DOB: 01/15/1990',
+                  }
+              ]
+          })
+          assert phi_result['status'] == 'success'
+          assert phi_result['total_cases'] == 1
+
+          print('✓ All benchmark tests passed')
+          "
+
+  run-benchmarks:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run all benchmarks
+        run: |
+          python scripts/run_all_benchmarks.py \
+            --output-dir results \
+            --format markdown \
+            --golden-dir data/golden
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: results/
+          retention-days: 30

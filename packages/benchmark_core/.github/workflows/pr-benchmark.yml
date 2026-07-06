@@ -1,0 +1,27 @@
+name: PR Benchmark
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'data/**'
+      - 'config/**'
+
+jobs:
+  quick-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -e ".[dev]" -q
+      - run: pytest tests/ -v --tb=short
+      - run: python -c "
+          from benchmarks.dataset import DatasetManager
+          dm = DatasetManager('data/')
+          stats = dm.get_stats()
+          print(f'Dataset: {stats.total_cases} cases, {stats.languages} languages, {stats.specialties} specialties')
+          assert stats.total_cases >= 50, f'Expected at least 50 test cases, got {stats.total_cases}'
+          "

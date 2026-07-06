@@ -1,0 +1,11 @@
+{
+  "id": "en_surg_002",
+  "language": "english",
+  "specialty": "surgery_notes",
+  "difficulty": "hard",
+  "noise_level": "heavy_noise",
+  "image_path": "data/english/images/surg_002.png",
+  "source": "synthetic",
+  "description": "Handwritten operative note - orthopedic",
+  "ground_truth": "OPERATIVE NOTE\n\nDate: 23/01/2024\nSurgeon: Dr. Chris Taylor, MD\nProcedure: Open Reduction Internal Fixation (ORIF) right distal\nradius fracture\nAnesthesia: Axillary block + sedation\n\nPatient: Patricia Jones  DOB: 12/10/1960\nMRN: 889456\n\nPreop Dx: Comminuted distal radius fracture (Frykman type VIII)\nRight dominant hand\n\nProcedure:\nPatient brought to OR. Axillary block placed by anesthesia.\nRight upper extremity prepped and draped. Tourniquet inflated\nto 250 mmHg.\n\nStandard volar Henry approach utilized. Dissection through\ntinterval between FCR and brachioradialis. Retraction of radial\nartery. Fracture fragments identified. Extensive comminution\nat the dorsal metaphyseal region.\n\nFracture reduced under fluoroscopic guidance. Volar locking\nplate (Synthes DVR, 2.4mm) applied. Provisional fixation with\nK-wires, then definitive screw fixation. Articular surface\nassessed and found anatomic. Dorsal comminuted fragments\nsecured with additional screws through plate.\n\nFluoroscopy confirmed anatomic reduction. Wound irrigated.\nVolar fascia closed with 3-0 Vicryl. Subcutaneous with 4-0\nVicryl. Skin with 4-0 Monocryl. Splint applied.\n\nEBL: 50 mL\nComplications: None\n\nPostop Plan: Splint 2 weeks, then begin ROM.\n\nDr. Chris Taylor, MD"
+}

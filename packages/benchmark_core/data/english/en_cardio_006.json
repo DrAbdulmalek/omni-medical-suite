@@ -1,0 +1,11 @@
+{
+  "id": "en_cardio_006",
+  "language": "english",
+  "specialty": "cardiology",
+  "difficulty": "hard",
+  "noise_level": "heavy_noise",
+  "image_path": "data/english/images/cardio_006.png",
+  "source": "synthetic",
+  "description": "Handwritten pacemaker interrogation note",
+  "ground_truth": "PACEMAKER INTERROGATION REPORT\n\nPatient: Frank Williams  DOB: 22/11/1945\nMRN: 556789\nImplanted Device: Medtronic Advisa DR MRI\nImplant Date: 03/15/2022\nLead: Medtronic CapsureFix Novus 5076\nReason for Visit: Routine 6-month check\n\nDate: 26/01/2024\n\nBattery:\nVoltage: 2.89 V (ERI = 2.63 V)\nImpedance: 450 ohms\nLongevity estimate: 7.2 years remaining\n\nLeads:\nAtrial Lead (J-tip):\n  P-wave amplitude: 2.8 mV\n  Pacing threshold: 0.75 V at 0.4 ms\n  Lead impedance: 520 ohms\n\nVentricular Lead:\n  R-wave amplitude: 12.5 mV\n  Pacing threshold: 1.0 V at 0.4 ms\n  Lead impedance: 680 ohms\n\nProgrammed Settings:\nMode: DDDR\nLower Rate: 60 ppm\nUpper Rate: 130 ppm\nAV Delay: 200 ms (adaptive)\nMode Switch: ON at 170 ppm\n\nCounters (since last visit):\n% Atrial Pacing: 42%\n% Ventricular Pacing: 38%\n% PVCs: 2%\nAT/AF episodes: 0\nMode Switch episodes: 0\n\nArrhythmia Log:\nNo sustained arrhythmias detected.\n\nAction: No programming changes required.\nNext visit: 6 months.\n\nDr. Thomas Murphy, MD\nCardiac Electrophysiology"
+}

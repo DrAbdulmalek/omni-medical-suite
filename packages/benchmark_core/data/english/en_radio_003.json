@@ -1,0 +1,11 @@
+{
+  "id": "en_radio_003",
+  "language": "english",
+  "specialty": "radiology",
+  "difficulty": "hard",
+  "noise_level": "moderate_noise",
+  "image_path": "data/english/images/radio_003.png",
+  "source": "synthetic",
+  "description": "CT abdomen with contrast - handwritten addendum",
+  "ground_truth": "CT ABDOMEN AND PELVIS WITH IV CONTRAST\n\nDate: 15/01/2024\nPatient: Michael Davis  DOB: 03/12/1967  MRN: 991245\n\nIndication: Abdominal pain, evaluate for appendicitis or diverticulitis.\n\nTechnique:\nNon-contrast images followed by portal venous phase images after IV contrast.\n5mm axial reconstructions. Coronal and sagittal reformats.\n\nFindings:\n\nLiver: Normal size and attenuation. No focal lesion.\nGallbladder: Distended. Multiple small gallstones identified. No wall thickening or pericholecystic fluid. No cholecystitis.\n\nPancreas: Normal in size and attenuation. No pancreatic ductal dilation. No focal lesion.\n\nSpleen: Normal.\n\nAdrenal Glands: Normal bilaterally.\n\nKidneys: Bilateral kidneys enhance normally without hydronephrosis. No renal mass or calculi.\n\nAbdominal Aorta: Normal caliber, no aneurysm.\n\nLymph Nodes: No pathologic retroperitoneal or mesenteric lymphadenopathy.\n\nBowel:\nSmall bowel: Normal caliber and wall enhancement.\nColon: Diverticulosis noted in the sigmoid colon without pericolonic inflammation or abscess.\nAppendix: Normal caliber, visualized in its entirety. No periappendiceal inflammation.\n\nImpression:\n1. No evidence of appendicitis.\n2. Diverticulosis of the sigmoid colon without diverticulitis.\n3. Cholelithiasis without cholecystitis.\n\nDr. Richard Nguyen, MD\nAbdominal Imaging"
+}
