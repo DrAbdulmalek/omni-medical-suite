@@ -1,0 +1,131 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bilingual-extractor"
+version = "1.0.0"
+description = "Arabic-English Medical Parallel Corpus Extraction System"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "BilingualExtractor Team", email = "contact@bilingualextractor.dev"}
+]
+keywords = [
+    "nlp",
+    "medical",
+    "arabic",
+    "bilingual",
+    "ocr",
+    "terminology",
+    "corpus",
+    "extraction"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: Arabic",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Medical Science Apps",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "sentence-transformers>=2.2.0",
+    "scipy>=1.9.0",
+    "pandas>=1.5.0",
+    "openpyxl>=3.0.0",
+]
+
+[project.optional-dependencies]
+gpu = [
+    "torch>=2.0.0",
+    "transformers>=4.25.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=24.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "types-pandas>=1.5.0",
+]
+
+[project.scripts]
+bilingual-extract = "term_extractor.term_extractor:main"
+
+[project.urls]
+Homepage = "https://github.com/DrAbdulmalek/bilingual-extractor"
+Documentation = "https://github.com/DrAbdulmalek/bilingual-extractor#readme"
+Repository = "https://github.com/DrAbdulmalek/bilingual-extractor.git"
+Issues = "https://github.com/DrAbdulmalek/bilingual-extractor/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["term_extractor*"]
+
+[tool.black]
+line-length = 120
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+)/
+'''
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = "E203"
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["term_extractor"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
