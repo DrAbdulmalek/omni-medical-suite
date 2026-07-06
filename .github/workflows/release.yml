@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Create tarball
+        run: |
+          mkdir -p dist/reset-net-${{ steps.version.outputs.TAG }}
+          cp reset-net reset-net-gui install.sh uninstall.sh \
+             com.drabdulmalek.reset-net.desktop \
+             com.drabdulmalek.reset-net.policy \
+             README.md LICENSE \
+             dist/reset-net-${{ steps.version.outputs.TAG }}/
+          cd dist && tar -czf reset-net-${{ steps.version.outputs.TAG }}.tar.gz reset-net-${{ steps.version.outputs.TAG }}/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "reset-net ${{ steps.version.outputs.TAG }}"
+          body: |
+            ## التغييرات
+
+            انظر ملف [README.md](README.md) للتفاصيل الكاملة.
+
+            ## التثبيت
+
+            ```bash
+            tar -xzf reset-net-${{ steps.version.outputs.TAG }}.tar.gz
+            cd reset-net-${{ steps.version.outputs.TAG }}
+            sudo bash install.sh
+            ```
+
+            ## المتطلبات
+            - مانجارو لينكس أو أي توزيعة مبنية على أرش لينكس
+            - NetworkManager + firewalld
+          files: dist/reset-net-${{ steps.version.outputs.TAG }}.tar.gz
+          draft: false
+          prerelease: false
