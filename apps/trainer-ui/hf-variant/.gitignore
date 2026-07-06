@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Project data (generated at runtime)
+data/corrections.db
+uploads/*
+crops/*
+exports/*
+!uploads/.gitkeep
+!crops/.gitkeep
+!data/.gitkeep
+!exports/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Preprocessed images
+*_pre.png
