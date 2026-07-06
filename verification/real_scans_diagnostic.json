@@ -1,0 +1,482 @@
+{
+  "IMG_20260630_001239_035.jpg_original": {
+    "label": "IMG_20260630_001239_035.jpg_ORIGINAL",
+    "size": "929x1280",
+    "density": {
+      "center_of_mass_ratio": 0.5833,
+      "top_density": 9302145.0,
+      "bottom_density": 15990540.0,
+      "bottom_top_ratio": 1.719
+    },
+    "votes": {
+      "vote1_com_above_055": 1,
+      "vote2_density_above_115": 1,
+      "vote3_last_q_above_first": 1,
+      "total": 3,
+      "threshold_for_flip": ">= 2",
+      "passed": true
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 685663.0,
+      "last_quarter_mean": 1269836.0,
+      "ratio": 1.852,
+      "vote": 1
+    },
+    "flip_detected": true,
+    "skew": {
+      "detected_angle": 0.0,
+      "hough_lines_found": 2328,
+      "angles_after_filter": 162,
+      "angles_median": 0.0,
+      "angles_std": 25.83
+    }
+  },
+  "IMG_20260630_001239_035.jpg_flipped": {
+    "label": "IMG_20260630_001239_035.jpg_FLIPPED_180",
+    "size": "929x1280",
+    "density": {
+      "center_of_mass_ratio": 0.4159,
+      "top_density": 15990540.0,
+      "bottom_density": 9302145.0,
+      "bottom_top_ratio": 0.582
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 0,
+      "vote3_last_q_above_first": 0,
+      "total": 0,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 1269836.0,
+      "last_quarter_mean": 685663.0,
+      "ratio": 0.54,
+      "vote": 0
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": -9.03,
+      "hough_lines_found": 2447,
+      "angles_after_filter": 180,
+      "angles_median": -9.04,
+      "angles_std": 24.48
+    }
+  },
+  "IMG_20260630_001239_035.jpg_tilted": {
+    "label": "IMG_20260630_001239_035.jpg_TILTED_5DEG",
+    "size": "929x1280",
+    "density": {
+      "center_of_mass_ratio": 0.5737,
+      "top_density": 11217450.0,
+      "bottom_density": 17609025.0,
+      "bottom_top_ratio": 1.57
+    },
+    "votes": {
+      "vote1_com_above_055": 1,
+      "vote2_density_above_115": 1,
+      "vote3_last_q_above_first": 1,
+      "total": 3,
+      "threshold_for_flip": ">= 2",
+      "passed": true
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 749757.0,
+      "last_quarter_mean": 1272478.0,
+      "ratio": 1.697,
+      "vote": 1
+    },
+    "flip_detected": true,
+    "skew": {
+      "detected_angle": 27.8,
+      "hough_lines_found": 2464,
+      "angles_after_filter": 606,
+      "angles_median": 27.8,
+      "angles_std": 18.86
+    }
+  },
+  "IMG-20260629-WA0010.jpg_original": {
+    "label": "IMG-20260629-WA0010.jpg_ORIGINAL",
+    "size": "1080x1401",
+    "density": {
+      "center_of_mass_ratio": 0.4534,
+      "top_density": 7384035.0,
+      "bottom_density": 5996580.0,
+      "bottom_top_ratio": 0.812
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 0,
+      "vote3_last_q_above_first": 0,
+      "total": 0,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 517969.0,
+      "last_quarter_mean": 223284.0,
+      "ratio": 0.431,
+      "vote": 0
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": 0.87,
+      "hough_lines_found": 1153,
+      "angles_after_filter": 534,
+      "angles_median": 0.87,
+      "angles_std": 17.56
+    }
+  },
+  "IMG-20260629-WA0010.jpg_flipped": {
+    "label": "IMG-20260629-WA0010.jpg_FLIPPED_180",
+    "size": "1080x1401",
+    "density": {
+      "center_of_mass_ratio": 0.5459,
+      "top_density": 5995305.0,
+      "bottom_density": 7385310.0,
+      "bottom_top_ratio": 1.232
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 1,
+      "vote3_last_q_above_first": 1,
+      "total": 2,
+      "threshold_for_flip": ">= 2",
+      "passed": true
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 223571.0,
+      "last_quarter_mean": 518001.0,
+      "ratio": 2.317,
+      "vote": 1
+    },
+    "flip_detected": true,
+    "skew": {
+      "detected_angle": 0.0,
+      "hough_lines_found": 1062,
+      "angles_after_filter": 705,
+      "angles_median": 0.0,
+      "angles_std": 19.27
+    }
+  },
+  "IMG-20260629-WA0010.jpg_tilted": {
+    "label": "IMG-20260629-WA0010.jpg_TILTED_5DEG",
+    "size": "1080x1401",
+    "density": {
+      "center_of_mass_ratio": 0.4515,
+      "top_density": 8005470.0,
+      "bottom_density": 6586140.0,
+      "bottom_top_ratio": 0.823
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 0,
+      "vote3_last_q_above_first": 0,
+      "total": 0,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 376380.0,
+      "last_quarter_mean": 283305.0,
+      "ratio": 0.753,
+      "vote": 0
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": -3.18,
+      "hough_lines_found": 1210,
+      "angles_after_filter": 796,
+      "angles_median": -3.19,
+      "angles_std": 18.02
+    }
+  },
+  "IMG-20260629-WA0011.jpg_original": {
+    "label": "IMG-20260629-WA0011.jpg_ORIGINAL",
+    "size": "1080x1118",
+    "density": {
+      "center_of_mass_ratio": 0.4317,
+      "top_density": 11686395.0,
+      "bottom_density": 7096650.0,
+      "bottom_top_ratio": 0.607
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 0,
+      "vote3_last_q_above_first": 1,
+      "total": 1,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 449990.0,
+      "last_quarter_mean": 656880.0,
+      "ratio": 1.46,
+      "vote": 1
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": 0.0,
+      "hough_lines_found": 888,
+      "angles_after_filter": 745,
+      "angles_median": 0.0,
+      "angles_std": 1.1
+    }
+  },
+  "IMG-20260629-WA0011.jpg_flipped": {
+    "label": "IMG-20260629-WA0011.jpg_FLIPPED_180",
+    "size": "1080x1118",
+    "density": {
+      "center_of_mass_ratio": 0.5674,
+      "top_density": 7096650.0,
+      "bottom_density": 11686395.0,
+      "bottom_top_ratio": 1.647
+    },
+    "votes": {
+      "vote1_com_above_055": 1,
+      "vote2_density_above_115": 1,
+      "vote3_last_q_above_first": 0,
+      "total": 2,
+      "threshold_for_flip": ">= 2",
+      "passed": true
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 582420.0,
+      "last_quarter_mean": 463760.0,
+      "ratio": 0.796,
+      "vote": 0
+    },
+    "flip_detected": true,
+    "skew": {
+      "detected_angle": 0.0,
+      "hough_lines_found": 875,
+      "angles_after_filter": 676,
+      "angles_median": 0.0,
+      "angles_std": 1.03
+    }
+  },
+  "IMG-20260629-WA0011.jpg_tilted": {
+    "label": "IMG-20260629-WA0011.jpg_TILTED_5DEG",
+    "size": "1080x1118",
+    "density": {
+      "center_of_mass_ratio": 0.4366,
+      "top_density": 12928500.0,
+      "bottom_density": 8196720.0,
+      "bottom_top_ratio": 0.634
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 0,
+      "vote3_last_q_above_first": 0,
+      "total": 0,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 441041.0,
+      "last_quarter_mean": 392445.0,
+      "ratio": 0.89,
+      "vote": 0
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": -4.98,
+      "hough_lines_found": 945,
+      "angles_after_filter": 850,
+      "angles_median": -4.98,
+      "angles_std": 0.96
+    }
+  },
+  "IMG-20260629-WA0012.jpg_original": {
+    "label": "IMG-20260629-WA0012.jpg_ORIGINAL",
+    "size": "1080x1451",
+    "density": {
+      "center_of_mass_ratio": 0.4903,
+      "top_density": 9826935.0,
+      "bottom_density": 7522245.0,
+      "bottom_top_ratio": 0.765
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 0,
+      "vote3_last_q_above_first": 0,
+      "total": 0,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 555791.0,
+      "last_quarter_mean": 504572.0,
+      "ratio": 0.908,
+      "vote": 0
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": 0.0,
+      "hough_lines_found": 892,
+      "angles_after_filter": 802,
+      "angles_median": 0.0,
+      "angles_std": 3.94
+    }
+  },
+  "IMG-20260629-WA0012.jpg_flipped": {
+    "label": "IMG-20260629-WA0012.jpg_FLIPPED_180",
+    "size": "1080x1451",
+    "density": {
+      "center_of_mass_ratio": 0.509,
+      "top_density": 7521735.0,
+      "bottom_density": 9827445.0,
+      "bottom_top_ratio": 1.307
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 1,
+      "vote3_last_q_above_first": 0,
+      "total": 1,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 642126.0,
+      "last_quarter_mean": 541729.0,
+      "ratio": 0.844,
+      "vote": 0
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": 0.0,
+      "hough_lines_found": 895,
+      "angles_after_filter": 818,
+      "angles_median": 0.0,
+      "angles_std": 4.9
+    }
+  },
+  "IMG-20260629-WA0012.jpg_tilted": {
+    "label": "IMG-20260629-WA0012.jpg_TILTED_5DEG",
+    "size": "1080x1451",
+    "density": {
+      "center_of_mass_ratio": 0.4975,
+      "top_density": 10613355.0,
+      "bottom_density": 8369100.0,
+      "bottom_top_ratio": 0.789
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 0,
+      "vote3_last_q_above_first": 1,
+      "total": 1,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 535755.0,
+      "last_quarter_mean": 770282.0,
+      "ratio": 1.438,
+      "vote": 1
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": -4.74,
+      "hough_lines_found": 971,
+      "angles_after_filter": 869,
+      "angles_median": -4.74,
+      "angles_std": 7.3
+    }
+  },
+  "IMG-20260629-WA0001.jpg_original": {
+    "label": "IMG-20260629-WA0001.jpg_ORIGINAL",
+    "size": "1920x2560",
+    "density": {
+      "center_of_mass_ratio": 0.6362,
+      "top_density": 97643070.0,
+      "bottom_density": 221557260.0,
+      "bottom_top_ratio": 2.269
+    },
+    "votes": {
+      "vote1_com_above_055": 1,
+      "vote2_density_above_115": 1,
+      "vote3_last_q_above_first": 1,
+      "total": 3,
+      "threshold_for_flip": ">= 2",
+      "passed": true
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 6584043.0,
+      "last_quarter_mean": 16565962.0,
+      "ratio": 2.516,
+      "vote": 1
+    },
+    "flip_detected": true,
+    "skew": {
+      "detected_angle": 0.0,
+      "hough_lines_found": 3560,
+      "angles_after_filter": 864,
+      "angles_median": 0.0,
+      "angles_std": 1.74
+    }
+  },
+  "IMG-20260629-WA0001.jpg_flipped": {
+    "label": "IMG-20260629-WA0001.jpg_FLIPPED_180",
+    "size": "1920x2560",
+    "density": {
+      "center_of_mass_ratio": 0.3634,
+      "top_density": 221557260.0,
+      "bottom_density": 97643070.0,
+      "bottom_top_ratio": 0.441
+    },
+    "votes": {
+      "vote1_com_above_055": 0,
+      "vote2_density_above_115": 0,
+      "vote3_last_q_above_first": 0,
+      "total": 0,
+      "threshold_for_flip": ">= 2",
+      "passed": false
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 17647162.0,
+      "last_quarter_mean": 4760397.0,
+      "ratio": 0.27,
+      "vote": 0
+    },
+    "flip_detected": false,
+    "skew": {
+      "detected_angle": 0.0,
+      "hough_lines_found": 3559,
+      "angles_after_filter": 1426,
+      "angles_median": 0.0,
+      "angles_std": 1.88
+    }
+  },
+  "IMG-20260629-WA0001.jpg_tilted": {
+    "label": "IMG-20260629-WA0001.jpg_TILTED_5DEG",
+    "size": "1920x2560",
+    "density": {
+      "center_of_mass_ratio": 0.6622,
+      "top_density": 84563355.0,
+      "bottom_density": 222831750.0,
+      "bottom_top_ratio": 2.635
+    },
+    "votes": {
+      "vote1_com_above_055": 1,
+      "vote2_density_above_115": 1,
+      "vote3_last_q_above_first": 1,
+      "total": 3,
+      "threshold_for_flip": ">= 2",
+      "passed": true
+    },
+    "vote3_detail": {
+      "first_quarter_mean": 5225347.0,
+      "last_quarter_mean": 16647392.0,
+      "ratio": 3.186,
+      "vote": 1
+    },
+    "flip_detected": true,
+    "skew": {
+      "detected_angle": -4.96,
+      "hough_lines_found": 3733,
+      "angles_after_filter": 2248,
+      "angles_median": -4.96,
+      "angles_std": 9.31
+    }
+  }
+}

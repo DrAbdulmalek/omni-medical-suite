@@ -1,0 +1,107 @@
+{
+  "A_tilted": {
+    "before": {
+      "word_count": 103,
+      "avg_confidence": 50.4,
+      "word_accuracy": {
+        "matched": 1,
+        "total_gt": 32,
+        "accuracy_pct": 3.1
+      },
+      "text_preview": "يصصختلا حهذ كلما ىفشتسم قعباتم ريرة -- قينطابلا هس يدشارلا التهدبء نب حمحاً نض يرملا مسا غلم مقر: 125 :حلايملا خيرات 20006 :قرايزلا خيرات رطيسم رء هذ يناتا عونا ميركلا يساسلاا دلا طغض عاذترا طلتخملا دلا طرة جثاتداا 7 بولطملا - 8.206 :ن تحطتز) يحكارتل"
+    },
+    "after": {
+      "word_count": 106,
+      "avg_confidence": 47.4,
+      "word_accuracy": {
+        "matched": 4,
+        "total_gt": 32,
+        "accuracy_pct": 12.5
+      },
+      "text_preview": "يصصختلا حهذ ىغشتدم قعباتم ريرق -- قينطايلا هرق يحشارلا الأبء + حمحاً :ضيرملا مسا غلا مقر ل 3 ليملا حير اا 0 عريخشدلا غياء مغ عور تمد يركداا يساسلاا جدلا علذتن طلتخملا جدلا موحث طرؤ يربخملا ج تانر 7 نملقا بولطملا 8206 امتهم بيكارتلا ركدلا قيرز 126 نم "
+    },
+    "delta": {
+      "accuracy_pct": 9.4,
+      "confidence": -3.0
+    },
+    "scanner_fixer_report": {
+      "source": "array",
+      "estimated_dpi": null,
+      "crop": "950x1296",
+      "rotation_applied_deg": 0,
+      "skew_corrected_deg": -2.95,
+      "final_size": "950x1296",
+      "is_color": true
+    }
+  },
+  "B_flipped": {
+    "before": {
+      "word_count": 68,
+      "avg_confidence": 34.5,
+      "word_accuracy": {
+        "matched": 0,
+        "total_gt": 32,
+        "accuracy_pct": 0.0
+      },
+      "text_preview": "ع روم أو اتوم تكو همع 1 بتسوح وو 1 -: و 07771 ييه وو الوا جوج م سحي لفيا الاش 17117و وج اي مع بحسي - اال فق م اي 1 اناو جتروورم: وقتد» لسريس الاقم الثقات 5 6 زج رجح 0 27 ازج اكد ا ا ا تاج وو واج وجو 10120و /وع زووو 71 202 حو م اص وص م مرجب جو رجو 777"
+    },
+    "after": {
+      "word_count": 72,
+      "avg_confidence": 36.5,
+      "word_accuracy": {
+        "matched": 0,
+        "total_gt": 32,
+        "accuracy_pct": 0.0
+      },
+      "text_preview": "لسري 57 سوبي 2 لاض .ين تاديد 77ح 8 7-- ؟\"“ اص 6# ادس 7 وحم يي آم ل ا ]1 وي مجم 56 1 -- شدي أيه لللحدن 5 رصم لمتشا 7مس اي 0081113 7 57 جعي 01 م يخ الاقف 77 كوت 8 - زجوم 2 رجض 6 مدل ١‏ جحي 28 1175 الدج ا مي 1111 تي الا تم او اص رصي 7 2 و1 ب ا ال سيت"
+    },
+    "delta": {
+      "accuracy_pct": 0.0,
+      "confidence": 2.0
+    },
+    "scanner_fixer_report": {
+      "source": "array",
+      "estimated_dpi": null,
+      "crop": "950x1295",
+      "rotation_applied_deg": 0,
+      "skew_corrected_deg": -3.95,
+      "final_size": "950x1295",
+      "is_color": true
+    }
+  },
+  "C_borders": {
+    "before": {
+      "word_count": 106,
+      "avg_confidence": 60.6,
+      "word_accuracy": {
+        "matched": 4,
+        "total_gt": 32,
+        "accuracy_pct": 12.5
+      },
+      "text_preview": "هذ ىفشتسم عباتم ريرقة - قينطاباا يدشارلا الأسبء نب حمحاً نض يرداا مسا غلماا مقر: 5 نرنلايماا جيرا 6 خيرات عياء رطيسم ريغ -يناثاا عوناا وم يركسلا يساسلاا مدا طغض عافترا طلتخماا مدلا موحث طرف ةيربخملا جناهناا 7 ملقاً بولطملا - 8.296 :(© 110/1) يحكارتاا"
+    },
+    "after": {
+      "word_count": 110,
+      "avg_confidence": 56.8,
+      "word_accuracy": {
+        "matched": 4,
+        "total_gt": 32,
+        "accuracy_pct": 12.5
+      },
+      "text_preview": "يصصخة!ا حوذ لكلد!ا ىغفشتسم عباتم ريرةة -- قينطاباا مسق يدشارلا الأسبء نب حمحاً نض يردلا مسا غلماا مقر: 5 نرنلايماا جيرا 6 :ق8رايزاا جيرا عياء رطيسمريغ -يناثاا عوناا وم يركسلا يساسلاًا دلا طغض عافترا طلتخماا مدلا موحث طرف ةيربخملا جثائناا 7 ملقاً بولط"
+    },
+    "delta": {
+      "accuracy_pct": 0.0,
+      "confidence": -3.8
+    },
+    "scanner_fixer_report": {
+      "source": "array",
+      "estimated_dpi": null,
+      "crop": "890x1240",
+      "rotation_applied_deg": 0,
+      "skew_corrected_deg": 0.0,
+      "final_size": "890x1240",
+      "is_color": true
+    }
+  }
+}
