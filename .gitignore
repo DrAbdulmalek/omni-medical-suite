@@ -1,0 +1,6 @@
+config/settings.env
+logs/*.log.gz
+__pycache__/
+*.pyc
+.venv/
+.env

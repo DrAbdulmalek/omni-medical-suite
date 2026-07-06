@@ -1,0 +1,47 @@
+default_mode: read-only
+allowlist:
+  - omni-medical-suite
+  - scanner-fixer
+  - medical-handwriting-ocr
+  - medical-ocr-training-hub
+  - medical-ocr-benchmarks
+  - medical-ocr-trainer
+  - medical-ocr-ground-truth
+  - profile-readme
+  - reset-net
+denylist:
+  # Archived repos — must never be synced
+  - ocr-groundtruth
+  - ai-fuel-engine
+  - bilingual-extractor
+  - medical-doc-processor
+  - medical-ocr-postprocessor
+  - omniparse-study
+  - omniparse
+  - OmniFile_Processor
+  - ponytail
+  - telegram-forwarder
+  - tg-forwarder
+  - IntelliFile-app
+sensitive:
+  - omni-medical-suite
+  - medical-ocr-ground-truth
+  - medical-ocr-benchmarks
+branch_protection:
+  check_before_push: true
+  deny_force_push_protected: true
+  read_only_main:
+    - omni-medical-suite
+    - medical-ocr-ground-truth
+    - medical-ocr-benchmarks
+require_dry_run_before_sync:
+  - omni-medical-suite
+  - medical-ocr-ground-truth
+  - medical-ocr-benchmarks
+audit:
+  enabled: true
+  log_file: logs/audit.log
+  max_log_size_mb: 50
+log_rotation:
+  max_files: 10
+  compress: true
