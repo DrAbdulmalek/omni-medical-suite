@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Database (HF Space local)
+*.db
+corrections.db
+
+# Crops / uploads (large binary data)
+training_data/word_crops/corrections_*.jsonl
+training_data/word_crops/crops/
+training_data/exports/trocr_hf/images/
+training_data/exports/trocr_hf/train/
+training_data/exports/trocr_hf/validation/
+training_data/exports/trocr_hf/test/
+
+# Keep schema and sample data
+!training_data/word_crops/schema.json
+!training_data/word_crops/.gitkeep
+!training_data/ground_truth/*.jsonl
+!training_data/ground_truth/.gitkeep
+
+# Models
+models/checkpoints/
+*.pt
+*.pth
+*.onnx
+*.pdparams
+*.pdopt
+
+# Logs
+logs/daily/*.md
+logs/evaluations/eval_*.json
+!logs/.gitkeep
+!logs/daily/.gitkeep
+!logs/evaluations/.gitkeep
+!logs/corrections/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.venv/

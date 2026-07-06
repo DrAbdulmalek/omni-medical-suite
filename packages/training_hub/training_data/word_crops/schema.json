@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Word Correction Entry v1",
+  "description": "Per-word OCR correction from HF Space interface. Used for training all OCR engines.",
+  "type": "object",
+  "required": ["id", "timestamp", "source", "crop_base64", "raw_text", "corrected_text", "engine_predictions", "confidence_scores"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique ID: hf_{uuid8}"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the correction was made"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["hf_space_correction", "manual_import", "api_submission"],
+      "description": "Where this correction came from"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "HF Space session or batch ID for grouping"
+    },
+    "crop_base64": {
+      "type": "string",
+      "description": "Base64-encoded PNG crop of the word/region from the original image"
+    },
+    "raw_text": {
+      "type": "string",
+      "description": "Original OCR prediction (before correction)"
+    },
+    "corrected_text": {
+      "type": "string",
+      "description": "Human-corrected text"
+    },
+    "is_changed": {
+      "type": "boolean",
+      "description": "Whether the correction differs from the raw prediction"
+    },
+    "engine_predictions": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "description": "Per-engine raw predictions: {paddle: ..., tesseract: ..., easyocr: ..., trocr: ...}"
+    },
+    "confidence_scores": {
+      "type": "object",
+      "additionalProperties": {"type": "number"},
+      "description": "Per-engine confidence: {paddle: 0.95, tesseract: 0.82, ...}"
+    },
+    "best_engine": {
+      "type": "string",
+      "description": "Which engine's prediction was selected as best"
+    },
+    "language": {
+      "type": "string",
+      "enum": ["arabic", "english", "mixed", "numeric", "unknown"],
+      "description": "Detected language of the text"
+    },
+    "bbox": {
+      "type": "object",
+      "properties": {
+        "x1": {"type": "integer"},
+        "y1": {"type": "integer"},
+        "x2": {"type": "integer"},
+        "y2": {"type": "integer"}
+      },
+      "description": "Bounding box coordinates in the original image"
+    },
+    "image_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the source image (for deduplication)"
+    },
+    "from_db_cache": {
+      "type": "boolean",
+      "description": "Whether this correction was auto-applied from the corrections database cache"
+    },
+    "specialty": {
+      "type": "string",
+      "enum": ["cardiology", "radiology", "prescriptions", "pathology", "surgery", "lab", "discharge", "general", "unknown"],
+      "description": "Medical specialty (if identifiable)"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this correction has been verified by a second reviewer"
+    },
+    "verification_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of times this pattern has been confirmed"
+    }
+  }
+}
