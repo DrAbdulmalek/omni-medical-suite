@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -qq \
+            python3-pyqt5 \
+            python3-opencv \
+            python3-numpy \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            xvfb \
+            fonts-noto-core \
+            poppler-utils
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip -q
+          pip install -r requirements.txt -q
+          pip install pytest -q
+
+      - name: Run tests
+        run: |
+          export QT_QPA_PLATFORM=offscreen
+          pytest test_core.py -v --tb=short

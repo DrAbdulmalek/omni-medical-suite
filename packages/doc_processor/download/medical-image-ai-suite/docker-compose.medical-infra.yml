@@ -1,0 +1,170 @@
+# -*- coding: utf-8 -*-
+# Docker Compose for OmniMedical Suite infrastructure services.
+# Manages custom Redis, load balancer, WebSocket server, and API containers
+# across isolated frontend/backend networks with persistent volumes.
+#
+# Usage:
+#   docker compose -f docker-compose.medical-infra.yml up -d
+#   docker compose -f docker-compose.medical-infra.yml down -v
+
+services:
+  # -----------------------------------------------------------------
+  # Custom Medical Redis — RESP protocol server with AOF persistence
+  # -----------------------------------------------------------------
+  custom-redis:
+    image: python:3.10-slim
+    container_name: omni-medical-redis
+    restart: unless-stopped
+    entrypoint: ["python", "-u", "services/infra/medical_redis.py"]
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis-data:/data
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import socket; s=socket.socket(); s.settimeout(2); s.connect(('localhost',6380)); s.close()\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    environment:
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -----------------------------------------------------------------
+  # Medical Load Balancer — Least Connections + Round Robin TCP proxy
+  # -----------------------------------------------------------------
+  load-balancer:
+    image: python:3.10-slim
+    container_name: omni-medical-lb
+    restart: unless-stopped
+    entrypoint: ["python", "-u", "services/infra/medical_lb.py", "--backends", "api:8000"]
+    ports:
+      - "8080:8080"
+    networks:
+      - frontend-net
+      - backend-net
+    depends_on:
+      custom-redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    environment:
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -----------------------------------------------------------------
+  # Medical WebSocket Server — RFC 6455 with room-based isolation
+  # -----------------------------------------------------------------
+  websocket-server:
+    image: python:3.10-slim
+    container_name: omni-medical-ws
+    restart: unless-stopped
+    entrypoint: ["python", "-u", "services/infra/medical_websocket.py"]
+    ports:
+      - "8765:8765"
+    networks:
+      - frontend-net
+      - backend-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    environment:
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -----------------------------------------------------------------
+  # API Server — FastAPI placeholder for medical processing endpoints
+  # -----------------------------------------------------------------
+  api:
+    image: python:3.10-slim
+    container_name: omni-medical-api
+    restart: unless-stopped
+    entrypoint:
+      [
+        "python", "-u", "-c",
+        "from fastapi import FastAPI; app = FastAPI(title='OmniMedical API');"
+        "@app.get('/health'); def health(): return {'status': 'ok'};"
+        "@app.get('/ready'); def ready(): return {'ready': True};"
+        "import uvicorn; uvicorn.run(app, host='0.0.0.0', port=8000)"
+      ]
+    ports:
+      - "8000:8000"
+    volumes:
+      - lsm-data:/app/data/lsm_audit
+    networks:
+      - backend-net
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+# ==================================================================
+# Networks — frontend is routable, backend is internal-only
+# ==================================================================
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
+    internal: true
+
+# ==================================================================
+# Volumes — persistent storage for Redis AOF and LSM audit trails
+# ==================================================================
+volumes:
+  redis-data:
+    driver: local
+  lsm-data:
+    driver: local
