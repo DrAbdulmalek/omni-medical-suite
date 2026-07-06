@@ -2,7 +2,10 @@
 Database Configuration - Pydantic-based
 """
 from typing import Optional
-from pydantic import BaseSettings, validator
+try:
+    from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
+except ImportError:
+    from pydantic import BaseSettings, validator  # Pydantic v1
 from sqlalchemy import text
 
 class DatabaseConfig(BaseSettings):
@@ -32,12 +35,14 @@ class DatabaseConfig(BaseSettings):
         case_sensitive = True
 
     @validator("POOL_SIZE", "MAX_OVERFLOW", "POOL_TIMEOUT", "POOL_RECYCLE")
+    @classmethod
     def validate_positive(cls, v):
         if v <= 0:
             raise ValueError("Value must be positive")
         return v
 
     @validator("POSTGRES_PASSWORD")
+    @classmethod
     def validate_db_password(cls, v):
         if len(v) < 8:
             raise ValueError("POSTGRES_PASSWORD must be at least 8 characters")

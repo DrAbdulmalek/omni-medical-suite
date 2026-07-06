@@ -301,16 +301,11 @@ class ScannerFixerBenchmark:
         )
         
         for result in results.get("results", []):
-            report += f"
-### {result.get('image', 'Unknown')}
-"
+            report += f"\n### {result.get('image', 'Unknown')}\n"
             if "improvement" in result:
-                report += f"- CER: {result['original']['cer']:.2%} -> {result['fixed']['cer']:.2%} ({result['improvement']['cer']:+.2%})
-"
-                report += f"- WER: {result['original']['wer']:.2%} -> {result['fixed']['wer']:.2%} ({result['improvement']['wer']:+.2%})
-"
-                report += f"- Medical Terms: {result['original']['medical_terms']:.2%} -> {result['fixed']['medical_terms']:.2%} ({result['improvement']['medical_terms']:+.2%})
-"
+                report += f"- CER: {result['original']['cer']:.2%} -> {result['fixed']['cer']:.2%} ({result['improvement']['cer']:+.2%})\n"
+                report += f"- WER: {result['original']['wer']:.2%} -> {result['fixed']['wer']:.2%} ({result['improvement']['wer']:+.2%})\n"
+                report += f"- Medical Terms: {result['original']['medical_terms']:.2%} -> {result['fixed']['medical_terms']:.2%} ({result['improvement']['medical_terms']:+.2%})\n"
         
         return report
 

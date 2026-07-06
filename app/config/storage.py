@@ -2,7 +2,10 @@
 Storage Configuration - Pydantic-based
 """
 from typing import List, Optional
-from pydantic import BaseSettings, validator
+try:
+    from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
+except ImportError:
+    from pydantic import BaseSettings, validator  # Pydantic v1
 
 class StorageConfig(BaseSettings):
     """Storage configuration for files and artifacts"""
@@ -47,12 +50,14 @@ class StorageConfig(BaseSettings):
         case_sensitive = True
 
     @validator("STORAGE_DIR", "UPLOAD_DIR", "OUTPUT_DIR", "TEMP_DIR", "CACHE_DIR")
+    @classmethod
     def validate_directory(cls, v):
         if not v or v == ".":
             raise ValueError("Directory path cannot be empty or root")
         return v
 
     @validator("MAX_FILE_SIZE")
+    @classmethod
     def validate_file_size(cls, v):
         if v <= 0:
             raise ValueError("MAX_FILE_SIZE must be positive")

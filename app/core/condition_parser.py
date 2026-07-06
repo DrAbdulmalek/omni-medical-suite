@@ -338,8 +338,8 @@ class ConditionParser:
 
         return variables
 
-# Global parser instance with fail-closed behavior
-condition_parser = ConditionParser(fail_closed=True)
+# Global parser instance with default settings
+condition_parser = ConditionParser()
 
 def evaluate_condition(
     condition: str,

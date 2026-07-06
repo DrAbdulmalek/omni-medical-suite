@@ -1,8 +1,14 @@
 """
-Security Configuration - Pydantic-based
+Security Configuration - Pydantic-based (compatible with v1 and v2)
 """
 from typing import List, Optional
-from pydantic import BaseSettings, validator
+from functools import lru_cache
+
+try:
+    from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
+except ImportError:
+    from pydantic import BaseSettings, validator  # Pydantic v1
+
 
 class SecurityConfig(BaseSettings):
     """Security configuration"""
@@ -50,12 +56,14 @@ class SecurityConfig(BaseSettings):
         case_sensitive = True
 
     @validator("POSTGRES_PASSWORD")
+    @classmethod
     def validate_db_password(cls, v):
         if len(v) < 8:
             raise ValueError("POSTGRES_PASSWORD must be at least 8 characters")
         return v
 
     @validator("JWT_SECRET_KEY")
+    @classmethod
     def validate_jwt_secret(cls, v):
         if v == "CHANGE_ME_IN_PRODUCTION":
             import logging
@@ -84,12 +92,12 @@ class SecurityConfig(BaseSettings):
 
         return True
 
-from functools import lru_cache
 
 @lru_cache()
 def get_security_config() -> SecurityConfig:
     """Get security configuration - cached for performance"""
     return SecurityConfig()
+
 
 # Alias for backward compatibility
 validate_config = SecurityConfig.validate_config

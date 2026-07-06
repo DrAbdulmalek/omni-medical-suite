@@ -177,7 +177,7 @@ class RtfImporter(DocumentImporter):
         # Remove RTF control words
         text = re.sub(r'\[a-z]+\d*\s?', '', content)
         text = re.sub(r'[{}]', '', text)
-        text = re.sub(r'\\', '\', text)
+        text = re.sub(r'\\', '', text)
 
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         for i, line in enumerate(lines):

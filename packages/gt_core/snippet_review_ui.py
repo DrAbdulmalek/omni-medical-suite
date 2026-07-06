@@ -220,8 +220,7 @@ class SnippetReviewUI:
             threading.Thread(target=process, daemon=True).start()
 
         except Exception as e:
-            messagebox.showerror("خطأ", f"فشل في معالجة الصورة:
-{str(e)}")
+            messagebox.showerror("خطأ", f"فشل في معالجة الصورة:\n{str(e)}")
             self.progress_label.config(text="جاهز")
 
     def _on_image_loaded(self):
@@ -298,8 +297,7 @@ class SnippetReviewUI:
             self.image_label.config(image=photo, text="")
 
         except Exception as e:
-            self.image_label.config(text=f"[لا يمكن عرض الصورة]
-{str(e)}")
+            self.image_label.config(text=f"[لا يمكن عرض الصورة]\n{str(e)}")
 
     def _update_suggestions(self, snippet: TextSnippet):
         """Update suggestion label based on learned patterns."""
@@ -348,8 +346,7 @@ class SnippetReviewUI:
                 messagebox.showerror("خطأ", result.get("error", "Unknown error"))
 
         except Exception as e:
-            messagebox.showerror("خطأ", f"فشل في حفظ التصحيح:
-{str(e)}")
+            messagebox.showerror("خطأ", f"فشل في حفظ التصحيح:\n{str(e)}")
 
     def _mark_correct(self):
         """Mark current snippet as correct (no changes needed)."""

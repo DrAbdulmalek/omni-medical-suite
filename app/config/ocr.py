@@ -2,7 +2,10 @@
 OCR Configuration - Pydantic-based
 """
 from typing import List, Optional
-from pydantic import BaseSettings, validator
+try:
+    from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
+except ImportError:
+    from pydantic import BaseSettings, validator  # Pydantic v1
 
 class OCRConfig(BaseSettings):
     """OCR processing configuration"""
@@ -55,6 +58,7 @@ class OCRConfig(BaseSettings):
         case_sensitive = True
 
     @validator("DEFAULT_ENGINE")
+    @classmethod
     def validate_engine(cls, v):
         valid_engines = ["tesseract", "easyocr", "paddleocr"]
         if v not in valid_engines:
@@ -62,6 +66,7 @@ class OCRConfig(BaseSettings):
         return v
 
     @validator("MAX_CONCURRENT_OCR")
+    @classmethod
     def validate_positive(cls, v):
         if v <= 0:
             raise ValueError("MAX_CONCURRENT_OCR must be positive")

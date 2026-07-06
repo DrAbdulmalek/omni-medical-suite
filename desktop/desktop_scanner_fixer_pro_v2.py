@@ -369,8 +369,7 @@ class ScannerFixerProV2App:
 
         try:
             dataset_name = self.dataset_manager.create_dataset("corrections", private=False)
-            messagebox.showinfo("Success", f"Dataset created:
-{dataset_name}")
+            messagebox.showinfo("Success", f"Dataset created: {dataset_name}")
             self.status.config(text=f"Dataset created: {dataset_name}", fg="#27ae60")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create dataset: {e}")
@@ -405,8 +404,7 @@ class ScannerFixerProV2App:
         try:
             dataset_name = f"DrAbdulmalek/arabic-medical-ocr-corrections"
             output_file = self.dataset_manager.export_dataset(dataset_name, folder, "json")
-            messagebox.showinfo("Success", f"Exported to:
-{output_file}")
+            messagebox.showinfo("Success", f"Exported to: {output_file}")
         except Exception as e:
             messagebox.showerror("Error", f"Export failed: {e}")
 

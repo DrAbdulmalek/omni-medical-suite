@@ -1,8 +1,14 @@
 """
-Application Configuration - Pydantic-based
+Application Configuration - Pydantic-based (compatible with v1 and v2)
 """
 from typing import List, Optional
-from pydantic import BaseSettings, validator, AnyHttpUrl
+from functools import lru_cache
+
+try:
+    from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
+except ImportError:
+    from pydantic import BaseSettings, validator  # Pydantic v1
+
 
 class AppConfig(BaseSettings):
     """Application configuration"""
@@ -61,19 +67,20 @@ class AppConfig(BaseSettings):
         case_sensitive = True
 
     @validator("ENVIRONMENT")
+    @classmethod
     def validate_environment(cls, v):
         if v not in ["development", "staging", "production"]:
             raise ValueError("ENVIRONMENT must be one of: development, staging, production")
         return v
 
     @validator("LOG_LEVEL")
+    @classmethod
     def validate_log_level(cls, v):
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in valid_levels:
             raise ValueError(f"LOG_LEVEL must be one of: {', '.join(valid_levels)}")
         return v.upper()
 
-from functools import lru_cache
 
 @lru_cache()
 def get_app_config() -> AppConfig:

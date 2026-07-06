@@ -2,7 +2,10 @@
 Machine Learning Configuration - Pydantic-based
 """
 from typing import List, Optional
-from pydantic import BaseSettings, validator
+try:
+    from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
+except ImportError:
+    from pydantic import BaseSettings, validator  # Pydantic v1
 
 class MLConfig(BaseSettings):
     """Machine Learning configuration"""
@@ -51,12 +54,14 @@ class MLConfig(BaseSettings):
         case_sensitive = True
 
     @validator("MAX_SEQ_LENGTH", "BATCH_SIZE", "NUM_EPOCHS", "GRADIENT_ACCUMULATION_STEPS")
+    @classmethod
     def validate_positive_int(cls, v):
         if v <= 0:
             raise ValueError("Value must be positive")
         return v
 
     @validator("LEARNING_RATE")
+    @classmethod
     def validate_positive_float(cls, v):
         if v <= 0:
             raise ValueError("LEARNING_RATE must be positive")
