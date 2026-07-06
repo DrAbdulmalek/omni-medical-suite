@@ -1,0 +1,56 @@
+# TrOCR Fine-tuning Configuration
+# Training data reference: training_data/exports/trocr_hf/
+# Ground truth reference: training_data/ground_truth/
+# HF Model: DrAbdulmalek/trocr-medical-handwriting-ar
+
+model:
+  base_model: "microsoft/trocr-base-handwritten"
+  output_model: "DrAbdulmalek/trocr-medical-handwriting-ar"
+  # The model reads training data from the hub directory specified below
+
+dataset:
+  # Expects HuggingFace Datasets format:
+  #   training_data/exports/trocr_hf/
+  #     ├── metadata.jsonl  (file_name, text, corrected_text, etc.)
+  #     └── images/         (crop PNG images)
+  train_dir: "training_data/exports/trocr_hf/train"
+  val_dir: "training_data/exports/trocr_hf/validation"
+  test_dir: "training_data/exports/trocr_hf/test"
+  # Also uses ground truth for evaluation
+  ground_truth_ref: "training_data/ground_truth"
+
+training:
+  # Only start fine-tuning when minimum samples collected from HF Space
+  min_samples_for_training: 100
+  min_samples_per_split: 10
+
+  # Hyperparameters
+  num_train_epochs: 30
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  learning_rate: 5.0e-5
+  weight_decay: 0.01
+  warmup_steps: 100
+  logging_steps: 10
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  save_total_limit: 3
+  load_best_model_at_end: true
+  metric_for_best_model: "cer"
+  greater_is_better: false
+  fp16: false  # CPU-only on HF Spaces free tier
+  gradient_accumulation_steps: 2
+
+evaluation:
+  metrics: ["cer", "wer"]
+  # Run evaluation after every training session
+  auto_eval_after_training: true
+  # Compare against baselines from medical-ocr-benchmarks repo
+  benchmarks_repo: "DrAbdulmalek/medical-ocr-benchmarks"
+
+deployment:
+  # Auto-push to HuggingFace Hub after successful training
+  push_to_hub: true
+  hub_token_env: "HF_WRITE_TOKEN"
+  # The trained model will be available at:
+  # https://huggingface.co/DrAbdulmalek/trocr-medical-handwriting-ar

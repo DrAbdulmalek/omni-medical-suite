@@ -1,0 +1,131 @@
+# ── Medical OCR Training Hub — Central Configuration ──
+# This file is the single source of truth for all training data paths,
+# model references, and sync settings between HF Spaces and GitHub.
+#
+# HF Space reads this config to know where training data lives.
+# GitHub CI/CD reads this config for automated training pipelines.
+
+project:
+  name: "Medical OCR Training Hub"
+  version: "2.1.0"
+  description: "Bridge between HuggingFace Spaces corrections and GitHub training pipeline"
+  owner: "DrAbdulmalek"
+  hf_space: "https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr"
+  github_repo: "https://github.com/DrAbdulmalek/medical-ocr-training-hub"
+
+# ── Training Data Paths ──
+# HF Space exports corrections here. Models read from here.
+training_data:
+  base_dir: "training_data"
+
+  # Word-level crops from HF OCR correction interface
+  # Each entry: {crop_image (base64), raw_text, corrected_text, engine_scores, timestamp}
+  word_crops:
+    dir: "training_data/word_crops"
+    format: "jsonl"
+    schema: "word_correction_v1"
+    description: "Per-word OCR crops with human corrections from HF Space"
+
+  # Aggregated ground truth (golden dataset)
+  ground_truth:
+    dir: "training_data/ground_truth"
+    format: "jsonl"
+    schema: "ground_truth_v1"
+    description: "Verified high-quality ground truth entries"
+    sources:
+      - "HF corrections (verified 3+ times)"
+      - "Expert manual annotation"
+      - "Synthetic data generation"
+
+  # Exported training datasets in HuggingFace Datasets format
+  exports:
+    dir: "training_data/exports"
+    description: "Ready-to-use datasets for model fine-tuning"
+    formats:
+      - name: "trocr_hf"
+        dir: "training_data/exports/trocr_hf"
+        description: "TrOCR fine-tuning format (image + text pairs)"
+      - name: "paddleocr_custom"
+        dir: "training_data/exports/paddleocr_custom"
+        description: "PaddleOCR custom dict + LM training data"
+      - name: "correction_pairs"
+        dir: "training_data/exports/correction_pairs"
+        description: "Raw→Corrected text pairs for postprocessor training"
+
+# ── Model References ──
+# Each model declaration points to its training data and config.
+models:
+  paddleocr:
+    name: "PaddleOCR (Arabic + English)"
+    training_data_ref: "training_data/word_crops"
+    ground_truth_ref: "training_data/ground_truth"
+    config_file: "models/configs/paddleocr_custom.yaml"
+    checkpoint_dir: "models/checkpoints/paddleocr"
+    hf_model_id: null
+    notes: "Primary engine. Uses word_crops for custom dictionary building."
+
+  tesseract:
+    name: "Tesseract OCR (ara + eng)"
+    training_data_ref: "training_data/word_crops"
+    ground_truth_ref: "training_data/ground_truth"
+    config_file: "models/configs/tesseract_custom.yaml"
+    checkpoint_dir: null
+    hf_model_id: null
+    notes: "Secondary engine. Word crops used for pattern frequency files."
+
+  trocr:
+    name: "TrOCR (Handwritten)"
+    training_data_ref: "training_data/exports/trocr_hf"
+    ground_truth_ref: "training_data/ground_truth"
+    config_file: "models/configs/trocr_finetune.yaml"
+    checkpoint_dir: "models/checkpoints/trocr"
+    hf_model_id: "DrAbdulmalek/trocr-medical-handwriting-ar"
+    notes: "Fine-tuned from microsoft/trocr-base-handwritten. Requires trocr_hf export format."
+    min_samples_for_training: 100
+
+  postprocessor:
+    name: "Medical Postprocessor"
+    training_data_ref: "training_data/exports/correction_pairs"
+    ground_truth_ref: null
+    config_file: "models/configs/postprocessor.yaml"
+    checkpoint_dir: null
+    hf_model_id: null
+    notes: "Learns from correction_pairs (raw→corrected) to auto-fix OCR output."
+
+# ── Sync Settings ──
+sync:
+  # HF Space → GitHub: export corrections periodically
+  hf_to_github:
+    enabled: true
+    method: "git_push"  # or "hf_hub_download"
+    schedule: "on_demand"  # HF Space triggers export on save
+    target_branch: "main"
+
+  # GitHub → HF Space: push new ground truth to HF
+  github_to_hf:
+    enabled: true
+    method: "hf_hub_upload"
+    trigger: "push_to_main"
+    target_files:
+      - "training_data/ground_truth/*.jsonl"
+      - "models/configs/*.yaml"
+
+# ── Evaluation ──
+evaluation:
+  dir: "logs/evaluations"
+  benchmarks_repo: "DrAbdulmalek/medical-ocr-benchmarks"
+  run_on:
+    - "new_corrections_batch"  # Auto-eval after bulk corrections
+    - "model_update"           # After fine-tuning
+  metrics:
+    - "cer"   # Character Error Rate
+    - "wer"   # Word Error Rate
+    - "accuracy"
+    - "f1_score"
+
+# ── Logging ──
+logging:
+  dir: "logs"
+  corrections_log: "logs/corrections/corrections_{date}.jsonl"
+  daily_log: "logs/daily/development_{date}.md"
+  evaluation_log: "logs/evaluations/eval_{timestamp}.json"

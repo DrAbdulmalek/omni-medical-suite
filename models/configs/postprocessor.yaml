@@ -1,0 +1,38 @@
+# Medical Postprocessor Configuration
+# Training data reference: training_data/exports/correction_pairs/
+# This model learns from raw→corrected text pairs to auto-fix OCR output.
+
+model:
+  name: "Medical OCR Postprocessor"
+  type: "rule_based_with_ml_fallback"
+  description: "Auto-corrects common OCR mistakes using patterns from HF corrections"
+
+training:
+  data_source: "training_data/exports/correction_pairs"
+  # correction_pairs format: one pair per line
+  # {"raw": "اموكسسيللين", "corrected": "أموكسيسيلين", "frequency": 5}
+  # {"raw": "500 ملغ", "corrected": "500 ملغ", "frequency": 12}
+
+  min_pattern_frequency: 2  # Only learn patterns seen 2+ times
+  max_edit_distance: 3      # Max character edits between raw and corrected
+
+rules:
+  # Built-in medical term correction rules
+  medical_terms:
+    enabled: true
+    dict_path: "models/configs/medical_terms_ar.json"
+    fuzzy_threshold: 0.80
+
+  # Arabic character confusion rules (common OCR errors)
+  arabic_confusion:
+    enabled: true
+    rules:
+      - pattern: "ا[ا]"
+        replacement: "آ"
+      - pattern: "[هه]ء"
+        replacement: "هاء"
+
+  # Number formatting
+  numbers:
+    enabled: true
+    normalize_arabic_digits: true  # ٠١٢٣ → 0123
