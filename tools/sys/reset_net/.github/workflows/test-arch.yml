@@ -1,0 +1,158 @@
+name: Integration Test (Arch Linux)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  arch-test:
+    name: Test on Arch Linux
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm bash grep coreutils iproute2 iptables nftables systemd polkit
+
+      - name: Validate syntax
+        run: |
+          bash -n reset-net && echo "OK: reset-net syntax"
+          bash -n reset-net-gui && echo "OK: reset-net-gui syntax"
+          bash -n install.sh && echo "OK: install.sh syntax"
+          bash -n uninstall.sh && echo "OK: uninstall.sh syntax"
+
+      - name: Test reset-net help behavior (non-root)
+        run: |
+          OUTPUT=$(bash reset-net 2>&1 || true)
+          if echo "$OUTPUT" | grep -q "يرجى تشغيل السكربت بصلاحيات الجذر"; then
+            echo "OK: Correctly refuses to run without root"
+          else
+            echo "FAIL: Did not detect non-root execution"
+            echo "Output: $OUTPUT"
+            exit 1
+          fi
+
+      - name: Test reset-net with set -u (undefined variable guard)
+        run: |
+          # Verify set -uo pipefail is in the script (v1.1.0: removed -e, uses error counting)
+          if grep -q 'set -uo pipefail' reset-net; then
+            echo "OK: set -uo pipefail is present"
+          else
+            echo "FAIL: set -uo pipefail not found"
+            exit 1
+          fi
+
+          # Verify no bare set -e (script uses error counting instead)
+          if grep -q '^set -e' reset-net; then
+            echo "FAIL: set -e should not be used directly (v1.1.0 uses error counting)"
+            exit 1
+          else
+            echo "OK: No set -e (uses error counting pattern)"
+          fi
+
+      - name: Test absolute paths presence
+        run: |
+          # Key commands must use absolute paths
+          for cmd in "/usr/sbin/iptables" "/usr/sbin/ip6tables" "/usr/sbin/nft" \
+                     "/usr/bin/systemctl" "/usr/bin/nmcli" "/usr/bin/ip" \
+                     "/usr/bin/pkill" "/usr/bin/rm" "/usr/bin/ln"; do
+            if grep -q "$cmd" reset-net; then
+              echo "OK: $cmd found"
+            else
+              echo "FAIL: $cmd not found (command without absolute path?)"
+              exit 1
+            fi
+          done
+
+      - name: Test -x checks instead of command -v
+        run: |
+          # Ensure we use [[ -x ... ]] not command -v for absolute paths
+          if grep -q 'command -v /' reset-net; then
+            echo "FAIL: Found 'command -v' with absolute path (should use [[ -x ]])"
+            exit 1
+          else
+            echo "OK: No 'command -v' with absolute paths"
+          fi
+
+          if grep -q '\[\[ -x ' reset-net; then
+            echo "OK: Uses [[ -x ]] for file checks"
+          else
+            echo "FAIL: Missing [[ -x ]] checks"
+            exit 1
+          fi
+
+      - name: Test install.sh structure
+        run: |
+          # Verify installer checks for root
+          if grep -q 'EUID -ne 0' install.sh; then
+            echo "OK: install.sh checks for root"
+          else
+            echo "FAIL: install.sh missing root check"
+            exit 1
+          fi
+
+          # Verify installer copies to /usr/local/bin
+          if grep -q '/usr/local/bin/reset-net' install.sh; then
+            echo "OK: install.sh copies to /usr/local/bin"
+          else
+            echo "FAIL: install.sh doesn't copy to /usr/local/bin"
+            exit 1
+          fi
+
+      - name: Verify 9 steps in script
+        run: |
+          STEP_COUNT=$(grep -cE '^\s*echo.*\[[0-9]+/9\]' reset-net || true)
+          if [ "$STEP_COUNT" -eq 9 ]; then
+            echo "OK: All 9 steps present"
+          else
+            echo "FAIL: Expected 9 steps, found $STEP_COUNT"
+            exit 1
+          fi
+
+      - name: Verify logging system (v1.1.0)
+        run: |
+          # Verify log file is defined
+          if grep -q 'LOGFILE="/var/log/reset-net.log"' reset-net; then
+            echo "OK: LOGFILE defined"
+          else
+            echo "FAIL: LOGFILE not defined"
+            exit 1
+          fi
+
+          # Verify log() function exists
+          if grep -q '^log()' reset-net; then
+            echo "OK: log() function present"
+          else
+            echo "FAIL: log() function missing"
+            exit 1
+          fi
+
+          # Verify ERRORS counter exists
+          if grep -q 'ERRORS=0' reset-net; then
+            echo "OK: ERRORS counter initialized"
+          else
+            echo "FAIL: ERRORS counter missing"
+            exit 1
+          fi
+
+          # Verify step 7 has proper error handling (no bare set -e failure)
+          if grep -q 'systemctl restart systemd-resolved 2>/dev/null' reset-net; then
+            echo "OK: systemd-resolved restart is error-safe"
+          else
+            echo "FAIL: systemd-resolved restart missing 2>/dev/null"
+            exit 1
+          fi
+
+          if grep -q 'ln -sf.*2>/dev/null' reset-net; then
+            echo "OK: ln -sf has error suppression"
+          else
+            echo "FAIL: ln -sf missing error suppression"
+            exit 1
+          fi

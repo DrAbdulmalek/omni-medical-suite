@@ -1,0 +1,47 @@
+#!/bin/bash
+# ============================================================
+# reset-net-gui — واجهة رسومية لـ reset-net
+# يُستدعى عبر pkexec من ملف .desktop
+# يُظهر نافذة طرفية مؤقتة مع مخرجات ملونة
+# ============================================================
+
+# اختيار المحاكي الطرفي المتاح
+TERMINAL=""
+if [[ -x /usr/bin/konsole ]]; then
+    TERMINAL="/usr/bin/konsole"
+elif [[ -x /usr/bin/gnome-terminal ]]; then
+    TERMINAL="/usr/bin/gnome-terminal"
+elif [[ -x /usr/bin/xfce4-terminal ]]; then
+    TERMINAL="/usr/bin/xfce4-terminal"
+elif [[ -x /usr/bin/alacritty ]]; then
+    TERMINAL="/usr/bin/alacritty"
+elif [[ -x /usr/bin/kitty ]]; then
+    TERMINAL="/usr/bin/kitty"
+else
+    # لا يوجد محاكي — نستخدم zenity/kdialog لعرض النتيجة
+    OUTPUT=$(/usr/local/bin/reset-net 2>&1)
+    if command -v zenity &>/dev/null; then
+        echo "$OUTPUT" | zenity --text-info --title="reset-net" --width=500 --height=400 --font="monospace"
+    elif command -v kdialog &>/dev/null; then
+        kdialog --textbox /dev/stdin 500 400 <<< "$OUTPUT"
+    else
+        xterm -e "/usr/local/bin/reset-net; echo ''; echo 'اضغط Enter للإغلاق'; read"
+    fi
+    exit 0
+fi
+
+# تشغيل reset-net في الطرفية المختارة مع إغلاق تلقائي
+case "$TERMINAL" in
+    */konsole)
+        $TERMINAL --noclose -e /usr/local/bin/reset-net
+        ;;
+    */gnome-terminal)
+        $TERMINAL -- bash -c "/usr/local/bin/reset-net; echo ''; echo 'اضغط Enter للإغلاق'; read"
+        ;;
+    */xfce4-terminal)
+        $TERMINAL -e "bash -c '/usr/local/bin/reset-net; echo; echo اضغط Enter للإغلاق; read'"
+        ;;
+    */alacritty|*/kitty)
+        $TERMINAL -e bash -c "/usr/local/bin/reset-net; echo ''; echo 'اضغط Enter للإغلاق'; read"
+        ;;
+esac

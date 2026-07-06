@@ -1,0 +1,347 @@
+#!/bin/bash
+# ============================================================
+# reset-net - إعادة ضبط الشبكة بعد تعطّل Outline VPN
+# مُحصَّن لمانجارو/أرش لينكس: مسارات مطلقة، معالجة أخطاء، لوغ
+# الإصدار: 1.3.0
+# الاستخدام من الطرفية:  sudo reset-net
+# الاستخدام الرسومي:     pkexec reset-net-gui
+# ============================================================
+set -uo pipefail
+
+# ── إعدادات اللوغ ──
+LOGFILE="/var/log/reset-net.log"
+ERRORS=0
+
+log() {
+    local level="$1"; shift
+    local ts; ts=$(date +"%Y-%m-%d %H:%M:%S")
+    local msg="[$ts] [$level] $*"
+    echo "$msg" >> "$LOGFILE"
+}
+
+# ── ألوان الطرفية ──
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# ── التأكد من الصلاحيات ──
+if [[ $EUID -ne 0 ]]; then
+   echo -e "${RED}يرجى تشغيل السكربت بصلاحيات الجذر: sudo $0${NC}" >&2
+   exit 1
+fi
+
+# ── بداية السجل ──
+{
+    echo "========================================="
+    echo " reset-net v1.3.0"
+    echo " الوقت: $(date)"
+    echo " المستخدم: ${SUDO_USER:-root} (UID=${SUDO_UID:-0})"
+    echo "========================================="
+} >> "$LOGFILE"
+
+echo -e "${CYAN}${BOLD}══════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}${BOLD}  reset-net v1.3.0 — إعادة ضبط الشبكة             ${NC}"
+echo -e "${CYAN}${BOLD}══════════════════════════════════════════════════${NC}"
+echo -e "  اللوغ: ${YELLOW}/var/log/reset-net.log${NC}"
+echo ""
+
+STEP=1
+
+# ── 1. إيقاف خدمات Outline ──
+echo -e "${BOLD}[${STEP}/9] إيقاف خدمات Outline${NC}"
+log INFO "1/9 - إيقاف خدمات Outline"
+if /usr/bin/systemctl stop outline 2>/dev/null; then
+    echo -e "  ${GREEN}تم إيقاف outline${NC}"; log OK "تم إيقاف outline"
+else
+    echo -e "  ${YELLOW}outline لم تكن تعمل${NC}"; log WARN "outline لم تكن تعمل"
+fi
+if /usr/bin/pkill -f outline-client 2>/dev/null; then
+    echo -e "  ${GREEN}تم قتل عمليات outline-client${NC}"; log OK "تم قتل outline-client"
+else
+    echo -e "  ${YELLOW}لا عمليات outline-client${NC}"; log WARN "لا عمليات outline-client"
+fi
+((STEP++))
+
+# ── 2. حذف واجهات TUN/TAP المتبقية ──
+echo -e "${BOLD}[${STEP}/9] حذف واجهات TUN/TAP المتبقية${NC}"
+log INFO "2/9 - حذف واجهات TUN/TAP"
+TUN_FOUND=0
+while IFS= read -r iface; do
+    [[ -z "$iface" ]] && continue
+    echo -e "  حذف: ${YELLOW}${iface}${NC}"
+    if /usr/bin/ip link del "$iface" 2>/dev/null; then
+        log OK "تم حذف $iface"
+    else
+        log WARN "فشل حذف $iface (قد لا تكون موجودة)"
+    fi
+    TUN_FOUND=1
+done < <(/usr/bin/ip link show 2>/dev/null | /usr/bin/grep -oE '(tun|tap)[^:]*' | /usr/bin/tr -d ' ')
+if [[ $TUN_FOUND -eq 0 ]]; then
+    echo -e "  لا توجد واجهات TUN/TAP"; log OK "لا واجهات TUN/TAP"
+fi
+((STEP++))
+
+# ── 3. تنظيف iptables (IPv4) ──
+echo -e "${BOLD}[${STEP}/9] تنظيف iptables (IPv4)${NC}"
+log INFO "3/9 - تنظيف iptables (IPv4)"
+if [[ -x /usr/sbin/iptables ]]; then
+    for cmd in "-F" "-X" "-t nat -F" "-t nat -X" "-t mangle -F" "-t mangle -X"; do
+        if /usr/sbin/iptables $cmd 2>/dev/null; then
+            log OK "iptables $cmd"
+        else
+            log WARN "فشل iptables $cmd"
+        fi
+    done
+    for policy in "INPUT ACCEPT" "FORWARD ACCEPT" "OUTPUT ACCEPT"; do
+        if /usr/sbin/iptables -P $policy 2>/dev/null; then
+            log OK "iptables -P $policy"
+        else
+            log WARN "فشل iptables -P $policy"
+        fi
+    done
+    echo -e "  ${GREEN}تم تنظيف iptables${NC}"
+else
+    echo -e "  ${YELLOW}iptables غير موجود${NC}"; log WARN "iptables غير موجود"
+fi
+((STEP++))
+
+# ── 4. تنظيف ip6tables (IPv6) ──
+echo -e "${BOLD}[${STEP}/9] تنظيف ip6tables (IPv6)${NC}"
+log INFO "4/9 - تنظيف ip6tables (IPv6)"
+if [[ -x /usr/sbin/ip6tables ]]; then
+    for cmd in "-F" "-X" "-t mangle -F" "-t mangle -X"; do
+        if /usr/sbin/ip6tables $cmd 2>/dev/null; then
+            log OK "ip6tables $cmd"
+        else
+            log WARN "فشل ip6tables $cmd"
+        fi
+    done
+    for policy in "INPUT ACCEPT" "FORWARD ACCEPT" "OUTPUT ACCEPT"; do
+        if /usr/sbin/ip6tables -P $policy 2>/dev/null; then
+            log OK "ip6tables -P $policy"
+        else
+            log WARN "فشل ip6tables -P $policy"
+        fi
+    done
+    echo -e "  ${GREEN}تم تنظيف ip6tables${NC}"
+else
+    echo -e "  ${YELLOW}ip6tables غير موجود${NC}"; log WARN "ip6tables غير موجود"
+fi
+((STEP++))
+
+# ── 5. مسح nftables وإعادة تشغيل firewalld ──
+echo -e "${BOLD}[${STEP}/9] مسح nftables وإعادة تشغيل firewalld${NC}"
+log INFO "5/9 - مسح nftables وإعادة تشغيل firewalld"
+if [[ -x /usr/sbin/nft ]]; then
+    if /usr/sbin/nft flush ruleset 2>/dev/null; then
+        echo -e "  ${GREEN}تم مسح nftables${NC}"; log OK "تم مسح nftables"
+    else
+        echo -e "  ${YELLOW}لا قواعد nftables أو فشل المسح${NC}"; log WARN "فشل مسح nftables"
+    fi
+fi
+if /usr/bin/systemctl is-active --quiet firewalld 2>/dev/null; then
+    if /usr/bin/timeout 10 /usr/bin/systemctl restart firewalld 2>/dev/null; then
+        echo -e "  ${GREEN}تم إعادة تشغيل firewalld${NC}"; log OK "تم إعادة تشغيل firewalld"
+    else
+        echo -e "  ${RED}فشل إعادة تشغيل firewalld${NC}"; log ERR "فشل إعادة تشغيل firewalld"; ((ERRORS++))
+    fi
+else
+    echo -e "  ${YELLOW}firewalld غير نشط${NC}"; log WARN "firewalld غير نشط"
+fi
+((STEP++))
+
+# ── 6. حذف مسارات ونقاط توجيه VPN المتبقية (كل الجداول) ──
+echo -e "${BOLD}[${STEP}/9] حذف مسارات ونقاط توجيه VPN المتبقية${NC}"
+log INFO "6/9 - حذف مسارات VPN من كل الجداول والقواعد"
+
+ROUTE_FOUND=0
+RULE_FOUND=0
+CUSTOM_TABLES=()
+
+# 6أ. حذف المسارات من الجدول الرئيسي (كما في الأصل)
+while IFS= read -r route; do
+    [[ -z "$route" ]] && continue
+    if /usr/bin/ip route del $route 2>/dev/null; then
+        echo -e "  ${GREEN}حُذف: ${route}${NC}"; log OK "حُذف المسار: $route"
+    else
+        echo -e "  ${YELLOW}فشل حذف: ${route}${NC}"; log WARN "فشل حذف المسار: $route"
+    fi
+    ROUTE_FOUND=1
+done < <(/usr/bin/ip route show 2>/dev/null | /usr/bin/grep -E 'tun|tap|outline')
+
+# 6ب. حذف قواعد policy routing غير الافتراضية (0, 32766, 32767)
+#     وجمع أسماء/أرقام الجداول التي تشير إليها لتفريغها لاحقاً
+while IFS= read -r rule_line; do
+    [[ -z "$rule_line" ]] && continue
+    prio=$(echo "$rule_line" | /usr/bin/cut -d: -f1 | /usr/bin/tr -d ' ')
+    [[ "$prio" == "0" || "$prio" == "32766" || "$prio" == "32767" ]] && continue
+
+    table=$(echo "$rule_line" | /usr/bin/grep -oE 'lookup [^ ]+' | /usr/bin/awk '{print $2}')
+    echo -e "  ${YELLOW}حذف قاعدة ip rule برقم ${prio} (جدول: ${table:-غير معروف})${NC}"
+    if /usr/bin/ip rule del prio "$prio" 2>/dev/null; then
+        log OK "تم حذف ip rule برقم $prio"
+    else
+        log WARN "فشل حذف ip rule برقم $prio"
+    fi
+    [[ -n "$table" ]] && CUSTOM_TABLES+=("$table")
+    RULE_FOUND=1
+done < <(/usr/bin/ip rule show 2>/dev/null)
+
+# 6ج. تفريغ الجداول الإضافية التي كانت مرتبطة بالقواعد المحذوفة
+for table in "${CUSTOM_TABLES[@]}"; do
+    echo -e "  ${YELLOW}تفريغ جدول توجيه: ${table}${NC}"
+    if /usr/bin/ip route flush table "$table" 2>/dev/null; then
+        log OK "تم تفريغ الجدول $table"
+    else
+        log WARN "فشل تفريغ الجدول $table (قد يكون فارغاً أصلاً)"
+    fi
+done
+
+if [[ $ROUTE_FOUND -eq 0 && $RULE_FOUND -eq 0 ]]; then
+    echo -e "  لا مسارات أو قواعد VPN متبقية"; log OK "لا مسارات/قواعد VPN"
+fi
+((STEP++))
+
+# ── 7. إصلاح DNS وإعادة تشغيل systemd-resolved ──
+echo -e "${BOLD}[${STEP}/9] إصلاح DNS وإعادة تشغيل systemd-resolved${NC}"
+log INFO "7/9 - إصلاح DNS"
+
+if [[ ! -L /etc/resolv.conf ]] || /usr/bin/grep -q 'nameserver 10\.' /etc/resolv.conf 2>/dev/null; then
+    log WARN "/etc/resolv.conf تالف أو يحتوي DNS للـ VPN، جاري الإصلاح..."
+    if /usr/bin/rm -f /etc/resolv.conf 2>/dev/null; then
+        log OK "تم حذف /etc/resolv.conf"
+    else
+        log ERR "فشل حذف /etc/resolv.conf"; ((ERRORS++))
+    fi
+    if /usr/bin/ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf 2>/dev/null; then
+        echo -e "  ${GREEN}تم إعادة إنشاء رابط resolv.conf${NC}"
+        log OK "تم إنشاء symlink إلى stub-resolv.conf"
+    else
+        echo -e "  ${YELLOW}فشل إنشاء symlink — جرب يدوياً: sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf${NC}"
+        log ERR "فشل إنشاء symlink لـ /etc/resolv.conf"; ((ERRORS++))
+    fi
+else
+    echo -e "  ${GREEN}resolv.conf سليم${NC}"; log OK "/etc/resolv.conf سليم"
+fi
+
+if /usr/bin/timeout 5 /usr/bin/systemctl is-active --quiet systemd-resolved 2>/dev/null; then
+    echo -e "  جاري إعادة تشغيل systemd-resolved (مهلة 10 ثوانٍ)..."
+    if /usr/bin/timeout 10 /usr/bin/systemctl restart systemd-resolved 2>/dev/null; then
+        echo -e "  ${GREEN}تم إعادة تشغيل systemd-resolved${NC}"
+        log OK "تم إعادة تشغيل systemd-resolved"
+    else
+        echo -e "  ${YELLOW}تعليق أو فشل systemd-resolved — سيُعاد المحاولة في الخطوة 8${NC}"
+        log ERR "فشل/تعليق systemd-resolved"; ((ERRORS++))
+    fi
+else
+    echo -e "  ${YELLOW}systemd-resolved غير نشط${NC}"
+    log WARN "systemd-resolved غير نشط"
+fi
+((STEP++))
+
+# ── 8. إعادة تفعيل الشبكة عبر NetworkManager ──
+echo -e "${BOLD}[${STEP}/9] إعادة تفعيل الشبكة عبر NetworkManager${NC}"
+log INFO "8/9 - إعادة تفعيل الشبكة"
+if /usr/bin/systemctl is-active --quiet NetworkManager 2>/dev/null; then
+    if /usr/bin/nmcli networking off 2>/dev/null; then
+        echo -e "  ${GREEN}تم إيقاف الشبكة${NC}"; log OK "تم إيقاف الشبكة (nmcli)"
+    else
+        log WARN "فشل إيقاف الشبكة عبر nmcli"
+    fi
+    /usr/bin/sleep 1
+    if /usr/bin/nmcli networking on 2>/dev/null; then
+        echo -e "  ${GREEN}تم تشغيل الشبكة${NC}"; log OK "تم تشغيل الشبكة (nmcli)"
+    else
+        echo -e "  ${RED}فشل تشغيل الشبكة${NC}"; log ERR "فشل تشغيل الشبكة"; ((ERRORS++))
+    fi
+    ACTIVE_CON=$(/usr/bin/nmcli -t -f NAME c show --active 2>/dev/null | /usr/bin/head -1)
+    if [[ -n "$ACTIVE_CON" ]]; then
+        if /usr/bin/nmcli con up "$ACTIVE_CON" 2>/dev/null; then
+            echo -e "  ${GREEN}تم تفعيل: ${ACTIVE_CON}${NC}"; log OK "تم تفعيل $ACTIVE_CON"
+        else
+            echo -e "  ${YELLOW}فشل تفعيل ${ACTIVE_CON}${NC}"; log WARN "فشل تفعيل $ACTIVE_CON"
+        fi
+    else
+        echo -e "  ${YELLOW}لا يوجد اتصال نشط بعد التشغيل${NC}"; log WARN "لا اتصال نشط"
+    fi
+else
+    echo -e "  ${YELLOW}NetworkManager غير نشط، جاري محاولة systemd-networkd...${NC}"
+    log WARN "NetworkManager غير نشط"
+    if /usr/bin/timeout 10 /usr/bin/systemctl restart systemd-networkd 2>/dev/null; then
+        echo -e "  ${GREEN}تم إعادة تشغيل systemd-networkd${NC}"; log OK "تم إعادة تشغيل systemd-networkd"
+    else
+        echo -e "  ${RED}فشل إعادة تشغيل systemd-networkd${NC}"; log ERR "فشل systemd-networkd"; ((ERRORS++))
+    fi
+fi
+
+# محاولة إعادة تشغيل systemd-resolved مرة أخرى إذا فشلت في الخطوة 7
+if /usr/bin/timeout 5 /usr/bin/systemctl is-active --quiet systemd-resolved 2>/dev/null; then
+    /usr/bin/timeout 10 /usr/bin/systemctl restart systemd-resolved 2>/dev/null && log OK "إعادة محاولة: تم إعادة تشغيل systemd-resolved" || log WARN "إعادة محاولة: فشل/تعليق systemd-resolved"
+fi
+((STEP++))
+
+# ── 9. التحقق من الاتصال ──
+echo -e "${BOLD}[${STEP}/9] التحقق من الاتصال${NC}"
+log INFO "9/9 - التحقق من الاتصال"
+echo -e "  انتظار استقرار الشبكة..."
+/usr/bin/sleep 3
+
+PING_OK=0
+DNS_OK=0
+
+if /usr/bin/ping -c 2 8.8.8.8 &>/dev/null; then
+    echo -e "  ${GREEN}الإنترنت يعمل (Ping 8.8.8.8)${NC}"; log OK "Ping 8.8.8.8 ناجح"
+    PING_OK=1
+else
+    echo -e "  ${RED}فشل الاتصال بـ 8.8.8.8${NC}"; log ERR "فشل Ping 8.8.8.8"
+fi
+
+if /usr/bin/ping -c 1 google.com &>/dev/null; then
+    echo -e "  ${GREEN}DNS يعمل (google.com)${NC}"; log OK "DNS يعمل (google.com)"
+    DNS_OK=1
+else
+    echo -e "  ${YELLOW}DNS لا يحل الأسماء — جرب: sudo systemctl restart systemd-resolved${NC}"
+    log WARN "فشل DNS (google.com)"
+fi
+
+# ── تحذير حول nftables.conf ──
+if [[ -f /etc/nftables.conf ]] && /usr/bin/grep -qi 'outline' /etc/nftables.conf 2>/dev/null; then
+    echo ""
+    echo -e "  ${YELLOW}تحذير: تم العثور على إشارة لـ Outline في /etc/nftables.conf${NC}"
+    echo -e "  ${YELLOW}يُنصح بمراجعة الملف أو استبداله بالإعدادات المبدئية${NC}"
+    log WARN "nftables.conf يحتوي آثار Outline"
+fi
+
+echo ""
+echo -e "${CYAN}${BOLD}══════════════════════════════════════════════════${NC}"
+if [[ $PING_OK -eq 1 ]] && [[ $DNS_OK -eq 1 ]]; then
+    echo -e "${GREEN}${BOLD}  الشبكة جاهزة بالكامل!${NC}"
+    log OK "النتيجة: الشبكة جاهزة بالكامل"
+elif [[ $PING_OK -eq 1 ]]; then
+    echo -e "${YELLOW}${BOLD}  الاتصال يعمل لكن DNS يحتاج مراجعة${NC}"
+    log WARN "النتيجة: اتصال يعمل لكن DNS معطل"
+else
+    echo -e "${RED}${BOLD}  فشل الاتصال — راجع بالترتيب:${NC}"
+    echo -e "${RED}    1) ip addr show   (هل للواجهة IP؟)${NC}"
+    echo -e "${RED}    2) ip route show  (هل يوجد default route؟)${NC}"
+    echo -e "${RED}    3) ip rule show   (هل بقيت قواعد policy routing؟)${NC}"
+    echo -e "${RED}    4) nmcli device status${NC}"
+    log ERR "النتيجة: فشل الاتصال بالإنترنت"
+fi
+echo -e "${CYAN}${BOLD}══════════════════════════════════════════════════${NC}"
+
+# ── ختام السجل ──
+{
+    echo "========================================="
+    echo " انتهى reset-net"
+    echo " أخطاء: $ERRORS"
+    echo " الوقت: $(date)"
+    echo "========================================="
+} >> "$LOGFILE"
+
+if [[ $ERRORS -gt 0 ]]; then
+    echo -e "\n  ${YELLOW}تنبيه: $ERRORS خطأ/أخطاء غير حرجة — راجع: /var/log/reset-net.log${NC}\n"
+fi

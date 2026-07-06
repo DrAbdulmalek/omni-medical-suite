@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+  "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<policyconfig>
+
+  <action id="com.drabdulmalek.reset-net">
+    <description>Reset network after Outline VPN</description>
+    <description xml:lang="ar">إعادة ضبط الشبكة بعد انتهاء صلاحية Outline VPN</description>
+    <message>Authentication is required to reset the network configuration</message>
+    <message xml:lang="ar">يجب المصادقة لإعادة ضبط إعدادات الشبكة</message>
+    <icon_name>network-wired</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_any>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/reset-net</annotate>
+  </action>
+
+</policyconfig>

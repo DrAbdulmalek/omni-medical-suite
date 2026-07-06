@@ -1,0 +1,54 @@
+#!/bin/bash
+# ============================================================
+# reset-net-tray — أيقونة في علبة النظام (System Tray) لتشغيل
+# reset-net بنقرة واحدة، دون الحاجة للطرفية أو تذكّر الأمر.
+#
+# - نقرة مزدوجة (يسار) أو نقرة وسطى: تشغيل مباشر عبر pkexec
+# - نقرة يمين: قائمة (تشغيل / فتح اللوغ / خروج)
+# - يعتمد على yad (حزمة صغيرة متوفرة في مستودعات مانجارو/AUR)
+# ============================================================
+set -uo pipefail
+
+RESET_BIN="/usr/local/bin/reset-net"
+[[ -x "$RESET_BIN" ]] || RESET_BIN="/usr/bin/reset-net"
+
+ICON="network-wired"                 # نفس أيقونة .desktop الأصلية (متوفرة في كل ثيمات الأيقونات)
+LOG_FILE="/var/log/reset-net.log"
+
+if ! /usr/bin/command -v yad &>/dev/null; then
+    /usr/bin/notify-send -u critical "reset-net-tray" \
+        "الحزمة yad غير مثبتة. ثبّتها عبر: sudo pacman -S yad" 2>/dev/null || \
+        echo "yad غير مثبت — نفّذ: sudo pacman -S yad" >&2
+    exit 1
+fi
+
+run_reset() {
+    /usr/bin/pkexec "$RESET_BIN" > /tmp/reset-net-tray.out 2>&1
+    RC=$?
+    if [[ $RC -eq 0 ]]; then
+        /usr/bin/notify-send -i "$ICON" "reset-net" "تمت إعادة ضبط الشبكة بنجاح ✅" 2>/dev/null
+    else
+        /usr/bin/notify-send -u critical -i "$ICON" "reset-net" \
+            "فشلت إعادة الضبط — راجع: $LOG_FILE" 2>/dev/null
+    fi
+}
+export -f run_reset
+
+show_log() {
+    if [[ -r "$LOG_FILE" ]]; then
+        /usr/bin/tail -n 60 "$LOG_FILE" | \
+            yad --text-info --title="reset-net — آخر سجل" \
+                --width=600 --height=450 --font="monospace 9"
+    else
+        /usr/bin/notify-send "reset-net" "لا يوجد ملف سجل بعد" 2>/dev/null
+    fi
+}
+export -f show_log
+
+# تشغيل الأيقونة في علبة النظام
+yad --notification \
+    --image="$ICON" \
+    --text="reset-net — انقر مرتين لإعادة ضبط الشبكة" \
+    --command="bash -c run_reset" \
+    --menu="إعادة ضبط الشبكة الآن!bash -c run_reset!$ICON|عرض آخر سجل!bash -c show_log!text-x-generic|خروج!bash -c 'kill $PPID'!application-exit" \
+    --no-middle

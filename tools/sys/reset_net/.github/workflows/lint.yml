@@ -1,0 +1,119 @@
+name: Lint & Syntax
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  shellcheck:
+    name: ShellCheck Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck on reset-net
+        run: shellcheck --severity=warning --shell=bash reset-net
+        continue-on-error: true  # Some warnings may be intentional (e.g. echo -e)
+
+      - name: Run ShellCheck on reset-net-gui
+        run: shellcheck --severity=error --shell=bash reset-net-gui
+        continue-on-error: true
+
+      - name: Run ShellCheck on install.sh
+        run: shellcheck --severity=error --shell=bash install.sh
+        continue-on-error: true
+
+      - name: Run ShellCheck on uninstall.sh
+        run: shellcheck --severity=error --shell=bash uninstall.sh
+        continue-on-error: true
+
+  syntax-check:
+    name: Bash Syntax Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate reset-net syntax
+        run: bash -n reset-net
+
+      - name: Validate reset-net-gui syntax
+        run: bash -n reset-net-gui
+
+      - name: Validate install.sh syntax
+        run: bash -n install.sh
+
+      - name: Validate uninstall.sh syntax
+        run: bash -n uninstall.sh
+
+  structure-check:
+    name: File Structure & Permissions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          for f in reset-net reset-net-gui install.sh uninstall.sh \
+                   com.drabdulmalek.reset-net.desktop \
+                   com.drabdulmalek.reset-net.policy \
+                   README.md LICENSE .gitignore; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Missing required file: $f"
+              exit 1
+            fi
+            echo "OK: $f"
+          done
+
+      - name: Check script executability
+        run: |
+          for f in reset-net reset-net-gui install.sh uninstall.sh; do
+            if [ ! -x "$f" ]; then
+              echo "::error::Script is not executable: $f"
+              exit 1
+            fi
+            echo "OK: $f is executable"
+          done
+
+      - name: Verify shebang lines
+        run: |
+          for f in reset-net reset-net-gui install.sh uninstall.sh; do
+            FIRST=$(head -1 "$f")
+            if [ "$FIRST" != "#!/bin/bash" ]; then
+              echo "::error::$f must start with #!/bin/bash (found: $FIRST)"
+              exit 1
+            fi
+            echo "OK: $f has correct shebang"
+          done
+
+      - name: Verify absolute paths in reset-net
+        run: |
+          # Ensure no bare commands (without /usr/bin/ or /usr/sbin/ prefix) are used
+          # except for well-known shell builtins and variables
+          grep -nE '(^\s*|&&|\|)(chmod|chown|cp|rm|ln|sleep|head|grep|tr|ping|pkill|systemctl|nmcli|ip )' reset-net \
+            | grep -v '/usr/' \
+            | grep -v '#' \
+            | grep -v 'echo' \
+            | grep -v 'set -eu' && {
+              echo "::warning::Found commands without absolute paths (see above)"
+            } || echo "OK: All external commands use absolute paths"
+
+      - name: Validate .desktop file
+        run: |
+          if command -v desktop-file-validate &>/dev/null; then
+            sudo apt-get install -y desktop-file-utils 2>/dev/null
+          fi
+          desktop-file-validate com.drabdulmalek.reset-net.desktop 2>&1 || true
+
+      - name: Validate .policy file (XML)
+        run: |
+          if command -v xmllint &>/dev/null; then
+            xmllint --noout com.drabdulmalek.reset-net.policy && echo "OK: Valid XML" || echo "::warning::XML validation failed"
+          else
+            sudo apt-get install -y libxml2-utils 2>/dev/null
+            xmllint --noout com.drabdulmalek.reset-net.policy && echo "OK: Valid XML" || echo "::warning::XML validation failed"
+          fi

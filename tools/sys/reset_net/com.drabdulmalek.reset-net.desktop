@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Reset Network
+Name[ar]=إعادة ضبط الشبكة
+Comment=Fix network after Outline VPN disconnect on Manjaro Linux
+Comment[ar]=إصلاح الشبكة بعد انتهاء صلاحية Outline VPN على مانجارو
+Exec=pkexec /usr/local/bin/reset-net-gui
+Icon=network-wired
+Terminal=false
+Categories=System;Network;
+Keywords=network;reset;vpn;outline;dns;iptables
+Keywords[ar]=شبكة;إعادة ضبط;إنترنت;دي إن إس
+StartupNotify=true
+OnlyShowIn=X-KDE;GNOME;XFCE;

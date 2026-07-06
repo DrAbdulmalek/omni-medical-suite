@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Reset Network Tray
+Name[ar]=أيقونة إعادة ضبط الشبكة
+Comment=System tray icon for one-click reset-net execution
+Comment[ar]=أيقونة في علبة النظام لتشغيل reset-net بنقرة واحدة
+Exec=/usr/local/bin/reset-net-tray
+Icon=network-wired
+Terminal=false
+Categories=System;Network;
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+OnlyShowIn=X-KDE;GNOME;XFCE;
