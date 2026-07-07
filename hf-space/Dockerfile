@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
 LABEL maintainer="Dr. Abdulmalek Tamer Al-husseini <drabdulmalek@proton.me>"
-LABEL description="Omni Medical OCR — Arabic Medical Text Extraction"
+LABEL description="Omni Medical OCR — Arabic Medical Text Extraction | Monorepo"
 
 WORKDIR /app
 
@@ -23,7 +23,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . .
+COPY app.py .
+COPY src/ src/
+COPY packages/ packages/
+COPY config/ config/
+COPY dictionaries/ dictionaries/
 
 # Create non-root user for HF Spaces security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

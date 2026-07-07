@@ -1,160 +1,156 @@
 <p align="center">
-  <h1>🏥 Omni Medical Suite</h1>
-  <strong>منصة متكاملة لمعالجة الصور والنصوص الطبية العربية</strong><br/>
-  <sub>Scanner Fixer · OCR Fusion · Handwriting Recognition · Spell Checker · Medical Dictionary · Auto Retraining</sub>
+  <h1>Omni Medical Suite</h1>
+  <strong>Unified Medical OCR Platform</strong><br/>
+  <sub>Next.js + FastAPI + Gradio + Qdrant + Redis</sub>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python" />
   <img src="https://img.shields.io/badge/Gradio-5.x-orange?style=flat-square&logo=gradio" />
   <img src="https://img.shields.io/badge/Arabic-RTL-blueviolet?style=flat-square" />
+  <img src="https://img.shields.io/badge/Packages-31-informational?style=flat-square" />
+  <img src="https://img.shields.io/badge/Apps-5-success?style=flat-square" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" />
   <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=flat-square" />
 </p>
 
 <p align="center">
-  <a href="#-المميزات">المميزات</a> ·
-  <a href="#-الاستخدام-السريع">الاستخدام</a> ·
-  <a href="#-الهيكل">الهيكل</a> ·
-  <a href="#-التوثيق">التوثيق</a> ·
-  <a href="#-النشر">النشر</a>
+  <a href="#-features">Features</a> &middot;
+  <a href="#-quick-start">Quick Start</a> &middot;
+  <a href="#-structure">Structure</a> &middot;
+  <a href="#-deployment">Deployment</a> &middot;
+  <a href="#-tech-stack">Tech Stack</a>
 </p>
 
 ---
 
-> **⚠️ ملاحظة مهمة**: جميع الصور الطبية يجب تمريرها أولاً عبر
-> [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) لتصحيح الميل والاقتصاص التلقائي
-> وتقليل الضوضاء **قبل** معالجة OCR.
+# Omni Medical Suite
 
----
+**The Comprehensive Arabic Medical Platform** — A monorepo for medical document processing and handwritten prescription recognition.
 
-## ✨ المميزات
+## Features
 
-| الميزة | الوصف |
-|--------|-------|
-| 📸 **Scanner Fixer** | تصحيح الميل والانحراف والاقتصاص التلقائي للصور الممسوحة |
-| ✍️ **Handwriting Recognition** | التعرف على الخط العربي الطبي (TrOCR + Custom Models) |
-| 🔤 **OCR Fusion V2** | دمج نتائج عدة محركات OCR لتحقيق أعلى دقة |
-| 🛡️ **Medical Context Protection** | حماية المصطلحات الطبية من التصحيح الخاطئ |
-| ✅ **Spell Checker** | فحص وإصلاح الأخطاء الإملائية بالسياق الطبي |
-| 📖 **Medical Dictionary** | قاموس طبي عربي + WordNet للتدقيق اللغوي |
-| 🤖 **LLM Proofreading** | مراجعة عبر Jais ونماذج اللغة الكبيرة |
-| 📊 **NER** | استخراج الكيانات المسماة من النصوص الطبية |
-| 🔄 **Auto Retraining** | جمع بيانات تلقائي + إعادة تدريب النماذج |
-| 🧪 **Evaluation Suite** | أدوات قياس الأداء والمقارنة بين النماذج |
+- **Advanced OCR**: 4 engines + Ensemble fusion
+- **Intelligent Correction**: HybridSpellChecker + Jais LLM proofreading
+- **Image Processing**: deskew, CLAHE, line removal, perspective correction
+- **HITL**: Gradio + PyQt6 human-in-the-loop interfaces
+- **Training**: Custom TrOCR fine-tuning + Ground Truth pipeline
+- **Deployment**: Docker + HF Spaces + Kubernetes
 
-## 🚀 الاستخدام السريع
+## Quick Start
 
 ```bash
 git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
 pip install -r requirements.txt
-python app/gradio_full_hitl.py
+python app/gradio_hitl.py
 ```
 
-ثم افتح `http://localhost:7860` في المتصفح.
+Then open `http://localhost:7860` in your browser.
 
-## 📁 الهيكل
+## Structure
 
 ```
 omni-medical-suite/
-├── app/                    # واجهة Gradio الرئيسية
-│   ├── gradio_full_hitl.py # التطبيق الكامل (Human-in-the-Loop)
-│   └── gradio_ui.py        # واجهة بديلة
-├── src/                    # الوحدات الأساسية
-│   ├── ocr/                # محركات OCR والدمج
-│   ├── ner/                # استخراج الكيانات المسماة
-│   ├── llm/                # تكامل نماذج اللغة الكبيرة
-│   └── layout/             # تحليل تخطيط المستندات
-├── packages/               # حزم Python فرعية
-├── tools/                  # أدوات مساعدة
-├── scripts/                # سكريبتات التشغيل والجمع والتدريب
-├── dictionaries/           # قواميس طبية + WordNet
-├── config/                 # إعدادات النماذج والمعالجة
-├── tests/                  # اختبارات الوحدات والتكامل
-├── docs/                   # التوثيق الكامل
-├── hf-space/               # إعدادات HuggingFace Space
-├── docker/                 # ملفات Docker للنشر
-├── .github/                # GitHub Actions CI/CD
-└── benchmarks/             # نتائج تقييم الأداء
+├── apps/              — Applications (Gradio, API, Desktop)
+│   ├── collector/         # HITL data collector
+│   ├── handwriting-demo/  # Handwriting OCR demo
+│   ├── ocr-demo/          # Multi-engine OCR demo
+│   ├── ocr-pipeline/      # Full OCR pipeline
+│   └── trainer-ui/        # Model training UI
+├── packages/           — Reusable Python packages (31)
+│   ├── ai-fuel/           # AI content engine
+│   ├── bilingual/         # Arabic/English text extractor
+│   ├── core/              # Shared utilities
+│   ├── doc-processor/     # Document processing
+│   ├── handwriting/       # Handwriting recognition
+│   ├── medical/           # Medical domain logic
+│   ├── nlp/               # NLP correction & spell check
+│   ├── ocr_postprocess/   # OCR post-processing
+│   ├── omnifile/          # File processing & export
+│   ├── scanner_fixer/     # Pre-OCR image normalization
+│   ├── training/          # Model training framework
+│   └── vision/            # Computer vision utilities
+├── src/                — Core library (OCR, NER, LLM, Layout)
+├── app/                — Main Gradio application
+├── services/           — Backend services
+├── infra/              — Docker + k8s configurations
+├── config/             — Model configs, Prometheus, Grafana
+├── tests/              — Unit & integration tests (40+ files)
+├── docs/               — Full documentation
+├── hf-space/           — HuggingFace Spaces deployment
+└── .github/workflows/  — CI/CD pipelines
 ```
 
-## 📝 التوثيق
+## Tech Stack
 
-| الملف | المحتوى |
-|-------|---------|
-| `docs/` | توثيق تفصيلي لكل وحدة |
-| `PIPELINE.md` | شرح خط المعالجة الكامل |
-| `MODES.md` | أوضاع التشغيل المختلفة |
-| `DEPLOY.md` | دليل النشر |
-| `CONTRIBUTING.md` | إرشادات المساهمة |
-| `MODEL_CARD.md` | بطاقة النموذج |
-| `CHANGELOG.md` | سجل التغييرات |
+| Layer | Technologies |
+|-------|-------------|
+| **OCR** | PaddleOCR, Tesseract, EasyOCR, TrOCR, Surya |
+| **NLP** | Transformers, Jais LLM, Custom Spell Checker |
+| **Vision** | OpenCV, CLAHE, Deskew, Line Removal |
+| **Backend** | Python, FastAPI, Celery, PostgreSQL, Redis |
+| **Frontend** | Next.js, Gradio, PyQt6 |
+| **Vector DB** | Qdrant |
+| **Monitoring** | Prometheus, Grafana, Tempo |
+| **Deployment** | Docker, Kubernetes, HuggingFace Spaces |
 
-## 🐳 النشر
+## Deployment
 
-### Docker (مُوصى به)
+### Docker (Recommended)
+```bash
+docker-compose up -d
+```
+
+### Docker Lite (OCR only, no monitoring stack)
 ```bash
 docker-compose -f docker-compose.lite.yml up -d
 ```
 
-### HuggingFace Space
-انظر `hf-space/` للإعدادات والنشر المباشر.
+### HuggingFace Spaces
+```bash
+cd hf-space
+docker build -t medical-ocr .
+```
 
-### التطوير المحلي
+### Local Development
 ```bash
 make dev
 ```
 
-## 🏗️ المتطلبات
+## Documentation
+
+| File | Content |
+|------|---------|
+| `docs/ARCHITECTURE.md` | System architecture & data flow |
+| `PIPELINE.md` | Full processing pipeline |
+| `MODES.md` | Operation modes |
+| `DEPLOY.md` | Deployment guide |
+| `CONTRIBUTING.md` | Contribution guidelines |
+| `MODEL_CARD.md` | Model card |
+| `CLEANUP_LOG.md` | Repository consolidation log |
+
+## Requirements
 
 - Python 3.10+
-- CUDA (اختياري، لتسريع GPU)
-- 8+ GB RAM (16+ GB مُوصى بها للنماذج الكبيرة)
+- CUDA (optional, for GPU acceleration)
+- 8+ GB RAM (16+ GB recommended for large models)
 
-## 📜 الرخصة
+## License
 
-هذا المشروع مرخص تحت رخصة [MIT](LICENSE).
+This project is licensed under the [MIT](LICENSE) license.
 
 ---
 
-<p align="center">
-  <sub>الملفات البنية التحتية المحذوفة محفوظة في
-  <a href="https://github.com/DrAbdulmalek/future-dev-ideas">future-dev-ideas</a>
-  (قابلة للاسترجاع كاملاً عبر علامة الأمان)</sub>
-</p>
----
-
-## 🗂️ Monorepo Structure
-
-```
-omni-medical-suite/
-├── apps/
-│   ├── ocr-pipeline/          # From: omni-medical-ocr-pipeline
-│   ├── web/                   # Next.js web application
-│   └── ...                    # Other applications
-├── packages/
-│   ├── omnifile/              # From: OmniFile_Processor
-│   ├── bilingual/             # From: bilingual-extractor
-│   ├── ai-fuel/               # From: ai-fuel-engine
-│   ├── doc-processor/         # From: medical-doc-processor
-│   ├── handwriting/           # From: handwriting-ocr
-│   └── ...                    # Other packages
-├── services/                   # Backend services
-├── src/                        # Core library
-├── hf-space/                   # HuggingFace Spaces deployment
-└── ...                         # Config, docs, tests
-```
-
-### 🔄 Migrated Repositories (2026-07-07)
+## Migrated Repositories (2026-07-07)
 
 | Original Repository | New Location | Status |
 |---------------------|--------------|--------|
-| omni-medical-ocr-pipeline | apps/ocr-pipeline/ | ✅ Merged |
-| OmniFile_Processor | packages/omnifile/ | ✅ Merged |
-| bilingual-extractor | packages/bilingual/ | ✅ Merged |
-| ai-fuel-engine | packages/ai-fuel/ | ✅ Merged |
-| medical-doc-processor | packages/doc-processor/ | ✅ Merged |
-| handwriting-ocr | packages/handwriting/ | ✅ Merged |
+| omni-medical-ocr-pipeline | apps/ocr-pipeline/ | Merged |
+| OmniFile_Processor | packages/omnifile/ | Merged |
+| bilingual-extractor | packages/bilingual/ | Merged |
+| ai-fuel-engine | packages/ai-fuel/ | Merged |
+| medical-doc-processor | packages/doc-processor/ | Merged |
+| handwriting-ocr | packages/handwriting/ | Merged |
 
-**Archive**: [medical-ocr-archived](https://github.com/DrAbdulmalek/medical-ocr-archived)
+Archive: [medical-ocr-archived](https://github.com/DrAbdulmalek/medical-ocr-archived)
