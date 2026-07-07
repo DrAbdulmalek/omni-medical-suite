@@ -123,3 +123,38 @@ make dev
   <a href="https://github.com/DrAbdulmalek/future-dev-ideas">future-dev-ideas</a>
   (قابلة للاسترجاع كاملاً عبر علامة الأمان)</sub>
 </p>
+---
+
+## 🗂️ Monorepo Structure
+
+```
+omni-medical-suite/
+├── apps/
+│   ├── ocr-pipeline/          # From: omni-medical-ocr-pipeline
+│   ├── web/                   # Next.js web application
+│   └── ...                    # Other applications
+├── packages/
+│   ├── omnifile/              # From: OmniFile_Processor
+│   ├── bilingual/             # From: bilingual-extractor
+│   ├── ai-fuel/               # From: ai-fuel-engine
+│   ├── doc-processor/         # From: medical-doc-processor
+│   ├── handwriting/           # From: handwriting-ocr
+│   └── ...                    # Other packages
+├── services/                   # Backend services
+├── src/                        # Core library
+├── hf-space/                   # HuggingFace Spaces deployment
+└── ...                         # Config, docs, tests
+```
+
+### 🔄 Migrated Repositories (2026-07-07)
+
+| Original Repository | New Location | Status |
+|---------------------|--------------|--------|
+| omni-medical-ocr-pipeline | apps/ocr-pipeline/ | ✅ Merged |
+| OmniFile_Processor | packages/omnifile/ | ✅ Merged |
+| bilingual-extractor | packages/bilingual/ | ✅ Merged |
+| ai-fuel-engine | packages/ai-fuel/ | ✅ Merged |
+| medical-doc-processor | packages/doc-processor/ | ✅ Merged |
+| handwriting-ocr | packages/handwriting/ | ✅ Merged |
+
+**Archive**: [medical-ocr-archived](https://github.com/DrAbdulmalek/medical-ocr-archived)
