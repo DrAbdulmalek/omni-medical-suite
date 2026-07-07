@@ -1,0 +1,116 @@
+/**
+ * In-memory sliding window rate limiter
+ *
+ * Usage:
+ *   import { rateLimit } from "@/lib/rate-limit";
+ *   const { success, remaining, resetAt } = rateLimit("api-process", 10, 60);
+ *   if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+ */
+
+interface RateLimitEntry {
+  timestamps: number[];
+}
+
+// In-memory store (for production, use Redis)
+const store = new Map<string, RateLimitEntry>();
+
+// Cleanup old entries every 5 minutes
+const CLEANUP_INTERVAL = 5 * 60 * 1000;
+let lastCleanup = Date.now();
+
+function cleanup(now: number) {
+  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  lastCleanup = now;
+
+  for (const [key, entry] of store.entries()) {
+    // Remove entries older than 1 hour with no recent activity
+    if (entry.timestamps.length === 0 || entry.timestamps[0] < now - 3600000) {
+      store.delete(key);
+    }
+  }
+}
+
+/**
+ * Check and apply rate limit
+ *
+ * @param key - Unique identifier (e.g., IP address or user ID)
+ * @param maxRequests - Maximum requests in the window
+ * @param windowSeconds - Time window in seconds
+ * @returns Object with success status, remaining requests, and reset time
+ */
+export function rateLimit(
+  key: string,
+  maxRequests: number = 100,
+  windowSeconds: number = 60
+): { success: boolean; remaining: number; resetAt: number } {
+  const now = Date.now();
+  cleanup(now);
+
+  const windowMs = windowSeconds * 1000;
+  const windowStart = now - windowMs;
+
+  let entry = store.get(key);
+  if (!entry) {
+    entry = { timestamps: [] };
+    store.set(key, entry);
+  }
+
+  // Remove timestamps outside the current window
+  entry.timestamps = entry.timestamps.filter((t) => t > windowStart);
+
+  if (entry.timestamps.length >= maxRequests) {
+    const oldestInWindow = entry.timestamps[0];
+    return {
+      success: false,
+      remaining: 0,
+      resetAt: oldestInWindow + windowMs,
+    };
+  }
+
+  // Add current request timestamp
+  entry.timestamps.push(now);
+
+  return {
+    success: true,
+    remaining: maxRequests - entry.timestamps.length,
+    resetAt: now + windowMs,
+  };
+}
+
+/**
+ * Apply rate limiting to a Next.js API route
+ * Returns a 429 response if rate limit exceeded, or null if OK
+ */
+export function withRateLimit(
+  request: Request,
+  maxRequests: number = 100,
+  windowSeconds: number = 60
+): { limited: boolean; response?: Response } {
+  // Use IP or a fallback identifier
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
+
+  const result = rateLimit(ip, maxRequests, windowSeconds);
+
+  if (!result.success) {
+    return {
+      limited: true,
+      response: Response.json(
+        {
+          error: "Too many requests",
+          remaining: result.remaining,
+          resetAt: new Date(result.resetAt).toISOString(),
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((result.resetAt - Date.now()) / 1000)),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      ),
+    };
+  }
+
+  return { limited: false };
+}
