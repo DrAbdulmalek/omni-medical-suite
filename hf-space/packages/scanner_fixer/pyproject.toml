@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scanner-fixer"
+version = "1.1.0"
+description = "Pre-OCR image normalization for scanned medical documents"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "DrAbdulmalek" }]
+requires-python = ">=3.9"
+
+dependencies = [
+    "numpy>=1.23",
+    "opencv-python>=4.7",
+    "click>=8.0",
+    "Pillow>=9.0",
+]
+
+[project.optional-dependencies]
+tesseract = ["pytesseract>=0.3"]
+dev = ["pytest>=7.0", "pytest-cov", "ruff", "black"]
+
+[project.scripts]
+scanner-fixer = "scanner_fixer.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,10 @@
+uploads/
+crops/
+data/
+__pycache__/
+*.pyc
+.git/
+*.png
+*.jpg
+*.jpeg
+*.gif

@@ -1,0 +1,88 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "medical-ocr-postprocessor"
+version = "0.1.0"
+description = "Post-processing engine for medical OCR results — Arabic text normalization, medical term validation, and batch correction"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Dr. Abdulmalek", email = "drabdulmalek@users.noreply.github.com" },
+]
+keywords = [
+    "ocr",
+    "medical",
+    "arabic",
+    "post-processing",
+    "text-correction",
+    "handwriting",
+    "نص طبي",
+    "تصحيح OCR",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = [
+    "Pillow>=10.0.0",
+    "numpy>=1.24.0",
+    "python-Levenshtein>=0.25.0",
+    "rapidfuzz>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+monitoring = [
+    "prometheus-client>=0.19.0",
+]
+production = [
+    "celery>=5.3.0",
+    "redis>=5.0.0",
+    "prometheus-client>=0.19.0",
+]
+all = [
+    "medical-ocr-postprocessor[dev,monitoring,production]",
+]
+
+[project.scripts]
+medical-ocr-postprocess = "medical_ocr_postprocessor.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/DrAbdulmalek/medical-ocr-postprocessor"
+Repository = "https://github.com/DrAbdulmalek/medical-ocr-postprocessor"
+Issues = "https://github.com/DrAbdulmalek/medical-ocr-postprocessor/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/medical_ocr_postprocessor"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

@@ -1,57 +1,31 @@
 ---
-title: Omni Medical OCR — نظام استخراج النصوص الطبية العربية
-emoji: 🏥
-colorFrom: indigo
-colorTo: blue
+title: Omni Medical OCR
+emoji: "\U0001F3E5"
+colorFrom: blue
+colorTo: purple
 sdk: docker
-pinned: true
-license: mit
 app_port: 7860
+pinned: false
+license: mit
+tags:
+  - ocr
+  - medical
+  - arabic
+  - handwriting
+  - paddleocr
+  - gradio
 ---
 
-# 🏥 Omni Medical OCR
+# Omni Medical OCR
 
-نظام متكامل لاستخراج وتصحيح النصوص الطبية العربية باستخدام الذكاء الاصطناعي.
+Arabic Medical Text Extraction powered by Omni Medical Suite.
 
-## المسار (Pipeline)
+## Features
+- 4 OCR engines (PaddleOCR, Tesseract, EasyOCR, TrOCR)
+- Ensemble fusion for higher accuracy
+- Arabic spell checking with medical context
+- Image preprocessing (deskew, CLAHE, denoise)
 
-```
-رفع صورة → تنظيف وتحسين → OCR متعدد المحركات → تصحيح تلقائي → استخراج الكيانات → عرض النتائج
-```
+## Live Demo
 
-## المحركات المدعومة
-
-| المحرك | الوصف |
-|--------|-------|
-| **PaddleOCR** | محرك OCR أساسي — دعم ممتاز للعربية |
-| **Tesseract** | tesseract-ocr-ara — محرك كلاسيكي موثوق |
-| **EasyOCR** | محرك خفيف قائم على التعلم العميق (اختياري) |
-
-## الميزات
-
-- **معالجة مسبقة متقدمة**: إزالة الظلال، تصحيح الميل، تحسين التباين، ثنائية الألوان
-- **OCR متعدد المحركات**: نتائج كل محرك + تصويت الأغلبية
-- **تصحيح تلقائي**: قاموس طبي عربي + قواعد لغوية
-- **استخراج الكيانات**: أدوية، أمراض، أعراض، جرعات، تواريخ
-- **واجهة عربية كاملة**: دعم RTL، خطوط عربية واضحة
-- **تصدير النتائج**: نسخ، تحميل كـ TXT أو JSON
-
-## المتطلبات
-
-- **الوضع الأساسي (CPU)**: يعمل بدون GPU
-- **الوضع المتقدم (GPU)**: ضع `ENABLE_LLM=true` لتفعيل Jais-13B
-
-## متغيرات البيئة
-
-| المتغير | الوصف | الافتراضي |
-|---------|-------|-----------|
-| `ENABLE_LLM` | تفعيل Jais تصحيح سياقي (يتطلب GPU) | `false` |
-| `HF_TOKEN` | رمز HuggingFace للحفظ | - |
-
-## المطور
-
-**Dr. Abdulmalek Tamer Al-husseini**
-
-## الترخيص
-
-MIT License
+Visit: [https://drabdulmalek-omni-medical-ocr.hf.space](https://drabdulmalek-omni-medical-ocr.hf.space)
