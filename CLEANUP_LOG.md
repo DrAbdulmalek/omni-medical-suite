@@ -158,3 +158,38 @@ Unarchived temporarily, added archive banner pointing to omni-medical-suite, the
 - **Files deleted:** 124
 - **Commit:** e22782a
 - **Tag:** legacy/pre-final-prune-20260706
+
+---
+
+## PHASE 4: Deployment (Re-applied 2026-07-09)
+
+Environment reset caused loss of PHASE 4 files. Re-created and pushed as commit `32917dd`.
+
+**Files created/modified:**
+- `Dockerfile.gradio` — Multi-stage Docker build (builder → runtime), PaddleOCR pre-caching, appuser:1000
+- `docker-compose.yml` — 5 services with `--profile infra`, gradio runs standalone
+- `.github/workflows/deploy-to-hf.yml` — Path-filtered auto-deploy to HF Spaces
+- `README.md` — New Deployment section with architecture diagram, CI/CD table, config table
+
+---
+
+## PHASE 5: Verification & Finalization (2026-07-09)
+
+### Test Results Summary
+- **Pytest:** 270 passed, 19 failed, 39 skipped, 4 errors (out of 332 runnable)
+- **Ruff Check:** 16,981 warnings (exit 0, all fixable)
+- **Mypy Check:** 1 error (handwriting-ocr package naming), exit 2
+
+### Build & Deployment
+- **Docker Build:** Skipped (no Docker in sandbox). Files verified and committed.
+- **Docker Compose:** Skipped (no Docker in sandbox). Files verified and committed.
+
+### Application Status
+- **PyQt6 Desktop:** Core imports OK (PyQt6 6.11.0, OCREnsemble). MainWindow requires GUI libs (libEGL).
+- **Gradio HITL:** Dockerfile.gradio ready, requires Docker to test.
+
+### Final Repository Count
+- **Before Cleanup:** 61
+- **After Cleanup:** 15
+- **Target:** <= 15
+- **Status:** Target met
