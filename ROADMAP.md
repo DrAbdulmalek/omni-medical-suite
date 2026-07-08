@@ -30,31 +30,51 @@
 - [x] add_prescription.py CLI tool (add/list/search/export prescriptions)
 - [x] README.md updated with Desktop App section
 
+### v1.3 — Monitoring & Maintenance (2026-07-09) ✅
+- [x] Prometheus + Grafana monitoring stack (`infra/monitoring/`)
+- [x] Structured JSON logging (`app/core/logging.py`)
+- [x] Health check endpoints (`/health`, `/liveness`, `/readiness`)
+- [x] Sentry error tracking integration
+- [x] Alert rules (7 rules) + Alertmanager config
+- [x] Backup system (PostgreSQL + Redis + Files, 30-day retention)
+- [x] Update checker (GitHub releases, hourly)
+- [x] Dependabot (monthly) + Security Scan (weekly)
+- [x] RUNBOOK.md + MAINTENANCE_LOG.md
+- [x] ruff auto-fix: 12,846 issues resolved
+- [x] Test fixes: 270 → 278 passed (+8)
+
 ## In Progress
 
-### v1.3 — Multi-Page PDF & Tables
+### v1.4 — TrOCR Training & Model Release
+- [ ] Upload TrOCR baseline to `DrAbdulmalek/arabic-medical-ocr-baseline`
+  - Script ready: `scripts/upload_baseline_model.py`
+- [ ] Collect 100+ Arabic medical prescription images
+  - Script ready: `scripts/collect_training_data.py`
+- [ ] Create `training_data/train.jsonl` and `val.jsonl` (80/20 split)
+- [ ] Fine-tune TrOCR on Arabic medical data (10 epochs)
+- [ ] Evaluate with CER/WER metrics (`src/evaluation/metrics.py`)
+- [ ] Replace baseline in OCR ensemble with fine-tuned model
+- [ ] Publish fine-tuned model to Hugging Face
+- [ ] Update Gradio HITL with engine selector (TrOCR / Ensemble / EasyOCR)
+- [ ] Update HF Space with fine-tuned model
+
+## Planned
+
+### v1.5 — Multi-Page PDF & Tables
 - [ ] Multi-page PDF batch processing with progress tracking
 - [ ] Table detection and extraction (Camelot / custom)
 - [ ] PDF structure parsing (headers, footers, page numbers)
 - [ ] Export tables to Excel with formatting
-- [ ] GitHub Actions deploy-to-hf.yml workflow
 
-## Planned
-
-### v1.4 — Training Pipeline
-- [ ] Weekly automatic retraining script
-- [ ] Training metrics dashboard (loss, CER, WER trends)
-- [ ] A/B model comparison before deployment
-- [ ] Ground truth validation pipeline
-
-### v1.5 — Desktop Enhancements
+### v1.6 — Desktop Enhancements
 - [ ] System tray with quick-scan shortcut
 - [ ] Local file watcher for automatic processing
 - [ ] Offline mode with local models only
 - [ ] Batch OCR from folder
+- [ ] CER/WER display with ground truth input
 
 ### v2.0 — Production Ready
-- [ ] RBAC with JWT auth (admin, reviewer, viewer roles)
+- [ ] RBAC with JWT auth (admin, reviewer, viewer roles) — auth stubs exist
 - [ ] Audit logging for all operations
 - [ ] Rate limiting and API quotas
 - [ ] Multi-tenant support
@@ -78,7 +98,7 @@
 | v1.0 | 2026-07-07 | Monorepo consolidation |
 | v1.1 | 2026-07-08 | Documentation & CI |
 | v1.2 | 2026-07-08 | Quality, testing, desktop app |
-| v1.3 | 2026-07-15 | PDF + tables |
-| v1.4 | 2026-08-01 | Training pipeline |
-| v1.5 | 2026-08-15 | Desktop enhancements |
+| v1.3 | 2026-07-09 | Monitoring & maintenance |
+| v1.4 | 2026-07-20 | TrOCR training & model release |
+| v1.5 | 2026-08-01 | PDF + tables + desktop enhancements |
 | v2.0 | 2026-09-01 | Production ready |
