@@ -1,11 +1,25 @@
+# =============================================================================
+# OmniMedical Suite — Docker Compose (PHASE 4)
+# =============================================================================
+# Usage:
+#   docker-compose up gradio                          # Gradio only (lightweight)
+#   docker-compose --profile infra up                  # Full stack with DB/cache
+#   docker-compose up gradio api                       # App services only
+#
+# Environment:
+#   POSTGRES_PASSWORD  — PostgreSQL password (default: omni_dev_pass)
+#   SECRET_KEY         — API auth secret (default: dev-secret-key-change-in-production)
+#   GRAFANA_PASSWORD   — Grafana admin password (default: admin)
+# =============================================================================
+
 version: "3.9"
 
 services:
+  # ── Application Services ──────────────────────────────────────────────
   gradio:
     build:
       context: .
-      dockerfile: Dockerfile
-    command: python app/gradio_full_hitl.py --server-port 7860 --server-name 0.0.0.0
+      dockerfile: Dockerfile.gradio
     ports:
       - "7860:7860"
     environment:
@@ -38,7 +52,6 @@ services:
       - QDRANT_URL=http://qdrant:6333
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - ENVIRONMENT=development
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
     volumes:
       - ./uploads:/app/uploads
     depends_on:
@@ -56,36 +69,10 @@ services:
       retries: 3
       start_period: 60s
 
-  celery-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    command: celery -A app.tasks worker --loglevel=info --concurrency=2
-    environment:
-      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:-omni_dev_pass}@postgres:5432/omnimedical
-      - REDIS_URL=redis://redis:6379/0
-      - QDRANT_URL=http://qdrant:6333
-    volumes:
-      - ./uploads:/app/uploads
-    depends_on:
-      - api
-      - redis
-    restart: unless-stopped
-
-  celery-beat:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    command: celery -A app.tasks beat --loglevel=info
-    environment:
-      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:-omni_dev_pass}@postgres:5432/omnimedical
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - redis
-    restart: unless-stopped
-
+  # ── Infrastructure (profile: infra) ───────────────────────────────────
   postgres:
     image: postgres:16-alpine
+    profiles: ["infra"]
     environment:
       - POSTGRES_DB=omnimedical
       - POSTGRES_USER=omnimedical
@@ -104,6 +91,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    profiles: ["infra"]
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
@@ -118,6 +106,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:latest
+    profiles: ["infra"]
     volumes:
       - qdrant_data:/qdrant/storage
     ports:
@@ -130,54 +119,7 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  prometheus:
-    image: prom/prometheus:v2.50.0
-    volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./config/prometheus-rules.yml:/etc/prometheus/prometheus-rules.yml
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:10.3.0
-    volumes:
-      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
-      - ./grafana-dashboards:/etc/grafana/provisioning/dashboards
-      - grafana_data:/var/lib/grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
-    depends_on:
-      - prometheus
-    restart: unless-stopped
-
-  tempo:
-    image: grafana/tempo:2.3.0
-    volumes:
-      - ./config/tempo.yaml:/etc/tempo.yaml
-    ports:
-      - "3200:3200"
-      - "4318:4318"
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    volumes:
-      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf
-    ports:
-      - "80:80"
-    depends_on:
-      - api
-      - gradio
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   redis_data:
   qdrant_data:
-  prometheus_data:
-  grafana_data:

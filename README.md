@@ -189,6 +189,67 @@ See [`.env.example`](.env.example) for the full list.
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 | [CLEANUP_LOG.md](CLEANUP_LOG.md) | Repository consolidation history |
 
+## Deployment
+
+### Architecture Overview
+
+```
+                  ┌─────────────────────┐
+                  │   GitHub (main)     │
+                  └────────┬────────────┘
+                           │ push (paths filter)
+                  ┌────────▼────────────┐
+                  │ GitHub Actions       │
+                  │ deploy-to-hf.yml    │
+                  └────────┬────────────┘
+                           │ git push
+                  ┌────────▼────────────┐
+                  │ HF Spaces           │
+                  │ omni-medical-ocr    │
+                  │ (Docker + Gradio)   │
+                  └─────────────────────┘
+```
+
+### Docker Images
+
+| Image | Dockerfile | Description | Size |
+|-------|-----------|-------------|------|
+| `omni-ocr` | `Dockerfile.gradio` | Multi-stage Gradio HITL app | ~1.8 GB |
+| `omni-api` | `Dockerfile.api` | FastAPI backend | ~1.2 GB |
+
+### Quick Start with Docker Compose
+
+```bash
+# Gradio only (lightweight — no databases)
+docker-compose up gradio
+
+# Full stack (Gradio + API + PostgreSQL + Redis + Qdrant)
+docker-compose --profile infra up
+```
+
+### CI/CD Pipeline
+
+| Step | Trigger | Action |
+|------|---------|--------|
+| Path filter | Push to `main` with changes in `hf-space/`, `Dockerfile.gradio`, `packages/` | Triggers deploy |
+| Sync files | Copies `app.py`, `src/`, `packages/`, `config/` from monorepo to HF Space | Preserves HF Dockerfile |
+| Push | Auto-commits and pushes to `DrAbdulmalek/omni-medical-ocr` | Space rebuilds |
+
+### Configuration Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_PASSWORD` | `omni_dev_pass` | PostgreSQL password |
+| `SECRET_KEY` | *(dev placeholder)* | API auth secret |
+| `ENABLE_LLM` | `false` | Enable Jais proofreader (requires GPU) |
+| `HF_TOKEN` | — | HuggingFace token for dataset upload |
+
+### HuggingFace Spaces
+
+The Gradio app auto-deploys to [omni-medical-ocr](https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr) on every push to `main` that modifies `hf-space/` or `Dockerfile.gradio`. Set `HF_TOKEN` in GitHub repository secrets to enable auto-deployment.
+
+---
+
 ## Development
 
 ```bash
@@ -201,6 +262,9 @@ pytest tests/ --ignore=tests/loadtest -q
 
 # Run linter
 ruff check src/ packages/ app/
+
+# Run type checker
+mypy . --ignore-missing-imports
 
 # Local development server
 make dev
