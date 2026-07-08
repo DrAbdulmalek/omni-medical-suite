@@ -1,218 +1,190 @@
 # Contributing to Omni Medical Suite
 
-Thank you for your interest in contributing to the Omni Medical Suite! This guide will help you get started.
+Thank you for your interest in contributing! This guide covers the monorepo structure, development workflow, and coding standards.
 
 ## Table of Contents
 
-- [Getting Started](#getting-started)
+- [Quick Start](#quick-start)
+- [Monorepo Structure](#monorepo-structure)
 - [Development Setup](#development-setup)
 - [Code Style](#code-style)
-- [Version Compatibility](#version-compatibility)
 - [Testing](#testing)
-- [Docker Development](#docker-development)
-- [Pull Request Process](#pull-request-process)
 - [Commit Convention](#commit-convention)
+- [Pull Request Process](#pull-request-process)
 - [Release Process](#release-process)
 
-## Getting Started
+## Quick Start
 
-1. **Fork** the repository on GitHub
+1. **Fork** the repository
 2. **Clone** your fork:
    ```bash
    git clone https://github.com/YOUR_USERNAME/omni-medical-suite.git
    cd omni-medical-suite
    ```
-3. **Create a branch**:
+3. **Install** dependencies:
    ```bash
-   git checkout -b feature/your-feature-name
-   # or
-   git checkout -b fix/issue-description
+   python -m venv venv && source venv/bin/activate
+   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
-4. **Make your changes**
-5. **Test** your changes (see [Testing](#testing))
-6. **Commit** with conventional commit message
-7. **Push** to your fork
-8. **Open a Pull Request** using our PR template
+4. **Create a branch**:
+   ```bash
+   git checkout -b feat/your-feature
+   ```
+5. **Make changes**, test, commit, push, open PR.
+
+## Monorepo Structure
+
+This is a monorepo with 31 packages and 5 applications. Changes should be scoped to the relevant package or app.
+
+```
+omni-medical-suite/
+├── src/              # Core library (OCR engine, NER, LLM, Layout)
+├── packages/         # Reusable packages — modify the specific package
+├── apps/             # Standalone apps — modify the specific app
+├── app/              # Main Gradio HITL application
+├── config/           # Shared configuration files
+├── tests/            # Monorepo-level tests
+└── docs/             # Documentation
+```
+
+**Rule**: If you modify code in `packages/nlp/`, only that package is affected. Keep changes scoped.
 
 ## Development Setup
 
 ### Prerequisites
 
-- Python 3.11+
-- Docker (optional, for containerized development)
+- Python 3.10+
+- Docker + Docker Compose (optional)
 - Git
 
-### Install Dependencies
+### Install
 
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate  # Windows
-
-# Install with version constraints
-pip install --upgrade pip
+# Core dependencies
 pip install -r requirements.txt
+
+# Optional: OCR engines
+pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Dev tools
+pip install -r requirements-dev.txt
+
+# Or install everything at once
+pip install -e ".[all,dev]"
 ```
 
-### Project Structure
+### Environment Variables
 
+```bash
+cp .env.example .env
+# Edit .env with your settings
 ```
-omni-medical-suite/
-├── desktop/              # Scanner Fixer Pro desktop app
-│   ├── scanner_fixer_pro_v2.py
-│   ├── hf_connector.py
-│   ├── hf_auto_dataset.py
-│   └── gradio_scanner_app.py
-├── docker/               # Docker configurations
-│   ├── Dockerfile.scanner-fixer
-│   └── docker-compose.scanner.yml
-├── scripts/              # Build & run scripts
-│   ├── build-docker.sh
-│   ├── run-docker.sh
-│   └── run-docker.bat
-├── .github/
-│   ├── workflows/        # GitHub Actions
-│   ├── dependabot.yml    # Dependabot config
-│   └── PULL_REQUEST_TEMPLATE/
-├── tests/                # Unit tests
-└── docs/                 # Documentation
+
+### Run Locally
+
+```bash
+# Gradio HITL UI
+python app/gradio_full_hitl.py
+
+# Or via Makefile
+make dev
+```
+
+### Docker
+
+```bash
+# Full stack
+docker-compose up -d
+
+# Lite (OCR only)
+docker-compose -f docker-compose.lite.yml up -d
+
+# Rebuild after changes
+docker-compose build gradio && docker-compose up -d gradio
 ```
 
 ## Code Style
 
-We use **black** for formatting and **flake8** for linting.
+We use **ruff** for linting and formatting (replaces black + flake8 + isort).
 
 ```bash
-# Format all code
-black desktop/ docker/ scripts/ tests/
+# Check all source code
+ruff check src/ packages/ app/ tests/
 
-# Check formatting (CI does this)
-black --check desktop/ docker/ scripts/ tests/
-
-# Lint
-flake8 desktop/ --count --select=E9,F63,F7,F82 --show-source --statistics
-
-# Sort imports
-isort desktop/ docker/ scripts/ tests/
+# Auto-fix
+ruff format src/ packages/ app/ tests/
+ruff check --fix src/ packages/ app/ tests/
 ```
 
 ### Style Rules
 
-- **Line length**: 100 characters (black default)
-- **Quotes**: Double quotes for strings
-- **Imports**: Grouped as: stdlib → third-party → local
-- **Docstrings**: Google style for all public functions
-- **Type hints**: Encouraged for function signatures
+- **Line length**: 100 characters
+- **Quotes**: Double quotes
+- **Imports**: stdlib → third-party → local (auto-sorted by ruff)
+- **Docstrings**: Google style for public functions
+- **Type hints**: Required for function signatures
+- **Arabic comments**: Allowed alongside English
 
-## Version Compatibility
+### Critical Version Constraints
 
-⚠️ **CRITICAL**: The following version constraints MUST be maintained:
-
-| Package | Constraint | Reason | Impact if Broken |
-|---------|-----------|--------|-----------------|
-| `huggingface-hub` | `<1.0.0` | `HfFolder` class removed | `ImportError` on startup |
-| `pydantic` | `<2.11.0` | Boolean JSON schema crash | `TypeError: bool is not iterable` |
-| `gradio` | `>=4.44.0,<5.0.0` | API stability | UI may not render |
-| `gradio-client` | `<1.0.0` | Client compatibility | API calls fail |
-| `numpy` | `<2.0.0` | OpenCV compatibility | Image processing errors |
-
-### How to Check
-
-```bash
-# Verify constraints
-pip show huggingface-hub pydantic gradio gradio-client numpy
-
-# Test imports
-python -c "from huggingface_hub import HfFolder; print('OK')"
-python -c "import pydantic; print(pydantic.__version__)"
-```
+| Package | Constraint | Reason |
+|---------|-----------|--------|
+| `huggingface_hub` | `<1.0.0` | HfFolder removed in 1.0 |
+| `pydantic` | `<2.11.0` | JSON schema boolean crash |
+| `gradio` | `>=4.44.0,<5.0.0` | API stability |
+| `numpy` | `<2.0.0` | OpenCV compatibility |
 
 ## Testing
 
 ### Run Tests
 
 ```bash
-# All tests
-pytest tests/ -v
+# All tests (excluding slow/load tests)
+pytest tests/ -q --ignore=tests/loadtest --ignore=tests/dictionaries
 
 # With coverage
-pytest tests/ -v --cov=. --cov-report=html
+pytest tests/ --cov=src --cov=packages --cov-report=html
 
-# Specific test
-pytest tests/test_scanner_fixer.py -v
+# Specific package
+pytest tests/test_spell_checker.py -v
+
+# Integration tests only
+pytest tests/ -m integration -v
+
+# Run with markers
+pytest tests/ -m "not slow and not gpu" -q
 ```
+
+### Available Markers
+
+| Marker | Description |
+|--------|-------------|
+| `slow` | Tests that take > 10s |
+| `benchmark` | Performance benchmarks |
+| `integration` | Integration tests (need DB/Redis) |
+| `ocr` | Tests requiring OCR engines |
+| `nlp` | Tests requiring NLP models |
+| `gpu` | Tests requiring GPU |
 
 ### Write Tests
 
 ```python
 # tests/test_example.py
 import pytest
-from desktop.scanner_fixer_pro_v2 import AdvancedScannerFixer
+from packages.nlp.spell_checker import HybridSpellChecker
 
-def test_deskew_straight_image():
-    """Deskew should return ~0° for straight images."""
-    fixer = AdvancedScannerFixer()
-    # Create test image
-    import numpy as np
-    img = np.ones((100, 100, 3), dtype=np.uint8) * 255
-    result, metrics = fixer.process(img, {'deskew': True})
-    assert abs(metrics['deskew_angle']) < 1.0
+class TestSpellChecker:
+    def test_protects_medical_terms(self):
+        """Medical terms should not be 'corrected'."""
+        checker = HybridSpellChecker()
+        result = checker.correct("Metformin 500mg")
+        assert "Metformin" in result
+
+    def test_handles_empty_input(self):
+        checker = HybridSpellChecker()
+        assert checker.correct("") == ""
 ```
-
-## Docker Development
-
-### Build Image
-
-```bash
-# Build locally
-docker build -f docker/Dockerfile.scanner-fixer -t scanner-fixer-pro .
-
-# Build with cache (faster)
-docker build -f docker/Dockerfile.scanner-fixer -t scanner-fixer-pro . --build-arg BUILDKIT_INLINE_CACHE=1
-```
-
-### Run Modes
-
-```bash
-# Web mode (Gradio on port 7860)
-docker run -d -p 7860:7860 scanner-fixer-pro
-
-# Desktop mode (Linux with X11)
-docker run -it --rm   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix   scanner-fixer-pro   python desktop/scanner_fixer_pro_v2.py
-
-# Shell for debugging
-docker run -it --rm scanner-fixer-pro /bin/bash
-```
-
-### Docker Compose
-
-```bash
-# Web mode
-docker-compose -f docker/docker-compose.scanner.yml up -d scanner-fixer-web
-
-# Desktop mode
-docker-compose -f docker/docker-compose.scanner.yml --profile desktop up
-```
-
-## Pull Request Process
-
-1. **Before creating PR**:
-   - Run `black`, `flake8`, `pytest`
-   - Update documentation if needed
-   - Check version compatibility table
-
-2. **PR Template**: Fill out ALL sections of the PR template
-
-3. **Review Requirements**:
-   - All CI checks must pass
-   - At least 1 review approval
-   - No unresolved conversations
-
-4. **After Merge**:
-   - Delete your branch
-   - Monitor CI/CD pipeline
 
 ## Commit Convention
 
@@ -220,71 +192,46 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 <type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
 ```
 
 ### Types
 
 | Type | Description | Example |
 |------|-------------|---------|
-| `feat` | New feature | `feat(desktop): add batch processing` |
-| `fix` | Bug fix | `fix(hf): handle connection timeout` |
-| `docs` | Documentation | `docs(readme): update setup instructions` |
-| `style` | Code style (no logic) | `style: format with black` |
-| `refactor` | Code refactoring | `refactor(scanner): extract helper functions` |
-| `perf` | Performance | `perf(denoise): optimize NLM parameters` |
-| `test` | Tests | `test: add deskew unit tests` |
-| `chore` | Build/CI/CD | `chore(deps): update gradio to 4.44.0` |
-| `ci` | CI/CD changes | `ci: add multi-platform build` |
-| `build` | Build system | `build(docker): add arm64 support` |
+| `feat` | New feature | `feat(ocr): add Surya engine support` |
+| `fix` | Bug fix | `fix(nlp): handle empty Arabic text` |
+| `docs` | Documentation | `docs: update architecture diagrams` |
+| `refactor` | Code refactoring | `refactor(core): extract DB helpers` |
+| `perf` | Performance | `perf(ensemble): parallelize OCR engines` |
+| `test` | Tests | `test(nlp): add spell checker edge cases` |
+| `chore` | Build/CI/deps | `chore(deps): update paddleocr to 2.8` |
+| `ci` | CI/CD | `ci: add security scanning step` |
 
 ### Scopes
 
-- `desktop` - Desktop application
-- `web` - Gradio web interface
-- `hf` - Hugging Face integration
-- `docker` - Docker configuration
-- `ci` - GitHub Actions
-- `deps` - Dependencies
+Use the package or app directory name: `ocr`, `nlp`, `vision`, `medical`, `core`, `scanner_fixer`, `training`, `gradio`, `api`, `docker`, `ci`.
 
-### Examples
+## Pull Request Process
 
-```bash
-# Feature
-git commit -m "feat(desktop): add perspective correction preview"
-
-# Bug fix with body
-git commit -m "fix(hf): handle missing HF_TOKEN gracefully
-
-Previously, the app would crash if HF_TOKEN was not set.
-Now it shows a warning and falls back to local processing."
-
-# Breaking change
-git commit -m "feat(api)!: change process_image return type
-
-BREAKING CHANGE: process_image now returns tuple (image, metrics)
-instead of just image. Update all callers."
-```
+1. **Before PR**: Run `ruff check`, `pytest tests/ -q`, update docs if needed
+2. **PR title**: Use conventional commit format
+3. **PR body**: Describe what, why, and how to test
+4. **CI**: All checks must pass (lint, type-check, tests, build)
+5. **Review**: At least 1 approval required
+6. **After merge**: Delete your branch
 
 ## Release Process
 
-1. **Update version** in relevant files
-2. **Update CHANGELOG.md**
-3. **Create tag**:
+1. Update `pyproject.toml` version
+2. Update `CHANGELOG.md`
+3. Create and push tag:
    ```bash
-   git tag -a v2.1.0 -m "Release v2.1.0 - Feature description"
-   git push origin v2.1.0
+   git tag -a v1.2.0 -m "Release v1.2.0"
+   git push origin v1.2.0
    ```
-4. **CI/CD triggers**:
-   - Builds Docker image
-   - Pushes to GHCR (and Docker Hub if configured)
-   - Deploys to HF Space
-   - Creates GitHub Release
+4. CI triggers Docker build + HF Space deploy + GitHub Release
 
 ## Questions?
 
-- Open an [issue](https://github.com/DrAbdulmalek/omni-medical-suite/issues)
-- Check existing [discussions](https://github.com/DrAbdulmalek/omni-medical-suite/discussions)
+- [Open an issue](https://github.com/DrAbdulmalek/omni-medical-suite/issues)
+- [Discussions](https://github.com/DrAbdulmalek/omni-medical-suite/discussions)

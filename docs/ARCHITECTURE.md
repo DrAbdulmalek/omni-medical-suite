@@ -164,6 +164,84 @@ Input Image
 | `docker-compose.medical-infra.yml` | Medical Infra | Specialized medical processing |
 | `docker-compose.prod.yml` | Production | Production-optimized settings |
 
+## API Endpoints
+
+### OCR Processing
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/ocr/process` | Process single image |
+| `POST` | `/api/v1/ocr/batch` | Process multiple images |
+| `POST` | `/api/v1/ocr/pdf` | Process multi-page PDF |
+| `GET`  | `/api/v1/ocr/status/{task_id}` | Check async task status |
+
+### Spell Correction
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/correct` | Correct Arabic medical text |
+| `POST` | `/api/v1/correct/batch` | Batch correction |
+| `GET`  | `/api/v1/dictionary` | Get medical dictionary |
+| `POST` | `/api/v1/dictionary/add` | Add terms to dictionary |
+
+### NER
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/ner/extract` | Extract named entities |
+| `GET`  | `/api/v1/ner/supported-types` | List entity types |
+
+### Training
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/training/submit-correction` | Submit HITL correction |
+| `POST` | `/api/v1/training/start` | Trigger retraining |
+| `GET`  | `/api/v1/training/status` | Check training status |
+
+### System
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/health` | Health check |
+| `GET`  | `/metrics` | Prometheus metrics |
+
+## Database Schema (PostgreSQL)
+
+```
+users
+  ├── id, username, email, password_hash
+  ├── role (admin, reviewer, viewer)
+  └── created_at, last_login
+
+documents
+  ├── id, user_id, filename, file_hash
+  ├── ocr_result_json, corrected_text
+  ├── confidence_score, processing_time_ms
+  └── created_at, updated_at
+
+corrections
+  ├── id, document_id, user_id
+  ├── original_text, corrected_text
+  ├── correction_type (spelling, medical, layout)
+  └── created_at
+
+medical_dictionary
+  ├── id, term_arabic, term_english
+  ├── category, frequency
+  └── is_protected (bool)
+
+training_runs
+  ├── id, status, base_model
+  ├── dataset_size, epochs, metrics_json
+  └── started_at, completed_at
+```
+
+## Error Handling Strategy
+
+| Error Type | HTTP Status | Handling |
+|------------|-------------|----------|
+| Invalid image | 400 | Return validation errors with field details |
+| OCR engine failure | 422 | Fall back to next engine, report partial results |
+| LLM timeout | 504 | Return OCR-only results with `llm_corrected: false` |
+| Auth failure | 401/403 | JWT validation, RBAC enforcement |
+| Rate limit | 429 | Redis-based rate limiting per user |
+
 ## Key Design Decisions
 
 1. **Monorepo over Multi-repo**: All 6+ former repositories consolidated for simpler dependency management and atomic commits across packages.
