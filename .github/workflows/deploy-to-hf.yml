@@ -4,8 +4,9 @@
 # Triggers: Push to main when hf-space/ or Dockerfile.gradio changes
 # Target: DrAbdulmalek/omni-medical-ocr HF Space
 #
-# The workflow preserves the HF Space's own Dockerfile and requirements.txt
-# and overwrites only app.py, src/, packages/, and config/ from the monorepo.
+# Strategy: Sync ALL hf-space/ contents (app.py, Dockerfile, requirements.txt,
+# src/, packages/, config/) to the HF Space repo. This ensures the Space always
+# matches the monorepo's deployment artifacts.
 # =============================================================================
 
 name: Deploy to HuggingFace Spaces
@@ -16,8 +17,6 @@ on:
     paths:
       - "hf-space/**"
       - "Dockerfile.gradio"
-      - "packages/ocr_core/**"
-      - "packages/text_core/**"
 
 concurrency:
   group: hf-deploy
@@ -49,24 +48,29 @@ jobs:
           cd hf-space-deploy
           git lfs pull 2>/dev/null || true
 
-      - name: Sync application files
+      - name: Sync all hf-space files
         run: |
           cd hf-space-deploy
 
-          # Preserve HF Space's own Dockerfile and requirements.txt
-          # (they may have HF-specific customizations)
-          echo "Preserving existing Dockerfile and requirements.txt"
-
-          # Copy updated application code from monorepo
-          cp -f ../hf-space/app.py ./app.py
+          # Remove old generated files
           rm -rf src/ packages/ config/
+
+          # Copy ALL deployment artifacts from monorepo
+          cp -f ../hf-space/app.py ./app.py
+          cp -f ../hf-space/Dockerfile ./Dockerfile
+          cp -f ../hf-space/requirements.txt ./requirements.txt
           cp -r ../hf-space/src/ ./src/
           cp -r ../hf-space/packages/ ./packages/
           cp -r ../hf-space/config/ ./config/ 2>/dev/null || mkdir -p config
 
-          # List synced files
+          # Copy .dockerignore if present
+          cp -f ../hf-space/.dockerignore ./.dockerignore 2>/dev/null || true
+
           echo "=== Synced files ==="
-          find . -maxdepth 2 -type f | head -30
+          find . -maxdepth 1 -type f -name "*.py" -o -name "Dockerfile" -o -name "requirements.txt" | sort
+          echo "=== Dirs ==="
+          echo "src/: $(find src/ -name '*.py' | wc -l) files"
+          echo "packages/: $(find packages/ -name '*.py' | wc -l) files"
 
       - name: Push to HF Spaces
         env:
@@ -74,6 +78,11 @@ jobs:
         run: |
           cd hf-space-deploy
           git add -A
-          git diff --cached --quiet || git commit -m "auto-deploy from omni-medical-suite@${GITHUB_SHA::7}"
-          git push "https://DrAbdulmalek:${HF_TOKEN}@huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr" main
-          echo "Deployed to https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"
+          CHANGED=$(git diff --cached --stat)
+          if [ -n "$CHANGED" ]; then
+            git commit -m "auto-deploy from omni-medical-suite@${GITHUB_SHA::7}"
+            git push "https://DrAbdulmalek:${HF_TOKEN}@huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr" main
+            echo "✅ Deployed to https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"
+          else
+            echo "No changes to deploy"
+          fi

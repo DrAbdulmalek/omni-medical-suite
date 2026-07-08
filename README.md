@@ -246,7 +246,35 @@ docker-compose --profile infra up
 
 ### HuggingFace Spaces
 
-The Gradio app auto-deploys to [omni-medical-ocr](https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr) on every push to `main` that modifies `hf-space/` or `Dockerfile.gradio`. Set `HF_TOKEN` in GitHub repository secrets to enable auto-deployment.
+The Gradio app auto-deploys to [omni-medical-ocr](https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr) on every push to `main` that modifies `hf-space/` or `Dockerfile.gradio`.
+
+**Live Demo:** [https://drabdulmalek-omni-medical-ocr.hf.space](https://drabdulmalek-omni-medical-ocr.hf.space)
+
+#### HF Space Features
+| Feature | Description |
+|---------|-------------|
+| **OCR Processing** | PaddleOCR + Tesseract ensemble, preprocessing, spell check, NER |
+| **Translation** | Arabic ↔ English ↔ German (MarianMT, lazy-loaded) |
+| **Accuracy Metrics** | CER/WER calculator with jiwer verification |
+| **Save to Dataset** | Upload corrections to `DrAbdulmalek/arabic-medical-ocr-corrections` |
+
+#### Manual Deploy to HF Spaces
+```bash
+# Clone the Space
+git clone https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr
+cd omni-medical-ocr
+
+# Copy deployment files from monorepo
+cp -r ../omni-medical-suite/hf-space/* .
+
+# Push (triggers Docker rebuild on HF)
+git add . && git commit -m "Update from monorepo" && git push
+```
+
+#### Enable Auto-Deploy (CI/CD)
+1. Go to GitHub repo → Settings → Secrets and variables → Actions
+2. Add `HF_TOKEN` with your HuggingFace access token
+3. Every push to `main` that changes `hf-space/` will auto-deploy
 
 ---
 
