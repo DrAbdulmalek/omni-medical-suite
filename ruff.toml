@@ -1,0 +1,115 @@
+# ruff.toml — OmniMedical Suite linting configuration
+# Documentation: https://docs.astral.sh/ruff/
+
+# Target Python version
+target-version = "py311"
+
+# Line length (matches existing .flake8 max-line-length)
+line-length = 120
+
+# Source directories to check
+src = ["src", "packages", "app", "tests", "scripts"]
+
+# Exclude paths from ALL ruff checks
+exclude = [
+    ".git",
+    ".github",
+    "__pycache__",
+    "*.egg-info",
+    ".venv",
+    "venv",
+    "node_modules",
+    "build",
+    "dist",
+    "data",
+    "uploads",
+    "hf-space",
+    "benchmarks",
+    "packages/omniparse",
+    "packages/omni-ocr",
+    "packages/ocr_postprocess/vendor",
+    "legacy",
+    "notebooks",
+    "samples",
+]
+
+# ===================================================================
+# Linter rules (ruff check)
+# ===================================================================
+[lint]
+# Enable: E (pycodestyle errors), W (pycodestyle warnings), F (pyflakes),
+#         I (isort), N (pep8-naming), UP (pyupgrade), B (flake8-bugbear),
+#         A (flake8-builtins), SIM (flake8-simplify), C4 (flake8-comprehensions),
+#         TCH (flake8-type-checking), RUF (ruff-specific)
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "B",
+    "A",
+    "SIM",
+    "C4",
+    "TCH",
+    "RUF",
+]
+
+# Ignore specific rules that cause too much noise in existing codebase
+ignore = [
+    "E501",   # Line too long (we have line-length = 120, but some lines are intentionally long)
+    "E741",   # Ambiguous variable name (common in math/ML: l, I, O)
+    "B008",   # Do not perform function calls in argument defaults
+    "B011",   # Do not assert False
+    "B904",   # Within an except clause, raise from err (too strict for legacy code)
+    "N818",   # Exception name should end with Error
+    "SIM108", # Use ternary operator instead of if-else-block (readability > compactness)
+    "TC001", # Move application import into a type-checking block
+    "TC002", # Move third-party import into a type-checking block
+    "TC003", # Move standard library import into a type-checking block
+    "RUF012", # Mutable class attributes (common pattern in config classes)
+]
+
+# Per-file ignores
+[lint.per-file-ignores]
+# Tests: allow assert, unused imports, loose naming
+"tests/**/*.py" = ["S101", "S106", "F841", "N802", "N803", "N806", "ARG001", "ARG002", "PLR2004"]
+# Notebooks: allow all
+"notebooks/**/*.py" = ["ALL"]
+# Scripts: allow some patterns
+"scripts/**/*.py" = ["T201", "S101"]
+# Migration files
+"migrations/**/*.py" = ["ALL"]
+# __init__.py files
+"__init__.py" = ["F401", "F403"]
+
+# ===================================================================
+# Import sorting (isort replacement)
+# ===================================================================
+[lint.isort]
+known-first-party = ["app", "src", "packages", "omni_medical_suite"]
+known-third-party = ["fastapi", "uvicorn", "sqlalchemy", "pydantic", "numpy", "opencv", "PIL", "tesseract"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+combine-as-imports = true
+split-on-trailing-comma = true
+
+# ===================================================================
+# Formatter rules (ruff format)
+# ===================================================================
+[format]
+# Double quotes for strings
+quote-style = "double"
+# Indent with spaces
+indent-style = "space"
+# Respect magic trailing comma (for cleaner diffs)
+skip-magic-trailing-comma = false
+# Line ending
+line-ending = "auto"
+
+# ===================================================================
+# McCabe complexity
+# ===================================================================
+[lint.mccabe]
+# Maximum cyclomatic complexity (default 10)
+max-complexity = 15

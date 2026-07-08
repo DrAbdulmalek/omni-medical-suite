@@ -36,13 +36,38 @@ all = [
     "openai>=1.0.0", "datasets>=2.15.0", "peft>=0.7.0",
     "openpyxl>=3.1.0", "python-docx>=0.8.11", "fpdf2>=2.7.0",
 ]
-dev = ["pytest>=7.0.0", "pytest-cov>=4.1.0", "pytest-asyncio>=0.21.0"]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-xdist>=3.5.0",
+    "ruff>=0.8.0",
+    "mypy>=1.10.0",
+    "bandit>=1.7.0",
+    "pre-commit>=3.6.0",
+]
 
+# ===================================================================
+# pytest — configuration is in pytest.ini for compatibility
+# ===================================================================
 [tool.pytest.ini_options]
+# Minimal config here; full config in pytest.ini
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "benchmark: marks tests as benchmarks",
+    "integration: marks integration tests",
+    "ocr: tests requiring OCR engines",
+    "nlp: tests requiring NLP models",
+    "gpu: tests requiring GPU",
+    "requires_api_key: tests that call external APIs",
+]
 
+# ===================================================================
+# setuptools package discovery
+# ===================================================================
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["packages*", "services*"]
+include = ["packages*", "services*", "omni_medical_suite*"]
