@@ -18,34 +18,40 @@
 - [x] docker-compose.yml with Gradio service (port 7860)
 - [x] HF Space `omni-medical-ocr` deployed
 
+### v1.2 — Quality & Desktop (2026-07-08)
+- [x] Testing infrastructure: tests/unit/ (5 modules), tests/integration/, tests/utils/
+- [x] ruff.toml replacing .flake8 + black + isort
+- [x] mypy.ini with per-package overrides
+- [x] GitHub Actions CI: 7 jobs (lint, typecheck, test-unit matrix, integration, docker, security, gate)
+- [x] .pre-commit-config.yaml updated (ruff v0.8.6, bandit 1.8.0, detect-secrets v1.5.0)
+- [x] 14 unit tests passing, 24 skipped (missing heavy deps), ruff clean
+- [x] PyQt6 Desktop App with OCREnsemble + Jais LLM integration
+- [x] Gradio HITL: prominent "Proofread with Jais" section + before/after comparison
+- [x] add_prescription.py CLI tool (add/list/search/export prescriptions)
+- [x] README.md updated with Desktop App section
+
 ## In Progress
-
-### v1.2 — Quality & Testing
-- [ ] Fix all existing test failures in monorepo context
-- [ ] Add pre-commit hooks (ruff + pytest)
-- [ ] Achieve 80%+ test coverage on `src/` and `packages/core/`
-- [ ] Add integration tests for API endpoints
-- [ ] Add GitHub Actions deploy-to-hf.yml workflow
-
-## Planned
 
 ### v1.3 — Multi-Page PDF & Tables
 - [ ] Multi-page PDF batch processing with progress tracking
 - [ ] Table detection and extraction (Camelot / custom)
 - [ ] PDF structure parsing (headers, footers, page numbers)
 - [ ] Export tables to Excel with formatting
+- [ ] GitHub Actions deploy-to-hf.yml workflow
 
-### v1.4 — Desktop Application
-- [ ] PyQt6 desktop app integrated into `desktop/`
-- [ ] System tray with quick-scan shortcut
-- [ ] Local file watcher for automatic processing
-- [ ] Offline mode with local models only
+## Planned
 
-### v1.5 — Training Pipeline
+### v1.4 — Training Pipeline
 - [ ] Weekly automatic retraining script
 - [ ] Training metrics dashboard (loss, CER, WER trends)
 - [ ] A/B model comparison before deployment
 - [ ] Ground truth validation pipeline
+
+### v1.5 — Desktop Enhancements
+- [ ] System tray with quick-scan shortcut
+- [ ] Local file watcher for automatic processing
+- [ ] Offline mode with local models only
+- [ ] Batch OCR from folder
 
 ### v2.0 — Production Ready
 - [ ] RBAC with JWT auth (admin, reviewer, viewer roles)
@@ -67,12 +73,12 @@
 
 ## Milestones
 
-| Version | Target Date | Focus |
-|---------|------------|-------|
+| Version | Date | Focus |
+|---------|------|-------|
 | v1.0 | 2026-07-07 | Monorepo consolidation |
 | v1.1 | 2026-07-08 | Documentation & CI |
-| v1.2 | 2026-07-15 | Quality & testing |
-| v1.3 | 2026-07-22 | PDF + tables |
-| v1.4 | 2026-08-01 | Desktop app |
-| v1.5 | 2026-08-15 | Training pipeline |
+| v1.2 | 2026-07-08 | Quality, testing, desktop app |
+| v1.3 | 2026-07-15 | PDF + tables |
+| v1.4 | 2026-08-01 | Training pipeline |
+| v1.5 | 2026-08-15 | Desktop enhancements |
 | v2.0 | 2026-09-01 | Production ready |

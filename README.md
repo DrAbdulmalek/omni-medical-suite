@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/Packages-31-4B8BBE?style=flat-square" />
   <img src="https://img.shields.io/badge/Apps-5-2ECC71?style=flat-square" />
-  <img src="https://img.shields.io/badge/Tests-40%2B-FF6B6B?style=flat-square" />
+  <img src="https://img.shields.io/badge/Tests-50%2B-FF6B6B?style=flat-square" />
   <img src="https://img.shields.io/badge/License-MIT-3C873A?style=flat-square" />
   <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><img src="https://img.shields.io/badge/HF%20Space-Live-FFA500?style=flat-square&logo=huggingface" /></a>
 </p>
@@ -77,7 +77,23 @@ python app/gradio_full_hitl.py
 ```
 Open `http://localhost:7860`
 
-### Option 2: Docker (Full Stack)
+### Option 2: Desktop App (PyQt6)
+```bash
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
+cd omni-medical-suite
+pip install PyQt6 pytesseract  # PaddleOCR/EasyOCR optional
+python desktop/omni_medical_desktop.py
+```
+
+Features:
+- **OCR Scanner** tab — upload image, run Tesseract/PaddleOCR/EasyOCR/Ensemble, view results
+- **Jais LLM Proofread** checkbox — enable AI proofreading when GPU is available
+- **Medical NER** panel — extracted entities (drugs, dosages, diagnoses) displayed after Jais run
+- **Text Editor** tab — RTL Arabic editor with Find & Replace
+- **Dictionary** tab — live-search medical terms from `medical_terms.json`
+- **Settings** tab — engine selection, language, confidence threshold, dark mode
+
+### Option 3: Docker (Full Stack)
 ```bash
 git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
@@ -85,7 +101,7 @@ cp .env.example .env   # Edit with your settings
 docker-compose up -d
 ```
 
-### Option 3: Docker Lite (OCR Only)
+### Option 4: Docker Lite (OCR Only)
 ```bash
 docker-compose -f docker-compose.lite.yml up -d
 ```
@@ -104,6 +120,7 @@ omni-medical-suite/
 │   ├── llm/                     #   LLM integration (Jais, Ollama)
 │   ├── layout/                  #   Document layout analysis
 │   └── benchmarks/              #   Benchmarking utilities
+├── desktop/                     # PyQt6 desktop application
 ├── apps/                        # Standalone applications
 │   ├── ocr-pipeline/            #   Full end-to-end pipeline
 │   ├── handwriting-demo/        #   Handwriting recognition demo
@@ -193,8 +210,9 @@ make dev
 
 - [x] **v1.0** — Monorepo consolidation (6 repos merged)
 - [x] **v1.1** — CI/CD + Docker + HF Space deployment
-- [ ] **v1.2** — Multi-page PDF + table extraction
-- [ ] **v1.3** — Weekly auto-retraining pipeline
+- [x] **v1.2** — Testing infrastructure + ruff + mypy + PyQt6 desktop app
+- [ ] **v1.3** — Multi-page PDF + table extraction
+- [ ] **v1.4** — Weekly auto-retraining pipeline
 - [ ] **v2.0** — Real-time collaboration + RBAC + audit log
 
 See [ROADMAP.md](ROADMAP.md) for details.

@@ -16,6 +16,7 @@ Environment Variables:
   ENABLE_LLM=true       Enable Jais proofreader + NER (requires GPU)
   HF_TOKEN=hf_xxx       HuggingFace token for dataset upload
 """
+import hashlib
 import json
 import logging
 import os
@@ -25,11 +26,10 @@ import time
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import cv2
-import numpy as np
 import gradio as gr
+import numpy as np
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -55,9 +55,8 @@ if ENABLE_LLM:
 
 # HuggingFace
 try:
-    from datasets import Dataset, load_dataset
-    from huggingface_hub import HfApi
     import pandas as pd
+    from datasets import Dataset, load_dataset
     HAS_HF = True
 except ImportError:
     logger.warning("HuggingFace libs not available — save disabled")
@@ -169,7 +168,7 @@ if HAS_LLM:
 
 # ── Processing Functions ────────────────────────────────────────────────────
 
-def _preprocess_image(image: np.ndarray) -> Tuple[np.ndarray, List[str]]:
+def _preprocess_image(image: np.ndarray) -> tuple[np.ndarray, list[str]]:
     """
     Preprocess image using ImagePreprocessor (حقيقي — 582 سطر) if available,
     otherwise fallback to basic CLAHE+Otsu. Returns (processed, steps_log).
@@ -205,7 +204,7 @@ def _preprocess_image(image: np.ndarray) -> Tuple[np.ndarray, List[str]]:
     return cleaned, steps
 
 
-def _run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict]]:
+def _run_paddle_ocr(image: np.ndarray) -> tuple[str, list[dict]]:
     """Run PaddleOCR. Returns (full_text, line_details)."""
     if paddle_ocr is None:
         return "", []
@@ -227,7 +226,7 @@ def _run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict]]:
         return "", []
 
 
-def _run_tesseract(image: np.ndarray) -> Tuple[str, float]:
+def _run_tesseract(image: np.ndarray) -> tuple[str, float]:
     """Run Tesseract. Returns (text, avg_confidence)."""
     if not HAS_TESSERACT:
         return "", 0.0
@@ -246,7 +245,7 @@ def _run_tesseract(image: np.ndarray) -> Tuple[str, float]:
         return "", 0.0
 
 
-def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
+def _auto_correct_ocr(text: str) -> tuple[str, list[dict]]:
     """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
     changes = []
     corrected = text
@@ -261,7 +260,7 @@ def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
     return corrected, changes
 
 
-def _extract_ner(text: str) -> Dict[str, List[str]]:
+def _extract_ner(text: str) -> dict[str, list[str]]:
     """Extract medical entities by dictionary matching."""
     entities = {"medications": [], "diseases": [], "symptoms": [], "dosages": []}
     for term, category in MEDICAL_TERMS.items():
@@ -282,7 +281,7 @@ def _extract_ner(text: str) -> Dict[str, List[str]]:
 # ====================================================================
 
 _translation_corrector = None
-_model_cache: Dict[str, object] = {}
+_model_cache: dict[str, object] = {}
 
 DEVICE = "cpu"
 try:
@@ -375,7 +374,7 @@ def translate_text(text: str, direction: str, correct_output: bool = True, progr
 
     try:
         import torch
-        chunks: List[str] = []
+        chunks: list[str] = []
         cur = ""
         for para in re.split(r"\n\s*\n", text.strip()):
             if len(cur) + len(para) + 2 <= 400:
@@ -387,7 +386,7 @@ def translate_text(text: str, direction: str, correct_output: bool = True, progr
         if cur:
             chunks.append(cur)
 
-        parts: List[str] = []
+        parts: list[str] = []
         for i, chunk in enumerate(chunks):
             progress(0.3 + 0.7 * ((i + 1) / len(chunks)), desc=f"ترجمة الجزء {i+1}/{len(chunks)}…")
             inputs = tok(chunk, return_tensors="pt", truncation=True, max_length=512, padding=True)
@@ -530,7 +529,7 @@ def full_process(image):
                 before_spell = corrected
                 corrected = spell_checker.correct_text(corrected)
                 if before_spell != corrected:
-                    spell_info = f"SpellChecker: {sum(1 for a,b in zip(before_spell, corrected) if a!=b)} تعديل"
+                    spell_info = f"SpellChecker: {sum(1 for a,b in zip(before_spell, corrected, strict=False) if a!=b)} تعديل"
             except Exception as e:
                 logger.warning(f"Spell check failed: {e}")
 
@@ -539,7 +538,7 @@ def full_process(image):
             try:
                 proof_result = proofreader.proofread(corrected)
                 corrected = proof_result["corrected"]
-                logger.info(f"Proofread applied")
+                logger.info("Proofread applied")
             except Exception as e:
                 logger.warning(f"Proofreading failed: {e}")
 
@@ -577,24 +576,71 @@ def full_process(image):
 
     except Exception as e:
         logger.error(f"Processing error: {e}", exc_info=True)
-        return None, f"خطأ: {str(e)}", "", {}, f"حدث خطأ: {str(e)}"
+        return None, f"خطأ: {e!s}", "", {}, f"حدث خطأ: {e!s}"
+
+
+def jais_proofread_only(text: str) -> str:
+    """Standalone Jais LLM proofreading on raw OCR text."""
+    if not HAS_LLM or proofreader is None:
+        return ("⚠️ يتطلب تفعيل ENABLE_LLM=true و GPU\n\n"
+                "لا يمكن تشغيل تدقيق Jais بدون وحدة معالجة الرسومات (GPU) "
+                "وتفعيل متغير البيئة ENABLE_LLM=true.")
+
+    if not text or not text.strip():
+        return "⚠️ لا يوجد نص للتدقيق. الرجاء تشغيل المعالجة الكاملة أولاً."
+
+    try:
+        # Apply OCR corrections first, then spell check, then LLM proofread
+        corrected, _corrections = _auto_correct_ocr(text)
+
+        if spell_checker:
+            try:
+                corrected = spell_checker.correct_text(corrected)
+            except Exception as e:
+                logger.warning(f"Spell check failed in standalone proofread: {e}")
+
+        proof_result = proofreader.proofread(corrected)
+        corrected = proof_result["corrected"]
+        logger.info("Standalone Jais proofread applied")
+        return corrected
+    except Exception as e:
+        logger.error(f"Standalone proofread error: {e}")
+        return f"❌ خطأ في التدقيق بالذكاء الاصطناعي: {e!s}"
+
+
+def copy_to_clipboard(text: str) -> str:
+    """Return text for Gradio clipboard copy via browser."""
+    return text
 
 
 def save_to_hf(corrected_text: str, original_text: str, entities, category: str) -> str:
     """Save correction pair to HuggingFace Dataset."""
     if not HAS_HF:
-        return "HuggingFace libraries not available"
+        return "❌ مكتبات HuggingFace غير متاحة"
 
     if not corrected_text or not corrected_text.strip():
-        return "لا يوجد نص للحفظ"
+        return "⚠️ لا يوجد نص مصحح للحفظ. الرجاء معالجة صورة أولاً."
 
     try:
+        previous_count = 0
+        try:
+            existing = load_dataset(HF_DATASET, split="train")
+            previous_count = len(existing)
+        except Exception:
+            pass
+
+        # Image hash for deduplication hint
+        content_hash = hashlib.md5(
+            (str(original_text or "") + str(corrected_text)).encode()
+        ).hexdigest()[:12]
+
         row = {
             "incorrect_ocr_output": str(original_text or ""),
             "correct_text": str(corrected_text),
             "category": str(category),
             "entities": json.dumps(entities, ensure_ascii=False) if isinstance(entities, dict) else str(entities),
             "timestamp": datetime.now().isoformat(),
+            "content_hash": content_hash,
         }
 
         new_row = pd.DataFrame([row])
@@ -613,12 +659,21 @@ def save_to_hf(corrected_text: str, original_text: str, entities, category: str)
             push_kwargs["token"] = HF_TOKEN
         new_ds.push_to_hub(**push_kwargs)
 
-        logger.info(f"Saved to HF: total {len(df)} samples")
-        return f"تم الحفظ بنجاح! إجمالي العينات: {len(df)}"
+        total = len(df)
+        logger.info("Saved to HF: total %d samples (hash=%s)", total, content_hash)
+        return (
+            f"✅ تم الحفظ بنجاح!\n\n"
+            f"📊 التفاصيل:\n"
+            f"  • العينات السابقة: {previous_count}\n"
+            f"  • الإجمالي بعد الحفظ: {total}\n"
+            f"  • بصمة المحتوى: {content_hash}\n"
+            f"  • النوع: {category}\n"
+            f"  • الوقت: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
 
     except Exception as e:
         logger.error(f"Save error: {e}")
-        return f"خطأ في الحفظ: {str(e)}"
+        return f"❌ خطأ في الحفظ: {e!s}"
 
 
 def update_medical_dictionary():
@@ -632,7 +687,7 @@ def update_medical_dictionary():
         yield f"تم التحديث بنجاح!\nالمصطلحات ({len(medical_dict)}):\n" + "\n".join(f"  - {e}" for e in examples)
     except Exception as e:
         logger.error(f"Dict update error: {e}")
-        yield f"خطأ في تحديث القاموس: {str(e)}"
+        yield f"خطأ في تحديث القاموس: {e!s}"
 
 
 def retrain_now():
@@ -667,15 +722,23 @@ def retrain_now():
 
     except Exception as e:
         logger.error(f"Retrain error: {e}")
-        yield f"خطأ: {str(e)}"
+        yield f"خطأ: {e!s}"
 
 
 # ── Gradio UI ───────────────────────────────────────────────────────────────
 
-# RTL CSS for Arabic
+# RTL CSS for Arabic + UI
 custom_css = """
 .gradio-container { direction: rtl; }
 footer { display: none !important; }
+.jais-banner { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 16px; border-radius: 12px; margin: 8px 0; }
+.jais-banner h3 { color: #e2e8f0; margin: 0 0 8px 0; }
+.jais-banner p { color: #94a3b8; margin: 0; font-size: 14px; }
+.before-after-row { display: flex; gap: 16px; }
+.before-after-row > div { flex: 1; }
+.comparison-label { font-weight: bold; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
+.label-before { background: #fee2e2; color: #991b1b; }
+.label-after { background: #dcfce7; color: #166534; }
 """
 
 with gr.Blocks(
@@ -702,7 +765,59 @@ with gr.Blocks(
             raw_ocr = gr.Textbox(label="النص الخام من OCR", lines=4)
             corrected = gr.Textbox(label="النص بعد التدقيق (LLM)", lines=4)
 
+    with gr.Row():
+        copy_btn = gr.Button("📋 نسخ النص المصحح")
+        copy_status = gr.Textbox(label="", interactive=False, max_lines=1)
+
     entities_output = gr.JSON(label="الكيانات المستخرجة (NER)")
+
+    # ── Jais Proofread Section (prominent) ─────────────────────────────
+    with gr.Group(visible=True):
+        gr.Markdown(
+            "### 🧠 Proofread with Jais LLM\n"
+            "استخدم نموذج Jais اللغوي لتصحيح أخطاء OCR تلقائياً. "
+            "يتطلب **GPU** و **ENABLE_LLM=true**."
+        )
+        with gr.Row():
+            jais_input = gr.Textbox(
+                label="أدخل النص للتدقيق (أو استخدم النص الخام من OCR أعلاه)",
+                lines=4,
+                placeholder="الصق النص هنا أو شغّل المعالجة الكاملة أولاً...",
+            )
+            jais_output = gr.Textbox(
+                label="النص بعد تدقيق Jais ✨",
+                lines=4,
+                interactive=False,
+            )
+        with gr.Row():
+            jais_btn = gr.Button(
+                "🧠 Proofread with Jais — تدقيق بالذكاء الاصطناعي",
+                variant="primary",
+                size="lg",
+            )
+            jais_copy_btn = gr.Button("📋 نسخ النتيجة")
+        jais_status = gr.Markdown()
+
+    # ── Before / After Comparison ────────────────────────────────────────
+    with gr.Accordion("🔍 Before / After Comparison — مقارنة قبل وبعد", open=False):
+        gr.Markdown("قارن النص الخام مع النص المصحح لتقييم جودة التصحيح")
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown('<span class="comparison-label label-before">BEFORE — قبل التصحيح</span>')
+                before_text = gr.Textbox(
+                    label="النص الخام",
+                    lines=6,
+                    interactive=False,
+                )
+            with gr.Column():
+                gr.Markdown('<span class="comparison-label label-after">AFTER — بعد التصحيح</span>')
+                after_text = gr.Textbox(
+                    label="النص المصحح",
+                    lines=6,
+                    interactive=False,
+                )
+        compare_btn = gr.Button("🔄 مقارنة (ملء من نتائج المعالجة)", variant="secondary")
+        compare_output = gr.Markdown()
 
     # ── Save ────────────────────────────────────────────────────────────
     with gr.Row():
@@ -711,45 +826,42 @@ with gr.Blocks(
             value="prescription",
             label="نوع الوثيقة",
         )
-        save_btn = gr.Button("حفظ التصحيح في HF Dataset", variant="secondary")
+        save_btn = gr.Button("💾 حفظ التصحيح في HF Dataset", variant="secondary")
 
     status = gr.Textbox(label="الحالة", interactive=False)
 
     # ── Advanced Actions ────────────────────────────────────────────────
-    with gr.Accordion("أدوات متقدمة", open=False):
-        with gr.Row():
-            with gr.Column():
-                retrain_btn = gr.Button("إعادة تدريب Jais NER", variant="stop")
-                retrain_status = gr.Textbox(label="حالة التدريب", lines=8, interactive=False)
+    with gr.Accordion("أدوات متقدمة", open=False), gr.Row():
+        with gr.Column():
+            retrain_btn = gr.Button("إعادة تدريب Jais NER", variant="stop")
+            retrain_status = gr.Textbox(label="حالة التدريب", lines=8, interactive=False)
 
-            with gr.Column():
-                dict_btn = gr.Button("تحديث القاموس الطبي", variant="primary")
-                dict_status = gr.Textbox(label="حالة القاموس", lines=8, interactive=False)
+        with gr.Column():
+            dict_btn = gr.Button("تحديث القاموس الطبي", variant="primary")
+            dict_status = gr.Textbox(label="حالة القاموس", lines=8, interactive=False)
 
-    # ── الترجمة (منقول من hf_app.py) ────────────────────────────────────
-    with gr.Accordion("🌐 ترجمة النصوص", open=False):
-        with gr.Row():
-            with gr.Column():
-                translate_input = gr.Textbox(label="النص المصدر", lines=6)
-                translate_direction = gr.Dropdown(
-                    choices=list(TRANSLATION_MODELS.keys()),
-                    value="Arabic → English",
-                    label="اتجاه الترجمة",
-                )
-                translate_correct = gr.Checkbox(value=True, label="تصحيح ما بعد الترجمة (للعربية)")
-                translate_btn = gr.Button("ترجم", variant="primary")
-            with gr.Column():
-                translate_output = gr.Textbox(label="النص المترجَم", lines=8, interactive=False)
+    # ── الترجمة ────────────────────────────────────────────────────────
+    with gr.Accordion("🌐 ترجمة النصوص", open=False), gr.Row():
+        with gr.Column():
+            translate_input = gr.Textbox(label="النص المصدر", lines=6)
+            translate_direction = gr.Dropdown(
+                choices=list(TRANSLATION_MODELS.keys()),
+                value="Arabic → English",
+                label="اتجاه الترجمة",
+            )
+            translate_correct = gr.Checkbox(value=True, label="تصحيح ما بعد الترجمة (للعربية)")
+            translate_btn = gr.Button("ترجم", variant="primary")
+        with gr.Column():
+            translate_output = gr.Textbox(label="النص المترجَم", lines=8, interactive=False)
 
-    # ── حاسبة CER/WER (منقولة من hf_app.py) ─────────────────────────────
-    with gr.Accordion("📊 حاسبة دقة OCR (CER/WER)", open=False):
-        with gr.Row():
-            with gr.Column():
-                metrics_ref = gr.Textbox(label="النص المرجعي (الصحيح)", lines=4)
-                metrics_hyp = gr.Textbox(label="نص OCR الفعلي", lines=4)
-                metrics_btn = gr.Button("احسب المقاييس", variant="primary")
-            with gr.Column():
-                metrics_output = gr.Markdown()
+    # ── حاسبة CER/WER ─────────────────────────────────────────────────
+    with gr.Accordion("📊 حاسبة دقة OCR (CER/WER)", open=False), gr.Row():
+        with gr.Column():
+            metrics_ref = gr.Textbox(label="النص المرجعي (الصحيح)", lines=4)
+            metrics_hyp = gr.Textbox(label="نص OCR الفعلي", lines=4)
+            metrics_btn = gr.Button("احسب المقاييس", variant="primary")
+        with gr.Column():
+            metrics_output = gr.Markdown()
 
     # ── Events ──────────────────────────────────────────────────────────
     process_btn.click(
@@ -762,6 +874,46 @@ with gr.Blocks(
         fn=save_to_hf,
         inputs=[corrected, raw_ocr, entities_output, category],
         outputs=[status],
+    )
+
+    copy_btn.click(
+        fn=copy_to_clipboard,
+        inputs=[corrected],
+        outputs=[copy_status],
+    )
+
+    jais_btn.click(
+        fn=jais_proofread_only,
+        inputs=[jais_input],
+        outputs=[jais_output],
+    )
+
+    jais_copy_btn.click(
+        fn=copy_to_clipboard,
+        inputs=[jais_output],
+        outputs=[jais_status],
+    )
+
+    def _fill_comparison(raw: str, corr: str) -> tuple[str, str, str]:
+        """Fill before/after textboxes and generate diff summary."""
+        before_text_out = raw or "(لا يوجد نص خام)"
+        after_text_out = corr or "(لا يوجد نص مصحح)"
+        summary = "### ملخص المقارنة\n"
+        if raw and corr and raw != corr:
+            from rapidfuzz import fuzz
+            ratio = fuzz.ratio(raw, corr) / 100.0
+            summary += f"- نسبة التطابق: **{ratio:.1%}**\\n"
+            summary += f"- عدد الأحرف (قبل): {len(raw)} | (بعد): {len(corr)}\n"
+        elif raw and corr and raw == corr:
+            summary = "### ✅ النصان متطابقان — لا تغييرات"
+        else:
+            summary = "### ⚠️ شغّل المعالجة الكاملة أولاً لملء المقارنة"
+        return before_text_out, after_text_out, summary
+
+    compare_btn.click(
+        fn=_fill_comparison,
+        inputs=[raw_ocr, corrected],
+        outputs=[before_text, after_text, compare_output],
     )
 
     dict_btn.click(

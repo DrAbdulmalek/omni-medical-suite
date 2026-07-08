@@ -83,6 +83,8 @@ ignore = [
 "migrations/**/*.py" = ["ALL"]
 # __init__.py files
 "__init__.py" = ["F401", "F403"]
+# Gradio HITL: Arabic text triggers RUF001/RUF002 false positives
+"app/gradio_full_hitl.py" = ["RUF001", "RUF002"]
 
 # ===================================================================
 # Import sorting (isort replacement)
