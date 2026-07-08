@@ -119,6 +119,38 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # ── Maintenance Services ──────────────────────────────────────────────
+  update-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: python -m scripts.update_checker
+    environment:
+      - VERSION=${VERSION:-v1.3.0}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    profiles: ["infra"]
+
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: python -m scripts.backup
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=omnimedical
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-omni_dev_pass}
+      - DB_NAME=omnimedical
+      - REDIS_URL=redis://redis:6379/0
+      - BACKUP_DIR=/app/backups
+    volumes:
+      - ./backups:/app/backups
+      - ./redis_data:/data:ro
+    restart: unless-stopped
+    profiles: ["infra"]
+
 volumes:
   postgres_data:
   redis_data:

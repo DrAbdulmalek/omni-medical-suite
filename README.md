@@ -298,13 +298,61 @@ mypy . --ignore-missing-imports
 make dev
 ```
 
+## Monitoring & Maintenance
+
+### Health Checks
+
+| Endpoint | Description | Expected Response |
+|----------|-------------|-------------------|
+| `/health` | Full health check | `{"status": "healthy"}` |
+| `/health/liveness` | Liveness probe | `{"status": "alive"}` |
+| `/health/readiness` | Readiness probe | `{"status": "ready"}` |
+
+### Monitoring Stack
+
+Start with:
+```bash
+docker-compose -f docker-compose.yml -f infra/monitoring/docker-compose.monitoring.yml up -d
+```
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Prometheus | http://localhost:9090 | Metrics collection (15s scrape) |
+| Grafana | http://localhost:3000 | Dashboards (admin / `${GRAFANA_ADMIN_PASSWORD}`) |
+| Node Exporter | http://localhost:9100 | System metrics |
+
+### Backup Strategy
+
+- **Frequency:** Daily at 2:00 AM (configurable)
+- **Retention:** 30 days
+- **Location:** `/app/backups/`
+- **Components:** Database (pg_dump), Redis (RDB snapshot), Critical files
+- **Manual trigger:** `python -m scripts.backup`
+
+### Update Mechanism
+
+- **Check interval:** Every hour
+- **Notification:** Logged via structured logging
+- **Auto-update:** Disabled (manual approval required)
+- **Manual check:** `python -m scripts.update_checker`
+
+### Documentation
+
+- **RUNBOOK:** [docs/RUNBOOK.md](docs/RUNBOOK.md) — Operations guide
+- **Maintenance Log:** [MAINTENANCE_LOG.md](MAINTENANCE_LOG.md) — Schedule & benchmarks
+- **API Docs:** `/docs` — Swagger UI
+- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+---
+
 ## Roadmap
 
 - [x] **v1.0** — Monorepo consolidation (6 repos merged)
 - [x] **v1.1** — CI/CD + Docker + HF Space deployment
 - [x] **v1.2** — Testing infrastructure + ruff + mypy + PyQt6 desktop app
-- [ ] **v1.3** — Multi-page PDF + table extraction
-- [ ] **v1.4** — Weekly auto-retraining pipeline
+- [x] **v1.3** — Monitoring + Maintenance (Prometheus, Grafana, Health Checks, Backup)
+- [ ] **v1.4** — Multi-page PDF + table extraction
+- [ ] **v1.5** — Weekly auto-retraining pipeline
 - [ ] **v2.0** — Real-time collaboration + RBAC + audit log
 
 See [ROADMAP.md](ROADMAP.md) for details.
