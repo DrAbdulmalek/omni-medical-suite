@@ -36,27 +36,27 @@ Quick start
 """
 
 # Base classes and data structures
-from src.engines.base_engine import BBox, OCRResult, OCREngine
-
-# Concrete engine implementations
-from src.engines.tesseract_engine import TesseractEngine
+from src.engines.base_engine import BBox, OCREngine, OCRResult
 from src.engines.easyocr_engine import EasyOCREngine
-from src.engines.paddleocr_engine import PaddleOCREngine
-from src.engines.trocr_engine import TrOCREngine
 
 # Ensemble / fusion
 from src.engines.ensemble import EnsembleOCR
+from src.engines.paddleocr_engine import PaddleOCREngine
+
+# Concrete engine implementations
+from src.engines.tesseract_engine import TesseractEngine
+from src.engines.trocr_engine import TrOCREngine
 
 __all__ = [
+    "BBox",
+    "EasyOCREngine",
+    # Ensemble
+    "EnsembleOCR",
     # Base
     "OCREngine",
     "OCRResult",
-    "BBox",
+    "PaddleOCREngine",
     # Engines
     "TesseractEngine",
-    "EasyOCREngine",
-    "PaddleOCREngine",
     "TrOCREngine",
-    # Ensemble
-    "EnsembleOCR",
 ]

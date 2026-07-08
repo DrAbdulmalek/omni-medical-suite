@@ -3,36 +3,36 @@ FastAPI Server for Medical Document Processing.
 Integrates: Image Processing, Encryption, SQLite DB, Mistral AI.
 """
 
-import os
-import sys
-import json
-import shutil
-import tempfile
-import logging
 import argparse
-from typing import Optional
+import json
+import logging
+import os
+import shutil
+import sys
+import tempfile
 from datetime import datetime
 
 # Add packages/core to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query
+    import uvicorn
+    from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse
-    import uvicorn
     HAS_FASTAPI = True
 except ImportError:
     HAS_FASTAPI = False
 
-from image_processor import (
-    find_page_bounds, auto_detect_skew, smart_auto_crop,
-    remove_shadow, detect_blur_laplacian, assess_image_quality,
-    apply_processing, extract_page_number, image_segmentation,
-    sharpen_image
-)
-from encryption import MedicalDocEncryption
 from db_manager import DatabaseManager
+from encryption import MedicalDocEncryption
+from image_processor import (
+    apply_processing,
+    assess_image_quality,
+    auto_detect_skew,
+    extract_page_number,
+    image_segmentation,
+)
 from mistral_integration import MistralIntegration
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -95,7 +95,6 @@ def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
     ):
         """Process a single image with full pipeline."""
         import cv2
-        import numpy as np
 
         opts = json.loads(options) if isinstance(options, str) else options
         start_time = datetime.now()
@@ -113,7 +112,7 @@ def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
 
             # Get metrics before processing
             quality_before = assess_image_quality(image)
-            blur_before = quality_before["blur_score"]
+            quality_before["blur_score"]
 
             # Auto deskew
             deskew_angle = 0.0
@@ -237,7 +236,7 @@ def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
     @app.post("/mistral/classify")
     async def mistral_classify(
         file: UploadFile = File(...),
-        ocr_text: Optional[str] = Form(None),
+        ocr_text: str | None = Form(None),
     ):
         """Classify a medical document."""
         if not mistral.is_available():
@@ -328,9 +327,9 @@ def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
 
     @app.get("/db/documents")
     async def get_documents(
-        patient_id: Optional[str] = Query(None),
-        status: Optional[str] = Query(None),
-        doc_type: Optional[str] = Query(None),
+        patient_id: str | None = Query(None),
+        status: str | None = Query(None),
+        doc_type: str | None = Query(None),
         limit: int = Query(50),
     ):
         return db.get_documents(patient_id, status, doc_type, limit)
@@ -343,7 +342,7 @@ def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
         return {"success": True}
 
     @app.get("/db/logs")
-    async def get_logs(document_id: Optional[int] = Query(None), limit: int = Query(100)):
+    async def get_logs(document_id: int | None = Query(None), limit: int = Query(100)):
         return db.get_logs(document_id, limit)
 
     @app.get("/db/settings")

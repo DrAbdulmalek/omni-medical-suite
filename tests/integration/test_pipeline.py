@@ -11,7 +11,6 @@ Run manually with: pytest tests/integration/ -m integration
 """
 import sys
 from pathlib import Path
-from typing import Dict, Any
 
 import pytest
 
@@ -26,9 +25,9 @@ class TestPipelineIntegration:
     def test_import_chain_core_to_nlp(self):
         """Verify that core modules can import from NLP package."""
         try:
-            from nlp.arabic_nlp_utils import extract_entities
             from core.classifier import DocumentClassifier
-            assert extract_entities is not None or True  # Module loaded
+            from nlp.arabic_nlp_utils import extract_entities
+            assert True  # Module loaded
         except ImportError as e:
             pytest.skip(f"Import chain broken: {e}")
 
@@ -39,7 +38,7 @@ class TestPipelineIntegration:
         if not terms_file.exists():
             pytest.skip("medical_terms.json not found")
         import json
-        with open(terms_file, "r", encoding="utf-8") as f:
+        with open(terms_file, encoding="utf-8") as f:
             data = json.load(f)
         assert len(data) > 0, "medical_terms.json should not be empty"
 
@@ -72,7 +71,7 @@ class TestSecurityPipeline:
     def test_encryption_does_not_corrupt_arabic(self):
         """Verify encryption/decryption preserves Arabic text."""
         try:
-            from security.encryption import encrypt_data, decrypt_data
+            from security.encryption import decrypt_data, encrypt_data
             original = "تشخيص: ارتفاع ضغط الدم"
             encrypted = encrypt_data(original)
             decrypted = decrypt_data(encrypted)

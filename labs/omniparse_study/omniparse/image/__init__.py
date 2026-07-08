@@ -36,14 +36,16 @@ URL: https://huggingface.co/spaces/gokaygokay/Florence-2
 import io
 import os
 import tempfile
+
 import img2pdf
-from PIL import Image
 
 # from omniparse.document.parse import parse_single_image
 from marker.convert import convert_single_pdf
+from PIL import Image
+
 from omniparse.image.process import process_image_task
-from omniparse.utils import encode_images
 from omniparse.models import responseDocument
+from omniparse.utils import encode_images
 
 
 def parse_image(input_data, model_state) -> dict:

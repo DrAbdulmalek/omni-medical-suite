@@ -1,15 +1,14 @@
 """
 RBAC Core Module - Permission checking and role management
 """
-from functools import wraps
-from typing import Callable, List, Optional, Union
 import logging
+from collections.abc import Callable
+from functools import wraps
 
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer
+from fastapi import Depends, HTTPException, Request, status
 
+from app.db.models.auth import Role, User, UserRoleAssignment
 from app.db.session import get_db
-from app.db.models.auth import User, Permission, Role, UserRoleAssignment, UserPermissionAssignment
 from app.routers.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -21,7 +20,7 @@ class RBACError(Exception):
         self.status_code = status_code
         super().__init__(message)
 
-async def get_user_permissions(user: User, db) -> List[str]:
+async def get_user_permissions(user: User, db) -> list[str]:
     """Get all permission codenames for a user"""
     if not user:
         return []
@@ -54,7 +53,7 @@ async def check_permission(
 
 async def check_any_permission(
     user: User,
-    required_permissions: List[str],
+    required_permissions: list[str],
     db = Depends(get_db)
 ) -> bool:
     """Check if user has any of the required permissions"""
@@ -63,7 +62,7 @@ async def check_any_permission(
 
 async def check_all_permissions(
     user: User,
-    required_permissions: List[str],
+    required_permissions: list[str],
     db = Depends(get_db)
 ) -> bool:
     """Check if user has all required permissions"""
@@ -126,7 +125,6 @@ def require_permission(
                 if request:
                     # This is a workaround for FastAPI dependencies
                     try:
-                        from fastapi import Depends
                         # We can't easily extract dependencies here, so we'll rely on the function signature
                         pass
                     except:
@@ -164,7 +162,7 @@ def require_permission(
     return decorator
 
 def require_any_permission(
-    required_permissions: List[str]
+    required_permissions: list[str]
 ) -> Callable:
     """Dependency to require any of the specified permissions"""
     def decorator(func: Callable) -> Callable:
@@ -293,13 +291,14 @@ async def create_default_admin(
     db,
     username: str = "admin",
     email: str = "admin@omni-medical-suite.local",
-    password: str = None,
+    password: str | None = None,
     full_name: str = "System Administrator"
 ) -> User:
     """Create default admin user if not exists"""
-    from sqlalchemy import select
-    from passlib.context import CryptContext
     import secrets
+
+    from passlib.context import CryptContext
+    from sqlalchemy import select
 
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

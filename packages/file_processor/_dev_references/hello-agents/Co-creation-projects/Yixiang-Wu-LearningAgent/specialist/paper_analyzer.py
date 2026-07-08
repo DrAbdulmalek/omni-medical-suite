@@ -190,7 +190,7 @@ class PaperAnalyzerAgent:
         ]
 
         try:
-            response = self.llm.invoke(messages)
+            self.llm.invoke(messages)
             # 简化实现：返回基于规则的分析结果
             keywords = self._extract_keywords_from_text(text)
             prerequisites = self._identify_prerequisites(keywords)

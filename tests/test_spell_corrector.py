@@ -2,7 +2,6 @@
 اختبارات المصحح الإملائي
 """
 
-import pytest
 import sys
 from pathlib import Path
 
@@ -84,9 +83,10 @@ class TestSpellCorrector:
 
     def test_learn_correction(self):
         """اختبار تعلم تصحيح جديد."""
-        from packages.nlp.spell_corrector import SpellCorrector
-        import tempfile
         import os
+        import tempfile
+
+        from packages.nlp.spell_corrector import SpellCorrector
 
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False

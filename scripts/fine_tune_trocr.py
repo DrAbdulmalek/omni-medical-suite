@@ -12,20 +12,17 @@ Requirements:
 """
 import argparse
 import logging
-from pathlib import Path
 
 import torch
 from datasets import load_dataset
+from jiwer import cer, wer
+from PIL import Image
 from transformers import (
-    TrOCRProcessor,
-    VisionEncoderDecoderModel,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
-    default_data_collator
+    TrOCRProcessor,
+    VisionEncoderDecoderModel,
 )
-from PIL import Image
-
-from jiwer import cer, wer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -61,7 +58,7 @@ def compute_metrics(pred):
     except Exception:
         total_cer = total_wer = 1.0
 
-    exact_matches = sum(1 for p, l in zip(pred_str, label_str) if p == l)
+    exact_matches = sum(1 for p, l in zip(pred_str, label_str, strict=False) if p == l)
     match_rate = exact_matches / len(label_str) if label_str else 0
 
     # Log detailed info

@@ -105,7 +105,7 @@ def test_export_training_data():
         export_dir = Path("test_data/output/training_export")
         result = system.export_training_data(export_dir)
 
-        print(f"  [OK] Exported:")
+        print("  [OK] Exported:")
         print(f"     Train dir: {result['train']}")
         print(f"     Total pairs: {result['total_pairs']}")
 
@@ -148,7 +148,7 @@ def test_stats():
     system.process_page(temp_path)
 
     stats = system.get_stats()
-    print(f"  After processing:")
+    print("  After processing:")
     for key, value in stats.items():
         print(f"     {key}: {value}")
 

@@ -1,36 +1,35 @@
 """Tests for modules.core.protected_vocab.ProtectedVocab"""
-import pytest
 
 class TestProtectedVocab:
     """Test ProtectedVocab singleton."""
-    
+
     def setup_method(self):
         from packages.core.protected_vocab import ProtectedVocab
         ProtectedVocab.reset()
-    
+
     def teardown_method(self):
         from packages.core.protected_vocab import ProtectedVocab
         ProtectedVocab.reset()
-    
+
     def test_singleton(self):
         from packages.core.protected_vocab import ProtectedVocab
         v1 = ProtectedVocab()
         v2 = ProtectedVocab()
         assert v1 is v2
-    
+
     def test_python_keywords_protected(self):
         from packages.core.protected_vocab import ProtectedVocab
         vocab = ProtectedVocab()
         assert vocab.is_protected("def") is True
         assert vocab.is_protected("class") is True
         assert vocab.is_protected("import") is True
-    
+
     def test_custom_words(self):
         from packages.core.protected_vocab import ProtectedVocab
         vocab = ProtectedVocab()
         vocab.add("my_custom_term")
         assert vocab.is_protected("my_custom_term") is True
-    
+
     def test_remove_word(self):
         from packages.core.protected_vocab import ProtectedVocab
         vocab = ProtectedVocab()
@@ -38,7 +37,7 @@ class TestProtectedVocab:
         assert vocab.is_protected("temp_word") is True
         assert vocab.remove("temp_word") is True
         assert vocab.is_protected("temp_word") is False
-    
+
     def test_stats(self):
         from packages.core.protected_vocab import ProtectedVocab
         vocab = ProtectedVocab()
@@ -46,7 +45,7 @@ class TestProtectedVocab:
         assert "python_keywords" in stats
         assert "total" in stats
         assert stats["total"] > 0
-    
+
     def test_add_many(self):
         from packages.core.protected_vocab import ProtectedVocab
         vocab = ProtectedVocab()

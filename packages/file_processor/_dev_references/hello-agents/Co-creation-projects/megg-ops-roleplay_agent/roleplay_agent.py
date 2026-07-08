@@ -1,7 +1,6 @@
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-import time
 
 # 加载环境变量
 load_dotenv()
@@ -38,7 +37,7 @@ class CharacterRoleplayAgent:
             "name": name,
             "source_material": source_material,
             "personality": personality,
-            "opening_line": opening_line or f"*注视着你* 你是谁？"
+            "opening_line": opening_line or "*注视着你* 你是谁？"
         }
         
         # 创建系统提示词
@@ -139,7 +138,7 @@ def main():
     
     # 开始对话循环
     while True:
-        user_input = input(f"\n你: ").strip()
+        user_input = input("\n你: ").strip()
         
         if user_input.lower() in ['quit', 'exit', '退出', '退出对话']:
             print("\n👋 感谢使用沉浸式角色扮演智能体！期待下次再见。")

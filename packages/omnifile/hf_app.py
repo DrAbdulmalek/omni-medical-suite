@@ -30,11 +30,9 @@ import os
 import io
 import re
 import gc
-import json
 import tempfile
 import traceback
 import logging
-from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, List, Tuple, Any
 
@@ -886,7 +884,7 @@ def calculate_metrics(reference: str, hypothesis: str) -> str:
     try:
         import jiwer
         out += "\n### jiwer Cross-Check\n"
-        out += f"| Metric | Value |\n|---|---|\n"
+        out += "| Metric | Value |\n|---|---|\n"
         out += f"| CER | {jiwer.cer(reference, hypothesis):.2%} |\n"
         out += f"| WER | {jiwer.wer(reference, hypothesis):.2%} |\n"
     except ImportError:

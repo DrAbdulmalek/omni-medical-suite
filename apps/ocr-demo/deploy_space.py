@@ -44,7 +44,7 @@ def main():
     repo_id = args.repo
 
     print(f"\n{'='*60}")
-    print(f"  Omni Medical OCR — HF Space Deployment")
+    print("  Omni Medical OCR — HF Space Deployment")
     print(f"  Target: https://huggingface.co/spaces/{repo_id}")
     print(f"{'='*60}\n")
 
@@ -61,7 +61,7 @@ def main():
 
     # Step 2: Configure git remote
     print("Step 2/3: Configuring git remote...")
-    run(f"git remote remove origin 2>/dev/null || true", cwd=space_dir, check=False)
+    run("git remote remove origin 2>/dev/null || true", cwd=space_dir, check=False)
     run(
         f'git remote add origin https://DrAbdulmalek:{token}@huggingface.co/spaces/{repo_id}',
         cwd=space_dir
@@ -76,14 +76,14 @@ def main():
     # Done
     url = f"https://huggingface.co/spaces/{repo_id}"
     print(f"{'='*60}")
-    print(f"  ✅ Space deployed successfully!")
-    print(f"")
+    print("  ✅ Space deployed successfully!")
+    print("")
     print(f"  🔗 URL: {url}")
     print(f"  📊 Status: {url}/tree/main")
-    print(f"")
-    print(f"  The Space will start building automatically.")
-    print(f"  It may take 5-10 minutes for the Docker image to build.")
-    print(f"  Once ready, the app will be live at the URL above.")
+    print("")
+    print("  The Space will start building automatically.")
+    print("  It may take 5-10 minutes for the Docker image to build.")
+    print("  Once ready, the app will be live at the URL above.")
     print(f"{'='*60}\n")
 
     # Cleanup: remove token from remote URL

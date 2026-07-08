@@ -24,10 +24,8 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-from collections import defaultdict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +63,10 @@ TECHNICAL_KEYWORDS: set[str] = {
     "sqlalchemy", "pymysql", "psycopg2",
     # تعلم آلي
     "machinelearning", "deeplearning", "neuralnetwork",
-    "tensorflow", "keras", "pytorch", "sklearn", "xgboost",
+    "tensorflow", "keras", "xgboost",
     "randomforest", "gradientboost", "sigmoid", "relu",
     "softmax", "backpropagation", "overfitting", "underfitting",
-    "huggingface", "transformers", "datasets", "tokenizers",
+    "datasets", "tokenizers",
     # سحابة
     "aws", "gcp", "azure", "heroku", "vercel", "netlify",
 }
@@ -90,8 +88,8 @@ PYTHON_KEYWORDS: set[str] = {
     "isinstance", "issubclass", "hasattr", "getattr", "setattr",
     "module", "package", "staticmethod", "classmethod", "property",
     "abs", "all", "any", "bin", "chr", "dir", "eval", "exec",
-    "getattr", "hex", "id", "max", "min", "oct", "ord", "pow",
-    "repr", "round", "sum", "vars", "iter", "next",
+    "hex", "id", "max", "min", "oct", "ord", "pow",
+    "round", "sum", "vars", "iter", "next",
     # استثناءات
     "Exception", "ValueError", "TypeError", "KeyError", "IndexError",
     "AttributeError", "RuntimeError", "StopIteration",
@@ -117,7 +115,7 @@ MEDICAL_TERMS: set[str] = {
     "atorvastatin", "omeprazole", "lisinopril", "aspirin",
     "prednisone", "morphine", "insulin", "penicillin",
     # إجراءات
-    "laparoscopy", "endoscopy", "biopsy", "transplant",
+    "laparoscopy", "endoscopy", "transplant",
     "angioplasty", "arthroscopy", "colonoscopy", "mammography",
     # مختبر
     "hemoglobin", "leukocyte", "erythrocyte", "thrombocyte",
@@ -189,8 +187,8 @@ class ProtectedWordsManager:
 
     def __init__(
         self,
-        custom_vocabulary_path: Optional[str | Path] = None,
-        additional_categories: Optional[dict[str, set[str]]] = None,
+        custom_vocabulary_path: str | Path | None = None,
+        additional_categories: dict[str, set[str]] | None = None,
     ) -> None:
         """تهيئة مدير الكلمات المحمية.
 
@@ -257,7 +255,7 @@ class ProtectedWordsManager:
         """
         return word.lower() in self._protected_index
 
-    def get_category(self, word: str) -> Optional[str]:
+    def get_category(self, word: str) -> str | None:
         """الحصول على فئة الكلمة المحمية.
 
         Args:
@@ -604,7 +602,7 @@ class ProtectedWordsManager:
             return 0
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
 
             vocab = data.get("custom_vocabulary", {})

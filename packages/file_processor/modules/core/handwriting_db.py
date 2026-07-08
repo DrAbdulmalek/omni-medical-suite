@@ -8,7 +8,6 @@ v4.0: مُرحَّل إلى BaseDB (WAL + retry + context manager موحَّد)
 import sqlite3
 import logging
 from typing import Optional
-from pathlib import Path
 from datetime import datetime
 
 from modules.core.base_db import BaseDB

@@ -31,17 +31,18 @@ Integrates with the OmniMedical Suite medical dictionary system.
     - .syn: مرادفات إضافية (اختياري، نفس صيغة .idx)
 """
 
-import struct
-import os
-import json
-import sqlite3
-import gzip
 import bz2
+import gzip
+import json
 import logging
-from typing import Dict, List, Optional, Tuple, Any, Iterator
+import os
+import sqlite3
+import struct
+from bisect import bisect_left
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from bisect import bisect_left
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class StarDictEntry:
     definition_html: str = ""
     offset: int = 0
     size: int = 0
-    synonyms: List[str] = field(default_factory=list)
+    synonyms: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         """تحويل إلى قاموس / Convert to dictionary."""
@@ -158,7 +159,7 @@ class StarDictReader:
     COMMON_ENCODINGS = ["utf-8", "utf-8-sig", "gbk", "gb18030", "gb2312", "big5",
                         "shift-jis", "euc-jp", "euc-kr", "iso-8859-6"]
 
-    def __init__(self, dict_dir: str, encoding: Optional[str] = None):
+    def __init__(self, dict_dir: str, encoding: str | None = None):
         """
         تهيئة قارئ StarDict.
         Initialize the StarDict reader.
@@ -172,12 +173,12 @@ class StarDictReader:
         self.dict_dir = Path(dict_dir)
         self.encoding = encoding
         self.metadata = StarDictMetadata()
-        self._idx_entries: List[Tuple[str, int, int]] = []  # (word, offset, size)
-        self._word_list: List[str] = []
-        self._synonym_map: Dict[str, int] = {}  # synonym → word index
+        self._idx_entries: list[tuple[str, int, int]] = []  # (word, offset, size)
+        self._word_list: list[str] = []
+        self._synonym_map: dict[str, int] = {}  # synonym → word index
         self._dict_file = None
-        self._dict_data: Optional[bytes] = None
-        self._errors: List[StarDictError] = []
+        self._dict_data: bytes | None = None
+        self._errors: list[StarDictError] = []
 
         # التحقق من المجلد / Verify directory
         if not self.dict_dir.is_dir():
@@ -214,7 +215,7 @@ class StarDictReader:
 
         logger.info(f"قراءة ملف .ifo: {ifo_path}")
 
-        with open(ifo_path, "r", encoding="utf-8", errors="replace") as f:
+        with open(ifo_path, encoding="utf-8", errors="replace") as f:
             content = f.read()
 
         # تخطي سطر بداية StarDict / Skip StarDict header line
@@ -537,7 +538,7 @@ class StarDictReader:
                 next_pos += 4
 
                 if synonym and 0 <= word_index < len(self._word_list):
-                    main_word = self._word_list[word_index]
+                    self._word_list[word_index]
                     self._synonym_map[synonym] = word_index
                     synonym_count += 1
 
@@ -651,9 +652,8 @@ class StarDictReader:
                     raw_data = raw_data[1:]
 
             # نوع 't': ترجمة / Type 't': translation
-            elif type_char == "t":
-                if raw_data[0:1] in (b"t", b"T"):
-                    raw_data = raw_data[1:]
+            elif type_char == "t" and raw_data[0:1] in (b"t", b"T"):
+                raw_data = raw_data[1:]
 
         # فك الترميز / Decode
         try:
@@ -670,7 +670,7 @@ class StarDictReader:
 
     # ============ واجهات عامة / Public Interfaces ============
 
-    def get_definition(self, word: str) -> Optional[StarDictEntry]:
+    def get_definition(self, word: str) -> StarDictEntry | None:
         """
         الحصول على تعريف كلمة معينة.
         Get the definition for a specific word.
@@ -731,7 +731,7 @@ class StarDictReader:
 
         return None
 
-    def _find_word_index(self, word: str) -> Optional[int]:
+    def _find_word_index(self, word: str) -> int | None:
         """
         البحث عن فهرس كلمة باستخدام البحث الثنائي.
         Find the index of a word using binary search.
@@ -757,7 +757,7 @@ class StarDictReader:
 
         return None
 
-    def get_all_entries(self, limit: Optional[int] = None) -> Iterator[StarDictEntry]:
+    def get_all_entries(self, limit: int | None = None) -> Iterator[StarDictEntry]:
         """
         التكرار على جميع المداخل في القاموس.
         Iterate over all entries in the dictionary.
@@ -795,7 +795,7 @@ class StarDictReader:
             )
             count += 1
 
-    def search(self, prefix: str, limit: int = 50) -> List[StarDictEntry]:
+    def search(self, prefix: str, limit: int = 50) -> list[StarDictEntry]:
         """
         بحث بالبادئة في القاموس.
         Prefix search in the dictionary.
@@ -993,7 +993,7 @@ class StarDictReader:
 
     # ============ أدوات مساعدة / Utility Methods ============
 
-    def _find_file(self, suffix: str) -> Optional[Path]:
+    def _find_file(self, suffix: str) -> Path | None:
         """
         البحث عن ملف باللاحقة المحددة في مجلد القاموس.
         Find a file with the given suffix in the dictionary directory.
@@ -1011,7 +1011,7 @@ class StarDictReader:
                 return f
         return None
 
-    def get_errors(self) -> List[StarDictError]:
+    def get_errors(self) -> list[StarDictError]:
         """
         الحصول على قائمة الأخطاء التي حدثت أثناء القراءة.
         Get the list of errors encountered during reading.
@@ -1021,7 +1021,7 @@ class StarDictReader:
         """
         return self._errors.copy()
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         الحصول على إحصائيات القاموس.
         Get dictionary statistics.

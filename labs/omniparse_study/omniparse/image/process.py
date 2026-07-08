@@ -12,18 +12,20 @@ Original Date: 2024-06-30
 URL: https://huggingface.co/spaces/gokaygokay/Florence-2
 """
 
-from typing import Dict, Any, Union
-from PIL import Image as PILImage
 import base64
-from io import BytesIO
 import copy
-from omniparse.image.utils import plot_bbox, fig_to_pil, draw_polygons, draw_ocr_bboxes
+from io import BytesIO
+from typing import Any
+
+from PIL import Image as PILImage
+
+from omniparse.image.utils import draw_ocr_bboxes, draw_polygons, fig_to_pil, plot_bbox
 from omniparse.models import responseDocument
 
 
 def process_image_task(
-    image_data: Union[str, bytes, PILImage.Image], task_prompt: str, model_state
-) -> Dict[str, Any]:
+    image_data: str | bytes | PILImage.Image, task_prompt: str, model_state
+) -> dict[str, Any]:
     # Convert image_data if it's in bytes
     if isinstance(image_data, bytes):
         pil_image = PILImage.open(BytesIO(image_data))
@@ -32,7 +34,7 @@ def process_image_task(
             image_bytes = base64.b64decode(image_data)
             pil_image = PILImage.open(BytesIO(image_bytes))
         except Exception as e:
-            raise ValueError(f"Failed to decode base64 image: {str(e)}")
+            raise ValueError(f"Failed to decode base64 image: {e!s}")
     elif isinstance(image_data, PILImage.Image):
         pil_image = image_data
     else:
@@ -95,49 +97,14 @@ def process_image_task(
 
 # Your pre_process_image function with some adjustments
 def pre_process_image(image, task_prompt, vision_model, vision_processor):
-    if task_prompt == "<CAPTION>":
+    if task_prompt == "<CAPTION>" or task_prompt == "<DETAILED_CAPTION>" or task_prompt == "<MORE_DETAILED_CAPTION>":
         results = run_example(task_prompt, image, vision_model, vision_processor)
         return results, None
-    elif task_prompt == "<DETAILED_CAPTION>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        return results, None
-    elif task_prompt == "<MORE_DETAILED_CAPTION>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        return results, None
-    elif task_prompt == "<CAPTION_TO_PHRASE_GROUNDING>":
+    elif task_prompt == "<CAPTION_TO_PHRASE_GROUNDING>" or task_prompt == "<DETAILED_CAPTION + GROUNDING>" or task_prompt == "<MORE_DETAILED_CAPTION + GROUNDING>" or task_prompt == "<OD>" or task_prompt == "<DENSE_REGION_CAPTION>" or task_prompt == "<REGION_PROPOSAL>" or task_prompt == "<CAPTION_TO_PHRASE_GROUNDING>":
         results = run_example(task_prompt, image, vision_model, vision_processor)
         fig = plot_bbox(image, results[task_prompt])
         return results, fig_to_pil(fig)
-    elif task_prompt == "<DETAILED_CAPTION + GROUNDING>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        fig = plot_bbox(image, results[task_prompt])
-        return results, fig_to_pil(fig)
-    elif task_prompt == "<MORE_DETAILED_CAPTION + GROUNDING>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        fig = plot_bbox(image, results[task_prompt])
-        return results, fig_to_pil(fig)
-    elif task_prompt == "<OD>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        fig = plot_bbox(image, results[task_prompt])
-        return results, fig_to_pil(fig)
-    elif task_prompt == "<DENSE_REGION_CAPTION>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        fig = plot_bbox(image, results[task_prompt])
-        return results, fig_to_pil(fig)
-    elif task_prompt == "<REGION_PROPOSAL>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        fig = plot_bbox(image, results[task_prompt])
-        return results, fig_to_pil(fig)
-    elif task_prompt == "<CAPTION_TO_PHRASE_GROUNDING>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        fig = plot_bbox(image, results[task_prompt])
-        return results, fig_to_pil(fig)
-    elif task_prompt == "<REFERRING_EXPRESSION_SEGMENTATION>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        output_image = copy.deepcopy(image)
-        output_image = draw_polygons(output_image, results[task_prompt], fill_mask=True)
-        return results, output_image
-    elif task_prompt == "<REGION_TO_SEGMENTATION>":
+    elif task_prompt == "<REFERRING_EXPRESSION_SEGMENTATION>" or task_prompt == "<REGION_TO_SEGMENTATION>":
         results = run_example(task_prompt, image, vision_model, vision_processor)
         output_image = copy.deepcopy(image)
         output_image = draw_polygons(output_image, results[task_prompt], fill_mask=True)
@@ -146,13 +113,7 @@ def pre_process_image(image, task_prompt, vision_model, vision_processor):
         results = run_example(task_prompt, image, vision_model, vision_processor)
         fig = plot_bbox(image, results[task_prompt])
         return results, fig_to_pil(fig)
-    elif task_prompt == "<REGION_TO_CATEGORY>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        return results, None
-    elif task_prompt == "<REGION_TO_DESCRIPTION>":
-        results = run_example(task_prompt, image, vision_model, vision_processor)
-        return results, None
-    elif task_prompt == "<OCR>":
+    elif task_prompt == "<REGION_TO_CATEGORY>" or task_prompt == "<REGION_TO_DESCRIPTION>" or task_prompt == "<OCR>":
         results = run_example(task_prompt, image, vision_model, vision_processor)
         return results, None
     elif task_prompt == "<OCR_WITH_REGION>":

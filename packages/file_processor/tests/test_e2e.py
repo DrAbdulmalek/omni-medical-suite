@@ -6,9 +6,7 @@ Minimal E2E test that verifies the complete pipeline
 using synthetic data and mocked model inference.
 """
 
-import os
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -150,7 +148,6 @@ class TestE2EHTRPipeline(unittest.TestCase):
         from modules.vision.htr.trocr_finetuned import TrOCRFineTuned
 
         # Mock the TrOCR recognize method
-        original_recognize = TrOCRFineTuned.recognize
 
         def mock_recognize(self, image, return_confidence=False, skip_cache=False):
             if return_confidence:
@@ -220,7 +217,7 @@ class TestE2ESyntheticData(unittest.TestCase):
 
     def test_synthetic_text_generation(self):
         """Test Arabic text generation utilities."""
-        spec = __import__('importlib.util')
+        __import__('importlib.util')
         gen_script = project_root / "training" / "scripts" / "generate_synthetic_data.py"
         if not gen_script.exists():
             self.skipTest("Generate script not found")

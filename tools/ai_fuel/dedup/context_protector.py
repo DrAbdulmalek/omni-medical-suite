@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Dict, List, Optional
 from unicodedata import normalize
 
 logger = logging.getLogger(__name__)
@@ -39,7 +38,7 @@ class MedicalContextProtector:
 
     def __init__(self) -> None:
         """Build the library of protected medical patterns."""
-        self.protected_patterns: List[Dict] = self._build_protected_patterns()
+        self.protected_patterns: list[dict] = self._build_protected_patterns()
         logger.info(
             "MedicalContextProtector initialised with %d patterns.",
             len(self.protected_patterns),
@@ -64,13 +63,9 @@ class MedicalContextProtector:
         # Normalise unicode (NFC) for reliable matching of Arabic diacritics
         normalised = normalize("NFC", text)
 
-        for pattern in self.protected_patterns:
-            if pattern["regex"].search(normalised):
-                return True
+        return any(pattern["regex"].search(normalised) for pattern in self.protected_patterns)
 
-        return False
-
-    def get_protected_segments(self, text: str) -> List[Dict]:
+    def get_protected_segments(self, text: str) -> list[dict]:
         """Extract protected segments from *text*.
 
         Returns all non-overlapping matches for each protected pattern,
@@ -87,7 +82,7 @@ class MedicalContextProtector:
             - ``end`` – character offset of the match end.
             - ``priority`` – the pattern's importance priority.
         """
-        segments: List[Dict] = []
+        segments: list[dict] = []
 
         if not text or not text.strip():
             return segments
@@ -134,7 +129,7 @@ class MedicalContextProtector:
         total_priority = sum(s["priority"] for s in segments)
         return min(total_priority / max_possible, 1.0)
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Return information about the loaded patterns.
 
         Returns:
@@ -153,7 +148,7 @@ class MedicalContextProtector:
     # Pattern builder
     # ------------------------------------------------------------------
 
-    def _build_protected_patterns(self) -> List[Dict]:
+    def _build_protected_patterns(self) -> list[dict]:
         """Build regex patterns for protected medical content.
 
         Patterns cover:
@@ -168,7 +163,7 @@ class MedicalContextProtector:
         Returns:
             A list of pattern dictionaries.
         """
-        raw_patterns: List[Dict[str, any]] = [
+        raw_patterns: list[dict[str, any]] = [
             # ── Drug dosages ─────────────────────────────────────────────
             {
                 "name": "drug_dosage_metric",
@@ -322,7 +317,7 @@ class MedicalContextProtector:
         ]
 
         # Validate that all patterns compiled successfully
-        valid_patterns: List[Dict] = []
+        valid_patterns: list[dict] = []
         for p in raw_patterns:
             if p["regex"] is not None:
                 valid_patterns.append(p)

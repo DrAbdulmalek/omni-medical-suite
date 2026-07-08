@@ -3,6 +3,7 @@ Script to download models
 """
 
 import argparse
+
 from omniparse import load_omnimodel
 
 

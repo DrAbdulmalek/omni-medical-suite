@@ -17,10 +17,10 @@ Image Preprocessing — تحسين الصور قبل OCR للخط العربي �
     processed = deskew_and_crop(image_bgr)
 """
 
+import logging
+
 import cv2
 import numpy as np
-import logging
-from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ def preprocess_crop_for_ocr(crop_bgr: np.ndarray) -> np.ndarray:
 def find_page_bounds(
     image: np.ndarray,
     min_page_area_ratio: float = 0.15,
-) -> Optional[Tuple[int, int, int, int]]:
+) -> tuple[int, int, int, int] | None:
     """Detect the white page region within a gray-background scan.
 
     Uses contour-based detection (cv2.findContours) which is more reliable

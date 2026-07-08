@@ -14,9 +14,8 @@ Usage:
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from app.core.monitoring.metrics import MODEL_ACCURACY, OCR_PROCESSING_TIME
 
@@ -27,11 +26,11 @@ class OCRBenchmark:
     engine: str
     language: str
     duration: float  # seconds
-    cer: Optional[float] = None  # Character Error Rate
-    wer: Optional[float] = None  # Word Error Rate
-    confidence: Optional[float] = None  # Average confidence
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    image_id: Optional[str] = None
+    cer: float | None = None  # Character Error Rate
+    wer: float | None = None  # Word Error Rate
+    confidence: float | None = None  # Average confidence
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    image_id: str | None = None
 
 
 class BenchmarkTracker:
@@ -40,13 +39,13 @@ class BenchmarkTracker:
     Thread-safe for single-process usage (FastAPI/Gradio).
     """
 
-    def __init__(self, storage_path: Optional[str] = None):
+    def __init__(self, storage_path: str | None = None):
         """
         Args:
             storage_path: Path to JSONL file for persistent storage.
                          If None, benchmarks are kept in memory only.
         """
-        self._benchmarks: List[OCRBenchmark] = []
+        self._benchmarks: list[OCRBenchmark] = []
         self._storage_path = Path(storage_path) if storage_path else None
         if self._storage_path and self._storage_path.exists():
             self._load_from_disk()
@@ -56,10 +55,10 @@ class BenchmarkTracker:
         engine: str,
         language: str,
         duration: float,
-        cer: Optional[float] = None,
-        wer: Optional[float] = None,
-        confidence: Optional[float] = None,
-        image_id: Optional[str] = None,
+        cer: float | None = None,
+        wer: float | None = None,
+        confidence: float | None = None,
+        image_id: str | None = None,
     ):
         """Record an OCR benchmark and push to Prometheus."""
         benchmark = OCRBenchmark(
@@ -84,7 +83,7 @@ class BenchmarkTracker:
         if self._storage_path:
             self._append_to_disk(benchmark)
 
-    def get_stats(self, engine: Optional[str] = None) -> Dict:
+    def get_stats(self, engine: str | None = None) -> dict:
         """Get aggregated statistics for an engine (or all engines)."""
         filtered = (
             [b for b in self._benchmarks if b.engine == engine]
@@ -122,7 +121,7 @@ class BenchmarkTracker:
             },
         }
 
-    def get_recent(self, n: int = 20) -> List[Dict]:
+    def get_recent(self, n: int = 20) -> list[dict]:
         """Get the last N benchmarks."""
         return [asdict(b) for b in self._benchmarks[-n:]]
 
@@ -136,7 +135,7 @@ class BenchmarkTracker:
     def _load_from_disk(self):
         """Load benchmarks from JSONL file."""
         if self._storage_path and self._storage_path.exists():
-            with open(self._storage_path, "r", encoding="utf-8") as f:
+            with open(self._storage_path, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line:

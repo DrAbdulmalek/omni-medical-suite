@@ -20,7 +20,6 @@ from ..model_listing import (
     extract_openrouter_tool_model_ids,
     extract_openrouter_tool_model_infos,
 )
-
 from .request import build_request_body
 
 _ANTHROPIC_VERSION = "2023-06-01"

@@ -55,7 +55,7 @@ def _clear_log_file() -> None:
     finally:
         _file_handler.release()
     # Truncate the file
-    with open(_LOG_PATH, "w", encoding="utf-8") as f:
+    with open(_LOG_PATH, "w", encoding="utf-8"):
         pass
     # Reopen our handler in append mode
     _file_handler.acquire()

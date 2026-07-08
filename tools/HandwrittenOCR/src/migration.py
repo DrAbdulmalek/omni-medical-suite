@@ -10,14 +10,14 @@ HandwrittenOCR - وحدة ترحيل البيانات v5.1
 - سجل مفصل لعملية الترحيل
 """
 
-import os
+import contextlib
 import json
-import sqlite3
 import logging
-from pathlib import Path
-from datetime import datetime
+import os
+import sqlite3
 from collections import Counter, defaultdict
-from typing import Optional
+from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger("HandwrittenOCR.Migration")
 
@@ -52,7 +52,7 @@ class DataMigrator:
     def scan_old_projects(
         self,
         base_path: str = "",
-        extra_folders: list[str] = None,
+        extra_folders: list[str] | None = None,
     ) -> list[dict]:
         """
         مسح المسار للبحث عن مشاريع قديمة.
@@ -118,7 +118,7 @@ class DataMigrator:
     def migrate(
         self,
         base_path: str = "",
-        old_folders: list[str] = None,
+        old_folders: list[str] | None = None,
         skip_existing: bool = True,
         verified_only: bool = True,
     ) -> dict:
@@ -265,11 +265,10 @@ class DataMigrator:
                 select_cols.append("updated_at")
 
             cols_str = ", ".join(select_cols)
-            placeholders = ", ".join(["?"] * len(select_cols))
+            ", ".join(["?"] * len(select_cols))
 
             # بناء شرط WHERE
             where_clause = ""
-            params = []
             if verified_only:
                 # شمل verified, sentence_corrected, yes (قديم)
                 where_clause = "WHERE status IN ('verified', 'sentence_corrected', 'yes')"
@@ -287,7 +286,7 @@ class DataMigrator:
                     "FROM handwriting_data"
                 )
                 select_cols = ["image_data", "predicted_text", "status", "confidence"]
-                placeholders = ", ".join(["?"] * 4)
+                ", ".join(["?"] * 4)
                 has_created = False
                 has_updated = False
 
@@ -295,7 +294,7 @@ class DataMigrator:
 
             for row in rows:
                 try:
-                    row_dict = dict(zip(select_cols, row))
+                    row_dict = dict(zip(select_cols, row, strict=False))
 
                     # تطبيع قيم status القديمة (Correction #10)
                     status = row_dict.get("status", "unverified")
@@ -417,7 +416,7 @@ class DataMigrator:
 
         # دمج وإزالة التكرارات
         merged = pd.concat(all_feedback, ignore_index=True)
-        before = len(merged)
+        len(merged)
 
         # إزالة التكرارات (نفس original + corrected)
         merged = merged.drop_duplicates(
@@ -437,10 +436,8 @@ class DataMigrator:
         # دمج مع ملف التصحيحات الحالي
         target_df = pd.DataFrame()
         if os.path.exists(self.feedback_csv):
-            try:
+            with contextlib.suppress(Exception):
                 target_df = pd.read_csv(self.feedback_csv, encoding="utf-8-sig")
-            except Exception:
-                pass
 
         if not target_df.empty:
             # إزالة عمود migration_source من التصحيحات الحالية

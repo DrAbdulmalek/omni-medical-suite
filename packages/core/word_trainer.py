@@ -12,7 +12,6 @@ import logging
 from datetime import datetime
 from difflib import get_close_matches
 from pathlib import Path
-from typing import Optional
 
 from packages.core.base_db import BaseDB
 
@@ -143,7 +142,7 @@ class WordCorrectionDB(BaseDB):
         words = [r["word"] for r in rows]
         return get_close_matches(partial, words, n=n, cutoff=0.45) if words and partial else []
 
-    def get_best_correction(self, predicted: str, lang: str = "ar") -> Optional[str]:
+    def get_best_correction(self, predicted: str, lang: str = "ar") -> str | None:
         row = self.execute_one("""
             SELECT corrected, COUNT(*) AS cnt
             FROM corrections
@@ -157,7 +156,7 @@ class WordCorrectionDB(BaseDB):
     def get_corrections(
         self,
         limit:        int  = 200,
-        lang:         Optional[str] = None,
+        lang:         str | None = None,
         improved_only: bool = False,
     ) -> list:
         conds, params = [], []

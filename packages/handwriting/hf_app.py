@@ -33,7 +33,6 @@ import os
 import io
 import re
 import gc
-import json
 import shutil
 import tempfile
 import traceback
@@ -792,7 +791,7 @@ def generate_training_data(
     # Save uploaded file to temp location
     tmp_dir = tempfile.mkdtemp(prefix="omnifile_train_")
     pdf_path = os.path.join(tmp_dir, "input.pdf")
-    with open(pdf_path, "wb") as f:
+    with open(pdf_path, "wb"):
         shutil.copy2(pdf_file.name, pdf_path)
 
     progress(0.2, desc="Initializing training data generator…")
@@ -1057,7 +1056,7 @@ def calculate_metrics(reference: str, hypothesis: str) -> str:
     try:
         import jiwer
         out += "\n### jiwer Cross-Check\n"
-        out += f"| Metric | Value |\n|---|---|\n"
+        out += "| Metric | Value |\n|---|---|\n"
         out += f"| CER | {jiwer.cer(reference, hypothesis):.2%} |\n"
         out += f"| WER | {jiwer.wer(reference, hypothesis):.2%} |\n"
     except ImportError:
@@ -1181,7 +1180,7 @@ def process_video_ocr(
 
         # Build output
         out = "## 🎬 Video OCR Results\n\n"
-        out += f"| Metric | Value |\n|--------|-------|\n"
+        out += "| Metric | Value |\n|--------|-------|\n"
         out += f"| **Total Frames Processed** | {timeline.total_frames} |\n"
         out += f"| **Frames with Text** | {timeline.frames_with_text} |\n"
         out += f"| **Average Confidence** | {timeline.avg_confidence:.1%} |\n"
@@ -1285,7 +1284,7 @@ def augment_training_data(
         progress(1.0, desc="Done!")
 
         out = "## 🔄 Data Augmentation Complete!\n\n"
-        out += f"| Metric | Value |\n|--------|-------|\n"
+        out += "| Metric | Value |\n|--------|-------|\n"
         out += f"| **Original Images** | {len(image_paths)} |\n"
         out += f"| **Augmented Images** | {len(results)} |\n"
         out += f"| **Multiplication Factor** | {num_augmented}x |\n"
@@ -1642,7 +1641,7 @@ def build_app() -> gr.Blocks:
 
                 with gr.Column(scale=2):
                     train_output = gr.Markdown("")
-                    train_gallery = gr.Gallery(
+                    gr.Gallery(
                         label="🖼️ Sample Crops Preview / معاينة العينات",
                         columns=4,
                         height=300,

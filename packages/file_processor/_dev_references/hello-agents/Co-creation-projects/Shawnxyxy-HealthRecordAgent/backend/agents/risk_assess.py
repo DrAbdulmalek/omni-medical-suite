@@ -2,7 +2,7 @@
 健康风险评估 Agent
 """
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 from agents.base import BaseAgent
 from core.exceptions import AgentException
 

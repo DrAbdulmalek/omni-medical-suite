@@ -14,11 +14,10 @@ import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-_db_connection: Optional[sqlite3.Connection] = None
+_db_connection: sqlite3.Connection | None = None
 _DB_PATH = Path(__file__).parent.parent / "corrections.db"
 
 
@@ -69,7 +68,7 @@ def save_correction(
     raw_text: str,
     corrected_text: str,
     crop_base64: str = "",
-    all_engine_texts: Optional[Dict[str, str]] = None,
+    all_engine_texts: dict[str, str] | None = None,
     best_engine: str = "",
     confidence: float = 0.0,
     image_hash: str = "",
@@ -112,9 +111,9 @@ def save_correction(
 
 
 def save_corrections_batch(
-    regions: List[Dict],
-    corrections_data: List[Dict],
-) -> Dict:
+    regions: list[dict],
+    corrections_data: list[dict],
+) -> dict:
     """Save multiple corrections at once.
 
     Parameters
@@ -156,7 +155,7 @@ def save_corrections_batch(
     return {"saved": saved, "skipped": skipped, "total": len(corrections_data)}
 
 
-def lookup_correction(text: str) -> Optional[str]:
+def lookup_correction(text: str) -> str | None:
     """Look up a prior correction for *text*.
 
     Strategy:
@@ -212,7 +211,7 @@ def _normalize(text: str) -> str:
     return text.strip()
 
 
-def get_stats() -> Dict:
+def get_stats() -> dict:
     """Return database statistics."""
     db = get_db()
     total_corrections = db.execute("SELECT COUNT(*) FROM corrections").fetchone()[0]
@@ -231,7 +230,7 @@ def get_stats() -> Dict:
     }
 
 
-def export_training_data() -> List[Dict]:
+def export_training_data() -> list[dict]:
     """Export all corrections as training-ready data."""
     db = get_db()
     rows = db.execute(

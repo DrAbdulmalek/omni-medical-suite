@@ -39,18 +39,16 @@ Usage:
         --dictionary arabic_medical_dict.json
 """
 
+import argparse
 import json
-import os
+import logging
+import shutil
+import subprocess
 import sys
 import time
-import shutil
-import argparse
-import logging
-import subprocess
-from pathlib import Path
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO,
@@ -70,11 +68,11 @@ class StepResult:
     step_name: str
     success: bool
     duration: float
-    output_files: List[str]
+    output_files: list[str]
     message: str
-    metrics: Dict = None
+    metrics: dict = None
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
@@ -97,14 +95,14 @@ class FullPipeline:
         8. Generate Final Report
     """
 
-    def __init__(self, config: Dict):
+    def __init__(self, config: dict):
         self.config = config
         self.output_dir = Path(config.get("output_dir", "pipeline_output"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        self.results: List[StepResult] = []
+        self.results: list[StepResult] = []
         self.start_time = time.time()
-        self.log_lines: List[str] = []
+        self.log_lines: list[str] = []
 
         # File paths
         self.ground_truth_txt = self.output_dir / "ground_truth.txt"
@@ -132,7 +130,7 @@ class FullPipeline:
             logger.info(f"  >> {message}")
         self.log_lines.append(f"[{datetime.now().strftime('%H:%M:%S')}] {level}: {message}")
 
-    def run(self) -> Dict:
+    def run(self) -> dict:
         """Execute the full pipeline."""
         self._log("=" * 70)
         self._log("FULL OCR GROUND TRUTH + TRAINING PIPELINE")
@@ -239,7 +237,7 @@ class FullPipeline:
                         cmd, capture_output=True, text=True, timeout=60
                     )
                     if result.returncode == 0:
-                        with open(self.ground_truth_json, 'r', encoding='utf-8') as f:
+                        with open(self.ground_truth_json, encoding='utf-8') as f:
                             data = json.load(f)
                             entries = data.get("entries", [])
                             all_entries.extend(entries)
@@ -288,7 +286,7 @@ class FullPipeline:
             metrics={"entries": len(all_entries), "sources": len(gt_sources)}
         ))
 
-    def _manual_import(self, file_path: str) -> List[Dict]:
+    def _manual_import(self, file_path: str) -> list[dict]:
         """Manual import when the import script is not available."""
         entries = []
         path = Path(file_path)
@@ -330,7 +328,7 @@ class FullPipeline:
                                   "line_number": i, "page_number": 1})
 
             elif suffix == '.txt':
-                with open(str(path), 'r', encoding='utf-8') as f:
+                with open(str(path), encoding='utf-8') as f:
                     for i, line in enumerate(f):
                         if line.strip():
                             entries.append({"text": line.strip(), "source": "manual",
@@ -515,7 +513,7 @@ class FullPipeline:
                     actual_engine = "easyocr"
                     break
                 elif eng == "tesseract":
-                    ocr_text, ocr_confidence, ocr_boxes = self._run_tesseract(image_path)
+                    ocr_text, ocr_confidence, _ocr_boxes = self._run_tesseract(image_path)
                     actual_engine = "tesseract"
                     break
             except Exception as e:
@@ -644,7 +642,7 @@ class FullPipeline:
             spec.loader.exec_module(patch_module)
 
             # Load OCR result
-            with open(self.ocr_result_json, 'r', encoding='utf-8') as f:
+            with open(self.ocr_result_json, encoding='utf-8') as f:
                 ocr_data = json.load(f)
 
             # Apply patch
@@ -699,19 +697,17 @@ class FullPipeline:
         self._log("Comparing OCR with Ground Truth...")
 
         # Load files
-        with open(self.ground_truth_txt, 'r', encoding='utf-8') as f:
+        with open(self.ground_truth_txt, encoding='utf-8') as f:
             gt_text = f.read()
 
-        with open(self.ocr_result_json, 'r', encoding='utf-8') as f:
+        with open(self.ocr_result_json, encoding='utf-8') as f:
             ocr_data = json.load(f)
 
         # Determine which text to compare
         if ocr_data.get("corrected_text"):
             ocr_text = ocr_data["corrected_text"]
-            label = "Corrected OCR"
         else:
             ocr_text = ocr_data.get("raw_text", "")
-            label = "Raw OCR"
 
         # Use the comparison engine
         comparison_script = Path(__file__).parent / "gt_comparison_engine.py"
@@ -736,7 +732,7 @@ class FullPipeline:
                 )
 
                 if result.returncode == 0:
-                    self._log(f"  Comparison complete", "SUCCESS")
+                    self._log("  Comparison complete", "SUCCESS")
                     if result.stdout:
                         for line in result.stdout.strip().split('\n'):
                             if line.strip():
@@ -851,10 +847,10 @@ class FullPipeline:
         self._log("Validating OCR text against font glyphs...")
 
         try:
-            with open(self.fonts_json, 'r', encoding='utf-8') as f:
+            with open(self.fonts_json, encoding='utf-8') as f:
                 fonts_data = json.load(f)
 
-            with open(self.ocr_result_json, 'r', encoding='utf-8') as f:
+            with open(self.ocr_result_json, encoding='utf-8') as f:
                 ocr_data = json.load(f)
 
             ocr_text = ocr_data.get("corrected_text") or ocr_data.get("raw_text", "")
@@ -904,14 +900,14 @@ class FullPipeline:
         # Load auto-generated dictionary (if exists)
         if self.comparison_report.exists():
             try:
-                with open(self.comparison_report, 'r', encoding='utf-8') as f:
-                    report = json.load(f)
+                with open(self.comparison_report, encoding='utf-8') as f:
+                    json.load(f)
                 # Auto dictionary would be saved by comparison engine
                 auto_dict_path = self.output_dir / "report_dict.json"
                 if not auto_dict_path.exists():
                     auto_dict_path = str(self.comparison_report).replace('.json', '_dict.json')
                 if Path(auto_dict_path).exists():
-                    with open(auto_dict_path, 'r', encoding='utf-8') as f:
+                    with open(auto_dict_path, encoding='utf-8') as f:
                         merged["auto_generated"] = json.load(f)
             except Exception:
                 pass
@@ -920,7 +916,7 @@ class FullPipeline:
         dict_path = self.config.get("dictionary")
         if dict_path and Path(dict_path).exists():
             try:
-                with open(dict_path, 'r', encoding='utf-8') as f:
+                with open(dict_path, encoding='utf-8') as f:
                     merged["medical"] = json.load(f)
                 self._log(f"  Loaded medical dictionary: {dict_path}")
             except Exception as e:
@@ -934,7 +930,7 @@ class FullPipeline:
                         str(self.comparison_report).replace('.json', '_training.json')]:
             if Path(pattern).exists():
                 try:
-                    with open(pattern, 'r', encoding='utf-8') as f:
+                    with open(pattern, encoding='utf-8') as f:
                         pairs = json.load(f)
                         training_pairs.extend(pairs)
                 except Exception:
@@ -1023,7 +1019,7 @@ class FullPipeline:
         # Update training pairs count
         if self.training_pairs.exists():
             try:
-                with open(self.training_pairs, 'r', encoding='utf-8') as f:
+                with open(self.training_pairs, encoding='utf-8') as f:
                     data = json.load(f)
                     report["metrics"]["training_pairs"] = data.get("total_pairs", 0)
             except Exception:
@@ -1053,7 +1049,7 @@ class FullPipeline:
                      "total_time": total_time}
         ))
 
-    def _get_summary(self) -> Dict:
+    def _get_summary(self) -> dict:
         """Get pipeline summary for return."""
         return {
             "success": all(r.success for r in self.results if r.step_name != "Font Glyph Validation"),
@@ -1162,7 +1158,7 @@ Examples:
 
     # Exit code
     if summary["success"]:
-        print(f"\n>> Pipeline completed successfully!")
+        print("\n>> Pipeline completed successfully!")
         print(f">> Output: {summary['output_dir']}")
         sys.exit(0)
     else:

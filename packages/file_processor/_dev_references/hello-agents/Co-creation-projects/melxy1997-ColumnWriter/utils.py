@@ -339,7 +339,7 @@ def parse_react_output(text: str) -> Tuple[Optional[str], Optional[str]]:
         action = _try_extract_complete_content(text, thought, thought_end_pos)
     
     if not action:
-        print(f"▸️  警告: 未能解析出 Action")
+        print("▸️  警告: 未能解析出 Action")
         print(f"   响应内容（前500字符）: {text[:500]}")
         print(f"   已解析的 Thought: {thought[:100] if thought else 'None'}...")
     
@@ -438,9 +438,9 @@ def _try_extract_complete_content(
     else:
         print(f"▸️  检测到部分正文内容（长度: {content_length} 字符），但可能未完成")
         if has_continuation:
-            print(f"   - 检测到'未完待续'标记，继续循环让模型完成写作")
+            print("   - 检测到'未完待续'标记，继续循环让模型完成写作")
         elif not is_substantial:
-            print(f"   - 内容长度不足，继续循环让模型完成写作")
+            print("   - 内容长度不足，继续循环让模型完成写作")
         return None
 
 

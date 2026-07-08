@@ -36,8 +36,8 @@ TrOCR, PaddleOCR, Surya) في هيكل JSON موحد يمكن استهلاكه �
 
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ def normalize_ocr_output(
     page_width: int,
     page_height: int,
     engine_name: str,
-    languages: Optional[list[str]] = None,
+    languages: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     تحويل كتل OCR الخام إلى الهيكل القياسي JSON.
@@ -138,7 +138,7 @@ def normalize_ocr_output(
     result = {
         "metadata": {
             "source_file": image_path,
-            "processing_date": datetime.now(timezone.utc).isoformat(),
+            "processing_date": datetime.now(UTC).isoformat(),
             "engine": engine_name,
             "languages_detected": languages,
             "page_count": 1,
@@ -227,7 +227,7 @@ def load_normalized(input_path: str) -> dict[str, Any]:
     Returns:
         dict يحتوي على البيانات الموحدة
     """
-    with open(input_path, "r", encoding="utf-8") as f:
+    with open(input_path, encoding="utf-8") as f:
         data = json.load(f)
 
     # التحقق الأساسي من الهيكل

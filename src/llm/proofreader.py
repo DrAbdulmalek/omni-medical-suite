@@ -21,8 +21,6 @@ Usage:
     # {"drug": ["أموكسيسيلين"], "disease": ["التهاب اللوزتين"], "dosage": ["500 ملغ"]}
 """
 import logging
-import re
-from typing import Dict, Optional
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -53,7 +51,7 @@ class MedicalProofreader:
         )
         self.model.eval()
 
-    def proofread(self, ocr_text: str) -> Dict:
+    def proofread(self, ocr_text: str) -> dict:
         """
         Proofread OCR text: correct errors + extract medical entities.
 
@@ -121,9 +119,9 @@ class MedicalProofreader:
         except (IndexError, AttributeError):
             return text
 
-    def _parse_entities(self, text: str) -> Dict[str, list]:
+    def _parse_entities(self, text: str) -> dict[str, list]:
         """Parse entity lists from LLM response."""
-        entities: Dict[str, list] = {
+        entities: dict[str, list] = {
             "drug": [],
             "disease": [],
             "dosage": [],

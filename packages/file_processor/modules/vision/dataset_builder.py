@@ -219,7 +219,7 @@ class DatasetBuilder:
             'images_count': len(labels_content),
         }
 
-        print(f"\nDataset built successfully!")
+        print("\nDataset built successfully!")
         print(f"  Location: {self.output_dir}")
         print(f"  Total lines: {total_lines}")
         print(f"  Pages: {pages_processed}")

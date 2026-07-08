@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 interactive_learning/graphics/diagram_renderer.py
 ==================================================
@@ -7,15 +6,11 @@ interactive_learning/graphics/diagram_renderer.py
 رسم المخططات الصندوقية والرسوم البيانية بشكل جميل ومنسق.
 """
 
-import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
-import uuid
 
 import numpy as np
 import svgwrite
-from svgwrite import cm, mm
 
 
 @dataclass
@@ -31,8 +26,8 @@ class FlowchartNode:
     fill_color: str = "#e3f2fd"
     border_color: str = "#1565c0"
     text_color: str = "#333"
-    connections: List[Dict] = None  # [{target_id, label, style}]
-    
+    connections: list[dict] = None  # [{target_id, label, style}]
+
     def __post_init__(self):
         if self.connections is None:
             self.connections = []
@@ -50,7 +45,7 @@ class FlowchartEdge:
 
 class FlowchartRenderer:
     """مصيّر مخططات التدفق."""
-    
+
     # أشكال العقد
     SHAPES = {
         'start': 'ellipse',
@@ -61,7 +56,7 @@ class FlowchartRenderer:
         'output': 'parallelogram',
         'subprocess': 'rect_with_stripe'
     }
-    
+
     # الألوان الافتراضية
     COLORS = {
         'start': {'fill': '#c8e6c9', 'border': '#2e7d32', 'text': '#1b5e20'},
@@ -71,7 +66,7 @@ class FlowchartRenderer:
         'input': {'fill': '#f3e5f5', 'border': '#7b1fa2', 'text': '#4a148c'},
         'output': {'fill': '#e0f2f1', 'border': '#00796b', 'text': '#004d40'}
     }
-    
+
     def __init__(
         self,
         width: float = 800,
@@ -83,18 +78,18 @@ class FlowchartRenderer:
         self.height = height
         self.node_spacing = node_spacing
         self.layer_spacing = layer_spacing
-        
-        self.nodes: Dict[str, FlowchartNode] = {}
-        self.edges: List[FlowchartEdge] = []
-    
+
+        self.nodes: dict[str, FlowchartNode] = {}
+        self.edges: list[FlowchartEdge] = []
+
     def add_node(self, node: FlowchartNode):
         """إضافة عقدة."""
         self.nodes[node.id] = node
-    
+
     def add_edge(self, edge: FlowchartEdge):
         """إضافة وصلة."""
         self.edges.append(edge)
-        
+
         # إضافة للعقدة المصدر
         if edge.source in self.nodes:
             self.nodes[edge.source].connections.append({
@@ -102,114 +97,114 @@ class FlowchartRenderer:
                 'label': edge.label,
                 'style': edge.style
             })
-    
+
     def auto_layout(self):
         """تخطيط تلقائي للعقد."""
         # خوارزمية تخطيط هرمي بسيطة
         # TODO: استخدام خوارزمية أكثر تطوراً
-        
+
         # ترتيب الطبقات
         layers = self._calculate_layers()
-        
+
         # وضع العقد
         for layer_idx, layer in enumerate(layers):
             y = 50 + layer_idx * (80 + self.layer_spacing)
             total_width = len(layer) * 150 + (len(layer) - 1) * self.node_spacing
             start_x = (self.width - total_width) / 2
-            
+
             for node_idx, node_id in enumerate(layer):
                 node = self.nodes[node_id]
                 node.x = start_x + node_idx * (150 + self.node_spacing)
                 node.y = y
-    
-    def _calculate_layers(self) -> List[List[str]]:
+
+    def _calculate_layers(self) -> list[list[str]]:
         """حساب الطبقات باستخدام BFS."""
         # العثور على البداية
         start_nodes = [
             nid for nid, n in self.nodes.items()
             if n.node_type == 'start'
         ]
-        
+
         if not start_nodes:
-            start_nodes = [list(self.nodes.keys())[0]]
-        
+            start_nodes = [next(iter(self.nodes.keys()))]
+
         # BFS
         layers = []
         visited = set()
         queue = [(nid, 0) for nid in start_nodes]
-        
+
         while queue:
             node_id, depth = queue.pop(0)
-            
+
             if node_id in visited:
                 continue
-            
+
             visited.add(node_id)
-            
+
             while len(layers) <= depth:
                 layers.append([])
-            
+
             layers[depth].append(node_id)
-            
+
             # إضافة الأبناء
             for conn in self.nodes[node_id].connections:
                 if conn['target_id'] not in visited:
                     queue.append((conn['target_id'], depth + 1))
-        
+
         return layers
-    
-    def render(self, output_path: Optional[Path] = None) -> str:
+
+    def render(self, output_path: Path | None = None) -> str:
         """
         تصيير المخطط كـ SVG.
-        
+
         Returns:
             نص SVG
         """
         # التخطيط التلقائي إذا لم يتم تحديد مواقع
         if all(n.x == 0 and n.y == 0 for n in self.nodes.values()):
             self.auto_layout()
-        
+
         # إنشاء SVG
         dwg = svgwrite.Drawing(
             str(output_path) if output_path else None,
             size=(self.width, self.height),
             profile='full'
         )
-        
+
         # خلفية
         dwg.add(dwg.rect(
             insert=(0, 0),
             size=('100%', '100%'),
             fill='white'
         ))
-        
+
         # رسم الوصلات أولاً (تحت العقد)
         for edge in self.edges:
             self._draw_edge(dwg, edge)
-        
+
         # رسم العقد
         for node in self.nodes.values():
             self._draw_node(dwg, node)
-        
+
         # الحفظ
         if output_path:
             dwg.save()
-        
+
         return dwg.tostring()
-    
+
     def _draw_node(self, dwg: svgwrite.Drawing, node: FlowchartNode):
         """رسم عقدة."""
         colors = self.COLORS.get(node.node_type, self.COLORS['process'])
-        
+
         g = dwg.g(
             id=f"node_{node.id}",
             class_='flowchart-node',
             transform=f"translate({node.x}, {node.y})"
         )
-        
+
         # الشكل
         shape = self.SHAPES.get(node.node_type, 'rect')
-        
+
         if shape == 'ellipse':
             g.add(dwg.ellipse(
                 center=(node.width / 2, node.height / 2),
@@ -218,7 +213,7 @@ class FlowchartRenderer:
                 stroke=colors['border'],
                 stroke_width=2
             ))
-        
+
         elif shape == 'rect':
             g.add(dwg.rect(
                 insert=(5, 5),
@@ -228,7 +223,7 @@ class FlowchartRenderer:
                 stroke=colors['border'],
                 stroke_width=2
             ))
-        
+
         elif shape == 'diamond':
             # معين
             points = [
@@ -243,7 +238,7 @@ class FlowchartRenderer:
                 stroke=colors['border'],
                 stroke_width=2
             ))
-        
+
         elif shape == 'parallelogram':
             # متوازي أضلاع
             offset = 20
@@ -259,30 +254,30 @@ class FlowchartRenderer:
                 stroke=colors['border'],
                 stroke_width=2
             ))
-        
+
         # النص
         # تقسيم النص لأسطر إذا طويل
         words = node.text.split()
         lines = []
         current_line = []
-        
+
         for word in words:
-            test_line = ' '.join(current_line + [word])
+            test_line = ' '.join([*current_line, word])
             if len(test_line) * 8 < node.width - 20:  # تقريب عرض الحرف
                 current_line.append(word)
             else:
                 if current_line:
                     lines.append(' '.join(current_line))
                 current_line = [word]
-        
+
         if current_line:
             lines.append(' '.join(current_line))
-        
+
         # رسم الأسطر
         line_height = 16
         total_text_height = len(lines) * line_height
         start_y = (node.height - total_text_height) / 2 + line_height
-        
+
         for i, line in enumerate(lines):
             g.add(dwg.text(
                 line,
@@ -292,24 +287,24 @@ class FlowchartRenderer:
                 font_size='14px',
                 fill=colors['text']
             ))
-        
+
         dwg.add(g)
-    
+
     def _draw_edge(self, dwg: svgwrite.Drawing, edge: FlowchartEdge):
         """رسم وصلة."""
         source = self.nodes.get(edge.source)
         target = self.nodes.get(edge.target)
-        
+
         if not source or not target:
             return
-        
+
         # نقاط البداية والنهاية
         start = self._get_connection_point(source, target)
         end = self._get_connection_point(target, source)
-        
+
         # منحنى بيزير
         mid_x = (start[0] + end[0]) / 2
-        
+
         path = dwg.path(
             d=f"M {start[0]} {start[1]} "
               f"C {mid_x} {start[1]}, {mid_x} {end[1]}, {end[0]} {end[1]}",
@@ -318,7 +313,7 @@ class FlowchartRenderer:
             stroke_width=2,
             marker_end='url(#arrowhead)'
         )
-        
+
         # تعريف السهم إذا لم يكن موجوداً
         if 'arrowhead' not in [d.get_id() for d in dwg.defs.elements]:
             marker = dwg.marker(
@@ -332,9 +327,9 @@ class FlowchartRenderer:
                 fill=edge.color
             ))
             dwg.defs.add(marker)
-        
+
         dwg.add(path)
-        
+
         # تسمية الوصلة
         if edge.label:
             mid_point = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
@@ -347,21 +342,21 @@ class FlowchartRenderer:
                 fill='#666',
                 dy='-5'
             ))
-    
+
     def _get_connection_point(
         self,
         from_node: FlowchartNode,
         to_node: FlowchartNode
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """حساب نقطة الاتصال بين عقدتين."""
         # مركز العقدة
         cx = from_node.x + from_node.width / 2
         cy = from_node.y + from_node.height / 2
-        
+
         # اتجاه العقدة الهدف
         dx = (to_node.x + to_node.width / 2) - cx
         dy = (to_node.y + to_node.height / 2) - cy
-        
+
         # تحديد الجانب
         if abs(dx) > abs(dy):
             # أفقي
@@ -375,11 +370,11 @@ class FlowchartRenderer:
                 return (cx, from_node.y + from_node.height)  # أسفل
             else:
                 return (cx, from_node.y)  # أعلى
-    
+
     def render_interactive_html(self, output_path: Path):
         """تصيير HTML تفاعلي مع SVG."""
         svg_content = self.render()
-        
+
         html = f'''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -393,7 +388,7 @@ class FlowchartRenderer:
             padding: 20px;
             background: #f5f5f5;
         }}
-        
+
         .container {{
             max-width: 1200px;
             margin: 0 auto;
@@ -402,27 +397,27 @@ class FlowchartRenderer:
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }}
-        
+
         .flowchart-svg {{
             width: 100%;
             height: auto;
         }}
-        
+
         .flowchart-node {{
             cursor: pointer;
             transition: all 0.3s;
         }}
-        
+
         .flowchart-node:hover {{
             filter: brightness(1.1);
         }}
-        
+
         .flowchart-node:hover rect,
         .flowchart-node:hover ellipse,
         .flowchart-node:hover polygon {{
             stroke-width: 3;
         }}
-        
+
         .node-editor {{
             position: fixed;
             top: 50%;
@@ -435,11 +430,11 @@ class FlowchartRenderer:
             display: none;
             z-index: 1000;
         }}
-        
+
         .node-editor.visible {{
             display: block;
         }}
-        
+
         .overlay {{
             position: fixed;
             top: 0;
@@ -450,7 +445,7 @@ class FlowchartRenderer:
             display: none;
             z-index: 999;
         }}
-        
+
         .overlay.visible {{
             display: block;
         }}
@@ -461,7 +456,7 @@ class FlowchartRenderer:
         <h1>مخطط التدفق</h1>
         {svg_content}
     </div>
-    
+
     <div class="overlay" id="overlay"></div>
     <div class="node-editor" id="nodeEditor">
         <h3>تعديل العقدة</h3>
@@ -469,10 +464,10 @@ class FlowchartRenderer:
         <button onclick="saveNode()">حفظ</button>
         <button onclick="closeEditor()">إلغاء</button>
     </div>
-    
+
     <script>
         let currentNodeId = null;
-        
+
         document.querySelectorAll('.flowchart-node').forEach(node => {{
             node.addEventListener('click', function() {{
                 currentNodeId = this.id.replace('node_', '');
@@ -482,7 +477,7 @@ class FlowchartRenderer:
                 document.getElementById('nodeEditor').classList.add('visible');
             }});
         }});
-        
+
         function saveNode() {{
             const newText = document.getElementById('nodeText').value;
             // إرسال للخادم
@@ -493,7 +488,7 @@ class FlowchartRenderer:
             }});
             closeEditor();
         }}
-        
+
         function closeEditor() {{
             document.getElementById('overlay').classList.remove('visible');
             document.getElementById('nodeEditor').classList.remove('visible');
@@ -502,41 +497,41 @@ class FlowchartRenderer:
 </body>
 </html>
         '''
-        
+
         output_path.write_text(html, encoding='utf-8')
         return output_path
 
 
 class ChartRenderer:
     """مصيّر المخططات البيانية."""
-    
+
     CHART_TYPES = ['bar', 'line', 'pie', 'doughnut', 'radar']
-    
+
     def __init__(self, width: int = 600, height: int = 400):
         self.width = width
         self.height = height
-    
+
     def render_bar_chart(
         self,
-        data: List[Dict],
+        data: list[dict],
         title: str = "",
         x_label: str = "",
         y_label: str = ""
     ) -> str:
         """
         تصيير مخطط شريطي.
-        
+
         Args:
             data: [{'label': str, 'value': float, 'color': str}]
         """
         # إنشاء SVG
         dwg = svgwrite.Drawing(size=(self.width, self.height))
-        
+
         # هوامش
         margin = {'top': 60, 'right': 40, 'bottom': 80, 'left': 80}
         chart_width = self.width - margin['left'] - margin['right']
         chart_height = self.height - margin['top'] - margin['bottom']
-        
+
         # العنوان
         if title:
             dwg.add(dwg.text(
@@ -548,11 +543,11 @@ class ChartRenderer:
                 font_weight='bold',
                 fill='#333'
             ))
-        
+
         # العثور على القيمة القصوى
         max_value = max(d['value'] for d in data) if data else 1
         max_value = max(max_value * 1.1, 1)  # هامش علوي
-        
+
         # رسم المحاور
         # Y axis
         dwg.add(dwg.line(
@@ -561,7 +556,7 @@ class ChartRenderer:
             stroke='#333',
             stroke_width=2
         ))
-        
+
         # X axis
         dwg.add(dwg.line(
             start=(margin['left'], self.height - margin['bottom']),
@@ -569,13 +564,13 @@ class ChartRenderer:
             stroke='#333',
             stroke_width=2
         ))
-        
+
         # تسميات Y
         num_ticks = 5
         for i in range(num_ticks + 1):
             value = max_value * i / num_ticks
             y = self.height - margin['bottom'] - (chart_height * i / num_ticks)
-            
+
             dwg.add(dwg.text(
                 f"{value:.0f}",
                 insert=(margin['left'] - 10, y + 5),
@@ -584,7 +579,7 @@ class ChartRenderer:
                 font_size='12px',
                 fill='#666'
             ))
-            
+
             # خط شبكة
             if i > 0:
                 dwg.add(dwg.line(
@@ -593,16 +588,16 @@ class ChartRenderer:
                     stroke='#eee',
                     stroke_width=1
                 ))
-        
+
         # رسم الأعمدة
         bar_width = chart_width / len(data) * 0.7
         bar_spacing = chart_width / len(data) * 0.3
-        
+
         for i, item in enumerate(data):
             x = margin['left'] + i * (bar_width + bar_spacing) + bar_spacing / 2
             bar_height = (item['value'] / max_value) * chart_height
             y = self.height - margin['bottom'] - bar_height
-            
+
             # العمود
             color = item.get('color', '#1976d2')
             dwg.add(dwg.rect(
@@ -611,7 +606,7 @@ class ChartRenderer:
                 fill=color,
                 rx=3, ry=3
             ))
-            
+
             # القيمة فوق العمود
             dwg.add(dwg.text(
                 f"{item['value']:.0f}",
@@ -621,7 +616,7 @@ class ChartRenderer:
                 font_size='12px',
                 fill='#333'
             ))
-            
+
             # التسمية
             label = item.get('label', f"Item {i+1}")
             dwg.add(dwg.text(
@@ -633,7 +628,7 @@ class ChartRenderer:
                 fill='#666',
                 transform=f"rotate(45, {x + bar_width / 2}, {self.height - margin['bottom'] + 20})"
             ))
-        
+
         # تسميات المحاور
         if y_label:
             dwg.add(dwg.text(
@@ -645,7 +640,7 @@ class ChartRenderer:
                 fill='#333',
                 transform=f"rotate(-90, 20, {self.height / 2})"
             ))
-        
+
         if x_label:
             dwg.add(dwg.text(
                 x_label,
@@ -655,20 +650,20 @@ class ChartRenderer:
                 font_size='14px',
                 fill='#333'
             ))
-        
+
         return dwg.tostring()
-    
+
     def render_pie_chart(
         self,
-        data: List[Dict],
+        data: list[dict],
         title: str = ""
     ) -> str:
         """تصيير مخطط دائري."""
         dwg = svgwrite.Drawing(size=(self.width, self.height))
-        
+
         center = (self.width / 2, self.height / 2)
         radius = min(self.width, self.height) / 3
-        
+
         # العنوان
         if title:
             dwg.add(dwg.text(
@@ -680,32 +675,32 @@ class ChartRenderer:
                 font_weight='bold',
                 fill='#333'
             ))
-        
+
         # حساب الزوايا
         total = sum(d['value'] for d in data)
         start_angle = 0
-        
+
         for i, item in enumerate(data):
             angle = (item['value'] / total) * 360
             end_angle = start_angle + angle
-            
+
             # رسم القطاع
             color = item.get('color', self._get_color(i))
             path = self._arc_path(center, radius, start_angle, end_angle)
-            
+
             dwg.add(dwg.path(
                 d=path,
                 fill=color,
                 stroke='white',
                 stroke_width=2
             ))
-            
+
             # التسمية
             mid_angle = (start_angle + end_angle) / 2
             label_radius = radius * 0.7
             label_x = center[0] + label_radius * np.cos(np.radians(mid_angle))
             label_y = center[1] + label_radius * np.sin(np.radians(mid_angle))
-            
+
             percentage = (item['value'] / total) * 100
             dwg.add(dwg.text(
                 f"{percentage:.1f}%",
@@ -716,7 +711,7 @@ class ChartRenderer:
                 fill='white',
                 font_weight='bold'
             ))
-            
+
             # مفتاح
             legend_y = 80 + i * 25
             dwg.add(dwg.rect(
@@ -732,14 +727,14 @@ class ChartRenderer:
                 font_size='12px',
                 fill='#333'
             ))
-            
+
             start_angle = end_angle
-        
+
         return dwg.tostring()
-    
+
     def _arc_path(
         self,
-        center: Tuple[float, float],
+        center: tuple[float, float],
         radius: float,
         start_angle: float,
         end_angle: float
@@ -753,16 +748,16 @@ class ChartRenderer:
             center[0] + radius * np.cos(np.radians(end_angle)),
             center[1] + radius * np.sin(np.radians(end_angle))
         )
-        
+
         large_arc = 1 if (end_angle - start_angle) > 180 else 0
-        
+
         return (
             f"M {center[0]} {center[1]} "
             f"L {start[0]} {start[1]} "
             f"A {radius} {radius} 0 {large_arc} 1 {end[0]} {end[1]} "
             f"Z"
         )
-    
+
     def _get_color(self, index: int) -> str:
         """لون من لوحة الألوان."""
         colors = [

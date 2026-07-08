@@ -1,6 +1,6 @@
 import os
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -71,26 +71,25 @@ class Configuration(BaseModel):
         title="Use Tool Calling",
         description="Use tool calling instead of JSON mode for structured output",
     )
-    llm_api_key: Optional[str] = Field(
+    llm_api_key: str | None = Field(
         default=None,
         title="LLM API Key",
         description="Optional API key when using custom OpenAI-compatible services",
     )
-    llm_base_url: Optional[str] = Field(
+    llm_base_url: str | None = Field(
         default=None,
         title="LLM Base URL",
         description="Optional base URL when using custom OpenAI-compatible services",
     )
-    llm_model_id: Optional[str] = Field(
+    llm_model_id: str | None = Field(
         default=None,
         title="LLM Model ID",
         description="Optional model identifier for custom OpenAI-compatible services",
     )
 
     @classmethod
-    def from_env(cls, overrides: Optional[dict[str, Any]] = None) -> "Configuration":
+    def from_env(cls, overrides: dict[str, Any] | None = None) -> "Configuration":
         """Create a configuration object using environment variables and overrides."""
-
         raw_values: dict[str, Any] = {}
 
         # Load values from environment variables based on field names
@@ -130,14 +129,12 @@ class Configuration(BaseModel):
 
     def sanitized_ollama_url(self) -> str:
         """Ensure Ollama base URL includes the /v1 suffix required by OpenAI clients."""
-
         base = self.ollama_base_url.rstrip("/")
         if not base.endswith("/v1"):
             base = f"{base}/v1"
         return base
 
-    def resolved_model(self) -> Optional[str]:
+    def resolved_model(self) -> str | None:
         """Best-effort resolution of the model identifier to use."""
-
         return self.llm_model_id or self.local_llm
 

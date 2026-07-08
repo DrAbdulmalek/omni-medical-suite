@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Any
 
 import cv2
 import numpy as np
 
-from src.engines.base_engine import BBox, OCREngine, OCRResult, ImageInput
+from src.engines.base_engine import BBox, ImageInput, OCREngine, OCRResult
 
 logger = logging.getLogger(__name__)
 
@@ -82,15 +83,15 @@ class PaddleOCREngine(OCREngine):
         self,
         lang: str = "ar",
         use_angle_cls: bool = True,
-        use_gpu: Optional[bool] = None,
+        use_gpu: bool | None = None,
         use_table: bool = False,
         use_layout: bool = False,
-        det_model_dir: Optional[str] = None,
-        rec_model_dir: Optional[str] = None,
-        cls_model_dir: Optional[str] = None,
-        table_model_dir: Optional[str] = None,
-        table_char_dict_path: Optional[str] = None,
-        layout_model_dir: Optional[str] = None,
+        det_model_dir: str | None = None,
+        rec_model_dir: str | None = None,
+        cls_model_dir: str | None = None,
+        table_model_dir: str | None = None,
+        table_char_dict_path: str | None = None,
+        layout_model_dir: str | None = None,
         show_log: bool = False,
         det_db_thresh: float = 0.3,
         det_db_box_thresh: float = 0.5,
@@ -149,7 +150,7 @@ class PaddleOCREngine(OCREngine):
 
         gpu = self._use_gpu if self._use_gpu is not None else self._detect_gpu()
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "use_angle_cls": self._use_angle_cls,
             "lang": self._lang,
             "use_gpu": gpu,
@@ -187,7 +188,7 @@ class PaddleOCREngine(OCREngine):
 
         gpu = self._use_gpu if self._use_gpu is not None else self._detect_gpu()
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "use_gpu": gpu,
             "show_log": self._show_log,
             "lang": self._lang,
@@ -212,7 +213,7 @@ class PaddleOCREngine(OCREngine):
 
         gpu = self._use_gpu if self._use_gpu is not None else self._detect_gpu()
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "use_gpu": gpu,
             "show_log": self._show_log,
             "lang": self._lang,
@@ -265,7 +266,7 @@ class PaddleOCREngine(OCREngine):
         else:
             return self._ocr_standard(bgr)
 
-    def ocr_batch(self, images: Sequence[ImageInput]) -> List[OCRResult]:
+    def ocr_batch(self, images: Sequence[ImageInput]) -> list[OCRResult]:
         """Run PaddleOCR on a batch of images sequentially.
 
         Parameters
@@ -276,7 +277,7 @@ class PaddleOCREngine(OCREngine):
         -------
         list[OCRResult]
         """
-        results: List[OCRResult] = []
+        results: list[OCRResult] = []
         for idx, img in enumerate(images):
             self._logger.debug(
                 "PaddleOCR batch: image %d/%d.", idx + 1, len(images),
@@ -333,10 +334,10 @@ class PaddleOCREngine(OCREngine):
         ``[[[bbox_pts, (text, confidence)], ...], ...]``
         where the outer list is pages.
         """
-        lines_text: List[str] = []
-        line_confs: List[float] = []
-        line_bboxes: List[BBox] = []
-        word_level: List[tuple[str, float, BBox]] = []
+        lines_text: list[str] = []
+        line_confs: list[float] = []
+        line_bboxes: list[BBox] = []
+        word_level: list[tuple[str, float, BBox]] = []
 
         if raw_result is None:
             return OCRResult(
@@ -414,10 +415,10 @@ class PaddleOCREngine(OCREngine):
         PP-Structure returns a list of dicts with keys like
         ``type``, ``bbox``, ``res``, ``text``.
         """
-        lines_text: List[str] = []
-        line_confs: List[float] = []
-        line_bboxes: List[BBox] = []
-        word_level: List[tuple[str, float, BBox]] = []
+        lines_text: list[str] = []
+        line_confs: list[float] = []
+        line_bboxes: list[BBox] = []
+        word_level: list[tuple[str, float, BBox]] = []
 
         if raw_result is None:
             return OCRResult(

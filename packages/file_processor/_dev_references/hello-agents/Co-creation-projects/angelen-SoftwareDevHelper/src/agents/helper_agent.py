@@ -7,7 +7,6 @@ from typing import Dict, Any, List
 
 from hello_agents import SimpleAgent, HelloAgentsLLM, ToolRegistry
 from hello_agents.tools import Tool, ToolParameter, ToolResponse
-from hello_agents.tools.response import ToolStatus
 
 class UserMemoryTool(Tool):
     """管理用户水平记忆的工具"""

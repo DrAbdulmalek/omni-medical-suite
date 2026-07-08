@@ -9,15 +9,16 @@ Key fixes:
 - detect_blur_laplacian: Normalized by image area
 """
 
+import logging
+from typing import Any
+
 import cv2
 import numpy as np
-from typing import Tuple, Optional, Dict, Any
-import logging
 
 logger = logging.getLogger(__name__)
 
 
-def find_page_bounds(image: np.ndarray, threshold: int = 200, padding: int = 10) -> Tuple[int, int, int, int]:
+def find_page_bounds(image: np.ndarray, threshold: int = 200, padding: int = 10) -> tuple[int, int, int, int]:
     """
     Detect page boundaries using median-based projection profile.
     Uses ONLY median (no hybrid mean/median) for reliability with dense text.
@@ -267,7 +268,7 @@ def sharpen_image(image: np.ndarray, strength: float = 1.0) -> np.ndarray:
     return sharpened
 
 
-def extract_page_number(image: np.ndarray, region: Optional[Tuple[int, int, int, int]] = None) -> str:
+def extract_page_number(image: np.ndarray, region: tuple[int, int, int, int] | None = None) -> str:
     """Extract a page number string from a document image using OCR.
 
     Attempts to read a page number (e.g., "3/10" or just "5") from the
@@ -316,7 +317,7 @@ def extract_page_number(image: np.ndarray, region: Optional[Tuple[int, int, int,
         return ""
 
 
-def assess_image_quality(image: np.ndarray) -> Dict[str, Any]:
+def assess_image_quality(image: np.ndarray) -> dict[str, Any]:
     """
     Comprehensive image quality assessment.
 
@@ -357,9 +358,9 @@ def assess_image_quality(image: np.ndarray) -> Dict[str, Any]:
     }
 
 
-def apply_processing(img: np.ndarray, rotation: float = 0.0, crop_bounds: Optional[Tuple[int, int, int, int]] = None,
+def apply_processing(img: np.ndarray, rotation: float = 0.0, crop_bounds: tuple[int, int, int, int] | None = None,
                       deskew_angle: float = 0.0, flip_h: bool = False, sharpen: bool = False,
-                      remove_shadow_flag: bool = False, gray_threshold: int = 230) -> Dict[str, Any]:
+                      remove_shadow_flag: bool = False, gray_threshold: int = 230) -> dict[str, Any]:
     """
     Apply full processing pipeline to an image.
 

@@ -2,22 +2,18 @@
 """
 Authentication Database Models - Complete RBAC Implementation
 """
-from datetime import datetime, timedelta
-from enum import Enum
-from typing import Optional, List
 import uuid
+from datetime import datetime
+from enum import StrEnum
 
-from sqlalchemy import (
-    Column, Integer, String, Boolean, DateTime, Text,
-    ForeignKey, Enum as SQLEnum, JSON, Index, LargeBinary
-)
-from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy.sql import func
+from sqlalchemy import JSON, Boolean, Column, DateTime, Enum as SQLEnum, ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     """User roles for granular RBAC"""
     SUPER_ADMIN = "super_admin"      # Full access to everything
     ADMIN = "admin"                 # Administrative access
@@ -26,7 +22,7 @@ class UserRole(str, Enum):
     VIEWER = "viewer"               # Read-only access
     GUEST = "guest"                 # Limited access
 
-class UserStatus(str, Enum):
+class UserStatus(StrEnum):
     """User account status"""
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -34,7 +30,7 @@ class UserStatus(str, Enum):
     PENDING = "pending"
     BANNED = "banned"
 
-class PermissionCategory(str, Enum):
+class PermissionCategory(StrEnum):
     """Permission categories"""
     USER_MANAGEMENT = "user_management"
     AUTHENTICATION = "authentication"
@@ -108,12 +104,12 @@ class User(Base):
     )
 
     @property
-    def roles(self) -> List[UserRole]:
+    def roles(self) -> list[UserRole]:
         """Get all roles for this user"""
         return [ura.role.name for ura in self.user_roles]
 
     @property
-    def permissions(self) -> List[str]:
+    def permissions(self) -> list[str]:
         """Get all permission codenames for this user"""
         permissions = set()
         for ura in self.user_roles:
@@ -129,9 +125,7 @@ class User(Base):
         """Check if user is active"""
         if self.status != UserStatus.ACTIVE:
             return False
-        if self.locked_until and self.locked_until > datetime.utcnow():
-            return False
-        return True
+        return not (self.locked_until and self.locked_until > datetime.utcnow())
 
     def has_permission(self, permission_codename: str) -> bool:
         """Check if user has specific permission"""
@@ -188,7 +182,7 @@ class RefreshToken(Base):
         """Check if token is active"""
         return not self.is_revoked and self.expires_at > datetime.utcnow()
 
-    def revoke(self, reason: str = "User logout", revoked_by: Optional[int] = None) -> None:
+    def revoke(self, reason: str = "User logout", revoked_by: int | None = None) -> None:
         """Revoke this refresh token"""
         self.is_revoked = True
         self.revoked_at = datetime.utcnow()

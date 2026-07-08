@@ -6,7 +6,6 @@ and aggregates results.
 
 import json
 import os
-from pathlib import Path
 from typing import Any
 
 from benchmarks.core.metrics import BenchmarkSuite
@@ -49,7 +48,7 @@ class BenchmarkRunner:
         }
 
         if config_path and os.path.isfile(config_path):
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 user_config = json.load(f)
             defaults.update(user_config)
 
@@ -137,7 +136,7 @@ class BenchmarkRunner:
                 f"Golden dataset not found: {filepath}"
             )
 
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             return json.load(f)
 
     def run_single(self, benchmark_name: str, dataset_name: str = "en_medical") -> dict:

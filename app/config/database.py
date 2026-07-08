@@ -1,12 +1,10 @@
 """
 Database Configuration - Pydantic-based
 """
-from typing import Optional
 try:
     from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
 except ImportError:
     from pydantic import BaseSettings, validator  # Pydantic v1
-from sqlalchemy import text
 
 class DatabaseConfig(BaseSettings):
     """Database configuration"""
@@ -58,7 +56,8 @@ class DatabaseConfig(BaseSettings):
 
 from functools import lru_cache
 
-@lru_cache()
+
+@lru_cache
 def get_db_config() -> DatabaseConfig:
     """Get database configuration - cached for performance"""
     return DatabaseConfig()

@@ -5,14 +5,11 @@ tests/test_integration.py - Integration tests for HTR components
 Tests component interactions without requiring GPU or model weights.
 """
 
-import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import numpy as np
-from PIL import Image
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))

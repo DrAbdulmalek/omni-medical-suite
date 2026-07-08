@@ -22,7 +22,6 @@ from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from typing import Optional
 
-import numpy as np
 
 logger = logging.getLogger(__name__)
 

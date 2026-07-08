@@ -13,6 +13,7 @@ URL: https://github.com/unclecode/crawl4ai/blob/main/LICENSE
 """
 
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from .env file

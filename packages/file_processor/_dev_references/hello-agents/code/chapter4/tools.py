@@ -48,7 +48,6 @@ def search(query: str) -> str:
     except Exception as e:
         return f"搜索时发生错误: {e}"
     
-from typing import Dict, Any
 
 class ToolExecutor:
     """

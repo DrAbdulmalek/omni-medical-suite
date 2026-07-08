@@ -11,7 +11,6 @@ import logging
 import os
 import uuid
 from pathlib import Path
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -29,20 +28,20 @@ _OUTPUT_DIR = os.environ.get("UPLOAD_DIR", "./parsed")
 class ImageContent(BaseModel):
     page_number: int = Field(..., description="1-based page number where image was found")
     image_path: str = Field(..., description="File path to the extracted image")
-    bbox: Optional[dict] = None
-    caption: Optional[str] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    mime_type: Optional[str] = None
+    bbox: dict | None = None
+    caption: str | None = None
+    width: int | None = None
+    height: int | None = None
+    mime_type: str | None = None
 
 
 class TableContent(BaseModel):
     page_number: int = Field(...)
     table_index: int = Field(...)
-    headers: List[str] = Field(default_factory=list)
-    rows: List[List[str]] = Field(default_factory=list)
+    headers: list[str] = Field(default_factory=list)
+    rows: list[list[str]] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
-    bbox: Optional[dict] = None
+    bbox: dict | None = None
     row_count: int = Field(0)
     col_count: int = Field(0)
 
@@ -50,8 +49,8 @@ class TableContent(BaseModel):
 class PageContent(BaseModel):
     page_number: int = Field(...)
     text: str = Field(default="")
-    images: List[ImageContent] = Field(default_factory=list)
-    tables: List[TableContent] = Field(default_factory=list)
+    images: list[ImageContent] = Field(default_factory=list)
+    tables: list[TableContent] = Field(default_factory=list)
     word_count: int = Field(0)
     has_arabic: bool = Field(False)
     has_latin: bool = Field(False)
@@ -62,13 +61,13 @@ class DocumentParseResult(BaseModel):
     file_name: str = Field("")
     file_type: str = Field("")
     page_count: int = Field(0)
-    pages: List[PageContent] = Field(default_factory=list)
+    pages: list[PageContent] = Field(default_factory=list)
     full_text: str = Field("")
     total_tables: int = Field(0)
     total_images: int = Field(0)
     has_arabic: bool = Field(False)
     processing_time_ms: float = Field(0.0)
-    warnings: List[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 # =============================================================================
@@ -110,7 +109,7 @@ class DocumentParser:
     def parse_document(
         self,
         file_path: str,
-        file_type: Optional[str] = None,
+        file_type: str | None = None,
     ) -> DocumentParseResult:
         import time
 
@@ -195,7 +194,7 @@ class DocumentParser:
 
         try:
             doc = DocxDocument(file_path)
-            buffer_lines: List[str] = []
+            buffer_lines: list[str] = []
             for para in doc.paragraphs:
                 if para.text and para.text.strip():
                     buffer_lines.append(para.text)
@@ -250,7 +249,7 @@ class DocumentParser:
             return result
 
         try:
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(file_path, encoding="utf-8", errors="replace") as f:
                 html_content = f.read()
             soup = BeautifulSoup(html_content, "html.parser")
             for tag in soup(["script", "style", "noscript"]):

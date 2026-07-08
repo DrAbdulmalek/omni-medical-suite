@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 interactive_learning/core/versioning.py
 ========================================
@@ -15,11 +14,10 @@ Provides:
 import hashlib
 import json
 import logging
-import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +71,11 @@ class SemanticVersion:
     def __gt__(self, other):
         return not self.__eq__(other) and not self.__lt__(other)
 
-    def to_dict(self) -> Dict[str, int]:
+    def to_dict(self) -> dict[str, int]:
         return {'major': self.major, 'minor': self.minor, 'patch': self.patch}
 
     @classmethod
-    def from_dict(cls, d: Dict[str, int]) -> 'SemanticVersion':
+    def from_dict(cls, d: dict[str, int]) -> 'SemanticVersion':
         return cls(d.get('major', 0), d.get('minor', 0), d.get('patch', 0))
 
 
@@ -105,10 +103,10 @@ class ModelRegistry:
         self.index_file = self.registry_dir / "index.json"
         self._index = self._load_index()
 
-    def _load_index(self) -> List[Dict]:
+    def _load_index(self) -> list[dict]:
         """Load registry index from disk."""
         if self.index_file.exists():
-            with open(self.index_file, 'r', encoding='utf-8') as f:
+            with open(self.index_file, encoding='utf-8') as f:
                 return json.load(f)
         return []
 
@@ -121,12 +119,12 @@ class ModelRegistry:
         self,
         version: str,
         checkpoint_path: str,
-        metrics: Optional[Dict[str, float]] = None,
+        metrics: dict[str, float] | None = None,
         description: str = "",
-        tags: Optional[List[str]] = None,
-        parent_version: Optional[str] = None,
-        config: Optional[Dict] = None
-    ) -> Dict:
+        tags: list[str] | None = None,
+        parent_version: str | None = None,
+        config: dict | None = None
+    ) -> dict:
         """
         Register a new model version.
 
@@ -184,7 +182,7 @@ class ModelRegistry:
         logger.info(f"Registered model version {version}")
         return record
 
-    def get_model(self, version: str) -> Optional[Dict]:
+    def get_model(self, version: str) -> dict | None:
         """Get model record by version."""
         for entry in self._index:
             if entry['version'] == version:
@@ -195,7 +193,7 @@ class ModelRegistry:
         self,
         metric: str = "cer",
         higher_is_better: bool = False
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """
         Get the best model by a specific metric.
 
@@ -219,20 +217,20 @@ class ModelRegistry:
         else:
             return min(candidates, key=lambda x: x['metrics'][metric])
 
-    def get_latest(self) -> Optional[Dict]:
+    def get_latest(self) -> dict | None:
         """Get the most recently registered model."""
         if not self._index:
             return None
         return max(self._index, key=lambda x: x['registered_at'])
 
-    def get_history(self) -> List[Dict]:
+    def get_history(self) -> list[dict]:
         """Get full model history sorted by version."""
         return sorted(
             self._index,
             key=lambda x: SemanticVersion.parse(x['version'])
         )
 
-    def get_lineage(self, version: str) -> List[Dict]:
+    def get_lineage(self, version: str) -> list[dict]:
         """Get model lineage (chain of parent versions)."""
         lineage = []
         current = self.get_model(version)
@@ -246,9 +244,9 @@ class ModelRegistry:
 
         return lineage
 
-    def list_tags(self) -> Dict[str, List[str]]:
+    def list_tags(self) -> dict[str, list[str]]:
         """List all tags and their associated versions."""
-        tag_map: Dict[str, List[str]] = {}
+        tag_map: dict[str, list[str]] = {}
         for entry in self._index:
             for tag in entry.get('tags', []):
                 tag_map.setdefault(tag, []).append(entry['version'])
@@ -286,10 +284,10 @@ class DatasetVersioning:
         self.versions_file = self.data_dir / "dataset_versions.json"
         self._versions = self._load_versions()
 
-    def _load_versions(self) -> Dict[str, List[Dict]]:
+    def _load_versions(self) -> dict[str, list[dict]]:
         """Load version records."""
         if self.versions_file.exists():
-            with open(self.versions_file, 'r', encoding='utf-8') as f:
+            with open(self.versions_file, encoding='utf-8') as f:
                 return json.load(f)
         return {}
 
@@ -302,10 +300,10 @@ class DatasetVersioning:
         self,
         split: str,
         version: str,
-        data_path: Optional[str] = None,
+        data_path: str | None = None,
         description: str = "",
-        num_samples: Optional[int] = None
-    ) -> Dict:
+        num_samples: int | None = None
+    ) -> dict:
         """
         Create a snapshot of a dataset split.
 
@@ -352,11 +350,11 @@ class DatasetVersioning:
         logger.info(f"Dataset snapshot: {split}@{version} ({file_count} files)")
         return record
 
-    def list_versions(self, split: str) -> List[Dict]:
+    def list_versions(self, split: str) -> list[dict]:
         """List all versions for a dataset split."""
         return self._versions.get(split, [])
 
-    def get_latest(self, split: str) -> Optional[Dict]:
+    def get_latest(self, split: str) -> dict | None:
         """Get latest version of a split."""
         versions = self.list_versions(split)
         return versions[-1] if versions else None
@@ -403,8 +401,8 @@ class VersionManager:
 
     def __init__(
         self,
-        model_registry_dir: Optional[Path] = None,
-        data_dir: Optional[Path] = None
+        model_registry_dir: Path | None = None,
+        data_dir: Path | None = None
     ):
         self.model_registry = ModelRegistry(
             model_registry_dir or Path("models/registry")
@@ -419,15 +417,15 @@ class VersionManager:
         version: str,
         checkpoint_path: str,
         **kwargs
-    ) -> Dict:
+    ) -> dict:
         """Register a new model version."""
         return self.model_registry.register_model(version, checkpoint_path, **kwargs)
 
-    def snapshot_dataset(self, split: str, version: str, **kwargs) -> Dict:
+    def snapshot_dataset(self, split: str, version: str, **kwargs) -> dict:
         """Create a dataset snapshot."""
         return self.dataset_versioning.snapshot(split, version, **kwargs)
 
-    def get_status_report(self) -> Dict[str, Any]:
+    def get_status_report(self) -> dict[str, Any]:
         """Generate comprehensive version status report."""
         return {
             'system_version': str(self.system_version),

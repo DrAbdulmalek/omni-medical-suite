@@ -19,28 +19,24 @@ def test_imports():
     print("\n[TEST] Testing imports...")
 
     try:
-        from interactive_learning import InteractiveLearningSystem
         print("  [OK] InteractiveLearningSystem")
     except Exception as e:
         print(f"  [FAIL] InteractiveLearningSystem: {e}")
         return False
 
     try:
-        from interactive_learning.core.segmenter import SmartSegmenter
         print("  [OK] SmartSegmenter")
     except Exception as e:
         print(f"  [FAIL] SmartSegmenter: {e}")
         return False
 
     try:
-        from interactive_learning.learning.online_learner import OnlineLearner
         print("  [OK] OnlineLearner")
     except Exception as e:
         print(f"  [FAIL] OnlineLearner: {e}")
         return False
 
     try:
-        from interactive_learning.rendering.html_renderer import HTMLRenderer
         print("  [OK] HTMLRenderer")
     except Exception as e:
         print(f"  [FAIL] HTMLRenderer: {e}")

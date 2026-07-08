@@ -3,11 +3,10 @@
 """
 
 from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from pydantic import BaseModel
 import logging
 import asyncio
-from agents.controller import agent_controller
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

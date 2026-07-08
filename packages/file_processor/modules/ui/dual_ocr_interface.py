@@ -4,7 +4,6 @@
 # ══════════════════════════════════════════════════════════╝
 
 import gradio as gr
-from pathlib import Path
 from PIL import Image as PILImage
 from typing import Optional, List, Dict
 
@@ -61,7 +60,7 @@ def verify_and_display(file_path: str):
     if 'error' in result:
         return None, "", "", "", f"Error: {result['error']}", gr.update(visible=False)
 
-    review_results = result.get('manual_review_results', [])
+    result.get('manual_review_results', [])
     all_results = []
 
     # Get all verified lines from the verifier
@@ -91,7 +90,7 @@ def _display_line(idx: int):
 
     _current_idx = idx
     res = _current_results[idx]
-    verifier = _current_results[idx]  # for highlight_differences (static method)
+    _current_results[idx]  # for highlight_differences (static method)
 
     diff_text = DualOCRVerifier.highlight_differences(
         res['trocr_text'], res['easyocr_text']
@@ -146,7 +145,7 @@ def accept_current(text_override: str = ""):
         final = res['trocr_text']
         action = "USER_OVERRIDE"
 
-    msg = pipeline.log_user_action(res, action, final)
+    pipeline.log_user_action(res, action, final)
     return f"Accepted line {_current_idx + 1}: {final[:60]}..."
 
 

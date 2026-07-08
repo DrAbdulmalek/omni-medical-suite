@@ -15,6 +15,7 @@ URL: https://github.com/unclecode/crawl4ai/blob/main/LICENSE
 import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
+
 from omniparse.models import responseDocument
 
 
@@ -22,7 +23,6 @@ async def parse_url(url: str, model_state) -> responseDocument:
     try:
         logging.debug("[LOG] Loading extraction and chunking strategies...")
         # Hardcoded parameters (adjust as needed)
-        include_raw_html = False
         bypass_cache = True
         word_count_threshold = 5
         css_selector = None
@@ -50,5 +50,5 @@ async def parse_url(url: str, model_state) -> responseDocument:
         return result
 
     except Exception as e:
-        logging.error(f"[ERROR] Error parsing webpage: {str(e)}")
+        logging.error(f"[ERROR] Error parsing webpage: {e!s}")
         return {"message": "Error in parsing webpage", "error": str(e)}

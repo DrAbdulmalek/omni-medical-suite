@@ -15,7 +15,7 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from .medical_ocr import MedicalOCRProcessor, process_medical_pdf
+from .medical_ocr import process_medical_pdf
 
 
 def create_medical_ocr_tab():
@@ -76,7 +76,7 @@ def create_medical_ocr_tab():
                     shutil.copy(json_path, final_json)
                     shutil.copy(html_path, final_html)
 
-                    total_lines = sum(
+                    sum(
                         len(p.get("lines", []))
                         for p in (gr.load(json_path) if False else [])
                     )
@@ -84,7 +84,7 @@ def create_medical_ocr_tab():
                     return (
                         str(final_json),
                         str(final_html),
-                        f"تمت المعالجة بنجاح. تم استخراج النصوص.",
+                        "تمت المعالجة بنجاح. تم استخراج النصوص.",
                     )
             except Exception as e:
                 return None, None, f"خطأ: {str(e)}"

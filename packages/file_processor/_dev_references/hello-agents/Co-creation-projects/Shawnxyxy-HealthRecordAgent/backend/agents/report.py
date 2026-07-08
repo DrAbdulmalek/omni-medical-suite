@@ -5,7 +5,6 @@
 import json
 from typing import Dict, Any, List
 from agents.base import BaseAgent
-from core.exceptions import AgentException
 
 class ReportAgent(BaseAgent):
     def __init__(self, task_id=None, llm=None):

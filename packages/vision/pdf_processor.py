@@ -13,8 +13,9 @@
 """
 
 import logging
-from typing import Optional, Union, Callable, Any
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -36,7 +37,7 @@ class PDFProcessor:
         self,
         dpi: int = 300,
         use_pdfplumber_fallback: bool = True,
-        password: Optional[str] = None,
+        password: str | None = None,
     ) -> None:
         """
         تهيئة معالج PDF.
@@ -74,7 +75,7 @@ class PDFProcessor:
     # الأساليب العامة (Public API)
     # ------------------------------------------------------------------
 
-    def get_page_count(self, pdf_source: Union[str, bytes]) -> int:
+    def get_page_count(self, pdf_source: str | bytes) -> int:
         """
         الحصول على عدد صفحات ملف PDF.
 
@@ -102,7 +103,7 @@ class PDFProcessor:
 
     def extract_page(
         self,
-        pdf_source: Union[str, bytes],
+        pdf_source: str | bytes,
         page_num: int,
     ) -> "PIL.Image.Image":
         """
@@ -160,10 +161,10 @@ class PDFProcessor:
 
     def process_pdf(
         self,
-        pdf_source: Union[str, bytes],
-        pages: Optional[list[int]] = None,
-        password: Optional[str] = None,
-        progress_callback: Optional[Callable[[int, int, str], Any]] = None,
+        pdf_source: str | bytes,
+        pages: list[int] | None = None,
+        password: str | None = None,
+        progress_callback: Callable[[int, int, str], Any] | None = None,
     ) -> list[dict[str, Any]]:
         """
         معالجة ملف PDF بالكامل واستخراج المحتوى.
@@ -267,8 +268,8 @@ class PDFProcessor:
 
     def _open_document(
         self,
-        pdf_source: Union[str, bytes],
-        password: Optional[str] = None,
+        pdf_source: str | bytes,
+        password: str | None = None,
     ) -> "fitz.Document":
         """
         فتح مستند PDF من مسار ملف أو بايتات.
@@ -348,8 +349,9 @@ class PDFProcessor:
                 xref = img_info[0]
                 base_image = doc.extract_image(xref)
                 if base_image:
-                    from PIL import Image
                     import io
+
+                    from PIL import Image
 
                     img_bytes = base_image["image"]
                     img_pil = Image.open(io.BytesIO(img_bytes))
@@ -390,9 +392,9 @@ class PDFProcessor:
 
     def _process_single_page_pdfplumber(
         self,
-        pdf_source: Union[str, bytes],
+        pdf_source: str | bytes,
         page_num: int,
-        password: Optional[str] = None,
+        password: str | None = None,
     ) -> dict[str, Any]:
         """
         معالجة صفحة واحدة باستخدام pdfplumber كاحتياطي.
@@ -441,7 +443,7 @@ class PDFProcessor:
         }
 
     def get_metadata(
-        self, pdf_source: Union[str, bytes]
+        self, pdf_source: str | bytes
     ) -> dict[str, Any]:
         """
         استخراج البيانات الوصفية (metadata) من ملف PDF.

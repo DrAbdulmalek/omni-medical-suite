@@ -11,13 +11,12 @@ Strategies:
   - Stratified sampling (maintains category balance)
 """
 
-import random
 import json
 import logging
-from typing import List, Dict, Optional, Tuple
+import random
 from collections import Counter, defaultdict
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +34,19 @@ class SampleMetadata:
     """
 
     __slots__ = (
-        "sample_id", "image_path", "text", "predicted_text",
-        "corrected_text", "script_class", "is_medical_term",
-        "original_confidence", "cer_before", "cer_after",
-        "created_at", "use_count", "model_version",
+        "cer_after",
+        "cer_before",
+        "corrected_text",
+        "created_at",
+        "image_path",
+        "is_medical_term",
+        "model_version",
+        "original_confidence",
+        "predicted_text",
+        "sample_id",
+        "script_class",
+        "text",
+        "use_count",
     )
 
     def __init__(
@@ -46,14 +54,14 @@ class SampleMetadata:
         sample_id: str,
         image_path: str = "",
         text: str = "",
-        predicted_text: Optional[str] = None,
-        corrected_text: Optional[str] = None,
+        predicted_text: str | None = None,
+        corrected_text: str | None = None,
         script_class: str = "unknown",
         is_medical_term: bool = False,
         original_confidence: float = 0.0,
-        cer_before: Optional[float] = None,
-        cer_after: Optional[float] = None,
-        created_at: Optional[datetime] = None,
+        cer_before: float | None = None,
+        cer_after: float | None = None,
+        created_at: datetime | None = None,
         use_count: int = 0,
         model_version: str = "unknown",
     ):
@@ -77,13 +85,13 @@ class SampleMetadata:
             return self.cer_before > threshold
         return self.original_confidence < (1 - threshold)
 
-    def improvement(self) -> Optional[float]:
+    def improvement(self) -> float | None:
         """Positive if the model improved on this sample after correction."""
         if self.cer_before is not None and self.cer_after is not None:
             return self.cer_before - self.cer_after
         return None
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to plain dict (compatible with ReplayBuffer format)."""
         return {
             "file_name": self.image_path,
@@ -98,7 +106,7 @@ class SampleMetadata:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict) -> "SampleMetadata":
+    def from_dict(cls, d: dict) -> "SampleMetadata":
         """Create from a plain dict (compatible with ReplayBuffer samples)."""
         return cls(
             sample_id=d.get("region_id", d.get("file_name", "")),
@@ -141,7 +149,7 @@ class HardExampleMiner:
         """
         self.capacity = capacity
         self.threshold = threshold
-        self.hard_examples: Dict[str, SampleMetadata] = {}
+        self.hard_examples: dict[str, SampleMetadata] = {}
         self.error_frequency: Counter = Counter()
 
     def add(self, sample: SampleMetadata) -> bool:
@@ -170,7 +178,7 @@ class HardExampleMiner:
 
         return True
 
-    def sample(self, n: int) -> List[SampleMetadata]:
+    def sample(self, n: int) -> list[SampleMetadata]:
         """Sample hard examples weighted by error frequency."""
         if not self.hard_examples:
             return []
@@ -181,7 +189,7 @@ class HardExampleMiner:
             for s in samples
         ]
         total = sum(weights)
-        probs = [w / total for w in weights]
+        [w / total for w in weights]
 
         n = min(n, len(samples))
         # Use random.choices for weighted sampling (Python 3.6+)
@@ -195,7 +203,7 @@ class HardExampleMiner:
                 unique.append(s)
         return unique
 
-    def statistics(self) -> Dict:
+    def statistics(self) -> dict:
         return {
             "total_hard": len(self.hard_examples),
             "unique_errors": len(self.error_frequency),
@@ -224,11 +232,11 @@ class DiversitySampler:
         """
         self.capacity = capacity
         self.n_clusters = n_clusters
-        self.clusters: Dict[int, List[SampleMetadata]] = defaultdict(list)
-        self.cluster_centers: Dict[int, List[float]] = {}
-        self._feature_cache: Dict[str, List[float]] = {}
+        self.clusters: dict[int, list[SampleMetadata]] = defaultdict(list)
+        self.cluster_centers: dict[int, list[float]] = {}
+        self._feature_cache: dict[str, list[float]] = {}
 
-    def _compute_features(self, sample: SampleMetadata) -> List[float]:
+    def _compute_features(self, sample: SampleMetadata) -> list[float]:
         """Compute a lightweight 10-d feature vector for a sample.
 
         Features: text length, aspect ratio proxy (text len / word count),
@@ -262,8 +270,8 @@ class DiversitySampler:
         return features
 
     @staticmethod
-    def _euclidean(a: List[float], b: List[float]) -> float:
-        return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+    def _euclidean(a: list[float], b: list[float]) -> float:
+        return sum((x - y) ** 2 for x, y in zip(a, b, strict=False)) ** 0.5
 
     def _assign_cluster(self, sample: SampleMetadata) -> int:
         """Assign sample to nearest cluster, creating a new one if needed."""
@@ -311,7 +319,7 @@ class DiversitySampler:
             largest_cid = max(self.clusters, key=lambda c: len(self.clusters[c]))
             self.clusters[largest_cid].pop(0)
 
-    def sample(self, n: int) -> List[SampleMetadata]:
+    def sample(self, n: int) -> list[SampleMetadata]:
         """Sample from different clusters to maximize diversity."""
         if not self.clusters:
             return []
@@ -338,7 +346,7 @@ class DiversitySampler:
         random.shuffle(selected)
         return selected
 
-    def statistics(self) -> Dict:
+    def statistics(self) -> dict:
         return {
             "total_clusters": len(self.clusters),
             "cluster_sizes": {k: len(v) for k, v in self.clusters.items()},
@@ -357,7 +365,7 @@ class StratifiedSampler:
     def __init__(
         self,
         capacity: int = 500,
-        stratify_by: Optional[List[str]] = None,
+        stratify_by: list[str] | None = None,
     ):
         """
         Args:
@@ -367,9 +375,9 @@ class StratifiedSampler:
         """
         self.capacity = capacity
         self.stratify_by = stratify_by or ["script_class"]
-        self.strata: Dict[Tuple, List[SampleMetadata]] = defaultdict(list)
+        self.strata: dict[tuple, list[SampleMetadata]] = defaultdict(list)
 
-    def _get_stratum_key(self, sample: SampleMetadata) -> Tuple:
+    def _get_stratum_key(self, sample: SampleMetadata) -> tuple:
         return tuple(getattr(sample, field, "unknown") for field in self.stratify_by)
 
     def add(self, sample: SampleMetadata) -> None:
@@ -382,7 +390,7 @@ class StratifiedSampler:
             self.strata[key].sort(key=lambda s: s.created_at)
             self.strata[key] = self.strata[key][-self.capacity:]
 
-    def sample(self, n: int) -> List[SampleMetadata]:
+    def sample(self, n: int) -> list[SampleMetadata]:
         """Sample maintaining proportional representation."""
         if not self.strata:
             return []
@@ -413,7 +421,7 @@ class StratifiedSampler:
         random.shuffle(selected)
         return selected
 
-    def statistics(self) -> Dict:
+    def statistics(self) -> dict:
         total = sum(len(v) for v in self.strata.values())
         return {
             "num_strata": len(self.strata),
@@ -464,7 +472,7 @@ class ReplayBuffer:
         self.stratify_by_script = stratify_by_script
         self.min_per_class = min_per_class
 
-        self.buffer: List[Dict] = []
+        self.buffer: list[dict] = []
         self._total_seen = 0
         self._class_counts = {"arabic": 0, "latin": 0, "mixed": 0, "numeric": 0, "unknown": 0}
         self._metadata = {
@@ -481,7 +489,7 @@ class ReplayBuffer:
         self.diversity_sampler = DiversitySampler(capacity=max(100, capacity // 4)) if enable_advanced_samplers else None
         self.stratified_sampler = StratifiedSampler(capacity=max(100, capacity // 4)) if enable_advanced_samplers else None
 
-    def add(self, sample: Dict) -> bool:
+    def add(self, sample: dict) -> bool:
         """
         Add a sample using reservoir sampling.
 
@@ -558,7 +566,7 @@ class ReplayBuffer:
 
         return True
 
-    def _find_overrepresented_index(self, incoming_class: str) -> Optional[int]:
+    def _find_overrepresented_index(self, incoming_class: str) -> int | None:
         """Find index of a sample from the most over-represented class."""
         max_class = max(
             self._class_counts,
@@ -572,7 +580,7 @@ class ReplayBuffer:
 
         return random.choice(candidates) if candidates else None
 
-    def get_samples(self, n: Optional[int] = None, script_filter: Optional[str] = None) -> List[Dict]:
+    def get_samples(self, n: int | None = None, script_filter: str | None = None) -> list[dict]:
         """
         Get samples from the buffer.
 
@@ -593,21 +601,21 @@ class ReplayBuffer:
 
         return samples
 
-    def get_hard_samples(self, n: int) -> List[Dict]:
+    def get_hard_samples(self, n: int) -> list[dict]:
         """Get hard examples prioritized by error frequency."""
         if not self.hard_miner:
             return self.get_samples(n)
         metas = self.hard_miner.sample(n)
         return [m.to_dict() for m in metas]
 
-    def get_diverse_samples(self, n: int) -> List[Dict]:
+    def get_diverse_samples(self, n: int) -> list[dict]:
         """Get samples from diverse clusters."""
         if not self.diversity_sampler:
             return self.get_samples(n)
         metas = self.diversity_sampler.sample(n)
         return [m.to_dict() for m in metas]
 
-    def get_stratified_batch(self, total: int) -> List[Dict]:
+    def get_stratified_batch(self, total: int) -> list[dict]:
         """
         Get a stratified batch with proportional class representation.
         """
@@ -627,7 +635,7 @@ class ReplayBuffer:
         random.shuffle(batch)
         return batch[:total]
 
-    def get_mixed_batch(self, total: int) -> List[Dict]:
+    def get_mixed_batch(self, total: int) -> list[dict]:
         """Get a batch combining all strategies: random, hard, diverse, stratified.
 
         Allocation: 25% random, 25% hard, 25% diverse, 25% stratified.
@@ -670,7 +678,7 @@ class ReplayBuffer:
         random.shuffle(combined)
         return combined[:total]
 
-    def merge_with_new(self, new_samples: List[Dict], replay_ratio: float = 0.2, strategy: str = "stratified") -> List[Dict]:
+    def merge_with_new(self, new_samples: list[dict], replay_ratio: float = 0.2, strategy: str = "stratified") -> list[dict]:
         """
         Merge new samples with replay buffer samples.
 
@@ -706,7 +714,7 @@ class ReplayBuffer:
 
         return combined
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> dict:
         """Get buffer statistics including advanced samplers."""
         stats = {
             "capacity": self.capacity,
@@ -750,7 +758,7 @@ class ReplayBuffer:
             return False
 
         try:
-            with open(self.persist_path, "r", encoding="utf-8") as f:
+            with open(self.persist_path, encoding="utf-8") as f:
                 state = json.load(f)
 
             self.buffer = state.get("buffer", [])

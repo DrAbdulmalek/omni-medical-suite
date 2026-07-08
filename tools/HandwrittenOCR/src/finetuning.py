@@ -7,11 +7,11 @@ HandwrittenOCR - تدريب LoRA على TrOCR v4.0
 - تحديث تلقائي للنموذج في OCREngine
 """
 
-import os
 import io
 import logging
+import os
+
 from PIL import Image
-from datetime import datetime
 
 logger = logging.getLogger("HandwrittenOCR")
 
@@ -35,9 +35,9 @@ def finetune_trocr_lora(
     بعد التدريب يُحدَّث ocr_engine.trocr_model تلقائياً.
     """
     try:
-        from peft import get_peft_model, LoraConfig, TaskType
+        from peft import LoraConfig, TaskType, get_peft_model
         from torch.optim import AdamW
-        from torch.utils.data import Dataset, DataLoader
+        from torch.utils.data import DataLoader, Dataset
     except ImportError:
         logger.error("peft غير مثبت")
         return False

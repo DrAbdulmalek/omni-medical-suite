@@ -8,9 +8,9 @@ NoteTool 与 ContextBuilder 集成示例
 """
 from dotenv import load_dotenv
 load_dotenv()
-from hello_agents import SimpleAgent, HelloAgentsLLM
+from hello_agents import SimpleAgent
 from hello_agents.context import ContextBuilder, ContextConfig, ContextPacket
-from hello_agents.tools import MemoryTool, RAGTool, NoteTool
+from hello_agents.tools import NoteTool
 from hello_agents.core.message import Message
 from datetime import datetime
 from typing import List, Dict

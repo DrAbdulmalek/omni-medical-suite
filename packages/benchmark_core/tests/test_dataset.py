@@ -1,8 +1,9 @@
 """Tests for dataset management."""
 import json
+
 import pytest
-from pathlib import Path
-from benchmarks.dataset import DatasetManager, TestCase, DatasetStats
+
+from benchmarks.dataset import DatasetManager, DatasetStats, TestCase
 
 
 class TestDatasetManager:
@@ -129,8 +130,8 @@ class TestDatasetManager:
         dm.load()
         train, test = dm.split(train_ratio=0.5, seed=42, stratify_by="language")
         # Each language should have at least one case in each set
-        train_langs = set(c.language for c in train)
-        test_langs = set(c.language for c in test)
+        set(c.language for c in train)
+        set(c.language for c in test)
         assert len(train) > 0 and len(test) > 0
 
     def test_add_case(self, data_dir):

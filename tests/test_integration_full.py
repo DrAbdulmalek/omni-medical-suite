@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 tests/test_integration_full.py
 ==============================
@@ -18,7 +17,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -30,10 +28,9 @@ class TestSecurityModule(unittest.TestCase):
 
     def setUp(self):
         from interactive_learning.core.security import (
-            SecureCorrectionStorage,
             AuditLogger,
-            InputSanitizer,
             RateLimiter,
+            SecureCorrectionStorage,
         )
         self.storage = SecureCorrectionStorage()
         self.temp_dir = tempfile.mkdtemp()
@@ -151,7 +148,7 @@ class TestSecurityModule(unittest.TestCase):
 
     def test_rate_limiter(self):
         """Test rate limiting."""
-        for i in range(5):
+        for _i in range(5):
             self.assertTrue(self.limiter.allow_request("client_1"))
         # 6th request should be blocked
         self.assertFalse(self.limiter.allow_request("client_1"))
@@ -203,10 +200,10 @@ class TestMonitoringModule(unittest.TestCase):
 
     def setUp(self):
         from interactive_learning.core.monitoring import (
+            AlertManager,
             MetricsCollector,
             PerformanceMonitor,
             QualityAssurance,
-            AlertManager,
         )
         self.collector = MetricsCollector()
         self.monitor = PerformanceMonitor()
@@ -356,10 +353,8 @@ class TestVersioningModule(unittest.TestCase):
 
     def setUp(self):
         from interactive_learning.core.versioning import (
-            SemanticVersion,
-            ModelRegistry,
             DatasetVersioning,
-            VersionManager,
+            ModelRegistry,
         )
         self.temp_dir = tempfile.mkdtemp()
         self.registry = ModelRegistry(Path(self.temp_dir) / "models")

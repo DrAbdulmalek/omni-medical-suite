@@ -19,10 +19,7 @@ OmniFile AI Processor - وحدة معالجة الملفات الذكية
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from enum import Enum
-from typing import Optional
-
-import numpy as np
+from enum import StrEnum
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +29,7 @@ logger = logging.getLogger(__name__)
 # Local type definitions required for result fusion
 # ---------------------------------------------------------------------------
 
-class FusionStrategy(str, Enum):
+class FusionStrategy(StrEnum):
     """استراتيجيات دمج نتائج OCR / OCR result fusion strategies."""
     HIGHEST_CONFIDENCE = "highest_confidence"
     WEIGHTED_AVERAGE = "weighted_average"
@@ -40,7 +37,7 @@ class FusionStrategy(str, Enum):
     LONGEST_TEXT = "longest_text"
 
 
-class TextBlockType(str, Enum):
+class TextBlockType(StrEnum):
     """أنواع الكتل النصية المكتشفة / Detected text block types."""
     PARAGRAPH = "paragraph"
     HEADING = "heading"
@@ -77,7 +74,7 @@ class WordResult:
         self,
         text: str = "",
         confidence: float = 0.0,
-        bbox: Optional[BoundingBox] = None,
+        bbox: BoundingBox | None = None,
     ):
         self.text = text
         self.confidence = confidence
@@ -91,8 +88,8 @@ class LineResult:
         self,
         text: str = "",
         confidence: float = 0.0,
-        bbox: Optional[BoundingBox] = None,
-        words: Optional[list[WordResult]] = None,
+        bbox: BoundingBox | None = None,
+        words: list[WordResult] | None = None,
         block_type: TextBlockType = TextBlockType.PARAGRAPH,
         language: str = "",
     ):
@@ -110,7 +107,7 @@ class PageResult:
     def __init__(
         self,
         page_number: int = 1,
-        lines: Optional[list[LineResult]] = None,
+        lines: list[LineResult] | None = None,
         width: int = 0,
         height: int = 0,
     ):
@@ -126,9 +123,9 @@ class DocumentResult:
     def __init__(
         self,
         filename: str = "unknown",
-        pages: Optional[list[PageResult]] = None,
+        pages: list[PageResult] | None = None,
         engine_name: str = "",
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ):
         self.filename = filename
         self.pages = pages or []
@@ -161,7 +158,7 @@ class ResultFusion:
         self,
         strategy: FusionStrategy = FusionStrategy.HIGHEST_CONFIDENCE,
         line_tolerance: int = 20,
-        engine_weights: Optional[dict[str, float]] = None,
+        engine_weights: dict[str, float] | None = None,
     ):
         """
         Args:
@@ -287,7 +284,7 @@ class ResultFusion:
 
         return rows
 
-    def _merge_line_group(self, lines: list[LineResult]) -> Optional[LineResult]:
+    def _merge_line_group(self, lines: list[LineResult]) -> LineResult | None:
         """
         دمج مجموعة أسطر (نفس الصف) من محركات مختلفة.
         Merge a group of lines (same row) from different engines.

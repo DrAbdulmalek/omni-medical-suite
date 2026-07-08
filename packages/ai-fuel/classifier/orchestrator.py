@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from core.config import AIFuelConfig
 from core.schemas import ClassificationMethod, ClassificationResult
@@ -59,14 +59,14 @@ class ClassificationOrchestrator:
 
     def __init__(
         self,
-        config: Optional[AIFuelConfig] = None,
+        config: AIFuelConfig | None = None,
         keyword_threshold: float = 0.85,
         semantic_threshold: float = 0.85,
-        taxonomy_path: Optional[str] = None,
+        taxonomy_path: str | None = None,
         enable_semantic: bool = True,
         enable_llm: bool = True,
         llm_provider: str = "gemini",
-        llm_api_key: Optional[str] = None,
+        llm_api_key: str | None = None,
     ) -> None:
         self.config = config or AIFuelConfig()
 
@@ -81,7 +81,7 @@ class ClassificationOrchestrator:
             if semantic_threshold != 0.85
             else self.config.semantic_confidence_threshold
         )
-        self.taxonomy_path: Optional[str] = taxonomy_path
+        self.taxonomy_path: str | None = taxonomy_path
         self.enable_semantic: bool = enable_semantic
         self.enable_llm: bool = enable_llm
 
@@ -89,15 +89,15 @@ class ClassificationOrchestrator:
         self.keyword_router = self._init_keyword_router()
 
         # Semantic and LLM are lazily initialised
-        self._semantic_matcher: Optional[Any] = None
-        self._llm_classifier: Optional[Any] = None
+        self._semantic_matcher: Any | None = None
+        self._llm_classifier: Any | None = None
         self._semantic_initialised: bool = False
         self._llm_initialised: bool = False
         self._llm_provider: str = llm_provider
-        self._llm_api_key: Optional[str] = llm_api_key
+        self._llm_api_key: str | None = llm_api_key
 
         # ── Statistics ────────────────────────────────────────────────
-        self._stats: Dict[str, int] = defaultdict(int)
+        self._stats: dict[str, int] = defaultdict(int)
         self._total_processing_time_ms: float = 0.0
         self._total_classified: int = 0
 
@@ -113,7 +113,7 @@ class ClassificationOrchestrator:
 
     # ── Initialisation helpers ────────────────────────────────────────
 
-    def _init_keyword_router(self) -> "KeywordRouter":
+    def _init_keyword_router(self) -> KeywordRouter:
         """Create the KeywordRouter instance."""
         from classifier.keyword_router import KeywordRouter
 
@@ -122,7 +122,7 @@ class ClassificationOrchestrator:
             threshold=self.keyword_threshold,
         )
 
-    def _init_semantic_matcher(self) -> Optional["SemanticMatcher"]:
+    def _init_semantic_matcher(self) -> SemanticMatcher | None:
         """Lazily create the SemanticMatcher instance."""
         if self._semantic_initialised:
             return self._semantic_matcher
@@ -150,7 +150,7 @@ class ClassificationOrchestrator:
         self._semantic_initialised = True
         return self._semantic_matcher
 
-    def _init_llm_classifier(self) -> Optional["LLMClassifier"]:
+    def _init_llm_classifier(self) -> LLMClassifier | None:
         """Lazily create the LLMClassifier instance."""
         if self._llm_initialised:
             return self._llm_classifier
@@ -265,9 +265,9 @@ class ClassificationOrchestrator:
 
     def classify_batch(
         self,
-        texts: List[str],
-        chunk_ids: Optional[List[str]] = None,
-    ) -> List[ClassificationResult]:
+        texts: list[str],
+        chunk_ids: list[str] | None = None,
+    ) -> list[ClassificationResult]:
         """Classify multiple texts efficiently.
 
         Optimisation strategy:
@@ -301,12 +301,12 @@ class ClassificationOrchestrator:
             )
 
         n = len(texts)
-        results: List[Optional[ClassificationResult]] = [None] * n
-        uncertain_indices: List[int] = []
+        results: list[ClassificationResult | None] = [None] * n
+        uncertain_indices: list[int] = []
 
         # ── Layer 1: Keyword (batch) ──────────────────────────────────
         logger.info("Batch keyword classification: %d texts", n)
-        for i, (text, cid) in enumerate(zip(texts, chunk_ids)):
+        for i, (text, cid) in enumerate(zip(texts, chunk_ids, strict=False)):
             kw_result = self.keyword_router.classify(text, chunk_id=cid)
             if kw_result is not None:
                 results[i] = kw_result
@@ -329,7 +329,7 @@ class ClassificationOrchestrator:
 
         # ── Layer 2: Semantic (uncertain only) ─────────────────────────
         matcher = self._init_semantic_matcher()
-        still_uncertain: List[int] = []
+        still_uncertain: list[int] = []
 
         if matcher is not None:
             logger.info("Semantic classification: %d uncertain texts", len(uncertain_indices))
@@ -373,7 +373,7 @@ class ClassificationOrchestrator:
 
         # ── Layer 3: LLM (remaining uncertain) ──────────────────────
         classifier = self._init_llm_classifier()
-        llm_uncertain: List[int] = []
+        llm_uncertain: list[int] = []
 
         if classifier is not None:
             logger.info("LLM classification: %d remaining texts", len(still_uncertain))
@@ -418,7 +418,7 @@ class ClassificationOrchestrator:
 
     # ── Statistics ────────────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get classification statistics per method.
 
         Returns:

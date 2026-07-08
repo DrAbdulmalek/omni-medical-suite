@@ -19,14 +19,14 @@ from __future__ import annotations
 import logging
 import re
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from collections.abc import Sequence
 from enum import IntEnum
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any
 
 import cv2
 import numpy as np
 
-from src.engines.base_engine import BBox, OCREngine, OCRResult, ImageInput
+from src.engines.base_engine import BBox, ImageInput, OCREngine, OCRResult
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class TesseractPSM(IntEnum):
 # PSM presets for common medical document layouts
 # ---------------------------------------------------------------------------
 
-MEDICAL_PSM_PRESETS: Dict[str, int] = {
+MEDICAL_PSM_PRESETS: dict[str, int] = {
     "auto": TesseractPSM.PSM_AUTO,
     "single_block": TesseractPSM.PSM_SINGLE_BLOCK,
     "single_column": TesseractPSM.PSM_SINGLE_COLUMN,
@@ -75,7 +75,7 @@ MEDICAL_PSM_PRESETS: Dict[str, int] = {
 # hOCR word-level parser
 # ---------------------------------------------------------------------------
 
-def _parse_hocr_word_boxes(hocr_html: str) -> List[tuple[str, float, BBox]]:
+def _parse_hocr_word_boxes(hocr_html: str) -> list[tuple[str, float, BBox]]:
     """Parse word-level text, confidence, and bounding boxes from hOCR.
 
     Parameters
@@ -88,7 +88,7 @@ def _parse_hocr_word_boxes(hocr_html: str) -> List[tuple[str, float, BBox]]:
     list[tuple[str, float, BBox]]
         ``(word_text, confidence, bbox)`` for each recognised word.
     """
-    results: List[tuple[str, float, BBox]] = []
+    results: list[tuple[str, float, BBox]] = []
 
     try:
         root = ET.fromstring(hocr_html)
@@ -97,9 +97,6 @@ def _parse_hocr_word_boxes(hocr_html: str) -> List[tuple[str, float, BBox]]:
         return results
 
     # Tesseract hOCR uses the XHTML namespace
-    ns: Dict[str, str] = {
-        "xhtml": "http://www.w3.org/1999/xhtml",
-    }
 
     for word_elem in root.iter("{http://www.w3.org/1999/xhtml}span"):
         cls = word_elem.get("class", "")
@@ -168,10 +165,10 @@ class TesseractEngine(OCREngine):
     def __init__(
         self,
         lang: str = "ara+eng",
-        psm: Union[int, str, None] = None,
-        tesseract_cmd: Optional[str] = None,
-        tessdata_prefix: Optional[str] = None,
-        config_args: Optional[str] = None,
+        psm: int | str | None = None,
+        tesseract_cmd: str | None = None,
+        tessdata_prefix: str | None = None,
+        config_args: str | None = None,
         oem: int = 1,
         use_hocr: bool = True,
         dpi: int = 300,
@@ -262,7 +259,7 @@ class TesseractEngine(OCREngine):
         preprocessed = self.preprocess(validated)
 
         # --- Run hOCR for word-level boxes if enabled ---
-        word_level: Optional[List[tuple[str, float, BBox]]] = None
+        word_level: list[tuple[str, float, BBox]] | None = None
 
         if self._use_hocr:
             try:
@@ -355,7 +352,7 @@ class TesseractEngine(OCREngine):
             },
         )
 
-    def ocr_batch(self, images: Sequence[ImageInput]) -> List[OCRResult]:
+    def ocr_batch(self, images: Sequence[ImageInput]) -> list[OCRResult]:
         """Run Tesseract OCR on a batch of images sequentially.
 
         Parameters
@@ -367,7 +364,7 @@ class TesseractEngine(OCREngine):
         -------
         list[OCRResult]
         """
-        results: List[OCRResult] = []
+        results: list[OCRResult] = []
         for idx, img in enumerate(images):
             self._logger.debug(
                 "Tesseract batch: image %d/%d.", idx + 1, len(images),
@@ -381,11 +378,11 @@ class TesseractEngine(OCREngine):
 
     @staticmethod
     def _group_words_into_lines(
-        words: List[str],
-        x_mins: List[float],
-        y_mins: List[float],
-        x_maxs: List[float],
-        y_maxs: List[float],
+        words: list[str],
+        x_mins: list[float],
+        y_mins: list[float],
+        x_maxs: list[float],
+        y_maxs: list[float],
     ) -> str:
         """Group word-level detections into lines and produce full text.
 
@@ -420,11 +417,11 @@ class TesseractEngine(OCREngine):
         median_height = heights[len(heights) // 2] if heights else 20.0
         line_threshold = median_height * 0.5
 
-        lines: List[List[str]] = []
-        current_line: List[str] = []
+        lines: list[list[str]] = []
+        current_line: list[str] = []
         current_y = items[0][0]
 
-        for y_center, x_min, idx in items:
+        for y_center, _x_min, idx in items:
             if abs(y_center - current_y) > line_threshold and current_line:
                 lines.append(current_line)
                 current_line = [words[idx]]
@@ -441,7 +438,7 @@ class TesseractEngine(OCREngine):
     # Medical-document PSM helpers
     # ------------------------------------------------------------------
 
-    def set_psm(self, psm: Union[int, str]) -> None:
+    def set_psm(self, psm: int | str) -> None:
         """Change the page segmentation mode at runtime.
 
         Parameters

@@ -8,6 +8,9 @@ Processor projects.
 
 from packages.learning.pattern_db import PatternDB
 from packages.learning.unified_learning import (
+    DEFAULT_K,
+    FEATURE_KEYS,
+    NUM_FEATURES,
     ActiveLearningStrategy,
     FeatureExtractor,
     FeatureVector,
@@ -18,24 +21,21 @@ from packages.learning.unified_learning import (
     PredictionResult,
     TrainingEntry,
     UnifiedLearning,
-    NUM_FEATURES,
-    FEATURE_KEYS,
-    DEFAULT_K,
 )
 
 __all__ = [
-    "PatternDB",
-    "UnifiedLearning",
+    "DEFAULT_K",
+    "FEATURE_KEYS",
+    "NUM_FEATURES",
     "ActiveLearningStrategy",
-    "FeedbackStatus",
     "FeatureExtractor",
     "FeatureVector",
-    "TrainingEntry",
-    "PredictionResult",
-    "PatternRecord",
     "FeedbackRecord",
+    "FeedbackStatus",
     "ModelMetadata",
-    "NUM_FEATURES",
-    "FEATURE_KEYS",
-    "DEFAULT_K",
+    "PatternDB",
+    "PatternRecord",
+    "PredictionResult",
+    "TrainingEntry",
+    "UnifiedLearning",
 ]

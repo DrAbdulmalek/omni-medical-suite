@@ -1,10 +1,8 @@
 """Tests for the OCR pipeline orchestrator."""
 
-import json
+
 import numpy as np
 import pytest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 
 @pytest.fixture
@@ -186,6 +184,7 @@ class TestImagePreprocessor:
     def test_to_numpy_pil(self) -> None:
         """Test converting PIL image to numpy."""
         from PIL import Image
+
         from packages.vision.image_preprocessor import ImagePreprocessor
         pil_img = Image.new("RGB", (100, 100), color="white")
         result = ImagePreprocessor._to_numpy(pil_img)

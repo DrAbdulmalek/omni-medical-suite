@@ -6,9 +6,7 @@ Minimal E2E test that verifies the complete pipeline
 using synthetic data and mocked model inference.
 """
 
-import os
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 

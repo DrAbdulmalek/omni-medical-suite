@@ -2,7 +2,6 @@
 数据库Agent助手 - 主程序
 演示如何使用DatabaseAgent进行自然语言查询
 """
-import os
 from dotenv import load_dotenv
 from hello_agents import HelloAgentsLLM
 from react_agent import DatabaseAgent, DatabaseConfig

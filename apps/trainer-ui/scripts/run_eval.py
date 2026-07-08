@@ -7,7 +7,6 @@ Usage:
 """
 
 import click
-import json
 import sys
 from pathlib import Path
 
@@ -146,7 +145,7 @@ def create_dataset(terms_file, output, name):
     click.echo("")
     click.echo("Next steps:")
     click.echo(f"  1. Fill in 'reference' and 'hypothesis' for each test case in {output}")
-    click.echo(f"  2. Set 'language' and 'category' for each case")
+    click.echo("  2. Set 'language' and 'category' for each case")
     click.echo(f"  3. Run: python scripts/run_eval.py evaluate --dataset {output}")
 
 

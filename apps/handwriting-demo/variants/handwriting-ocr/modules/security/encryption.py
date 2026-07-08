@@ -177,7 +177,6 @@ class FileEncryptor:
         Returns:
             قائمة مسارات الملفات المشفرة
         """
-        import glob
 
         input_dir = Path(input_dir)
         output_dir = Path(output_dir) if output_dir else input_dir.parent / (input_dir.name + "_encrypted")
@@ -204,7 +203,6 @@ class FileEncryptor:
         Returns:
             قائمة مسارات الملفات المفكوكة
         """
-        import glob
 
         input_dir = Path(input_dir)
         output_dir = Path(output_dir) if output_dir else input_dir.parent / (input_dir.name + "_decrypted")

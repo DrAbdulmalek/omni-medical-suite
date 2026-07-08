@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 معالج الوثائق الطبية التفاعلي - v12 (النسخة النهائية المدمجة)
 ═══════════════════════════════════════════════════════════════
@@ -24,29 +23,47 @@
   - OCR + كشف المكررات + تقييم الجودة
 ═══════════════════════════════════════════════════════════════
 """
-import sys
+import contextlib
 import csv
 import json
-import re
+import logging
 import shutil
 import subprocess
-import logging
+import sys
 from collections import deque
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional, Any, Union
+from pathlib import Path
 
 import cv2
 import numpy as np
+from PySide6.QtCore import QMutex, QPoint, QRect, QSize, Qt, QThread, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QIcon, QImage, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QSlider, QSpinBox, QCheckBox, QProgressBar,
-    QTextEdit, QFileDialog, QMessageBox, QGroupBox, QFormLayout,
-    QSplitter, QDialog, QScrollArea, QSizePolicy, QTabWidget, QFrame,
-    QInputDialog, QDialogButtonBox, QShortcut, QRubberBand,
+    QApplication,
+    QCheckBox,
+    QDialog,
+    QFileDialog,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QRubberBand,
+    QScrollArea,
+    QShortcut,
+    QSlider,
+    QSpinBox,
+    QSplitter,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSize, QMutex, QMutexLocker, QRect, QPoint
-from PySide6.QtGui import QPixmap, QImage, QFont, QKeySequence, QColor, QIcon, QPainter, QPen
 
 # ── نظام التسجيل الموحّد ─────────────────────────────────────────
 logger = logging.getLogger("MedicalDocApp")
@@ -71,9 +88,9 @@ except ImportError:
 OCR_SUPPORT = False
 HASH_SUPPORT = False
 try:
+    import imagehash
     import pytesseract
     from PIL import Image as PILImage
-    import imagehash
     OCR_SUPPORT = True
     HASH_SUPPORT = True
 except ImportError:
@@ -96,10 +113,10 @@ class LazyImage:
     يُخزّن مؤقتاً (cache) لتسريع الوصول المتكرر.
     يدعم Path (صور ملفات) و np.ndarray (صفحات PDF).
     """
-    def __init__(self, source: Union[Path, np.ndarray], name: str = ""):
+    def __init__(self, source: Path | np.ndarray, name: str = ""):
         self._path   = source if isinstance(source, Path) else None
         self._array  = source if isinstance(source, np.ndarray) else None
-        self._cache: Optional[np.ndarray] = None
+        self._cache: np.ndarray | None = None
         self.name    = name if name else (source.name if isinstance(source, Path) else "array")
 
     # ── الخصائص الأساسية ──────────────────────────────────────
@@ -111,7 +128,7 @@ class LazyImage:
         return self._path.exists() if self._path else (self._array is not None)
 
     # ── الحصول على الصورة ──────────────────────────────────────
-    def get(self) -> Optional[np.ndarray]:
+    def get(self) -> np.ndarray | None:
         if self._cache is not None:
             return self._cache
         if self._array is not None:
@@ -221,7 +238,7 @@ def calc_blur(img: np.ndarray) -> float:
     return float(cv2.Laplacian(gray, cv2.CV_64F).var())
 
 
-def quality_label(score: float, thr: float) -> Tuple[str, str, str]:
+def quality_label(score: float, thr: float) -> tuple[str, str, str]:
     """Return quality label, color, icon based on blur score and threshold."""
     if score >= thr * 2:
         return "ممتازة", "#16a34a", "✅"
@@ -284,7 +301,7 @@ def auto_detect_skew(img: np.ndarray, max_a: float = 15.0, step: float = 0.5) ->
     """
     # ── المرحلة 1: احصل على الصفحة النظيفة ────────────────────
     l, _t, r, _b = find_page_bounds(img)
-    h, w = img.shape[:2]
+    _h, w = img.shape[:2]
     x0, x1 = l, w - r if r > 0 else w
     page = img[:, x0:x1] if (x1 > x0) else img
 
@@ -352,7 +369,7 @@ def smart_auto_crop(img: np.ndarray, padding: int = 15, dark_threshold: int = 20
 
 
 
-def load_pdf_as_images(pdf_path: str, dpi: int = 200) -> List[np.ndarray]:
+def load_pdf_as_images(pdf_path: str, dpi: int = 200) -> list[np.ndarray]:
     """Convert PDF pages to numpy images."""
     pages = convert_from_path(pdf_path, dpi=dpi)
     result = []
@@ -431,7 +448,7 @@ def extract_page_number(img: np.ndarray, region=None, regions=None) -> int:
                 lang='eng',
                 output_type=pytesseract.Output.DICT
             )
-            for text, conf in zip(data['text'], data['conf']):
+            for text, conf in zip(data['text'], data['conf'], strict=False):
                 text = text.strip()
                 if text.isdigit() and int(text) > 0 and conf > best_confidence:
                     best_confidence = conf
@@ -442,7 +459,7 @@ def extract_page_number(img: np.ndarray, region=None, regions=None) -> int:
     return best_number
 
 
-def images_are_similar(img1: np.ndarray, img2: np.ndarray, threshold: int = 15) -> Tuple[bool, float]:
+def images_are_similar(img1: np.ndarray, img2: np.ndarray, threshold: int = 15) -> tuple[bool, float]:
     """Compare two images using Perceptual Hash."""
     if not HASH_SUPPORT:
         return False, 100.0
@@ -460,7 +477,7 @@ def images_are_similar(img1: np.ndarray, img2: np.ndarray, threshold: int = 15) 
         return False, 100.0
 
 
-def assess_image_quality(img: np.ndarray) -> Dict[str, float]:
+def assess_image_quality(img: np.ndarray) -> dict[str, float]:
     """Comprehensive quality assessment: sharpness, contrast, content, brightness."""
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -561,7 +578,7 @@ class AdaptiveLearner:
                 "bright": float(np.mean(g)),
                 "ratio": round(w / max(h, 1), 3)}
 
-    def suggest(self, img: np.ndarray) -> Tuple[Optional[dict], float]:
+    def suggest(self, img: np.ndarray) -> tuple[dict | None, float]:
         if len(self.history) < 2:
             return None, 0.0
         f = self._feat(img)
@@ -587,7 +604,7 @@ class AdaptiveLearner:
             json.dump(self.history, f, ensure_ascii=False, indent=2)
 
     def load(self, path: str):
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             self.history = json.load(f)
 
 
@@ -630,7 +647,7 @@ class ImageFeatureExtractor:
             "grad_mean": round(grad_mean, 2),
         }
         for i, v in enumerate(hist):
-            feats["hist_{:02d}".format(i)] = round(v, 6)
+            feats[f"hist_{i:02d}"] = round(v, 6)
         return feats
 
     @staticmethod
@@ -650,7 +667,7 @@ class ImageFeatureExtractor:
             av, bv = a.get(k, 0), b.get(k, 0)
             dist_sq += weight * ((av - bv) / max(norm, 1e-9)) ** 2
         for i in range(16):
-            key = "hist_{:02d}".format(i)
+            key = f"hist_{i:02d}"
             dist_sq += 4.0 * ((a.get(key, 0) - b.get(key, 0)) ** 2)
         return max(0.0, 1.0 - dist_sq ** 0.5)
 
@@ -668,14 +685,12 @@ class TrainingDataCollector:
     def _load_existing(self):
         if not self.FILEPATH.exists():
             return
-        with open(self.FILEPATH, "r", encoding="utf-8") as f:
+        with open(self.FILEPATH, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line:
-                    try:
+                    with contextlib.suppress(Exception):
                         self.records.append(json.loads(line))
-                    except Exception:
-                        pass
 
     def save_record(self, img: np.ndarray, initial_params: dict,
                     final_params: dict, operations: list,
@@ -704,7 +719,7 @@ class TrainingDataCollector:
         with open(self.FILEPATH, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-    def predict(self, img: np.ndarray) -> Tuple:
+    def predict(self, img: np.ndarray) -> tuple:
         """Predict optimal settings using weighted KNN (top 3 neighbors)."""
         if len(self.records) < self.MIN_INFER:
             return None, 0.0
@@ -739,7 +754,7 @@ class TrainingDataCollector:
             rot_votes[rot] = rot_votes.get(rot, 0.0) + w
 
         predicted = {
-            "crop": tuple(int(round(v)) for v in crop_avg),
+            "crop": tuple(round(v) for v in crop_avg),
             "deskew_angle": round(deskew_avg, 1),
             "flip_h": flip_score > 0.5,
             "sharpen": sharpen_score > 0.5,
@@ -794,12 +809,12 @@ class ThumbButton(QPushButton):
         self.setFixedSize(THUMB_W + 6, THUMB_H + 22)
         self.setCheckable(True)
         self._apply_style(False)
-        self.setToolTip("صورة {}".format(index + 1))
+        self.setToolTip(f"صورة {index + 1}")
 
     def set_pixmap(self, pix: QPixmap):
         self.setIcon(QIcon(pix))
         self.setIconSize(QSize(THUMB_W, THUMB_H))
-        self.setText("\n{}".format(self.index + 1))
+        self.setText(f"\n{self.index + 1}")
 
     def _apply_style(self, selected: bool):
         if selected:
@@ -946,10 +961,8 @@ class RegionSelectorDialog(QDialog):
             return
         self._test_result = self._region
         QMessageBox.information(self, "منطقة محددة",
-            "المنطقة: x={}, y={}, w={}, h={}\n\n"
-            "اضغط 'حفظ المنطقة' للتأكيد.".format(
-                self._region.x(), self._region.y(),
-                self._region.width(), self._region.height()))
+            f"المنطقة: x={self._region.x()}, y={self._region.y()}, w={self._region.width()}, h={self._region.height()}\n\n"
+            "اضغط 'حفظ المنطقة' للتأكيد.")
 
     def get_region(self):
         """الحصول على المنطقة المحددة كـ QRect بالبكسل."""
@@ -971,12 +984,12 @@ class MedicalDocApp(QMainWindow):
         target_dir = Path(base_dir) / Path(relative_path).parent
         target_dir.mkdir(parents=True, exist_ok=True)
         stem = Path(relative_path).stem
-        candidate = target_dir / "{}{}".format(stem, ext)
+        candidate = target_dir / f"{stem}{ext}"
         if not candidate.exists():
             return candidate
         counter = 1
         while True:
-            new_name = "{}_{}{}".format(stem, counter, ext)
+            new_name = f"{stem}_{counter}{ext}"
             candidate = target_dir / new_name
             if not candidate.exists():
                 return candidate
@@ -1208,7 +1221,7 @@ class MedicalDocApp(QMainWindow):
         right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         right_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         right_scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
-        
+
         right_w = QWidget()
         right_w.setFixedWidth(320)
         right_l = QVBoxLayout(right_w)
@@ -1427,7 +1440,7 @@ class MedicalDocApp(QMainWindow):
         self.btn_select_region.clicked.connect(self._select_page_number_region)
 
         self.slider_deskew.valueChanged.connect(
-            lambda v: self.lbl_deskew.setText("{:+.1f}°".format(v / 10)))
+            lambda v: self.lbl_deskew.setText(f"{v / 10:+.1f}°"))
         self.slider_threshold.valueChanged.connect(self._on_thr_change)
         self.slider_gray_thr.valueChanged.connect(self._on_gray_thr_change)
 
@@ -1553,16 +1566,16 @@ class MedicalDocApp(QMainWindow):
                             names.append(f.name)
                             img_paths.append(f)
                         else:
-                            self._log("⚠️ تجاهل ملف غير موجود: {}".format(f.name))
+                            self._log(f"⚠️ تجاهل ملف غير موجود: {f.name}")
                     elif ext == ".pdf" and PDF_SUPPORT:
                         try:
                             pages = load_pdf_as_images(str(f))
                             for j, pg in enumerate(pages):
-                                lazy_imgs.append(LazyImage(pg, "{}_p{:03d}.png".format(f.stem, j+1)))
-                                names.append("{}_p{:03d}.png".format(f.stem, j+1))
+                                lazy_imgs.append(LazyImage(pg, f"{f.stem}_p{j+1:03d}.png"))
+                                names.append(f"{f.stem}_p{j+1:03d}.png")
                                 img_paths.append(f)
                         except Exception as e:
-                            self._log("⚠️ خطأ PDF {}: {}".format(f.name, e))
+                            self._log(f"⚠️ خطأ PDF {f.name}: {e}")
             elif pp.is_file():
                 ext = pp.suffix.lower()
                 if ext in IMG_EXT:
@@ -1571,16 +1584,16 @@ class MedicalDocApp(QMainWindow):
                         names.append(pp.name)
                         img_paths.append(pp)
                     else:
-                        self._log("⚠️ تجاهل ملف غير موجود: {}".format(pp.name))
+                        self._log(f"⚠️ تجاهل ملف غير موجود: {pp.name}")
                 elif ext == ".pdf" and PDF_SUPPORT:
                     try:
                         pages = load_pdf_as_images(str(pp))
                         for j, pg in enumerate(pages):
-                            lazy_imgs.append(LazyImage(pg, "{}_p{:03d}.png".format(pp.stem, j+1)))
-                            names.append("{}_p{:03d}.png".format(pp.stem, j+1))
+                            lazy_imgs.append(LazyImage(pg, f"{pp.stem}_p{j+1:03d}.png"))
+                            names.append(f"{pp.stem}_p{j+1:03d}.png")
                             img_paths.append(pp)
                     except Exception as e:
-                        self._log("⚠️ خطأ PDF {}: {}".format(pp.name, e))
+                        self._log(f"⚠️ خطأ PDF {pp.name}: {e}")
         if not lazy_imgs:
             QMessageBox.warning(self, "تنبيه", "لم يتم العثور على ملفات صالحة.")
             return
@@ -1597,7 +1610,7 @@ class MedicalDocApp(QMainWindow):
         self.stats = {"total": len(lazy_imgs), "processed": 0, "skipped": 0, "start_time": datetime.now()}
         self.progress.setMaximum(len(lazy_imgs))
         self.lbl_s_total.setText(str(len(lazy_imgs)))
-        self._log("📥 تم تحميل {} ملف (LazyImage — تحميل كسول)".format(len(lazy_imgs)))
+        self._log(f"📥 تم تحميل {len(lazy_imgs)} ملف (LazyImage — تحميل كسول)")
         self._build_thumbnails()
         self._load_current()
 
@@ -1612,13 +1625,13 @@ class MedicalDocApp(QMainWindow):
 
         entry = self.image_list[self.current_idx]
         name  = self.image_names[self.current_idx]
-        self.lbl_index.setText("{} / {}".format(self.current_idx + 1, len(self.image_list)))
+        self.lbl_index.setText(f"{self.current_idx + 1} / {len(self.image_list)}")
         self.progress.setValue(self.current_idx)
         self._update_thumb_selection()
 
         # التحقق من وجود الملف (LazyImage أو Path مباشر)
         if not entry.exists():
-            self._log("⚠️ الملف {} غير موجود — حذف من القائمة".format(name))
+            self._log(f"⚠️ الملف {name} غير موجود — حذف من القائمة")
             self.image_list.pop(self.current_idx)
             self.image_names.pop(self.current_idx)
             if self.current_idx < len(self.image_paths):
@@ -1633,7 +1646,7 @@ class MedicalDocApp(QMainWindow):
 
         img = entry.get()
         if img is None:
-            self._log("❌ فشل قراءة: {}".format(name))
+            self._log(f"❌ فشل قراءة: {name}")
             return
 
         self.current_img  = img
@@ -1647,16 +1660,16 @@ class MedicalDocApp(QMainWindow):
             t_params, t_sim = self.training.predict(img)
             if t_params:
                 self.current_params.update(t_params)
-                self._log("🧠 تنبؤ ({}%): {}".format(int(t_sim * 100), name))
+                self._log(f"🧠 تنبؤ ({int(t_sim * 100)}%): {name}")
             else:
                 a_params, a_sim = self.learner.suggest(img)
                 if a_params:
                     self.current_params.update(a_params)
-                    self._log("🤖 اقتراح ({}%): {}".format(int(a_sim * 100), name))
+                    self._log(f"🤖 اقتراح ({int(a_sim * 100)}%): {name}")
                 else:
-                    self._log("📄 تحميل: {}".format(name))
+                    self._log(f"📄 تحميل: {name}")
         else:
-            self._log("📄 تحميل: {}".format(name))
+            self._log(f"📄 تحميل: {name}")
 
         self.initial_params_snapshot = self.current_params.copy()
         self._sync_ui_from_params()
@@ -1759,7 +1772,7 @@ class MedicalDocApp(QMainWindow):
 
     def _update_undo_label(self):
         """Update undo/redo count label."""
-        self.lbl_s_undo.setText("{} / {}".format(len(self._undo_stack), len(self._redo_stack)))
+        self.lbl_s_undo.setText(f"{len(self._undo_stack)} / {len(self._redo_stack)}")
 
 
     def _sync_ui_from_params(self):
@@ -1774,7 +1787,7 @@ class MedicalDocApp(QMainWindow):
         self.slider_deskew.blockSignals(True)
         self.slider_deskew.setValue(angle)
         self.slider_deskew.blockSignals(False)
-        self.lbl_deskew.setText("{:+.1f}°".format(angle / 10))
+        self.lbl_deskew.setText(f"{angle / 10:+.1f}°")
         self.chk_flip.setChecked(self.current_params.get("flip_h", False))
         self.btn_sharpen.setChecked(self.current_params.get("sharpen", False))
         self.chk_shadow.setChecked(self.current_params.get("remove_shadow", False))
@@ -1834,7 +1847,7 @@ class MedicalDocApp(QMainWindow):
 
     def _update_undo_label(self):
         """Update undo/redo count label."""
-        self.lbl_s_undo.setText("{} / {}".format(len(self._undo_stack), len(self._redo_stack)))
+        self.lbl_s_undo.setText(f"{len(self._undo_stack)} / {len(self._redo_stack)}")
 
     # ──────────────────────────────────────────────────────────
     #  Smart Crop
@@ -1853,7 +1866,7 @@ class MedicalDocApp(QMainWindow):
         self.current_params["crop"] = crop
         self.operation_history.append("قص ذكي")
         self._update_preview()
-        self._log("✂️ قص ذكي: L={} T={} R={} B={}".format(crop[0], crop[1], crop[2], crop[3]))
+        self._log(f"✂️ قص ذكي: L={crop[0]} T={crop[1]} R={crop[2]} B={crop[3]}")
         if self.chk_auto_save.isChecked():
             self._confirm_save()
 
@@ -1874,8 +1887,7 @@ class MedicalDocApp(QMainWindow):
         self.current_params["crop"] = crop
         self.operation_history.append("إزالة رمادي")
         self._update_preview()
-        self._log("🖼️ إزالة رمادي: L={} T={} R={} B={}".format(
-            crop[0], crop[1], crop[2], crop[3]))
+        self._log(f"🖼️ إزالة رمادي: L={crop[0]} T={crop[1]} R={crop[2]} B={crop[3]}")
 
     # ──────────────────────────────────────────────────────────
     #  Skew Detection
@@ -1897,29 +1909,29 @@ class MedicalDocApp(QMainWindow):
         """Handle completed skew detection."""
         self._detected_angle = angle
         self.slider_deskew.setValue(int(angle * 10))
-        self.lbl_deskew.setText("{:+.1f}°".format(angle))
+        self.lbl_deskew.setText(f"{angle:+.1f}°")
         self.btn_apply_deskew.setEnabled(abs(angle) > 0.1)
         self.btn_auto_deskew.setEnabled(True)
         self.btn_auto_deskew.setText("📐 كشف ميلان")
-        self._log("📐 ميلان مكتشف: {:.1f}°".format(angle))
+        self._log(f"📐 ميلان مكتشف: {angle:.1f}°")
         self._update_preview()
         note = "✅ مائلة — اضغط 'تطبيق الميلان'" if abs(angle) > 0.5 else "✔️ مستقيمة تقريباً"
-        QMessageBox.information(self, "نتيجة الكشف", "زاوية الميلان: {:+.1f}°\n{}".format(angle, note))
+        QMessageBox.information(self, "نتيجة الكشف", f"زاوية الميلان: {angle:+.1f}°\n{note}")
 
     def _on_skew_err(self, msg: str):
         """Handle skew detection error."""
         self.btn_auto_deskew.setEnabled(True)
         self.btn_auto_deskew.setText("📐 كشف ميلان")
-        self._log("⚠️ خطأ في كشف الميلان: {}".format(msg))
+        self._log(f"⚠️ خطأ في كشف الميلان: {msg}")
 
     def _apply_skew(self):
         """Apply the detected skew angle."""
         if abs(self._detected_angle) > 0.05:
             self._push_undo()
             self.current_params["deskew_angle"] = self._detected_angle
-            self.operation_history.append("ميلان: {:.1f}°".format(self._detected_angle))
+            self.operation_history.append(f"ميلان: {self._detected_angle:.1f}°")
             self.btn_apply_deskew.setEnabled(False)
-            self._log("✔️ تطبيق ميلان: {:.1f}°".format(self._detected_angle))
+            self._log(f"✔️ تطبيق ميلان: {self._detected_angle:.1f}°")
             self._update_preview()
 
     # ──────────────────────────────────────────────────────────
@@ -1946,9 +1958,9 @@ class MedicalDocApp(QMainWindow):
             self._push_undo()
             self.current_params["deskew_angle"] = angle
             self.slider_deskew.setValue(int(angle * 10))
-            self.lbl_deskew.setText("{:+.1f}°".format(angle))
-            self.operation_history.append("ميلان تلقائي: {:.1f}°".format(angle))
-            self._log("📐 ميلان مكتشف: {:.1f}°".format(angle))
+            self.lbl_deskew.setText(f"{angle:+.1f}°")
+            self.operation_history.append(f"ميلان تلقائي: {angle:.1f}°")
+            self._log(f"📐 ميلان مكتشف: {angle:.1f}°")
         else:
             self._log("✅ لا ميلان مكتشف")
 
@@ -1975,7 +1987,7 @@ class MedicalDocApp(QMainWindow):
         self._is_processing = False         # ← فك التأمين دائماً
         self.btn_auto_deskew.setEnabled(True)
         self.btn_auto_deskew.setText("📐 كشف ميلان")
-        self._log("⚠️ خطأ في كشف الميلان التلقائي: {}".format(msg))
+        self._log(f"⚠️ خطأ في كشف الميلان التلقائي: {msg}")
         self._update_preview()
 
     def _on_gray_thr_change(self, val: int):
@@ -2024,7 +2036,7 @@ class MedicalDocApp(QMainWindow):
             self.current_params.update(t_params)
             self._sync_ui_from_params()
             self._update_preview()
-            self._log("🧠 تم تطبيق تنبؤ بيانات التدريب ({}% تشابه)".format(int(t_sim * 100)))
+            self._log(f"🧠 تم تطبيق تنبؤ بيانات التدريب ({int(t_sim * 100)}% تشابه)")
             return
 
         # Fall back to AdaptiveLearner
@@ -2034,10 +2046,10 @@ class MedicalDocApp(QMainWindow):
             self.current_params.update(a_params)
             self._sync_ui_from_params()
             self._update_preview()
-            self._log("🤖 تم تطبيق اقتراح التعلّم ({}% تشابه)".format(int(a_sim * 100)))
+            self._log(f"🤖 تم تطبيق اقتراح التعلّم ({int(a_sim * 100)}% تشابه)")
             return
 
-        self._log("⚠️ لا توجد بيانات كافية للتنبؤ (أقل من {} سجل)".format(TrainingDataCollector.MIN_INFER))
+        self._log(f"⚠️ لا توجد بيانات كافية للتنبؤ (أقل من {TrainingDataCollector.MIN_INFER} سجل)")
 
     # ──────────────────────────────────────────────────────────
     #  Compare Dialog
@@ -2061,14 +2073,14 @@ class MedicalDocApp(QMainWindow):
     def _update_quality_display(self):
         """Update quality labels based on current blur score."""
         label, color, icon = quality_label(self.current_blur, self.blur_threshold)
-        self.lbl_blur_val.setText("{:.1f}".format(self.current_blur))
-        self.lbl_quality.setText("{} جودة الأصل: {}".format(icon, label))
+        self.lbl_blur_val.setText(f"{self.current_blur:.1f}")
+        self.lbl_quality.setText(f"{icon} جودة الأصل: {label}")
         self.lbl_quality.setStyleSheet(
             "font-weight:bold;padding:8px;border-radius:5px;"
-            "background:{}22;color:{};border:1px solid {};".format(color, color, color))
+            f"background:{color}22;color:{color};border:1px solid {color};")
         if self.current_blur < self.blur_threshold:
             self.lbl_blur_warn.setText(
-                "⚠️ صورة ضبابية  ({:.0f} < {:.0f})".format(self.current_blur, self.blur_threshold))
+                f"⚠️ صورة ضبابية  ({self.current_blur:.0f} < {self.blur_threshold:.0f})")
         else:
             self.lbl_blur_warn.setText("")
 
@@ -2092,7 +2104,7 @@ class MedicalDocApp(QMainWindow):
             if self.processed_blur < self.blur_threshold * 0.5:
                 reply = QMessageBox.question(
                     self, "تحذير جودة",
-                    "الصورة المعالجة ضبابية جداً ({:.0f})\nهل تريد الحفظ؟".format(self.processed_blur),
+                    f"الصورة المعالجة ضبابية جداً ({self.processed_blur:.0f})\nهل تريد الحفظ؟",
                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                 if reply == QMessageBox.No:
                     return
@@ -2136,7 +2148,7 @@ class MedicalDocApp(QMainWindow):
                 self._update_training_stats()
 
             self._update_stats()
-            self._log("💾 حفظ: {} | جودة: {:.0f}".format(dest.name, self.processed_blur))
+            self._log(f"💾 حفظ: {dest.name} | جودة: {self.processed_blur:.0f}")
             self.btn_apply_all.setEnabled(True)
             if self.current_idx < len(self.image_list) - 1:
                 self._navigate(1)
@@ -2154,7 +2166,7 @@ class MedicalDocApp(QMainWindow):
         processed = apply_processing(self.current_img, self.current_params)
         cv2.imwrite(str(entry._path), processed)
         self.operation_history.append("save_in_place")
-        self._log("💾 حفظ محلي: {} — الإعدادات أُعيدت للصفر".format(entry.name))
+        self._log(f"💾 حفظ محلي: {entry.name} — الإعدادات أُعيدت للصفر")
         # الصورة المعالجة تصبح الأصل الجديد
         self.current_img  = processed
         entry._cache      = processed    # تحديث الكاش مباشرة
@@ -2176,7 +2188,7 @@ class MedicalDocApp(QMainWindow):
     def _log(self, msg: str):
         """Log to both UI and file logger."""
         ts   = datetime.now().strftime("%H:%M:%S")
-        line = "[{}] {}".format(ts, msg)
+        line = f"[{ts}] {msg}"
         self.txt_log.append(line)
         self.txt_log.verticalScrollBar().setValue(
             self.txt_log.verticalScrollBar().maximum())
@@ -2194,7 +2206,7 @@ class MedicalDocApp(QMainWindow):
         remaining = len(self.image_list) - self.current_idx
         reply = QMessageBox.question(
             self, "تأكيد الحفظ التلقائي",
-            "سيتم حفظ {} صورة تلقائياً (تصحيح ميلان + قص ذكي).\nهل تريد المتابعة؟".format(remaining),
+            f"سيتم حفظ {remaining} صورة تلقائياً (تصحيح ميلان + قص ذكي).\nهل تريد المتابعة؟",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.No:
             return
@@ -2202,7 +2214,7 @@ class MedicalDocApp(QMainWindow):
         self._batch_cancelled   = False
         self._set_controls_enabled(False)
         self.btn_cancel_batch.setVisible(True)
-        self.btn_auto_save_all.setText("⏳ جاري (0/{})...".format(remaining))
+        self.btn_auto_save_all.setText(f"⏳ جاري (0/{remaining})...")
         self.lbl_status.setText("🔁 حفظ تلقائي جارٍ...")
         self._auto_save_queue = list(range(self.current_idx, len(self.image_list)))
         self._auto_save_timer.start(0)   # ← يبدأ فوراً بعد إعادة رسم الواجهة
@@ -2224,23 +2236,23 @@ class MedicalDocApp(QMainWindow):
                 self._log("⏹️ إلغاء الحفظ التلقائي")
             else:
                 total = len(self.image_list) - self.current_idx
-                self.lbl_status.setText("✅ اكتمل الحفظ التلقائي ({} صورة)".format(total))
+                self.lbl_status.setText(f"✅ اكتمل الحفظ التلقائي ({total} صورة)")
                 self._log("🔁 اكتمل الحفظ التلقائي")
             return
 
         i = self._auto_save_queue.pop(0)
         done = (len(self.image_list) - self.current_idx) - len(self._auto_save_queue)
         total = len(self.image_list) - self.current_idx
-        self.btn_auto_save_all.setText("⏳ جاري ({}/{})...".format(done, total))
+        self.btn_auto_save_all.setText(f"⏳ جاري ({done}/{total})...")
         self.progress.setValue(i + 1)
-        self.lbl_status.setText("🔁 حفظ تلقائي: {} / {}".format(done, total))
+        self.lbl_status.setText(f"🔁 حفظ تلقائي: {done} / {total}")
 
         try:
             entry = self.image_list[i]
             name  = self.image_names[i]
             img   = entry.get()
             if img is None:
-                self._log("⚠️ تخطي: {}".format(name))
+                self._log(f"⚠️ تخطي: {name}")
             else:
                 angle  = auto_detect_skew(img)
                 blur_b = calc_blur(img)
@@ -2270,7 +2282,7 @@ class MedicalDocApp(QMainWindow):
                     user_regions = getattr(self, '_page_number_regions', None)
                     page_num = extract_page_number(processed, regions=user_regions)
                     if page_num > 0:
-                        save_name = "page_{:04d}.png".format(page_num)
+                        save_name = f"page_{page_num:04d}.png"
                         self.page_registry[page_num] = {
                             'quality': blur_a,
                             'path': str(crop_base / save_name),
@@ -2293,7 +2305,7 @@ class MedicalDocApp(QMainWindow):
                 self._record_csv("auto_saved", crp_d)
 
         except Exception as exc:
-            self._log("❌ خطأ في {}: {}".format(self.image_names[i], exc))
+            self._log(f"❌ خطأ في {self.image_names[i]}: {exc}")
             logger.exception("auto_save_step error at index %d", i)
 
         # جدولة الخطوة التالية (فور انتهاء رسم الواجهة)
@@ -2350,7 +2362,7 @@ class MedicalDocApp(QMainWindow):
             "PNG (*.png);;JPEG (*.jpg)")
         if path:
             pixmap.save(path)
-            self._log("📸 لقطة محفوظة: {}".format(Path(path).name))
+            self._log(f"📸 لقطة محفوظة: {Path(path).name}")
 
     def _skip_save(self):
         """Skip current image and move to next."""
@@ -2359,7 +2371,7 @@ class MedicalDocApp(QMainWindow):
         self.stats["skipped"] += 1
         self._update_stats()
         name = self.image_names[self.current_idx] if self.current_idx < len(self.image_names) else ""
-        self._log("⏭️ تخطي: {}".format(name))
+        self._log(f"⏭️ تخطي: {name}")
         if self.current_idx < len(self.image_list) - 1:
             self._navigate(1)
 
@@ -2371,7 +2383,7 @@ class MedicalDocApp(QMainWindow):
         remaining = len(self.image_list) - self.current_idx
         reply = QMessageBox.question(
             self, "تأكيد",
-            "سيتم تطبيق الإعدادات الحالية على {} صورة متبقية.\nهل تريد المتابعة؟".format(remaining),
+            f"سيتم تطبيق الإعدادات الحالية على {remaining} صورة متبقية.\nهل تريد المتابعة؟",
             QMessageBox.Yes | QMessageBox.No
         )
         if reply == QMessageBox.No:
@@ -2393,10 +2405,8 @@ class MedicalDocApp(QMainWindow):
                 # Move raw
                 if entry.is_path:
                     raw_dest = self._get_unique_path(raw_base, name, ext=Path(entry.name).suffix)
-                    try:
+                    with contextlib.suppress(Exception):
                         shutil.move(str(entry._path), str(raw_dest))
-                    except Exception:
-                        pass
 
                 # Save processed
                 dest = self._get_unique_path(crop_base, name, ext=".png")
@@ -2413,8 +2423,8 @@ class MedicalDocApp(QMainWindow):
 
         self.stats["processed"] += count
         self._update_stats()
-        self._log("🤖 تم تطبيق الإعدادات على {} صورة".format(count))
-        QMessageBox.information(self, "اكتمل", "تمت معالجة {} صورة.".format(count))
+        self._log(f"🤖 تم تطبيق الإعدادات على {count} صورة")
+        QMessageBox.information(self, "اكتمل", f"تمت معالجة {count} صورة.")
 
     # ──────────────────────────────────────────────────────────
     #  Navigation & Stats
@@ -2453,7 +2463,7 @@ class MedicalDocApp(QMainWindow):
     def _log(self, msg: str):
         """Log a message to the UI and file."""
         ts = datetime.now().strftime("%H:%M:%S")
-        line = "[{}] {}".format(ts, msg)
+        line = f"[{ts}] {msg}"
         self.txt_log.append(line)
         self.txt_log.verticalScrollBar().setValue(self.txt_log.verticalScrollBar().maximum())
         try:
@@ -2496,16 +2506,16 @@ class MedicalDocApp(QMainWindow):
             w = csv.DictWriter(f, fieldnames=self.processing_records[0].keys())
             w.writeheader()
             w.writerows(self.processing_records)
-        self._log("📤 CSV: {}".format(Path(path).name))
-        QMessageBox.information(self, "نجاح", "تم حفظ التقرير:\n{}".format(path))
+        self._log(f"📤 CSV: {Path(path).name}")
+        QMessageBox.information(self, "نجاح", f"تم حفظ التقرير:\n{path}")
 
     def _export_learn(self):
         """Export learning data to JSON."""
         path, _ = QFileDialog.getSaveFileName(self, "حفظ التعلّم", "learner.json", "JSON (*.json)")
         if path:
             self.learner.export(path)
-            self._log("💾 تصدير التعلّم: {}".format(Path(path).name))
-            QMessageBox.information(self, "نجاح", "تم الحفظ:\n{}".format(path))
+            self._log(f"💾 تصدير التعلّم: {Path(path).name}")
+            QMessageBox.information(self, "نجاح", f"تم الحفظ:\n{path}")
 
     def _import_learn(self):
         """Import learning data from JSON."""
@@ -2513,10 +2523,10 @@ class MedicalDocApp(QMainWindow):
         if path:
             try:
                 self.learner.load(path)
-                self._log("📥 استيراد {} سجل".format(len(self.learner.history)))
+                self._log(f"📥 استيراد {len(self.learner.history)} سجل")
                 self._update_stats()
             except Exception as e:
-                QMessageBox.critical(self, "خطأ", "فشل الاستيراد:\n{}".format(e))
+                QMessageBox.critical(self, "خطأ", f"فشل الاستيراد:\n{e}")
 
     # ──────────────────────────────────────────────────────────
     #  UI Helper Methods
@@ -2530,10 +2540,10 @@ class MedicalDocApp(QMainWindow):
             btn.setFixedWidth(w)
         btn.setFixedHeight(h)
         btn.setStyleSheet(
-            "QPushButton{{background:{color};color:white;border-radius:6px;"
-            "font-weight:bold;}}"
-            "QPushButton:hover{{opacity:0.9;}}"
-            "QPushButton:disabled{{background:#94a3b8;}}".format(color=color))
+            f"QPushButton{{background:{color};color:white;border-radius:6px;"
+            "font-weight:bold;}"
+            "QPushButton:hover{opacity:0.9;}"
+            "QPushButton:disabled{background:#94a3b8;}")
         return btn
 
     @staticmethod
@@ -2550,7 +2560,7 @@ class MedicalDocApp(QMainWindow):
 
     def _update_zoom_label(self):
         """Update zoom percentage label."""
-        self.lbl_zoom.setText("{}%".format(int(self.zoom_factor * 100)))
+        self.lbl_zoom.setText(f"{int(self.zoom_factor * 100)}%")
 
     def zoom_in(self):
         """Zoom in by 25%."""
@@ -2595,10 +2605,10 @@ class MedicalDocApp(QMainWindow):
         self._push_undo()
         r = (self.current_params.get("rotation", 0) - 90) % 360
         self.current_params["rotation"] = r
-        self.lbl_rotation.setText("{}°".format(r))
-        self.operation_history.append("تدوير يسار → {}°".format(r))
+        self.lbl_rotation.setText(f"{r}°")
+        self.operation_history.append(f"تدوير يسار → {r}°")
         self._update_preview()
-        self._log("↺ تدوير يسار → {}°".format(r))
+        self._log(f"↺ تدوير يسار → {r}°")
         # Auto smart crop after rotation
         self._do_smart_crop()
         if self.chk_auto_save.isChecked():
@@ -2611,10 +2621,10 @@ class MedicalDocApp(QMainWindow):
         self._push_undo()
         r = (self.current_params.get("rotation", 0) + 90) % 360
         self.current_params["rotation"] = r
-        self.lbl_rotation.setText("{}°".format(r))
-        self.operation_history.append("تدوير يمين → {}°".format(r))
+        self.lbl_rotation.setText(f"{r}°")
+        self.operation_history.append(f"تدوير يمين → {r}°")
         self._update_preview()
-        self._log("↻ تدوير يمين → {}°".format(r))
+        self._log(f"↻ تدوير يمين → {r}°")
         # Auto smart crop after rotation
         self._do_smart_crop()
         if self.chk_auto_save.isChecked():
@@ -2632,7 +2642,7 @@ class MedicalDocApp(QMainWindow):
         for i, entry in enumerate(self.image_list):
             if isinstance(entry, Path) and not entry.exists():
                 to_remove.append(i)
-                self._log("⚠️ ملف غير موجود تم حذفه: {}".format(entry.name))
+                self._log(f"⚠️ ملف غير موجود تم حذفه: {entry.name}")
         for i in reversed(to_remove):
             self.image_list.pop(i)
             self.image_names.pop(i)
@@ -2720,7 +2730,7 @@ class MedicalDocApp(QMainWindow):
                 # إضافة المنطقة الجديدة
                 self._page_number_regions.append(new_region)
                 self.btn_select_region.setText(
-                    "📍 مناطق: {} ".format(len(self._page_number_regions)))
+                    f"📍 مناطق: {len(self._page_number_regions)} ")
                 self._log("📍 منطقة رقم الصفحة #{}: ({:.2f}, {:.2f}, {:.2f}, {:.2f})".format(
                     len(self._page_number_regions), *new_region))
 
@@ -2743,18 +2753,18 @@ class MedicalDocApp(QMainWindow):
         found_any = False
         for idx, num in results:
             if num > 0:
-                msg_parts.append("منطقة {}: صفحة {}".format(idx, num))
+                msg_parts.append(f"منطقة {idx}: صفحة {num}")
                 found_any = True
             else:
-                msg_parts.append("منطقة {}: لم يُعثر على رقم".format(idx))
+                msg_parts.append(f"منطقة {idx}: لم يُعثر على رقم")
 
         msg = "\n".join(msg_parts)
         if found_any:
             QMessageBox.information(self, "🧪 نتيجة الاختبار", msg)
-            self._log("🧪 اختبار OCR: {}".format(msg))
+            self._log(f"🧪 اختبار OCR: {msg}")
         else:
             QMessageBox.warning(self, "⚠️ فشل الاختبار",
-                "{}\n\nحاول رسم مربع أدق حول الرقم.".format(msg))
+                f"{msg}\n\nحاول رسم مربع أدق حول الرقم.")
 
     # ──────────────────────────────────────────────────────────
     #  Smart Page Analysis & Organization
@@ -2820,18 +2830,18 @@ class MedicalDocApp(QMainWindow):
                 img = entry.get()
 
                 if img is None:
-                    self._log("⚠️ تخطي (قراءة فاشلة): {}".format(self.image_names[idx]))
+                    self._log(f"⚠️ تخطي (قراءة فاشلة): {self.image_names[idx]}")
                     continue
 
                 # Extract page number and assess quality
                 user_regions = getattr(self, '_page_number_regions', None)
                 page_num = extract_page_number(img, regions=user_regions)
                 quality = assess_image_quality(img)
-                name = self.image_names[idx] if idx < len(self.image_names) else "img_{}".format(idx)
+                name = self.image_names[idx] if idx < len(self.image_names) else f"img_{idx}"
 
                 if page_num == 0:
                     unknown_pages.append((idx, quality, img, name))
-                    self._log("❓ لا يوجد رقم صفحة واضح: {}".format(name))
+                    self._log(f"❓ لا يوجد رقم صفحة واضح: {name}")
                 else:
                     if page_num not in page_data:
                         page_data[page_num] = []
@@ -2843,7 +2853,7 @@ class MedicalDocApp(QMainWindow):
                 QApplication.processEvents()
 
             except Exception as e:
-                self._log("❌ خطأ في معالجة {}: {}".format(self.image_names[idx], e))
+                self._log(f"❌ خطأ في معالجة {self.image_names[idx]}: {e}")
 
         # ═══ Phase 2: Select best version & detect duplicates ═══
         best_pages = {}  # type: Dict[int, tuple]
@@ -2857,8 +2867,8 @@ class MedicalDocApp(QMainWindow):
                 best_pages[page_num] = candidates[0]
 
                 # Check remaining candidates for true duplicates
-                best_idx, best_qual, best_img, best_name = candidates[0]
-                for dup_idx, dup_qual, dup_img, dup_name in candidates[1:]:
+                best_idx, best_qual, best_img, _best_name = candidates[0]
+                for dup_idx, dup_qual, dup_img, _dup_name in candidates[1:]:
                     is_similar, distance = images_are_similar(best_img, dup_img)
                     if is_similar:
                         duplicates_info.append({
@@ -2890,7 +2900,7 @@ class MedicalDocApp(QMainWindow):
         # Save best pages
         saved_pages = []
         for page_num, (idx, quality, img, name) in best_pages.items():
-            dest = best_dir / "page_{:04d}.png".format(page_num)
+            dest = best_dir / f"page_{page_num:04d}.png"
             cv2.imwrite(str(dest), img)
             saved_pages.append({
                 'page': page_num,
@@ -2900,7 +2910,7 @@ class MedicalDocApp(QMainWindow):
                 'original': name,
             })
             if quality['overall'] < 0.4:
-                low_dest = low_quality_dir / "low_quality_page_{:04d}.png".format(page_num)
+                low_dest = low_quality_dir / f"low_quality_page_{page_num:04d}.png"
                 cv2.imwrite(str(low_dest), img)
                 self._log("⚠️ جودة منخفضة: صفحة {} ({:.3f})".format(page_num, quality['overall']))
 
@@ -2978,20 +2988,20 @@ class MedicalDocApp(QMainWindow):
             "✅ اكتمل التحليل الذكي بنجاح!",
             "",
             "📊 الإحصائيات:",
-            "• إجمالي الصور المحللة: {}".format(len(self.image_list)),
-            "• الصفحات المكتشفة (برقم): {}".format(len(best_pages)),
-            "• المكررات المحذوفة: {}".format(len(duplicates_info)),
-            "• الصفحات بدون رقم: {}".format(len(unknown_pages)),
-            "• الصفحات ذات جودة منخفضة: {}".format(low_quality_count),
+            f"• إجمالي الصور المحللة: {len(self.image_list)}",
+            f"• الصفحات المكتشفة (برقم): {len(best_pages)}",
+            f"• المكررات المحذوفة: {len(duplicates_info)}",
+            f"• الصفحات بدون رقم: {len(unknown_pages)}",
+            f"• الصفحات ذات جودة منخفضة: {low_quality_count}",
         ]
 
         if expected_total > 0:
-            summary_lines.append("• الصفحات الناقصة: {} / {}".format(len(missing_pages), expected_total))
+            summary_lines.append(f"• الصفحات الناقصة: {len(missing_pages)} / {expected_total}")
             if missing_pages:
                 missing_str = ", ".join(str(p) for p in missing_pages[:20])
                 if len(missing_pages) > 20:
-                    missing_str += " ... و {} أخرى".format(len(missing_pages) - 20)
-                summary_lines.append("  الأرقام الناقصة: {}".format(missing_str))
+                    missing_str += f" ... و {len(missing_pages) - 20} أخرى"
+                summary_lines.append(f"  الأرقام الناقصة: {missing_str}")
 
         summary_lines.extend([
             "",
@@ -3033,8 +3043,8 @@ class MedicalDocApp(QMainWindow):
         if path:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(report_text)
-            self._log("💾 تم حفظ التقرير: {}".format(Path(path).name))
-            QMessageBox.information(self, "نجاح", "تم حفظ التقرير:\n{}".format(path))
+            self._log(f"💾 تم حفظ التقرير: {Path(path).name}")
+            QMessageBox.information(self, "نجاح", f"تم حفظ التقرير:\n{path}")
 
 
 # ════════════════════════════════════════════════════════════════

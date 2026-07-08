@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from core.schemas import DedupResult, TextChunk
 from dedup.context_protector import MedicalContextProtector
@@ -69,7 +69,7 @@ class DeduplicationEngine:
         self.context_protector = MedicalContextProtector()
 
         self._exact_enabled: bool = exact_enabled
-        self._results: Dict[str, DedupResult] = {}
+        self._results: dict[str, DedupResult] = {}
 
         logger.info(
             "DeduplicationEngine initialised (exact=%s, semantic_threshold=%.2f).",
@@ -81,7 +81,7 @@ class DeduplicationEngine:
     # Public API
     # ------------------------------------------------------------------
 
-    def deduplicate(self, chunks: List[TextChunk]) -> List[TextChunk]:
+    def deduplicate(self, chunks: list[TextChunk]) -> list[TextChunk]:
         """Run the full deduplication pipeline on *chunks*.
 
         Processing order:
@@ -106,7 +106,7 @@ class DeduplicationEngine:
 
         # ── Phase 1: Exact dedup ─────────────────────────────────────
         if self._exact_enabled:
-            exact_survivors: List[TextChunk] = []
+            exact_survivors: list[TextChunk] = []
             for chunk in chunks:
                 is_dup, dup_id = self.exact_dedup.is_duplicate(chunk.text)
 
@@ -134,7 +134,7 @@ class DeduplicationEngine:
             exact_survivors = list(chunks)
 
         # ── Phase 2: Semantic dedup ───────────────────────────────────
-        sem_survivors: List[TextChunk] = []
+        sem_survivors: list[TextChunk] = []
         for chunk in exact_survivors:
             is_dup, dup_id, similarity = self.semantic_dedup.is_duplicate(chunk.text)
 
@@ -165,7 +165,7 @@ class DeduplicationEngine:
 
         # ── Phase 3: Context protection ──────────────────────────────
         protected_count = 0
-        output: List[TextChunk] = []
+        output: list[TextChunk] = []
         for chunk in sem_survivors:
             result = self._results.get(chunk.id)
             if result is not None and result.is_duplicate:
@@ -200,7 +200,7 @@ class DeduplicationEngine:
 
         return output
 
-    def get_result(self, chunk_id: str) -> Optional[DedupResult]:
+    def get_result(self, chunk_id: str) -> DedupResult | None:
         """Retrieve the :class:`DedupResult` for a specific chunk.
 
         Args:
@@ -211,7 +211,7 @@ class DeduplicationEngine:
         """
         return self._results.get(chunk_id)
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Aggregate deduplication statistics from all sub-engines.
 
         Returns:

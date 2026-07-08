@@ -1,8 +1,9 @@
-import os
-import re
 import base64
 import mimetypes
-from typing import Any, List, Dict, Optional
+import os
+import re
+from typing import Any
+
 from pydantic import BaseModel, model_validator
 
 
@@ -24,7 +25,7 @@ class ImageObj(BaseModel):
     mime_type: str = None
 
     @model_validator(mode="before")
-    def set_mime_type(cls, values):
+    def set_mime_type(self, values):
         name = values.get("name")
         mime_type = values.get("mime_type")
 
@@ -47,8 +48,8 @@ class TableObj(BaseModel):
 
     name: str
     markdown: str
-    titles: List[str] = None
-    data: List[List[str]] = None
+    titles: list[str] = None
+    data: list[list[str]] = None
 
 
 class MetaData(BaseModel):
@@ -66,12 +67,12 @@ class MetaData(BaseModel):
     """
 
     filetype: str
-    language: List[str] = []
-    toc: List[Any] = []
+    language: list[str] = []
+    toc: list[Any] = []
     pages: int = 0
-    ocr_stats: Dict[str, Any] = {}
-    block_stats: Dict[str, Any] = {}
-    postprocess_stats: Dict[str, Any] = {}
+    ocr_stats: dict[str, Any] = {}
+    block_stats: dict[str, Any] = {}
+    postprocess_stats: dict[str, Any] = {}
 
 
 class ParsedDocument(BaseModel):
@@ -92,14 +93,14 @@ class ParsedDocument(BaseModel):
     """
 
     markdown: str
-    images: Optional[List[ImageObj] | dict] = None
-    tables: Optional[List[TableObj]] = None
-    metadata: Optional[MetaData] = None
-    source_path: Optional[str] = None
-    output_folder: Optional[str] = None
+    images: list[ImageObj] | dict | None = None
+    tables: list[TableObj] | None = None
+    metadata: MetaData | None = None
+    source_path: str | None = None
+    output_folder: str | None = None
 
     @model_validator(mode="before")
-    def set_mime_type(cls, values):
+    def set_mime_type(self, values):
         images: dict = values.get("images")
         markdown_text: str = values.get("markdown")
         has_tables: bool = values.get("metadata", {}).get("block_stats", False)
@@ -150,7 +151,7 @@ class ParsedDocument(BaseModel):
             print(f"Data saved to {markdown_output_path}")
 
 
-def extract_markdown_tables(markdown_string: str) -> List[str]:
+def extract_markdown_tables(markdown_string: str) -> list[str]:
     """
     Extracts all tables from a markdown string.
 
@@ -165,7 +166,7 @@ def extract_markdown_tables(markdown_string: str) -> List[str]:
     return ["".join(table) for table in tables]
 
 
-def markdown_to_tables(markdown: str) -> List[TableObj] | None:
+def markdown_to_tables(markdown: str) -> list[TableObj] | None:
     """
     Converts markdown tables to a list of TableObj instances.
 

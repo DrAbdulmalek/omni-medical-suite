@@ -3,9 +3,8 @@ InnoCore AI 写作助教 (Coach Agent)
 负责风格迁移、实时润色、解释复杂概念
 """
 
-import asyncio
 import json
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from datetime import datetime
 
 from agents.base import BaseAgent

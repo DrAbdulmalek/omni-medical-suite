@@ -18,7 +18,6 @@ import csv
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 CANONICAL_COLUMNS = ["incorrect_ocr_output", "correct_text", "category", "form"]
 
@@ -45,13 +44,13 @@ COLUMN_ALIASES = {
 }
 
 
-def load_data(input_path: Path) -> List[Dict]:
+def load_data(input_path: Path) -> list[dict]:
     """Load data from JSONL or CSV."""
     suffix = input_path.suffix.lower()
     rows = []
 
     if suffix in (".jsonl", ".json"):
-        with open(input_path, "r", encoding="utf-8") as f:
+        with open(input_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -62,7 +61,7 @@ def load_data(input_path: Path) -> List[Dict]:
                     print(f"WARN: Skipping malformed line: {line[:80]}...")
     elif suffix in (".csv", ".tsv"):
         delimiter = "\t" if suffix == ".tsv" else ","
-        with open(input_path, "r", encoding="utf-8") as f:
+        with open(input_path, encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter=delimiter)
             for row in reader:
                 rows.append(dict(row))
@@ -74,7 +73,7 @@ def load_data(input_path: Path) -> List[Dict]:
     return rows
 
 
-def normalize_row(row: Dict) -> Dict:
+def normalize_row(row: dict) -> dict:
     """Normalize a single row to canonical schema."""
     normalized = {}
     for key, value in row.items():
@@ -140,8 +139,8 @@ def main():
     # Upload to HF
     if not args.dry_run and not args.output:
         try:
-            from datasets import Dataset
             import pandas as pd
+            from datasets import Dataset
 
             df = pd.DataFrame(normalized)
             # Ensure string types

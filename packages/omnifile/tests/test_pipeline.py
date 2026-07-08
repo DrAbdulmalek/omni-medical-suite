@@ -1,10 +1,7 @@
 """Tests for the OCR pipeline orchestrator."""
 
-import json
 import numpy as np
 import pytest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 
 @pytest.fixture

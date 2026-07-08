@@ -16,19 +16,14 @@
 """
 
 import io
-import json
 import logging
-import os
 import sys
-import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 
 # === إعداد مسار المشروع ===
 PROJECT_ROOT = Path(__file__).parent.resolve()
@@ -73,7 +68,6 @@ def init_config() -> OmniFileConfig:
         # كشف البيئة تلقائياً
         is_colab = False
         try:
-            import google.colab
             is_colab = True
         except Exception:
             pass
@@ -361,7 +355,7 @@ def render_file_processing_tab(cfg: OmniFileConfig, db: OmniFileDB):
 
     # إعدادات المعالجة
     with st.expander("⚙️ إعدادات المعالجة", expanded=False):
-        ocr_engine_choice = st.selectbox(
+        st.selectbox(
             "محرك OCR",
             options=["تلقائي (الأفضل)", "EasyOCR", "TrOCR", "Tesseract"],
             help="اختر محرك التعرف على النصوص",
@@ -965,7 +959,7 @@ def render_organizer_tab(cfg: OmniFileConfig, db: OmniFileDB):
                 stats = report.get("stats", {})
 
                 # عرض النتائج
-                st.success(f"✅ اكتمل التنظيم!")
+                st.success("✅ اكتمل التنظيم!")
                 col_s1, col_s2, col_s3 = st.columns(3)
                 with col_s1:
                     st.metric("إجمالي الملفات", stats.get("total_files", 0))
@@ -1449,11 +1443,11 @@ def render_sidebar(cfg: OmniFileConfig, db: OmniFileDB):
 
         # معلومات المشروع
         st.markdown("### ℹ️ المشروع")
-        st.markdown(f"**الإصدار:** v4.1.1")
-        st.markdown(f"**المؤلف:** Dr Abdulmalek Tamer Al-husseini")
-        st.markdown(f"**الموقع:** Homs, Syria")
-        st.markdown(f"**البريد الإلكتروني:** [Abdulmalek.husseini@gmail.com](mailto:Abdulmalek.husseini@gmail.com)")
-        st.markdown(f"**الرخصة:** MIT")
+        st.markdown("**الإصدار:** v4.1.1")
+        st.markdown("**المؤلف:** Dr Abdulmalek Tamer Al-husseini")
+        st.markdown("**الموقع:** Homs, Syria")
+        st.markdown("**البريد الإلكتروني:** [Abdulmalek.husseini@gmail.com](mailto:Abdulmalek.husseini@gmail.com)")
+        st.markdown("**الرخصة:** MIT")
 
         # محركات OCR
         st.markdown("---")
@@ -1503,7 +1497,7 @@ def main():
 
     # === التبويبات الرئيسية ===
     # تحديد التبويب النشط
-    active_tab_idx = st.session_state.get("active_tab", 0)
+    st.session_state.get("active_tab", 0)
 
     tabs = st.tabs([
         "📄 معالجة الملفات",

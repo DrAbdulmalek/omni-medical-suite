@@ -5,8 +5,9 @@
 # =============================================================================
 
 import unittest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
 from PIL import Image
 
 

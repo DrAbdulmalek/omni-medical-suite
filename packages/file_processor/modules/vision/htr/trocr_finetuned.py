@@ -125,7 +125,6 @@ class FineTunedTrOCR:
         Returns:
             زوج (النصّ المُتعَرَّف عليه، مستوى_الثقة).
         """
-        import PIL.Image
 
         # تحميل الصورة
         pil_img = self._ensure_pil_image(image)

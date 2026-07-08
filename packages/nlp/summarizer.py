@@ -14,7 +14,6 @@
 import hashlib
 import logging
 import time
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +68,8 @@ class TextSummarizer:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
-        device: Optional[str] = None,
+        model_name: str | None = None,
+        device: str | None = None,
         max_length: int = 130,
         min_length: int = 30,
         max_input_length: int = 1024,
@@ -250,9 +249,9 @@ class TextSummarizer:
     def summarize(
         self,
         text: str,
-        language: Optional[str] = None,
-        max_length: Optional[int] = None,
-        min_length: Optional[int] = None,
+        language: str | None = None,
+        max_length: int | None = None,
+        min_length: int | None = None,
     ) -> dict:
         """
         تلخيص النص.
@@ -387,8 +386,8 @@ class TextSummarizer:
     def summarize_batch(
         self,
         texts: list[str],
-        language: Optional[str] = None,
-        progress_callback: Optional[callable] = None,
+        language: str | None = None,
+        progress_callback: callable | None = None,
     ) -> list[dict]:
         """
         تلخيص مجموعة نصوص.

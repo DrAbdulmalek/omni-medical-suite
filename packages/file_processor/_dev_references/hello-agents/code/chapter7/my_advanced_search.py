@@ -1,6 +1,5 @@
 # my_advanced_search.py
 import os
-from typing import Optional, List, Dict, Any
 from hello_agents import ToolRegistry
 
 class MyAdvancedSearchTool:

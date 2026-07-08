@@ -1,7 +1,6 @@
 # main.py
 """LearningAgent 主入口文件"""
 
-import sys
 from cli.repl import start_repl
 
 

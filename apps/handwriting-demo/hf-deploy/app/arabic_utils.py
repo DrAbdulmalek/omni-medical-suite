@@ -13,8 +13,6 @@ This module provides:
 """
 
 import logging
-import unicodedata
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,5 @@
 """配置管理模块"""
 
-import os
-from pathlib import Path
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 

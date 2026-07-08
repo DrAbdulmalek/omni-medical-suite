@@ -24,11 +24,9 @@ Medical OCR Trainer — مُدرّب التعرف على الملاحظات ال
 """
 
 import os
-import sys
 import json
 import sqlite3
 import uuid
-import time
 import streamlit as st
 import pandas as pd
 from PIL import Image, ImageEnhance, ImageFilter
@@ -51,7 +49,7 @@ def to_native(obj):
     return obj
 
 # استيراد نظام التجمع
-from ensemble_ocr import EnsembleOCR, EnsembleResult
+from ensemble_ocr import EnsembleOCR
 
 
 # ============================================================
@@ -636,7 +634,7 @@ def main():
             else:
                 # عرض تقدم المعالجة
                 progress_placeholder = st.empty()
-                log_placeholder = st.empty()
+                st.empty()
 
                 progress_placeholder.progress(0, text="جاري تهيئة المحركات...")
 

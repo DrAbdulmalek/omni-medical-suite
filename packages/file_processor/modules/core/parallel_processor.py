@@ -435,7 +435,7 @@ class ParallelProcessor:
                         results[idx] = None
 
                     self._update_progress(
-                        description=f"معالجة الصفحات — Pages"
+                        description="معالجة الصفحات — Pages"
                     )
 
         except Exception as exc:

@@ -1,6 +1,5 @@
 """实时查看对话日志"""
 
-import os
 import time
 from pathlib import Path
 from datetime import datetime
@@ -14,7 +13,7 @@ def tail_log_file(filename, interval=1):
     """实时查看日志文件 (类似tail -f)"""
     
     print("\n" + "="*60)
-    print(f"📝 实时查看对话日志")
+    print("📝 实时查看对话日志")
     print(f"📂 日志文件: {filename}")
     print("="*60)
     print("\n按 Ctrl+C 停止查看\n")
@@ -43,7 +42,7 @@ def view_full_log(filename):
     """查看完整日志"""
     
     print("\n" + "="*60)
-    print(f"📝 查看完整对话日志")
+    print("📝 查看完整对话日志")
     print(f"📂 日志文件: {filename}")
     print("="*60 + "\n")
     
@@ -63,7 +62,7 @@ def list_log_files():
     """列出所有日志文件"""
     
     print("\n" + "="*60)
-    print(f"📂 日志文件列表")
+    print("📂 日志文件列表")
     print(f"📁 目录: {LOGS_DIR}")
     print("="*60 + "\n")
     

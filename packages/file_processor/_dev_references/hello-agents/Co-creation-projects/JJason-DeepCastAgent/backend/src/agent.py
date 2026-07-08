@@ -380,8 +380,7 @@ class DeepResearchAgent:
         if self.is_cancelled():
             return
         final_step = len(state.todo_items) + 1
-        for event in self._drain_tool_events(state, step=final_step):
-            yield event
+        yield from self._drain_tool_events(state, step=final_step)
         state.structured_report = report
         state.running_summary = report
         yield {"type": "log", "message": f"✓ 报告撰写完成，共 {len(report)} 字符"}
@@ -420,8 +419,7 @@ class DeepResearchAgent:
         script = self.script_generator.generate_script(state)
         if self.is_cancelled():
             return
-        for event in self._drain_tool_events(state):
-            yield event
+        yield from self._drain_tool_events(state)
         state.podcast_script = script
 
         script_turns = len(script) if script else 0

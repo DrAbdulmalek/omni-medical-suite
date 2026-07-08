@@ -1,11 +1,10 @@
 """多智能体旅行规划系统"""
 
 import json
-from typing import Dict, Any, List
 from hello_agents import SimpleAgent
 from hello_agents.tools import MCPTool
 from ..services.llm_service import get_llm
-from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, WeatherInfo, Location, Hotel
+from ..models.schemas import TripRequest, TripPlan, DayPlan, Attraction, Meal, Location
 from ..config import get_settings
 
 # ============ Agent提示词 ============
@@ -209,7 +208,7 @@ class MultiAgentTripPlanner:
                 system_prompt=PLANNER_AGENT_PROMPT
             )
 
-            print(f"✅ 多智能体系统初始化成功")
+            print("✅ 多智能体系统初始化成功")
             print(f"   景点搜索Agent: {len(self.attraction_agent.list_tools())} 个工具")
             print(f"   天气查询Agent: {len(self.weather_agent.list_tools())} 个工具")
             print(f"   酒店推荐Agent: {len(self.hotel_agent.list_tools())} 个工具")
@@ -232,7 +231,7 @@ class MultiAgentTripPlanner:
         """
         try:
             print(f"\n{'='*60}")
-            print(f"🚀 开始多智能体协作规划旅行...")
+            print("🚀 开始多智能体协作规划旅行...")
             print(f"目的地: {request.city}")
             print(f"日期: {request.start_date} 至 {request.end_date}")
             print(f"天数: {request.travel_days}天")
@@ -267,7 +266,7 @@ class MultiAgentTripPlanner:
             trip_plan = self._parse_response(planner_response, request)
 
             print(f"{'='*60}")
-            print(f"✅ 旅行计划生成完成!")
+            print("✅ 旅行计划生成完成!")
             print(f"{'='*60}\n")
 
             return trip_plan
@@ -365,7 +364,7 @@ class MultiAgentTripPlanner:
             
         except Exception as e:
             print(f"⚠️  解析响应失败: {str(e)}")
-            print(f"   将使用备用方案生成计划")
+            print("   将使用备用方案生成计划")
             return self._create_fallback_plan(request)
     
     def _create_fallback_plan(self, request: TripRequest) -> TripPlan:

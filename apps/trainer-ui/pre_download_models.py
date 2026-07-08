@@ -5,8 +5,6 @@ Lightweight version for HF Free Tier — only 3 engines:
     2. EasyOCR (Arabic + English)
     3. Tesseract (via apt-get, no download needed)
 """
-import sys
-import os
 import gc
 
 print("=== Pre-downloading OCR models (3 engines) ===", flush=True)

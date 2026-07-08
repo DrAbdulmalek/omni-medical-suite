@@ -17,10 +17,11 @@
 - نتائج مع بيانات وصفية (ال-confidence، المصدر، وقت المعالجة)
 """
 
+import contextlib
 import logging
 import os
 import time
-from typing import Optional, Union
+from typing import Union
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +54,9 @@ class OCREngine:
         trocr_num_beams: int = 4,
         trocr_max_length: int = 64,
         # إعدادات EasyOCR
-        easyocr_languages: Optional[list[str]] = None,
-        easyocr_gpu: Optional[bool] = None,
-        easyocr_model_storage_directory: Optional[str] = None,
+        easyocr_languages: list[str] | None = None,
+        easyocr_gpu: bool | None = None,
+        easyocr_model_storage_directory: str | None = None,
         # إعدادات Tesseract
         tesseract_langs: str = "eng+ara",
         tesseract_config: str = "--oem 3 --psm 6",
@@ -384,7 +385,7 @@ class OCREngine:
     def recognize(
         self,
         image: Union["np.ndarray", "PIL.Image.Image"],
-        languages: Optional[list[str]] = None,
+        languages: list[str] | None = None,
     ) -> dict:
         """
         التعرف على النص في صورة واحدة باستخدام أفضل محرك متاح.
@@ -480,7 +481,7 @@ class OCREngine:
     def recognize_batch(
         self,
         images: list[Union["np.ndarray", "PIL.Image.Image"]],
-        languages: Optional[list[str]] = None,
+        languages: list[str] | None = None,
     ) -> list[dict]:
         """
         التعرف على النص في مجموعة صور.
@@ -516,9 +517,9 @@ class OCREngine:
     def recognize_pdf(
         self,
         pdf_path: str,
-        pages: Optional[list[int]] = None,
-        languages: Optional[list[str]] = None,
-        progress_callback: Optional[callable] = None,
+        pages: list[int] | None = None,
+        languages: list[str] | None = None,
+        progress_callback: callable | None = None,
     ) -> list[dict]:
         """
         استخراج النص من ملف PDF مباشرة.
@@ -599,7 +600,7 @@ class OCREngine:
     # محركات OCR الفردية (Private)
     # ------------------------------------------------------------------
 
-    def _recognize_easyocr(self, image: "PIL.Image.Image") -> Optional[dict]:
+    def _recognize_easyocr(self, image: "PIL.Image.Image") -> dict | None:
         """
         التعرف على النص باستخدام EasyOCR.
 
@@ -677,7 +678,7 @@ class OCREngine:
             logger.warning("فشل EasyOCR: %s", e)
             return None
 
-    def _recognize_trocr(self, image: "PIL.Image.Image") -> Optional[dict]:
+    def _recognize_trocr(self, image: "PIL.Image.Image") -> dict | None:
         """
         التعرف على النص باستخدام TrOCR.
 
@@ -737,7 +738,7 @@ class OCREngine:
             logger.warning("فشل TrOCR: %s", e)
             return None
 
-    def _recognize_tesseract(self, image: "PIL.Image.Image") -> Optional[dict]:
+    def _recognize_tesseract(self, image: "PIL.Image.Image") -> dict | None:
         """
         التعرف على النص باستخدام Tesseract OCR.
 
@@ -751,9 +752,9 @@ class OCREngine:
             return None
 
         try:
+            import numpy as np
             import pytesseract
             from PIL import Image
-            import numpy as np
 
             # التأكد من RGB
             if image.mode != "RGB":
@@ -866,7 +867,7 @@ class OCREngine:
             self._surya_loaded = False
             return False
 
-    def _recognize_surya(self, image: "PIL.Image.Image") -> Optional[dict]:
+    def _recognize_surya(self, image: "PIL.Image.Image") -> dict | None:
         """
         التعرف على النص باستخدام Surya OCR.
 
@@ -880,8 +881,8 @@ class OCREngine:
             return None
 
         try:
-            import tempfile
             import os
+            import tempfile
 
             # Surya يعمل على مسار ملف، لذا نحفظ الصورة مؤقتاً
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
@@ -978,7 +979,7 @@ class OCREngine:
             self._paddleocr_loaded = False
             return False
 
-    def _recognize_paddleocr(self, image: "PIL.Image.Image") -> Optional[dict]:
+    def _recognize_paddleocr(self, image: "PIL.Image.Image") -> dict | None:
         """
         التعرف على النص باستخدام PaddleOCR.
 
@@ -1205,8 +1206,8 @@ class OCREngine:
     def recognize_with_cache(
         self,
         image: Union["np.ndarray", "PIL.Image.Image"],
-        languages: Optional[list[str]] = None,
-        cache: Optional[dict] = None,
+        languages: list[str] | None = None,
+        cache: dict | None = None,
         ttl: int = 3600,
     ) -> dict:
         """
@@ -1258,7 +1259,7 @@ class OCREngine:
     # ONNX Runtime (تسريع الاستدلال)
     # ------------------------------------------------------------------
 
-    def load_trocr_onnx(self, onnx_model_path: Optional[str] = None) -> bool:
+    def load_trocr_onnx(self, onnx_model_path: str | None = None) -> bool:
         """
         تحميل نموذج TrOCR بتنسيق ONNX لتسريع الاستدلال.
 
@@ -1269,8 +1270,8 @@ class OCREngine:
             True إذا تم التحميل بنجاح
         """
         try:
-            import onnxruntime as ort
             import numpy as np
+            import onnxruntime as ort
             import torch
             from transformers import TrOCRProcessor
 
@@ -1278,7 +1279,7 @@ class OCREngine:
                 # تحميل ONNX مباشرة
                 providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
                 if self.use_gpu:
-                    providers = ["CUDAExecutionProvider"] + providers
+                    providers = ["CUDAExecutionProvider", *providers]
                 self._onnx_session = ort.InferenceSession(onnx_model_path, providers=providers)
             else:
                 # تصدير من PyTorch إلى ONNX
@@ -1318,7 +1319,7 @@ class OCREngine:
             self._onnx_available = False
             return False
 
-    def _recognize_trocr_onnx(self, image: "PIL.Image.Image") -> Optional[dict]:
+    def _recognize_trocr_onnx(self, image: "PIL.Image.Image") -> dict | None:
         """تشغيل TrOCR عبر ONNX Runtime."""
         if not getattr(self, "_onnx_available", False):
             return None
@@ -1367,7 +1368,6 @@ class OCREngine:
         """
         try:
             import torch
-            from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
             if not self._load_trocr():
                 return False
@@ -1404,8 +1404,8 @@ class OCREngine:
     def recognize_batch_with_progress(
         self,
         images: list[Union["np.ndarray", "PIL.Image.Image"]],
-        languages: Optional[list[str]] = None,
-        progress_callback: Optional[callable] = None,
+        languages: list[str] | None = None,
+        progress_callback: callable | None = None,
     ) -> list[dict]:
         """
         معالجة دفعة صور مع إبلاغ عن التقدم.
@@ -1454,10 +1454,8 @@ class OCREngine:
         """
         # تفريغ EasyOCR
         if self._easyocr_reader is not None:
-            try:
+            with contextlib.suppress(Exception):
                 del self._easyocr_reader
-            except Exception:
-                pass
             self._easyocr_reader = None
             self._easyocr_loaded = False
             logger.info("تم تفريغ EasyOCR")
@@ -1481,10 +1479,8 @@ class OCREngine:
 
         # تفريغ معالج الصور
         if self._preprocessor is not None:
-            try:
+            with contextlib.suppress(Exception):
                 del self._preprocessor
-            except Exception:
-                pass
             self._preprocessor = None
 
         # تفريغ GC

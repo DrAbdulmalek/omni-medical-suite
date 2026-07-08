@@ -6,7 +6,6 @@
 
 import sys
 from pathlib import Path
-import json
 
 # 添加项目路径
 project_root = Path(__file__).parent.parent / "HelloAgents"
@@ -25,7 +24,7 @@ def minimal_grpo_training():
     
     只需要调用RLTrainingTool即可
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",
@@ -59,7 +58,7 @@ def standard_grpo_training():
     
     通常在SFT模型基础上进行GRPO训练
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",
@@ -106,7 +105,7 @@ def full_dataset_training():
     """
     使用完整数据集进行GRPO训练
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",
@@ -127,9 +126,9 @@ def full_dataset_training():
     
     print("完整数据集GRPO训练:")
     print(f"  模型: {config['model_name']}")
-    print(f"  样本数: 全部 (max_samples=None)")
+    print("  样本数: 全部 (max_samples=None)")
     print(f"  训练轮数: {config['num_epochs']}")
-    print(f"  预计样本数: ~7500 (GSM8K训练集)")
+    print("  预计样本数: ~7500 (GSM8K训练集)")
     
     # 实际训练时取消注释
     # result = tool.run(config)
@@ -149,7 +148,7 @@ def complete_sft_grpo_pipeline():
     1. SFT训练 - 学习基本格式
     2. GRPO训练 - 优化推理能力
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     # 步骤1: SFT训练
     print("步骤1: SFT训练")
@@ -218,7 +217,7 @@ def using_different_rewards():
     print("  3. 自定义奖励: 根据需求定制")
     
     print("\n创建奖励函数示例:")
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     # 创建准确性奖励函数
     accuracy_config = {
@@ -257,7 +256,7 @@ def practical_training_example():
     """
     实际训练示例 - 可以直接运行
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",

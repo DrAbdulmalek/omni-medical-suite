@@ -7,9 +7,7 @@ EmailSmartAssistant - Demo Version
 无需配置真实邮箱，直接体验所有功能
 """
 
-import json
 import re
-from datetime import datetime, timedelta
 from collections import Counter
 
 class EmailDemo:

@@ -18,13 +18,14 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable, Sequence
 from concurrent.futures import (
     Future,
     ProcessPoolExecutor,
     ThreadPoolExecutor,
     as_completed,
 )
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 # --- إعداد المسجل — Logger Setup ---
 logger = logging.getLogger(__name__)
@@ -72,8 +73,8 @@ def _detect_optimal_workers() -> int:
 
 def _wrap_with_timeout(
     fn: Callable[..., Any],
-    args: Tuple[Any, ...],
-    kwargs: Dict[str, Any],
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
     timeout: float,
 ) -> Any:
     """
@@ -94,7 +95,7 @@ def _wrap_with_timeout(
     """
     # استخدام خيط منفصل لتنفيذ الدالة مع مهلة
     result: Any = None
-    exception: Optional[BaseException] = None
+    exception: BaseException | None = None
     done_event = threading.Event()
 
     def _target() -> None:
@@ -150,7 +151,7 @@ class ParallelProcessor:
 
     def __init__(
         self,
-        max_workers: Optional[int] = None,
+        max_workers: int | None = None,
         default_executor_type: str = "thread",
     ) -> None:
         """
@@ -167,7 +168,7 @@ class ParallelProcessor:
         self._progress_lock: threading.Lock = threading.Lock()
         self._completed_count: int = 0
         self._total_count: int = 0
-        self._start_time: Optional[float] = None
+        self._start_time: float | None = None
 
         logger.info(
             "تم تهيئة المعالج المتوازي — عمال: %d, منفّذ افتراضي: %s",
@@ -247,7 +248,7 @@ class ParallelProcessor:
     def _create_executor(
         self,
         executor_type: str,
-        max_workers: Optional[int] = None,
+        max_workers: int | None = None,
     ):
         """
         إنشاء المنفّذ المناسب حسب النوع المطلوب.
@@ -287,10 +288,10 @@ class ParallelProcessor:
         self,
         items: Sequence[Any],
         process_fn: Callable[[Any], Any],
-        n_workers: Optional[int] = None,
+        n_workers: int | None = None,
         executor_type: str = "thread",
         description: str = "",
-    ) -> List[Any]:
+    ) -> list[Any]:
         """
         معالجة مجموعة من العناصر بالتوازي.
         Process a batch of items in parallel.
@@ -333,12 +334,12 @@ class ParallelProcessor:
         )
 
         self._reset_progress(total)
-        results: List[Optional[Any]] = [None] * total
+        results: list[Any | None] = [None] * total
 
         try:
             with self._create_executor(executor_type, workers) as executor:
                 # إرسال جميع المهام
-                future_to_index: Dict[Future, int] = {}
+                future_to_index: dict[Future, int] = {}
                 for idx, item in enumerate(items):
                     future = executor.submit(process_fn, item)
                     future_to_index[future] = idx
@@ -378,7 +379,7 @@ class ParallelProcessor:
         pages: Sequence[Any],
         ocr_fn: Callable[[Any, int], Any],
         max_workers: int = 4,
-    ) -> List[Any]:
+    ) -> list[Any]:
         """
         معالجة صفحات المستند بالتوازي — مُحسّن لعمليات OCR.
         Process document pages in parallel — optimized for OCR operations.
@@ -413,11 +414,11 @@ class ParallelProcessor:
         )
 
         self._reset_progress(total)
-        results: List[Optional[Any]] = [None] * total
+        results: list[Any | None] = [None] * total
 
         try:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                future_to_index: Dict[Future, int] = {}
+                future_to_index: dict[Future, int] = {}
                 for idx, page in enumerate(pages):
                     future = executor.submit(ocr_fn, page, idx)
                     future_to_index[future] = idx
@@ -435,7 +436,7 @@ class ParallelProcessor:
                         results[idx] = None
 
                     self._update_progress(
-                        description=f"معالجة الصفحات — Pages"
+                        description="معالجة الصفحات — Pages"
                     )
 
         except Exception as exc:
@@ -460,8 +461,8 @@ class ParallelProcessor:
         self,
         items: Sequence[Any],
         fn: Callable[[Any], Any],
-        n_workers: Optional[int] = None,
-    ) -> List[Any]:
+        n_workers: int | None = None,
+    ) -> list[Any]:
         """
         تطبيق دالة على مجموعة عناصر مع دعم التتبع.
         Apply a function to items with progress tracking support.
@@ -494,8 +495,7 @@ class ParallelProcessor:
 
         # محاولة استخدام joblib إذا كان متاحًا
         try:
-            from joblib import Parallel as JoblibParallel
-            from joblib import delayed
+            from joblib import Parallel as JoblibParallel, delayed
 
             logger.info(
                 "استخدام joblib لمعالجة %d عنصر بـ %d عامل — "
@@ -566,8 +566,8 @@ class ParallelProcessor:
         items: Sequence[Any],
         fn: Callable[[Any], Any],
         timeout_per_item: float = 60,
-        n_workers: Optional[int] = None,
-    ) -> List[Any]:
+        n_workers: int | None = None,
+    ) -> list[Any]:
         """
         معالجة العناصر مع مهلة زمنية لكل عنصر.
         Process items with a per-item timeout.
@@ -607,7 +607,7 @@ class ParallelProcessor:
         )
 
         self._reset_progress(total)
-        results: List[Optional[Any]] = [None] * total
+        results: list[Any | None] = [None] * total
         timeouts: int = 0
         errors: int = 0
 
@@ -617,7 +617,7 @@ class ParallelProcessor:
 
         try:
             with ThreadPoolExecutor(max_workers=workers) as executor:
-                future_to_index: Dict[Future, int] = {}
+                future_to_index: dict[Future, int] = {}
                 for idx, item in enumerate(items):
                     future = executor.submit(_timed_fn, item)
                     future_to_index[future] = idx
@@ -664,7 +664,7 @@ class ParallelProcessor:
     # معلومات إحصائية — Statistics
     # -----------------------------------------------------------------
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         الحصول على إحصائيات المعالج المتوازي.
         Get statistics about the parallel processor.

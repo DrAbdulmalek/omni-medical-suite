@@ -12,7 +12,6 @@ Usage:
 """
 import logging
 import re
-from typing import List, Tuple
 
 import torch
 from transformers import AutoModelForTokenClassification, AutoTokenizer, pipeline
@@ -39,7 +38,7 @@ class LLMNERAnnotator:
     def __init__(
         self,
         model_name: str = "aubmindlab/bert-base-arabertv02",
-        device: str = None,
+        device: str | None = None,
     ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"Loading NER annotator: {model_name} on {self.device}")
@@ -60,7 +59,7 @@ class LLMNERAnnotator:
             device=0 if self.device == "cuda" else -1,
         )
 
-    def annotate(self, text: str) -> Tuple[List[str], List[int]]:
+    def annotate(self, text: str) -> tuple[list[str], list[int]]:
         """
         Annotate text with NER tags.
 
@@ -97,17 +96,17 @@ class LLMNERAnnotator:
 
         return tokens, ner_tags
 
-    def batch_annotate(self, texts: List[str]) -> List[Tuple[List[str], List[int]]]:
+    def batch_annotate(self, texts: list[str]) -> list[tuple[list[str], list[int]]]:
         """Annotate a batch of texts."""
         return [self.annotate(text) for text in texts]
 
-    def annotate_with_labels(self, text: str) -> List[Tuple[str, str]]:
+    def annotate_with_labels(self, text: str) -> list[tuple[str, str]]:
         """
         Annotate and return (token, label_string) pairs.
         Useful for inspection and debugging.
         """
         tokens, tags = self.annotate(text)
-        return [(tok, LABEL_MAP.get(tag, "O")) for tok, tag in zip(tokens, tags)]
+        return [(tok, LABEL_MAP.get(tag, "O")) for tok, tag in zip(tokens, tags, strict=False)]
 
 
 if __name__ == "__main__":

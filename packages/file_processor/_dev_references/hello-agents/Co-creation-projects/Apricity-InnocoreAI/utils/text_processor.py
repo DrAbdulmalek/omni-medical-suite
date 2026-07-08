@@ -3,10 +3,9 @@ InnoCore AI 文本处理工具
 """
 
 import re
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Any
 import string
 from collections import Counter
-import asyncio
 
 class TextProcessor:
     """文本处理器"""

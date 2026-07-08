@@ -4,15 +4,13 @@ Advanced OCR Correction Pipeline
 2. Medical Context Processor: يفهم سياقات الأدوية، الجرعات، والتشخيصات
 3. NLP Arabic Corrector: تصحيح سياقي خفيف باستخدام نموذج لغة عربي
 """
-import re
 import json
-import os
 import logging
-from pathlib import Path
-from difflib import SequenceMatcher
-from typing import List, Dict, Optional, Tuple
-from collections import defaultdict
+import os
+import re
 from datetime import datetime
+from difflib import SequenceMatcher
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +33,7 @@ class UserLearningEngine:
     def __init__(self, storage_path: str = "/data/user_corrections.json"):
         self.path = Path(storage_path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.dictionary: Dict[str, dict] = {}
+        self.dictionary: dict[str, dict] = {}
         self._sync = None
         self._load()
         self._init_sync()
@@ -47,9 +45,8 @@ class UserLearningEngine:
             from app.sync_user_dict import get_sync
             self._sync = get_sync()
             # If local dict is empty, try downloading from HF
-            if not self.dictionary:
-                if self._sync.download():
-                    self._load()
+            if not self.dictionary and self._sync.download():
+                self._load()
         except Exception as exc:
             logger.warning("Cloud sync init skipped: %s", exc)
 
@@ -57,7 +54,7 @@ class UserLearningEngine:
     def _load(self):
         if self.path.exists():
             try:
-                with open(self.path, "r", encoding="utf-8") as f:
+                with open(self.path, encoding="utf-8") as f:
                     data = json.load(f)
                 # Handle both plain-dict and metadata-wrapped formats
                 if isinstance(data, dict) and "corrections" in data:
@@ -108,7 +105,7 @@ class UserLearningEngine:
         logger.info("Learned: '%s' -> '%s' (count: %d)", wrong_norm, correct_norm, entry["count"])
 
     # ------------------------------------------------------------------
-    def get_correction(self, text: str) -> Optional[str]:
+    def get_correction(self, text: str) -> str | None:
         """Look up a saved correction (exact or fuzzy fallback)."""
         norm = self._normalize(text)
         if norm in self.dictionary:
@@ -129,7 +126,7 @@ class UserLearningEngine:
         return best_match
 
     # ------------------------------------------------------------------
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Return dictionary statistics for display."""
         total = len(self.dictionary)
         total_uses = sum(e.get("count", 0) for e in self.dictionary.values())
@@ -168,8 +165,8 @@ class MedicalContextProcessor:
         self.drugs: set = set()
         self.dosage_units = {"مجم", "mg", "مل", "ml", "قرص", "كبسولة", "أمبول", "قطرة"}
         self.diagnoses: set = set()
-        self.orthopedic_terms: Dict[str, list] = {}
-        self.term_variants: Dict[str, str] = {}  # normalized variant → correct term
+        self.orthopedic_terms: dict[str, list] = {}
+        self.term_variants: dict[str, str] = {}  # normalized variant → correct term
         self._load_config()
         self._load_orthopedic_terms()
 
@@ -177,7 +174,7 @@ class MedicalContextProcessor:
         """تحميل قاموس المصطلحات العظمية المتخصصة"""
         if self.terms_path.exists():
             try:
-                with open(self.terms_path, 'r', encoding='utf-8') as f:
+                with open(self.terms_path, encoding='utf-8') as f:
                     data = json.load(f)
 
                 ortho_terms = data.get("orthopedic_terms", {})
@@ -210,7 +207,7 @@ class MedicalContextProcessor:
     def _load_config(self):
         if self.config_path.exists():
             try:
-                with open(self.config_path, 'r', encoding='utf-8') as f:
+                with open(self.config_path, encoding='utf-8') as f:
                     cfg = json.load(f)
                 self.drugs = set(cfg.get("drugs", []))
                 self.diagnoses = set(cfg.get("diagnoses", []))
@@ -236,7 +233,7 @@ class MedicalContextProcessor:
                     len(self.drugs), len(self.diagnoses))
 
     # ------------------------------------------------------------------
-    def process_word(self, word: str, context_words: Optional[List[str]] = None) -> Dict:
+    def process_word(self, word: str, context_words: list[str] | None = None) -> dict:
         """Analyse a single word in a medical context.
 
         Priority order:
@@ -248,7 +245,7 @@ class MedicalContextProcessor:
 
         Returns dict with keys: type, corrected, normalized.
         """
-        result: Dict = {"type": "general", "corrected": word, "normalized": word}
+        result: dict = {"type": "general", "corrected": word, "normalized": word}
 
         if not word or not word.strip():
             return result
@@ -299,7 +296,7 @@ class MedicalContextProcessor:
 
         return result
 
-    def process_phrase(self, words: List[str]) -> List[Dict]:
+    def process_phrase(self, words: list[str]) -> list[dict]:
         """معالجة عبارة كاملة للكشف عن مصطلحات متعددة الكلمات.
 
         Tries to combine 2-4 adjacent words into multi-word orthopedic terms.
@@ -308,7 +305,7 @@ class MedicalContextProcessor:
         if not words:
             return []
 
-        results: List[Dict] = []
+        results: list[dict] = []
         i = 0
 
         while i < len(words):
@@ -382,7 +379,7 @@ class NLPArabicCorrector:
         self.enabled = enabled
         self.cache_dir = Path(model_cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self._cache: Dict[str, str] = {}
+        self._cache: dict[str, str] = {}
         self.sym = None
 
         if self.enabled:
@@ -436,7 +433,7 @@ class NLPArabicCorrector:
         if ortho_path.exists():
             try:
                 import json as _json
-                with open(ortho_path, 'r', encoding='utf-8') as f:
+                with open(ortho_path, encoding='utf-8') as f:
                     data = _json.load(f)
                 for term in data.get("orthopedic_terms", {}):
                     words.append(term)
@@ -493,12 +490,12 @@ class AdvancedCorrectionPipeline:
         enable_medical_context: bool = True,
         enable_nlp: bool = False,
     ):
-        self.learning: Optional[UserLearningEngine] = UserLearningEngine() if enable_learning else None
-        self.medical: Optional[MedicalContextProcessor] = MedicalContextProcessor() if enable_medical_context else None
+        self.learning: UserLearningEngine | None = UserLearningEngine() if enable_learning else None
+        self.medical: MedicalContextProcessor | None = MedicalContextProcessor() if enable_medical_context else None
         self.nlp = NLPArabicCorrector(enabled=enable_nlp)
         self.enable_nlp = enable_nlp
 
-    def process_word(self, word: str, confidence: float, context_words: Optional[List[str]] = None) -> Dict:
+    def process_word(self, word: str, confidence: float, context_words: list[str] | None = None) -> dict:
         """Process a single word through all pipeline stages.
 
         Returns dict: original, final, source, confidence.
@@ -542,7 +539,7 @@ class AdvancedCorrectionPipeline:
 # ==============================================================================
 # Module-level singleton
 # ==============================================================================
-_pipeline: Optional[AdvancedCorrectionPipeline] = None
+_pipeline: AdvancedCorrectionPipeline | None = None
 
 
 def get_pipeline() -> AdvancedCorrectionPipeline:

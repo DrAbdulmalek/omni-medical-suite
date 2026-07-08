@@ -1,5 +1,4 @@
 """Tests for modules.core.protected_vocab.ProtectedVocab"""
-import pytest
 
 class TestProtectedVocab:
     """Test ProtectedVocab singleton."""

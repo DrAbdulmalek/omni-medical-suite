@@ -12,8 +12,6 @@
 """
 
 from fastmcp import FastMCP
-import sys
-import os
 
 # 创建MCP服务器实例
 mcp = FastMCP("MyCustomServer")

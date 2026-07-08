@@ -4,11 +4,9 @@ Tests single-word correction, batch correction, phrase detection,
 and overall correction quality against golden reference texts.
 """
 
-import statistics
-import re
-import json
 import os
-from typing import Optional
+import re
+import statistics
 
 from benchmarks.core.metrics import EditDistance, LatencyProfiler
 
@@ -29,7 +27,7 @@ class CorrectionBenchmark:
         """
         self.dictionary_path = dictionary_path
         self._postprocessor = None
-        self._available: Optional[bool] = None
+        self._available: bool | None = None
         self._fallback_terms = self._build_fallback_terms()
 
     def _build_fallback_terms(self) -> dict[str, str]:
@@ -148,7 +146,7 @@ class CorrectionBenchmark:
 
         # Fallback: simple regex-based phrase detection
         results = []
-        text_lower = text.lower()
+        text.lower()
         for term in sorted(self._fallback_terms.values(), key=len, reverse=True):
             pattern = re.compile(re.escape(term), re.IGNORECASE)
             for match in pattern.finditer(text):

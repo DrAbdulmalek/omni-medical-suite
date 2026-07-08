@@ -12,21 +12,20 @@ Orchestrates the full workflow:
 """
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Optional, Union, List
-from datetime import datetime, timezone
 
-from .pdf_extractor import extract_pdf_text, extract_pdf_words, is_text_layer_present
-from .alignment import merge_multi_source, compute_similarity_ratio
+from .alignment import compute_similarity_ratio, merge_multi_source
+from .pdf_extractor import extract_pdf_text, is_text_layer_present
 
 
 def build_ground_truth_record(
     image_id: str,
-    abbyy_pdf: Optional[Union[str, Path]] = None,
-    readiris_pdf: Optional[Union[str, Path]] = None,
-    extra_sources: Optional[Dict[str, str]] = None,
+    abbyy_pdf: str | Path | None = None,
+    readiris_pdf: str | Path | None = None,
+    extra_sources: dict[str, str] | None = None,
     primary_source: str = "abbyy",
-) -> Dict:
+) -> dict:
     """
     Builds a single ground-truth record for one document/page by merging
     available OCR sources.
@@ -43,8 +42,8 @@ def build_ground_truth_record(
     Returns:
         Ground-truth record dict (see schema in module docstring below)
     """
-    sources: Dict[str, str] = {}
-    source_files: Dict[str, str] = {}
+    sources: dict[str, str] = {}
+    source_files: dict[str, str] = {}
 
     if abbyy_pdf:
         abbyy_pdf = Path(abbyy_pdf)
@@ -74,7 +73,7 @@ def build_ground_truth_record(
 
     # Pick a valid primary source
     if primary_source not in sources:
-        primary_source = list(sources.keys())[0]
+        primary_source = next(iter(sources.keys()))
 
     merged = merge_multi_source(sources, primary_source=primary_source)
 
@@ -89,7 +88,7 @@ def build_ground_truth_record(
 
     record = {
         "image_id": image_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "sources_used": list(sources.keys()),
         "source_files": source_files,
         "primary_source": primary_source,
@@ -105,12 +104,12 @@ def build_ground_truth_record(
 
 
 def build_dataset_from_folder(
-    abbyy_dir: Optional[Union[str, Path]] = None,
-    readiris_dir: Optional[Union[str, Path]] = None,
-    output_dir: Union[str, Path] = "./ground_truth_output",
-    extra_source_dirs: Optional[Dict[str, Union[str, Path]]] = None,
+    abbyy_dir: str | Path | None = None,
+    readiris_dir: str | Path | None = None,
+    output_dir: str | Path = "./ground_truth_output",
+    extra_source_dirs: dict[str, str | Path] | None = None,
     extra_source_ext: str = ".txt",
-) -> List[Dict]:
+) -> list[dict]:
     """
     Batch-builds ground-truth records by matching files with the same
     stem (filename without extension) across the ABBYY / Readiris /
@@ -153,7 +152,7 @@ def build_dataset_from_folder(
             readiris_files[f.stem] = f
             stems.add(f.stem)
 
-    extra_files: Dict[str, Dict[str, Path]] = {}
+    extra_files: dict[str, dict[str, Path]] = {}
     if extra_source_dirs:
         for source_name, folder in extra_source_dirs.items():
             folder = Path(folder)

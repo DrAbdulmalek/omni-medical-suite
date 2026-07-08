@@ -1,17 +1,18 @@
 """Tests for the Threshold Checker module."""
 
 import json
-import pytest
-from pathlib import Path
-from dataclasses import dataclass
-from unittest.mock import patch, MagicMock
-
 import sys
+from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.threshold.threshold_checker import (
-    BenchmarkResult, ThresholdConfig, ResultsReader,
-    DecisionEngine, ReportGenerator, SignalEmitter
+    BenchmarkResult,
+    DecisionEngine,
+    ReportGenerator,
+    ResultsReader,
+    SignalEmitter,
+    ThresholdConfig,
 )
 
 

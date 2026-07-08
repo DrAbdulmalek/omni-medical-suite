@@ -19,13 +19,14 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Any
 
 import cv2
 import numpy as np
 from PIL import Image
 
-from src.engines.base_engine import BBox, OCREngine, OCRResult, ImageInput
+from src.engines.base_engine import ImageInput, OCREngine, OCRResult
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ TROCR_PRINTED_LARGE = "microsoft/trocr-large-printed"
 
 # Arabic-specific fine-tuned models (community / custom).
 # If these are not available locally, the engine falls back gracefully.
-ARABIC_TROCR_MODELS: List[str] = [
+ARABIC_TROCR_MODELS: list[str] = [
     "microsoft/trocr-base-handwritten",  # default fallback
 ]
 
@@ -89,9 +90,9 @@ class TrOCREngine(OCREngine):
     def __init__(
         self,
         model_name: str = TROCR_HANDWRITTEN_BASE,
-        processor_name: Optional[str] = None,
-        arabic_model_name: Optional[str] = None,
-        device: Optional[str] = None,
+        processor_name: str | None = None,
+        arabic_model_name: str | None = None,
+        device: str | None = None,
         use_fp16: bool = True,
         max_length: int = 512,
         num_beams: int = 4,
@@ -150,8 +151,6 @@ class TrOCREngine(OCREngine):
         """
         if self._model is not None:
             return
-
-        from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
         # Determine dtype
         import torch
@@ -289,7 +288,7 @@ class TrOCREngine(OCREngine):
             },
         )
 
-    def ocr_batch(self, images: Sequence[ImageInput]) -> List[OCRResult]:
+    def ocr_batch(self, images: Sequence[ImageInput]) -> list[OCRResult]:
         """Run TrOCR on a batch of images with explicit batch inference.
 
         Images are grouped into batches of ``batch_size`` and processed
@@ -309,13 +308,13 @@ class TrOCREngine(OCREngine):
         import torch
 
         # Prepare all images
-        pil_images: List[Image.Image] = []
+        pil_images: list[Image.Image] = []
         for img in images:
             validated = self.validate_image(img) if not isinstance(img, np.ndarray) else img
             preprocessed = self.preprocess(validated)
             pil_images.append(self._ensure_min_size(self._to_pil_rgb(preprocessed)))
 
-        results: List[OCRResult] = []
+        results: list[OCRResult] = []
 
         for batch_start in range(0, len(pil_images), self._batch_size):
             batch = pil_images[batch_start : batch_start + self._batch_size]
@@ -445,7 +444,7 @@ class TrOCREngine(OCREngine):
         except ImportError:
             pass
 
-    def get_gpu_memory_usage(self) -> Dict[str, float]:
+    def get_gpu_memory_usage(self) -> dict[str, float]:
         """Return current GPU memory usage in MB.
 
         Returns

@@ -33,7 +33,7 @@ class Settings:
             print("   示例: LLM_API_KEY=\"your-api-key\"")
             return False
 
-        print(f"✅ LLM配置:")
+        print("✅ LLM配置:")
         print(f"   模型: {cls.LLM_MODEL_ID}")
         print(f"   服务地址: {cls.LLM_BASE_URL}")
         return True

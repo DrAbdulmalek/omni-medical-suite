@@ -19,16 +19,15 @@ import json
 import logging
 import os
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple
 
 import cv2
 import gradio as gr
 import numpy as np
 from PIL import Image
 
-from app.ocr_engine import ocr_engine
 from app.ai.schema_extractor import MedicalSchemaExtractor
 from app.clinical.clinical_qa import ClinicalQA
+from app.ocr_engine import ocr_engine
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ schema_extractor = MedicalSchemaExtractor(use_llm_fallback=False)
 clinical_qa = ClinicalQA()
 
 # ── Global state for current OCR session ─────────────────────────────────
-_current_regions: List[Dict] = []
+_current_regions: list[dict] = []
 
 
 # =============================================================================
@@ -45,7 +44,7 @@ _current_regions: List[Dict] = []
 # =============================================================================
 
 
-def _base64_to_pil(b64_str: str) -> Optional[Image.Image]:
+def _base64_to_pil(b64_str: str) -> Image.Image | None:
     """Decode a base64 PNG string to a PIL Image."""
     try:
         data = base64.b64decode(b64_str)
@@ -57,7 +56,7 @@ def _base64_to_pil(b64_str: str) -> Optional[Image.Image]:
 
 def draw_bboxes(
     image_path: str,
-    regions: List[Dict],
+    regions: list[dict],
 ) -> np.ndarray:
     """Draw numbered, colour-coded bounding boxes on the image.
 
@@ -277,7 +276,7 @@ def parse_document(file_path: str):
         result = document_parser.parse_document(file_path)
 
         md_lines = [
-            f"# Document Parse Results\n",
+            "# Document Parse Results\n",
             f"- **File:** `{result.file_name}`\n"
             f"- **Type:** `{result.file_type}`\n"
             f"- **Pages:** {result.page_count}\n"
@@ -606,74 +605,71 @@ def build_gradio_app():
                 suggestion_output = gr.Markdown(label="Suggestions")
 
             # ── Tab 2: Document Parser ───────────────────────────────
-            with gr.Tab("📄 Document Parser"):
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        doc_file_input = gr.File(
-                            label="Upload Document",
-                            file_types=[".pdf", ".docx", ".pptx", ".html"],
-                            type="filepath",
-                        )
-                        doc_btn = gr.Button(
-                            "Parse Document",
-                            variant="primary",
-                            size="lg",
-                        )
+            with gr.Tab("📄 Document Parser"), gr.Row():
+                with gr.Column(scale=1):
+                    doc_file_input = gr.File(
+                        label="Upload Document",
+                        file_types=[".pdf", ".docx", ".pptx", ".html"],
+                        type="filepath",
+                    )
+                    doc_btn = gr.Button(
+                        "Parse Document",
+                        variant="primary",
+                        size="lg",
+                    )
 
-                    with gr.Column(scale=2):
-                        doc_md_output = gr.Markdown(label="Parse Results")
-                        doc_json_output = gr.JSON(label="Summary JSON")
+                with gr.Column(scale=2):
+                    doc_md_output = gr.Markdown(label="Parse Results")
+                    doc_json_output = gr.JSON(label="Summary JSON")
 
             # ── Tab 3: Medical Analysis ─────────────────────────────
-            with gr.Tab("🧬 Medical Analysis"):
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        analysis_text_input = gr.Textbox(
-                            label="Medical Text",
-                            placeholder=(
-                                "Paste OCR output, clinical notes, or prescription text...\n\n"
-                                "Supports Arabic (العربية) and English."
-                            ),
-                            lines=10,
-                        )
-                        analysis_btn = gr.Button(
-                            "Analyze",
-                            variant="primary",
-                            size="lg",
-                        )
+            with gr.Tab("🧬 Medical Analysis"), gr.Row():
+                with gr.Column(scale=1):
+                    analysis_text_input = gr.Textbox(
+                        label="Medical Text",
+                        placeholder=(
+                            "Paste OCR output, clinical notes, or prescription text...\n\n"
+                            "Supports Arabic (العربية) and English."
+                        ),
+                        lines=10,
+                    )
+                    analysis_btn = gr.Button(
+                        "Analyze",
+                        variant="primary",
+                        size="lg",
+                    )
 
-                    with gr.Column(scale=2):
-                        analysis_md_output = gr.Markdown(label="Analysis Results")
-                        analysis_json_output = gr.JSON(label="Structured JSON")
+                with gr.Column(scale=2):
+                    analysis_md_output = gr.Markdown(label="Analysis Results")
+                    analysis_json_output = gr.JSON(label="Structured JSON")
 
             # ── Tab 4: Clinical QA ──────────────────────────────────
-            with gr.Tab("🩺 Clinical QA"):
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        qa_question_input = gr.Textbox(
-                            label="Clinical Question",
-                            placeholder=(
-                                "Ask a clinical question...\n\n"
-                                'Examples:\n'
-                                '- "What is the interaction between warfarin and aspirin?"\n'
-                                '- "What is the first-line treatment for type 2 diabetes?"\n'
-                                '- "ما هي الأعراض الجانبية لميتفورمين؟"'
-                            ),
-                            lines=5,
-                        )
-                        qa_context_input = gr.Textbox(
-                            label="Patient Context (optional JSON)",
-                            placeholder='{"age": 65, "weight": 80, "conditions": ["hypertension"]}',
-                            lines=3,
-                        )
-                        qa_btn = gr.Button(
-                            "Ask Question",
-                            variant="primary",
-                            size="lg",
-                        )
+            with gr.Tab("🩺 Clinical QA"), gr.Row():
+                with gr.Column(scale=1):
+                    qa_question_input = gr.Textbox(
+                        label="Clinical Question",
+                        placeholder=(
+                            "Ask a clinical question...\n\n"
+                            'Examples:\n'
+                            '- "What is the interaction between warfarin and aspirin?"\n'
+                            '- "What is the first-line treatment for type 2 diabetes?"\n'
+                            '- "ما هي الأعراض الجانبية لميتفورمين؟"'
+                        ),
+                        lines=5,
+                    )
+                    qa_context_input = gr.Textbox(
+                        label="Patient Context (optional JSON)",
+                        placeholder='{"age": 65, "weight": 80, "conditions": ["hypertension"]}',
+                        lines=3,
+                    )
+                    qa_btn = gr.Button(
+                        "Ask Question",
+                        variant="primary",
+                        size="lg",
+                    )
 
-                    with gr.Column(scale=2):
-                        qa_output = gr.Markdown(label="Answer")
+                with gr.Column(scale=2):
+                    qa_output = gr.Markdown(label="Answer")
 
         gr.Markdown(
             """

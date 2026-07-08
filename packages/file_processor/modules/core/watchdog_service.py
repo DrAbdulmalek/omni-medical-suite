@@ -28,7 +28,6 @@ import threading
 import time
 from datetime import datetime
 from typing import Callable, List, Optional, Dict, Any, Set
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -240,7 +239,6 @@ class FolderWatchdog:
 
     def _start_watchdog(self):
         """بدء المراقبة باستخدام مكتبة watchdog."""
-        from watchdog.observers import Observer  # type: ignore
         from watchdog.events import FileSystemEventHandler  # type: ignore
 
         class Handler(FileSystemEventHandler):

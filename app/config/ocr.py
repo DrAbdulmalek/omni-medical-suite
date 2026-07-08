@@ -1,7 +1,7 @@
 """
 OCR Configuration - Pydantic-based
 """
-from typing import List, Optional
+
 try:
     from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
 except ImportError:
@@ -12,7 +12,7 @@ class OCRConfig(BaseSettings):
 
     # OCR Engines
     DEFAULT_ENGINE: str = "tesseract"  # tesseract, easyocr, paddleocr
-    ENABLED_ENGINES: List[str] = ["tesseract", "easyocr"]
+    ENABLED_ENGINES: list[str] = ["tesseract", "easyocr"]
 
     # Tesseract
     TESSERACT_PATH: str = "/usr/bin/tesseract"
@@ -21,7 +21,7 @@ class OCRConfig(BaseSettings):
     TESSERACT_OCR_ENGINE_MODE: int = 3  # 0=Legacy, 1=LSTM, 2=Legacy+LSTM, 3=Default
 
     # EasyOCR
-    EASYOCR_USER_NETWORK_DIRECTORY: Optional[str] = None
+    EASYOCR_USER_NETWORK_DIRECTORY: str | None = None
     EASYOCR_RECOGNITION_NETWORK: str = "arabic"
     EASYOCR_USER_NETWORK: str = "arabic"
     EASYOCR_MODEL_STORAGE_DIRECTORY: str = "./models/easyocr"
@@ -36,11 +36,11 @@ class OCRConfig(BaseSettings):
 
     # Preprocessing
     ENABLE_PREPROCESSING: bool = True
-    PREPROCESSING_METHODS: List[str] = ["deskew", "binarization", "denoising", "contrast"]
+    PREPROCESSING_METHODS: list[str] = ["deskew", "binarization", "denoising", "contrast"]
 
     # Postprocessing
     ENABLE_POSTPROCESSING: bool = True
-    POSTPROCESSING_METHODS: List[str] = ["spell_check", "language_detection", "text_cleaning"]
+    POSTPROCESSING_METHODS: list[str] = ["spell_check", "language_detection", "text_cleaning"]
 
     # Performance
     MAX_CONCURRENT_OCR: int = 4
@@ -74,7 +74,8 @@ class OCRConfig(BaseSettings):
 
 from functools import lru_cache
 
-@lru_cache()
+
+@lru_cache
 def get_ocr_config() -> OCRConfig:
     """Get OCR configuration - cached for performance"""
     return OCRConfig()

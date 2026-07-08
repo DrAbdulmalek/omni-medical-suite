@@ -1,6 +1,4 @@
 """Tests for modules.audit.audit_logger.AuditLogger"""
-import pytest
-import json
 
 class TestAuditLogger:
     """Test AuditLogger with temp directory."""

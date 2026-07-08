@@ -14,7 +14,7 @@ from relationship_manager import RelationshipManager
 from logger import (
     log_dialogue_start, log_affinity, log_memory_retrieval,
     log_generating_response, log_npc_response, log_analyzing_affinity,
-    log_affinity_change, log_memory_saved, log_dialogue_end, log_info
+    log_affinity_change, log_memory_saved, log_dialogue_end
 )
 
 # NPC角色配置

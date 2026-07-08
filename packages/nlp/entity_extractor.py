@@ -7,7 +7,6 @@
 
 import logging
 import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +130,7 @@ class EntityExtractor:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         device: str = "cpu",
     ) -> None:
         """

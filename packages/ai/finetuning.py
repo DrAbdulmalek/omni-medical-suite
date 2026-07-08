@@ -1,17 +1,11 @@
 # finetuning.py - Fine-tuning module for TrOCR
-from transformers import (
-    TrOCRProcessor,
-    VisionEncoderDecoderModel,
-    Seq2SeqTrainer,
-    Seq2SeqTrainingArguments
-)
-from datasets import Dataset
-import torch
-from peft import LoraConfig, get_peft_model, TaskType
-from pathlib import Path
 import logging
-from typing import Optional, List, Union, Dict
-import os
+from pathlib import Path
+
+import torch
+from datasets import Dataset
+from peft import LoraConfig, TaskType, get_peft_model
+from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments, TrOCRProcessor, VisionEncoderDecoderModel
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +15,7 @@ class TrOCRFineTuner:
     def __init__(
         self,
         model_name: str = "microsoft/trocr-base-handwritten",
-        output_dir: Union[str, Path] = "./fine_tuned_models",
+        output_dir: str | Path = "./fine_tuned_models",
         use_lora: bool = True,
         lora_r: int = 8,
         lora_alpha: int = 16,
@@ -88,8 +82,8 @@ class TrOCRFineTuner:
 
     def prepare_dataset(
         self,
-        images: List[Union[str, Path]],
-        texts: List[str]
+        images: list[str | Path],
+        texts: list[str]
     ) -> Dataset:
         """
         إعداد مجموعة البيانات للتدريب.
@@ -132,10 +126,10 @@ class TrOCRFineTuner:
 
     def train(
         self,
-        train_images: List[Union[str, Path]],
-        train_texts: List[str],
-        val_images: Optional[List[Union[str, Path]]] = None,
-        val_texts: Optional[List[str]] = None,
+        train_images: list[str | Path],
+        train_texts: list[str],
+        val_images: list[str | Path] | None = None,
+        val_texts: list[str] | None = None,
         epochs: int = 3,
         batch_size: int = 4,
         learning_rate: float = 5e-5,
@@ -211,13 +205,13 @@ class TrOCRFineTuner:
 
     def fine_tune_from_directory(
         self,
-        train_dir: Union[str, Path],
-        val_dir: Optional[Union[str, Path]] = None,
+        train_dir: str | Path,
+        val_dir: str | Path | None = None,
         epochs: int = 3,
         batch_size: int = 4,
         learning_rate: float = 5e-5,
         model_name: str = "trocr_ar_finetuned",
-        image_extensions: List[str] = [".png", ".jpg", ".jpeg"],
+        image_extensions: list[str] | None = None,
         text_extension: str = ".txt"
     ) -> Path:
         """
@@ -236,6 +230,8 @@ class TrOCRFineTuner:
         Returns:
             Path: مسار النموذج المدرب.
         """
+        if image_extensions is None:
+            image_extensions = [".png", ".jpg", ".jpeg"]
         train_dir = Path(train_dir)
         train_images = []
         train_texts = []
@@ -247,7 +243,7 @@ class TrOCRFineTuner:
                 if txt_path.exists():
                     try:
                         train_images.append(img_path)
-                        with open(txt_path, "r", encoding="utf-8") as f:
+                        with open(txt_path, encoding="utf-8") as f:
                             train_texts.append(f.read().strip())
                     except Exception as e:
                         logger.error(f"فشل تحميل الصورة {img_path}: {e}")
@@ -263,7 +259,7 @@ class TrOCRFineTuner:
                     if txt_path.exists():
                         try:
                             val_images.append(img_path)
-                            with open(txt_path, "r", encoding="utf-8") as f:
+                            with open(txt_path, encoding="utf-8") as f:
                                 val_texts.append(f.read().strip())
                         except Exception as e:
                             logger.error(f"فشل تحميل الصورة {img_path}: {e}")
@@ -281,7 +277,7 @@ class TrOCRFineTuner:
 
     def fine_tune_from_database(
         self,
-        db_path: Union[str, Path],
+        db_path: str | Path,
         language: str = "ar",
         limit: int = 1000,
         epochs: int = 3,
@@ -320,7 +316,7 @@ class TrOCRFineTuner:
         train_texts = []
 
         for data in training_data:
-            if "image_path" in data and data["image_path"]:
+            if data.get("image_path"):
                 train_images.append(data["image_path"])
                 train_texts.append(data["corrected_text"])
 
@@ -335,10 +331,10 @@ class TrOCRFineTuner:
 
     def evaluate(
         self,
-        test_images: List[Union[str, Path]],
-        test_texts: List[str],
+        test_images: list[str | Path],
+        test_texts: list[str],
         batch_size: int = 4
-    ) -> Dict:
+    ) -> dict:
         """
         تقييم النموذج على بيانات اختبار.
 
@@ -353,7 +349,6 @@ class TrOCRFineTuner:
         self.load_model()
 
         try:
-            from datasets import Dataset
             from evaluate import evaluator
 
             # إعداد مجموعة البيانات

@@ -22,27 +22,17 @@ All state is serialised to JSON for lightweight persistence.
 
 from __future__ import annotations
 
-import copy
 import json
 import logging
 import math
-import os
-import time
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
-from enum import Enum
+from collections.abc import Callable, Iterable, Sequence
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,7 +52,7 @@ that the KNN can leverage richer signal (texture histograms, character
 n-gram stats, layout ratios, etc.).
 """
 
-FEATURE_KEYS: List[str] = [
+FEATURE_KEYS: list[str] = [
     # --- original 7 image features ---
     "width",
     "height",
@@ -114,14 +104,14 @@ DEFAULT_CONFIDENCE_CEIL: float = 0.98
 # Enums
 # ---------------------------------------------------------------------------
 
-class ActiveLearningStrategy(str, Enum):
+class ActiveLearningStrategy(StrEnum):
     """Supported active-learning sampling strategies."""
     UNCERTAINTY = "uncertainty"
     QUERY_BY_COMMITTEE = "query_by_committee"
     DIVERSITY = "diversity"
 
 
-class FeedbackStatus(str, Enum):
+class FeedbackStatus(StrEnum):
     """Possible statuses for a feedback record."""
     VERIFIED = "verified"
     REJECTED = "rejected"
@@ -139,7 +129,7 @@ class FeatureVector:
     Attributes:
         values: Raw list of 30 float values aligned with ``FEATURE_KEYS``.
     """
-    values: List[float] = field(default_factory=lambda: [0.0] * NUM_FEATURES)
+    values: list[float] = field(default_factory=lambda: [0.0] * NUM_FEATURES)
 
     def __post_init__(self) -> None:
         if len(self.values) != NUM_FEATURES:
@@ -150,20 +140,20 @@ class FeatureVector:
 
     # --- convenience -------------------------------------------------------
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Return a mapping from feature key to value."""
-        return dict(zip(FEATURE_KEYS, self.values))
+        return dict(zip(FEATURE_KEYS, self.values, strict=False))
 
     @classmethod
-    def from_dict(cls, data: Dict[str, float]) -> "FeatureVector":
+    def from_dict(cls, data: dict[str, float]) -> FeatureVector:
         """Construct from a dict (missing keys default to 0.0)."""
         values = [float(data.get(k, 0.0)) for k in FEATURE_KEYS]
         return cls(values=values)
 
-    def distance_to(self, other: "FeatureVector") -> float:
+    def distance_to(self, other: FeatureVector) -> float:
         """Euclidean distance between two feature vectors."""
         return math.sqrt(
-            sum((a - b) ** 2 for a, b in zip(self.values, other.values))
+            sum((a - b) ** 2 for a, b in zip(self.values, other.values, strict=False))
         )
 
 
@@ -182,10 +172,10 @@ class TrainingEntry:
     label: str
     weight: float = 1.0
     created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "features": self.features.to_dict(),
             "label": self.label,
@@ -194,7 +184,7 @@ class TrainingEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TrainingEntry":
+    def from_dict(cls, data: dict[str, Any]) -> TrainingEntry:
         return cls(
             features=FeatureVector.from_dict(data["features"]),
             label=str(data["label"]),
@@ -215,10 +205,10 @@ class PredictionResult:
     """
     label: str
     confidence: float
-    neighbours: List[str] = field(default_factory=list)
-    distances: List[float] = field(default_factory=list)
+    neighbours: list[str] = field(default_factory=list)
+    distances: list[float] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "label": self.label,
             "confidence": self.confidence,
@@ -247,14 +237,14 @@ class PatternRecord:
     source: str = "manual"
     usage_count: int = 1
     created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PatternRecord":
+    def from_dict(cls, data: dict[str, Any]) -> PatternRecord:
         return cls(**{k: data[k] for k in cls.__dataclass_fields__ if k in data})
 
 
@@ -273,15 +263,15 @@ class FeedbackRecord:
     corrected_text: str
     status: str = FeedbackStatus.PENDING.value
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     context: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FeedbackRecord":
+    def from_dict(cls, data: dict[str, Any]) -> FeedbackRecord:
         return cls(**{k: data[k] for k in cls.__dataclass_fields__ if k in data})
 
 
@@ -300,23 +290,23 @@ class ModelMetadata:
     """
     version: str = "1.0.0"
     trained_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     total_entries: int = 0
     num_features: int = NUM_FEATURES
     k: int = DEFAULT_K
-    feature_min: Dict[str, float] = field(
-        default_factory=lambda: {k: 0.0 for k in FEATURE_KEYS}
+    feature_min: dict[str, float] = field(
+        default_factory=lambda: dict.fromkeys(FEATURE_KEYS, 0.0)
     )
-    feature_max: Dict[str, float] = field(
-        default_factory=lambda: {k: 1.0 for k in FEATURE_KEYS}
+    feature_max: dict[str, float] = field(
+        default_factory=lambda: dict.fromkeys(FEATURE_KEYS, 1.0)
     )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ModelMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> ModelMetadata:
         return cls(**{k: data[k] for k in cls.__dataclass_fields__ if k in data})
 
 
@@ -350,9 +340,9 @@ class _CommitteeMember:
     def predict(
         self,
         query: FeatureVector,
-        entries: List[TrainingEntry],
-        norm_min: Dict[str, float],
-        norm_max: Dict[str, float],
+        entries: list[TrainingEntry],
+        norm_min: dict[str, float],
+        norm_max: dict[str, float],
     ) -> CommitteePrediction:
         """Predict using a random subset of the training data."""
         import random
@@ -409,8 +399,8 @@ class _CommitteeMember:
 def _normalised_distance(
     a: FeatureVector,
     b: FeatureVector,
-    norm_min: Dict[str, float],
-    norm_max: Dict[str, float],
+    norm_min: dict[str, float],
+    norm_max: dict[str, float],
 ) -> float:
     """Compute Euclidean distance on min-max normalised features.
 
@@ -424,7 +414,7 @@ def _normalised_distance(
         Normalised Euclidean distance.
     """
     total = 0.0
-    for key, va, vb in zip(FEATURE_KEYS, a.values, b.values):
+    for key, va, vb in zip(FEATURE_KEYS, a.values, b.values, strict=False):
         rng = norm_max.get(key, 1.0) - norm_min.get(key, 0.0)
         if rng < 1e-9:
             continue
@@ -435,8 +425,8 @@ def _normalised_distance(
 
 
 def _update_normalisation(
-    entries: List[TrainingEntry],
-) -> Tuple[Dict[str, float], Dict[str, float]]:
+    entries: list[TrainingEntry],
+) -> tuple[dict[str, float], dict[str, float]]:
     """Recompute per-feature min/max from training entries.
 
     Args:
@@ -446,13 +436,13 @@ def _update_normalisation(
         Tuple of (feature_min, feature_max) dictionaries.
     """
     if not entries:
-        return {k: 0.0 for k in FEATURE_KEYS}, {k: 1.0 for k in FEATURE_KEYS}
+        return dict.fromkeys(FEATURE_KEYS, 0.0), dict.fromkeys(FEATURE_KEYS, 1.0)
 
-    mins: Dict[str, float] = {k: float("inf") for k in FEATURE_KEYS}
-    maxs: Dict[str, float] = {k: float("-inf") for k in FEATURE_KEYS}
+    mins: dict[str, float] = {k: float("inf") for k in FEATURE_KEYS}
+    maxs: dict[str, float] = {k: float("-inf") for k in FEATURE_KEYS}
 
     for entry in entries:
-        for key, val in zip(FEATURE_KEYS, entry.features.values):
+        for key, val in zip(FEATURE_KEYS, entry.features.values, strict=False):
             mins[key] = min(mins[key], val)
             maxs[key] = max(maxs[key], val)
 
@@ -460,8 +450,8 @@ def _update_normalisation(
 
 
 def _weighted_majority_vote(
-    neighbours: List[Tuple[float, TrainingEntry]],
-) -> Tuple[str, float]:
+    neighbours: list[tuple[float, TrainingEntry]],
+) -> tuple[str, float]:
     """Return the label with the highest inverse-distance weight.
 
     Args:
@@ -511,7 +501,7 @@ class FeatureExtractor:
         })
     """
 
-    def extract(self, raw: Dict[str, Any]) -> FeatureVector:
+    def extract(self, raw: dict[str, Any]) -> FeatureVector:
         """Build a :class:`FeatureVector` from a raw measurement dict.
 
         Recognised keys (all optional; missing values default to 0.0):
@@ -620,7 +610,7 @@ def _punct_ratio(text: str) -> float:
     return sum(not c.isalnum() and not c.isspace() for c in text) / len(text)
 
 
-def _unique_ratio(words: List[str]) -> float:
+def _unique_ratio(words: list[str]) -> float:
     if not words:
         return 0.0
     return len(set(words)) / len(words)
@@ -685,7 +675,7 @@ class UnifiedLearning:
 
     def __init__(
         self,
-        model_path: Union[str, Path] = "model/unified_learning.json",
+        model_path: str | Path = "model/unified_learning.json",
         k: int = DEFAULT_K,
         confidence_floor: float = DEFAULT_CONFIDENCE_FLOOR,
         confidence_ceil: float = DEFAULT_CONFIDENCE_CEIL,
@@ -708,16 +698,16 @@ class UnifiedLearning:
         self.confidence_ceil = confidence_ceil
 
         # Internal state
-        self._entries: List[TrainingEntry] = []
-        self._patterns: Dict[str, List[PatternRecord]] = defaultdict(list)
-        self._feedback: List[FeedbackRecord] = []
+        self._entries: list[TrainingEntry] = []
+        self._patterns: dict[str, list[PatternRecord]] = defaultdict(list)
+        self._feedback: list[FeedbackRecord] = []
         self._metadata = ModelMetadata(k=self.k)
 
         # Feature extraction helper
         self._extractor = FeatureExtractor()
 
         # Committee members for query-by-committee
-        self._committee: List[_CommitteeMember] = [
+        self._committee: list[_CommitteeMember] = [
             _CommitteeMember(
                 member_id=f"member_{i}",
                 k=max(1, self.k - 1),
@@ -743,7 +733,7 @@ class UnifiedLearning:
     # Persistence
     # ------------------------------------------------------------------
 
-    def save(self, path: Union[str, Path] | None = None) -> None:
+    def save(self, path: str | Path | None = None) -> None:
         """Persist all state (model + patterns + feedback) to a JSON file.
 
         Args:
@@ -753,11 +743,11 @@ class UnifiedLearning:
         target.parent.mkdir(parents=True, exist_ok=True)
 
         # Update metadata before saving
-        self._metadata.trained_at = datetime.now(timezone.utc).isoformat()
+        self._metadata.trained_at = datetime.now(UTC).isoformat()
         self._metadata.total_entries = len(self._entries)
         self._metadata.k = self.k
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "metadata": self._metadata.to_dict(),
             "entries": [e.to_dict() for e in self._entries],
             "patterns": {
@@ -786,7 +776,7 @@ class UnifiedLearning:
             return
 
         try:
-            with open(self.model_path, "r", encoding="utf-8") as fh:
+            with open(self.model_path, encoding="utf-8") as fh:
                 payload = json.load(fh)
 
             self._metadata = ModelMetadata.from_dict(payload.get("metadata", {}))
@@ -796,7 +786,7 @@ class UnifiedLearning:
                 TrainingEntry.from_dict(e) for e in payload.get("entries", [])
             ]
 
-            raw_patterns: Dict = payload.get("patterns", {})
+            raw_patterns: dict = payload.get("patterns", {})
             self._patterns = defaultdict(list)
             for key, records in raw_patterns.items():
                 self._patterns[key] = [PatternRecord.from_dict(r) for r in records]
@@ -821,7 +811,7 @@ class UnifiedLearning:
 
     def predict(
         self,
-        features: Union[Dict[str, Any], FeatureVector],
+        features: dict[str, Any] | FeatureVector,
         k: int | None = None,
     ) -> PredictionResult:
         """Predict a label using KNN classification.
@@ -854,7 +844,7 @@ class UnifiedLearning:
         norm_max = self._metadata.feature_max
 
         # Compute distances
-        dists: List[Tuple[float, TrainingEntry]] = []
+        dists: list[tuple[float, TrainingEntry]] = []
         for entry in self._entries:
             d = _normalised_distance(query, entry.features, norm_min, norm_max)
             dists.append((d, entry))
@@ -890,7 +880,7 @@ class UnifiedLearning:
 
     def train(
         self,
-        features: Union[Dict[str, Any], FeatureVector],
+        features: dict[str, Any] | FeatureVector,
         label: str,
         weight: float = 1.0,
     ) -> int:
@@ -926,8 +916,8 @@ class UnifiedLearning:
 
     def train_batch(
         self,
-        items: Iterable[Tuple[Union[Dict[str, Any], FeatureVector], str]],
-        weights: Optional[Iterable[float]] = None,
+        items: Iterable[tuple[dict[str, Any] | FeatureVector, str]],
+        weights: Iterable[float] | None = None,
     ) -> int:
         """Add multiple labelled entries at once.
 
@@ -940,7 +930,7 @@ class UnifiedLearning:
         """
         weight_iter = weights if weights is not None else (1.0 for _ in items)
         count = 0
-        for (feat, label), w in zip(items, weight_iter):
+        for (feat, label), w in zip(items, weight_iter, strict=False):
             self.train(feat, label, weight=float(w))
             count += 1
         logger.info("train_batch: added %d entries (total %d)", count, len(self._entries))
@@ -952,11 +942,11 @@ class UnifiedLearning:
 
     def active_learn(
         self,
-        pool: Sequence[Union[Dict[str, Any], FeatureVector]],
-        strategy: Union[str, ActiveLearningStrategy] = ActiveLearningStrategy.UNCERTAINTY,
+        pool: Sequence[dict[str, Any] | FeatureVector],
+        strategy: str | ActiveLearningStrategy = ActiveLearningStrategy.UNCERTAINTY,
         n: int = 5,
         confidence_threshold: float = 0.7,
-    ) -> List[Tuple[int, float, str]]:
+    ) -> list[tuple[int, float, str]]:
         """Select samples from *pool* for labelling using an active-learning strategy.
 
         Args:
@@ -999,10 +989,10 @@ class UnifiedLearning:
 
     def _uncertainty_sampling(
         self,
-        pool: Sequence[Union[Dict[str, Any], FeatureVector]],
+        pool: Sequence[dict[str, Any] | FeatureVector],
         n: int,
         threshold: float,
-    ) -> List[Tuple[int, float, str]]:
+    ) -> list[tuple[int, float, str]]:
         """Select the *n* most uncertain predictions from the pool.
 
         Samples whose current confidence >= *threshold* are deprioritised.
@@ -1010,7 +1000,7 @@ class UnifiedLearning:
         Returns:
             List of (index, confidence, rationale) sorted by confidence ascending.
         """
-        scored: List[Tuple[int, float]] = []
+        scored: list[tuple[int, float]] = []
         for idx, item in enumerate(pool):
             vec = item if isinstance(item, FeatureVector) else self._extractor.extract(item)
             result = self.predict(vec)
@@ -1019,7 +1009,7 @@ class UnifiedLearning:
         # Sort by confidence ascending (most uncertain first)
         scored.sort(key=lambda x: x[1])
 
-        output: List[Tuple[int, float, str]] = []
+        output: list[tuple[int, float, str]] = []
         for idx, conf in scored[:n]:
             rationale = (
                 f"Low confidence ({conf:.3f}) — needs labelling"
@@ -1035,9 +1025,9 @@ class UnifiedLearning:
 
     def _query_by_committee(
         self,
-        pool: Sequence[Union[Dict[str, Any], FeatureVector]],
+        pool: Sequence[dict[str, Any] | FeatureVector],
         n: int,
-    ) -> List[Tuple[int, float, str]]:
+    ) -> list[tuple[int, float, str]]:
         """Select samples where the committee disagrees the most.
 
         For each pool sample, every committee member predicts independently.
@@ -1050,7 +1040,7 @@ class UnifiedLearning:
         norm_min = self._metadata.feature_min
         norm_max = self._metadata.feature_max
 
-        scored: List[Tuple[int, float, str]] = []
+        scored: list[tuple[int, float, str]] = []
 
         for idx, item in enumerate(pool):
             vec = item if isinstance(item, FeatureVector) else self._extractor.extract(item)
@@ -1064,7 +1054,7 @@ class UnifiedLearning:
 
             labels = [p.label for p in preds]
             counts = Counter(labels)
-            majority_label, majority_count = counts.most_common(1)[0]
+            _majority_label, majority_count = counts.most_common(1)[0]
             agreement = majority_count / len(preds)
             disagreement = 1.0 - agreement
 
@@ -1079,9 +1069,9 @@ class UnifiedLearning:
 
     def _diversity_sampling(
         self,
-        pool: Sequence[Union[Dict[str, Any], FeatureVector]],
+        pool: Sequence[dict[str, Any] | FeatureVector],
         n: int,
-    ) -> List[Tuple[int, float, str]]:
+    ) -> list[tuple[int, float, str]]:
         """Select a diverse subset using greedy farthest-point sampling.
 
         Starting from a random seed, iteratively picks the pool sample
@@ -1102,8 +1092,8 @@ class UnifiedLearning:
 
         # Random seed
         seed_idx = random.randint(0, len(vecs) - 1)
-        selected: List[int] = [seed_idx]
-        output: List[Tuple[int, float, str]] = [
+        selected: list[int] = [seed_idx]
+        output: list[tuple[int, float, str]] = [
             (seed_idx, 0.0, "Random seed for diversity sampling")
         ]
 
@@ -1190,7 +1180,7 @@ class UnifiedLearning:
         original_text: str,
         language: str = "ar",
         min_usage: int = 2,
-    ) -> Optional[PatternRecord]:
+    ) -> PatternRecord | None:
         """Look up the best correction for an original text.
 
         Returns the pattern with the highest ``usage_count`` that meets the
@@ -1219,7 +1209,7 @@ class UnifiedLearning:
         self,
         language: str | None = None,
         min_usage: int = 1,
-    ) -> List[PatternRecord]:
+    ) -> list[PatternRecord]:
         """Return all stored patterns, optionally filtered.
 
         Args:
@@ -1229,7 +1219,7 @@ class UnifiedLearning:
         Returns:
             List of matching :class:`PatternRecord` instances.
         """
-        results: List[PatternRecord] = []
+        results: list[PatternRecord] = []
         for key, records in self._patterns.items():
             if language and not key.startswith(f"{language}:"):
                 continue
@@ -1254,7 +1244,7 @@ class UnifiedLearning:
             return text
 
         words = text.split()
-        corrected: List[str] = []
+        corrected: list[str] = []
         changes = 0
 
         for word in words:
@@ -1313,7 +1303,7 @@ class UnifiedLearning:
     def build_correction_dict_from_feedback(
         self,
         min_votes: int = 1,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Aggregate feedback records into a correction dictionary.
 
         For each ``original_text``, the most common ``corrected_text`` among
@@ -1328,13 +1318,13 @@ class UnifiedLearning:
             Dict mapping ``original_text`` → ``corrected_text``.
         """
         verified = [f for f in self._feedback if f.status == FeedbackStatus.VERIFIED.value]
-        buckets: Dict[str, Counter] = defaultdict(Counter)
+        buckets: dict[str, Counter] = defaultdict(Counter)
 
         for fb in verified:
             if fb.original_text and fb.corrected_text:
                 buckets[fb.original_text][fb.corrected_text] += 1
 
-        result: Dict[str, str] = {}
+        result: dict[str, str] = {}
         for orig, counts in buckets.items():
             best_corr, best_count = counts.most_common(1)[0]
             if best_count >= min_votes:
@@ -1346,7 +1336,7 @@ class UnifiedLearning:
         )
         return result
 
-    def get_feedback_stats(self) -> Dict[str, Any]:
+    def get_feedback_stats(self) -> dict[str, Any]:
         """Return summary statistics for all feedback records.
 
         Returns:
@@ -1369,13 +1359,13 @@ class UnifiedLearning:
 
     def end_to_end_learn(
         self,
-        unlabelled_pool: Sequence[Dict[str, Any]],
-        label_fn: Callable[[Dict[str, Any]], str],
-        strategy: Union[str, ActiveLearningStrategy] = ActiveLearningStrategy.UNCERTAINTY,
+        unlabelled_pool: Sequence[dict[str, Any]],
+        label_fn: Callable[[dict[str, Any]], str],
+        strategy: str | ActiveLearningStrategy = ActiveLearningStrategy.UNCERTAINTY,
         rounds: int = 3,
         n_per_round: int = 5,
         auto_save: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run an end-to-end active learning loop.
 
         For each round:
@@ -1459,7 +1449,7 @@ class UnifiedLearning:
         """Number of feedback records."""
         return len(self._feedback)
 
-    def get_model_info(self) -> Dict[str, Any]:
+    def get_model_info(self) -> dict[str, Any]:
         """Return a summary of the current model state.
 
         Returns:
@@ -1485,7 +1475,7 @@ class UnifiedLearning:
 
     def export_correction_dict(
         self,
-        output_path: Union[str, Path],
+        output_path: str | Path,
         min_usage: int = 2,
     ) -> Path:
         """Export all patterns as a flat ``{original: corrected}`` JSON file.
@@ -1500,7 +1490,7 @@ class UnifiedLearning:
             The path written to.
         """
         patterns = self.get_all_patterns(min_usage=min_usage)
-        d: Dict[str, str] = {}
+        d: dict[str, str] = {}
         for p in patterns:
             # Keep the highest-usage correction per original
             if p.original_text not in d or p.usage_count > d.get("_usage", 0):
@@ -1520,7 +1510,7 @@ class UnifiedLearning:
 
     def import_correction_dict(
         self,
-        input_path: Union[str, Path],
+        input_path: str | Path,
         language: str = "ar",
     ) -> int:
         """Import a ``{original: corrected}`` JSON file as patterns.
@@ -1536,7 +1526,7 @@ class UnifiedLearning:
         if not source.exists():
             raise FileNotFoundError(f"File not found: {source}")
 
-        with open(source, "r", encoding="utf-8") as fh:
+        with open(source, encoding="utf-8") as fh:
             data = json.load(fh)
 
         count = 0

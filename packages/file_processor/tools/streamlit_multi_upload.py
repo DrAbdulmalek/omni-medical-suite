@@ -20,12 +20,8 @@ import cv2
 import numpy as np
 import sqlite3
 import json
-import io
 import time
-import tempfile
 import os
-import re
-from pathlib import Path
 from datetime import datetime
 from typing import Optional, Tuple, List, Dict, Any
 
@@ -547,7 +543,7 @@ def main():
                             if ext != "pdf":
                                 st.image(
                                     cv2.cvtColor(img, cv2.COLOR_BGR2RGB),
-                                    caption=f"Original / الأصل",
+                                    caption="Original / الأصل",
                                     use_container_width=True,
                                 )
                             else:

@@ -9,9 +9,8 @@ import logging
 import os
 import shutil
 import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Dict
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +155,7 @@ async def cleanup_old_backups(days: int = 30) -> int:
 
         for backup_path in BACKUP_DIR.rglob("*"):
             if backup_path.is_file():
-                mtime = datetime.fromtimestamp(backup_path.stat().st_mtime, tz=timezone.utc)
+                mtime = datetime.fromtimestamp(backup_path.stat().st_mtime, tz=UTC)
                 if mtime < cutoff:
                     backup_path.unlink()
                     deleted += 1
@@ -168,7 +167,7 @@ async def cleanup_old_backups(days: int = 30) -> int:
     return deleted
 
 
-async def full_backup() -> Dict[str, bool]:
+async def full_backup() -> dict[str, bool]:
     """Perform full backup of all components and cleanup old files."""
     results = {
         "database": await backup_database(),

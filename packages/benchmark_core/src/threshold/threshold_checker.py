@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Threshold Checker - Medical OCR Benchmarks (v2.0 - Full Integration)
 Author: DrAbdulmalek
@@ -8,16 +7,15 @@ Description: Reads benchmark results and automatically decides:
 Features: Auto-deploy to HF, auto-retrain trigger, Telegram notifications, A/B test integration
 """
 
-import json
 import csv
-import os
-import sys
+import json
 import logging
+import os
 import subprocess
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+import sys
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
 # Logging setup
 logging.basicConfig(
@@ -56,8 +54,8 @@ class ResultsReader:
     """Reads benchmark results from JSON or CSV files"""
 
     @staticmethod
-    def from_json(file_path: str) -> List[BenchmarkResult]:
-        with open(file_path, 'r', encoding='utf-8') as f:
+    def from_json(file_path: str) -> list[BenchmarkResult]:
+        with open(file_path, encoding='utf-8') as f:
             data = json.load(f)
         results = []
         for item in data:
@@ -72,9 +70,9 @@ class ResultsReader:
         return results
 
     @staticmethod
-    def from_csv(file_path: str) -> List[BenchmarkResult]:
+    def from_csv(file_path: str) -> list[BenchmarkResult]:
         results = []
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 results.append(BenchmarkResult(
@@ -93,9 +91,9 @@ class DecisionEngine:
 
     def __init__(self, config: ThresholdConfig):
         self.config = config
-        self.decisions: List[Dict] = []
+        self.decisions: list[dict] = []
 
-    def evaluate(self, results: List[BenchmarkResult]) -> Tuple[bool, List[Dict]]:
+    def evaluate(self, results: list[BenchmarkResult]) -> tuple[bool, list[dict]]:
         all_passed = True
         for result in results:
             decision = self._evaluate_single(result)
@@ -104,7 +102,7 @@ class DecisionEngine:
                 all_passed = False
         return all_passed, self.decisions
 
-    def _evaluate_single(self, result: BenchmarkResult) -> Dict:
+    def _evaluate_single(self, result: BenchmarkResult) -> dict:
         if result.test_type.lower() == 'handwritten':
             cer_threshold = self.config.handwritten_cer_threshold
             wer_threshold = self.config.handwritten_wer_threshold
@@ -135,19 +133,19 @@ class ReportGenerator:
     """Generates Markdown reports from decisions"""
 
     @staticmethod
-    def generate(decisions: List[Dict], all_passed: bool, ab_result: Optional[Dict] = None) -> str:
+    def generate(decisions: list[dict], all_passed: bool, ab_result: dict | None = None) -> str:
         status_emoji = "✅" if all_passed else "❌"
         status_text = "PASSED - Ready for Deploy" if all_passed else "FAILED - Retrain Required"
 
-        report = f"# Threshold Check Report\n\n"
-        report += f"## 📊 Overall Status\n"
+        report = "# Threshold Check Report\n\n"
+        report += "## 📊 Overall Status\n"
         report += f"{status_emoji} **{status_text}**\n\n"
         report += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n---\n\n"
 
         if ab_result:
             report += "## ⚖️ A/B Test Result\n\n"
-            report += f"| Metric | Current Model | New Model | Improvement |\n"
-            report += f"|--------|--------------|-----------|-------------|\n"
+            report += "| Metric | Current Model | New Model | Improvement |\n"
+            report += "|--------|--------------|-----------|-------------|\n"
             report += f"| CER | {ab_result['current_cer']:.2%} | {ab_result['new_cer']:.2%} | {ab_result['improvement_percent']:+.1f}% |\n"
             report += f"| Decision | {ab_result['decision']} | | {ab_result['reason']} |\n\n---\n\n"
 
@@ -165,7 +163,7 @@ class ReportGenerator:
         passed = sum(1 for d in decisions if d['passed'])
         failed = total - passed
 
-        report += f"\n---\n\n## 📉 Summary\n"
+        report += "\n---\n\n## 📉 Summary\n"
         report += f"- **Total Tests:** {total}\n"
         report += f"- **Passed:** {passed} ({passed/total*100:.1f}%)\n"
         report += f"- **Failed:** {failed} ({failed/total*100:.1f}%)\n\n"
@@ -267,7 +265,7 @@ def main():
     # 1. Load configuration
     config_path = Path('config/thresholds.json')
     if config_path.exists():
-        with open(config_path, 'r') as f:
+        with open(config_path) as f:
             config_data = json.load(f)
         config = ThresholdConfig(**config_data)
         logger.info(f"Loaded config from {config_path}")

@@ -63,7 +63,7 @@ class PDFLearningAssistant:
 
         try:
             # 使用RAG工具处理PDF
-            result = self.rag_tool.run({
+            self.rag_tool.run({
                 "action":"add_document",
                 "file_path":pdf_path,
                 "chunk_size":1000,
@@ -322,8 +322,8 @@ def create_gradio_ui():
 
         report = assistant_state["assistant"].generate_report(save_to_file=True)
 
-        result = f"✅ 学习报告已生成\n\n"
-        result += f"**会话信息**\n"
+        result = "✅ 学习报告已生成\n\n"
+        result += "**会话信息**\n"
         result += f"- 会话时长: {report['session_info']['duration_seconds']:.0f}秒\n"
         result += f"- 加载文档: {report['learning_metrics']['documents_loaded']}\n"
         result += f"- 提问次数: {report['learning_metrics']['questions_asked']}\n"

@@ -8,10 +8,9 @@ Based on the fusion module from advanced-ocr/pipeline/fusion.py,
 adapted for OmniFile_Processor's modules.vision structure.
 """
 
-import pytest
 from dataclasses import dataclass, field
-from typing import Optional
 
+import pytest
 
 # ─── Data structures matching the fusion module's types ───────────────
 
@@ -74,7 +73,7 @@ class LineResult:
     bbox: BoundingBox = field(default_factory=BoundingBox)
     words: list[WordResult] = field(default_factory=list)
     block_type: str = "paragraph"
-    language: Optional[str] = None
+    language: str | None = None
 
     @property
     def word_count(self) -> int:
@@ -132,7 +131,7 @@ class ResultFusion:
     Strategy: highest_confidence — pick the line with highest confidence.
     """
 
-    def __init__(self, line_tolerance: int = 20, engine_weights: Optional[dict[str, float]] = None):
+    def __init__(self, line_tolerance: int = 20, engine_weights: dict[str, float] | None = None):
         self.line_tolerance = line_tolerance
         self.engine_weights = engine_weights or {}
 

@@ -56,7 +56,7 @@ def make_demo_image(text: str) -> Image.Image:
     draw = ImageDraw.Draw(img)
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
-    except (OSError, IOError):
+    except OSError:
         font = ImageFont.load_default()
     draw.text((30, 80), text, fill="black", font=font)
     return img

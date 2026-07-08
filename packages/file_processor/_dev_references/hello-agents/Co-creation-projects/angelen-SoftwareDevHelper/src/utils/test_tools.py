@@ -1,5 +1,4 @@
 import os
-import json
 
 def test_user_memory_tool():
     from src.agents.helper_agent import UserMemoryTool

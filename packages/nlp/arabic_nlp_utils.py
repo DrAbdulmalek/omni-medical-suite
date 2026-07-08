@@ -2,9 +2,8 @@
 📐 arabic_nlp_utils.py — أدوات المقارنة الدلالية للنصوص العربية
 مُحسَّنة لبيئات OCR حيث يكون التشكيل والهمزات مصدرَ خطأ متكرر.
 """
-import re
 import difflib
-from typing import Tuple
+import re
 
 
 def normalize_for_comparison(text: str) -> str:

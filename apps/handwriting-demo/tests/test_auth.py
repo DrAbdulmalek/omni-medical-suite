@@ -11,7 +11,7 @@ Run: pytest tests/test_auth.py -v
 
 import os
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -99,8 +99,9 @@ class TestJWTSecurity:
 
     def test_decode_expired_token_raises(self):
         """An expired token should raise an expired-jwt exception."""
-        from app.auth.security import create_access_token, decode_token
         import jwt
+
+        from app.auth.security import create_access_token, decode_token
 
         user_id = str(uuid.uuid4())
         token = create_access_token(
@@ -122,8 +123,8 @@ class TestJWTSecurity:
             expires_delta=timedelta(seconds=2),
         )
         decoded = decode_token(token)
-        exp = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
-        iat = datetime.fromtimestamp(decoded["iat"], tz=timezone.utc)
+        exp = datetime.fromtimestamp(decoded["exp"], tz=UTC)
+        iat = datetime.fromtimestamp(decoded["iat"], tz=UTC)
         delta = (exp - iat).total_seconds()
         assert 1.5 <= delta <= 3.0, f"Expiry delta should be ~2s, got {delta}s"
 
@@ -138,14 +139,14 @@ class TestRBACModel:
 
     def test_user_role_name_property(self):
         """User.role_name returns the role name when role is set."""
-        from app.auth.models import User, Role
+        from app.auth.models import Role, User
 
         role = Role(
             id=uuid.uuid4(),
             name="admin",
             display_name="Administrator",
             is_system=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         user = User(
             id=uuid.uuid4(),
@@ -153,8 +154,8 @@ class TestRBACModel:
             email="admin@test.com",
             hashed_password="$2b$12$fakehash",
             role=role,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         assert user.role_name == "admin"
@@ -169,8 +170,8 @@ class TestRBACModel:
             username="norole",
             email="norole@test.com",
             hashed_password="$2b$12$fakehash",
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         assert user.role_name is None
@@ -178,7 +179,7 @@ class TestRBACModel:
 
     def test_user_permissions_list_from_role(self):
         """User.permissions_list extracts permission names from role."""
-        from app.auth.models import User, Role, Permission
+        from app.auth.models import Permission, Role, User
 
         perm1 = Permission(
             id=uuid.uuid4(),
@@ -186,7 +187,7 @@ class TestRBACModel:
             display_name="Upload Documents",
             resource_type="documents",
             action="upload",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         perm2 = Permission(
             id=uuid.uuid4(),
@@ -194,14 +195,14 @@ class TestRBACModel:
             display_name="View Reports",
             resource_type="reports",
             action="view",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         role = Role(
             id=uuid.uuid4(),
             name="doctor",
             display_name="Doctor",
             permissions=[perm1, perm2],
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         user = User(
             id=uuid.uuid4(),
@@ -209,8 +210,8 @@ class TestRBACModel:
             email="dr@test.com",
             hashed_password="$2b$12$fakehash",
             role=role,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         perms = user.permissions_list
@@ -220,7 +221,7 @@ class TestRBACModel:
 
     def test_user_has_permission(self):
         """User.has_permission checks correctly."""
-        from app.auth.models import User, Role, Permission
+        from app.auth.models import Permission, Role, User
 
         perm = Permission(
             id=uuid.uuid4(),
@@ -228,14 +229,14 @@ class TestRBACModel:
             display_name="Correct OCR",
             resource_type="ocr",
             action="correct",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         role = Role(
             id=uuid.uuid4(),
             name="reviewer",
             display_name="Reviewer",
             permissions=[perm],
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         user = User(
             id=uuid.uuid4(),
@@ -243,8 +244,8 @@ class TestRBACModel:
             email="reviewer@test.com",
             hashed_password="$2b$12$fakehash",
             role=role,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         assert user.has_permission("correct:ocr") is True
@@ -252,13 +253,13 @@ class TestRBACModel:
 
     def test_user_has_any_role(self):
         """User.has_any_role checks against role names."""
-        from app.auth.models import User, Role
+        from app.auth.models import Role, User
 
         role = Role(
             id=uuid.uuid4(),
             name="technician",
             display_name="Technician",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         user = User(
             id=uuid.uuid4(),
@@ -266,8 +267,8 @@ class TestRBACModel:
             email="tech@test.com",
             hashed_password="$2b$12$fakehash",
             role=role,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         assert user.has_any_role("technician") is True
@@ -284,8 +285,8 @@ class TestRBACModel:
             email="repr@test.com",
             hashed_password="$2b$12$fakehash",
             is_active=True,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         repr_str = repr(user)
         assert "repr_test" in repr_str
@@ -309,7 +310,6 @@ class TestAuthRouterEndpoints:
     def _setup_mocks(self):
         """Mock external dependencies before importing app."""
         import sys
-        from unittest.mock import MagicMock
 
         # Mock storage, OCR engine, celery, redis before importing app
         for mod_name in ["app.storage", "app.ocr_engine", "app.celery_app"]:
@@ -320,7 +320,6 @@ class TestAuthRouterEndpoints:
     async def auth_client(self):
         """Create an httpx.AsyncClient with mocked dependencies."""
         import sys
-        from unittest.mock import MagicMock, patch
 
         import httpx
 
@@ -329,8 +328,8 @@ class TestAuthRouterEndpoints:
             if mod_name not in sys.modules:
                 sys.modules[mod_name] = MagicMock()
 
+        from app.database import Base, get_db
         from app.main import app
-        from app.database import get_db, Base
 
         mock_db = MagicMock()
 
@@ -377,7 +376,6 @@ class TestAuthRouterEndpoints:
         """POST /api/auth/login with non-existent user returns 401."""
         # Mock DB to return None (user not found)
         from app.database import get_db
-        from unittest.mock import MagicMock
 
         mock_db = MagicMock()
         mock_db.scalar.return_value = None
@@ -419,10 +417,10 @@ class TestAuthRouterEndpoints:
 
     async def test_register_success_with_valid_data(self, auth_client):
         """POST /api/auth/register with valid data creates user (201)."""
-        from app.auth.models import User, Role
-        from app.database import get_db
-        from unittest.mock import MagicMock
         import uuid
+
+        from app.auth.models import Role, User
+        from app.database import get_db
 
         mock_db = MagicMock()
 
@@ -435,7 +433,7 @@ class TestAuthRouterEndpoints:
             name="guest",
             display_name="Guest",
             is_system=True,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         new_user = User(
             id=uuid.uuid4(),
@@ -446,8 +444,8 @@ class TestAuthRouterEndpoints:
             role=guest_role,
             is_active=True,
             is_verified=False,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         mock_db.scalar.side_effect = [None, None, guest_role]
         mock_db.refresh.side_effect = lambda obj: None
@@ -475,10 +473,10 @@ class TestAuthRouterEndpoints:
 
     async def test_register_duplicate_username_returns_409(self, auth_client):
         """POST /api/auth/register with existing username returns 409."""
-        from app.auth.models import User, Role
-        from app.database import get_db
-        from unittest.mock import MagicMock
         import uuid
+
+        from app.auth.models import User
+        from app.database import get_db
 
         mock_db = MagicMock()
 
@@ -488,8 +486,8 @@ class TestAuthRouterEndpoints:
             email="existing@test.com",
             hashed_password="$2b$12$fakehash",
             is_active=True,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         # _get_user_by_username_or_email matches by username
         mock_db.scalar.side_effect = [existing_user]

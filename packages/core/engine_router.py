@@ -16,7 +16,6 @@ OmniFile AI Processor v5.0 — Dr. Abdulmalek Tamer Al-husseini
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -110,10 +109,9 @@ class EngineRouter:
             return [ENGINE_TESSERACT], ["low-end profile — single engine mode"]
 
         # ── خط يدوي → TrOCR الأول ──────────────────────────────────
-        if block_type == "handwriting" and ENGINE_TROCR in self._allowed:
-            if image_quality >= 0.65:
-                recommendations.append(ENGINE_TROCR)
-                reasons.append("handwriting block detected")
+        if block_type == "handwriting" and ENGINE_TROCR in self._allowed and image_quality >= 0.65:
+            recommendations.append(ENGINE_TROCR)
+            reasons.append("handwriting block detected")
 
         # ── عربي أو مختلط → EasyOCR ────────────────────────────────
         if language in ("ar", "mixed") and ENGINE_EASYOCR in self._allowed:
@@ -146,10 +144,9 @@ class EngineRouter:
         if (self.profile == "high"
                 and language in ("ar", "mixed")
                 and ENGINE_PADDLE in self._allowed
-                and len(recommendations) < self.max_engines):
-            if ENGINE_PADDLE not in recommendations:
-                recommendations.append(ENGINE_PADDLE)
-                reasons.append("high profile — PaddleOCR for Arabic")
+                and len(recommendations) < self.max_engines) and ENGINE_PADDLE not in recommendations:
+            recommendations.append(ENGINE_PADDLE)
+            reasons.append("high profile — PaddleOCR for Arabic")
 
         # ── fallback إذا لم يُختَر شيء ──────────────────────────────
         if not recommendations:
@@ -204,7 +201,7 @@ class EngineRouter:
         """إزالة المحركات التي تتجاوز الذاكرة المتاحة."""
         total_ram = 0.0
         filtered_engines, filtered_reasons = [], []
-        for engine, reason in zip(engines, reasons):
+        for engine, reason in zip(engines, reasons, strict=False):
             req = ENGINE_RAM_REQUIREMENTS.get(engine, 1.0)
             if total_ram + req <= self.available_ram_gb:
                 filtered_engines.append(engine)

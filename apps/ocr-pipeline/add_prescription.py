@@ -1,12 +1,14 @@
-from src.core.ocr_processor import OCRProcessor
-from pathlib import Path
 import shutil
+from pathlib import Path
+
+from src.core.ocr_processor import OCRProcessor
+
 
 def add_prescription(image_path, ground_truth=None):
     processor = OCRProcessor()
     dest = Path("samples") / Path(image_path).name
     shutil.copy(image_path, dest)
-    
+
     text, entities = processor.process(str(dest))
     print("✅ تمت المعالجة:")
     print(text)

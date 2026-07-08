@@ -8,7 +8,7 @@ import json
 import os
 import time
 import random
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from datetime import datetime
 from tqdm import tqdm
 from hello_agents import SimpleAgent
@@ -103,7 +103,7 @@ Please output in the following JSON format, avoid using special escape character
 
             except Exception as e:
                 print(f"   ⚠️ 加载参考样例失败: {e}")
-                print(f"   ℹ️  将使用默认提示词生成")
+                print("   ℹ️  将使用默认提示词生成")
                 self.use_reference_examples = False
     
     def generate_single(self, max_retries: int = 3) -> Dict[str, Any]:
@@ -193,7 +193,7 @@ Important Notes:
         # 但这还不够，我们需要更智能的处理
         try:
             problem_data = json.loads(json_str)
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             # 如果解析失败，尝试修复常见的LaTeX转义问题
             # 方法：先将字符串中的单个反斜杠替换为双反斜杠（但保留已经转义的）
             # 这样LaTeX的 \frac 会变成 \\frac，在JSON中是合法的
@@ -206,7 +206,7 @@ Important Notes:
                 problem_data = json.loads(fixed_json_str)
             except json.JSONDecodeError:
                 # 如果还是失败，打印错误信息并抛出
-                print(f"❌ JSON解析失败:")
+                print("❌ JSON解析失败:")
                 print(f"原始响应: {response[:500]}...")
                 print(f"提取的JSON: {json_str[:500]}...")
                 raise
@@ -252,7 +252,7 @@ Important Notes:
         Returns:
             题目列表
         """
-        print(f"\n🎯 开始生成AIME题目")
+        print("\n🎯 开始生成AIME题目")
         print(f"   目标数量: {num_problems}")
         print(f"   生成模型: {self.llm.model}")
         print(f"   延迟设置: {self.delay_seconds}秒/题")
@@ -262,7 +262,7 @@ Important Notes:
         start_index = 0
 
         if checkpoint_path and os.path.exists(checkpoint_path):
-            print(f"\n📂 发现检查点文件，尝试恢复...")
+            print("\n📂 发现检查点文件，尝试恢复...")
             try:
                 with open(checkpoint_path, 'r', encoding='utf-8') as f:
                     problems = json.load(f)
@@ -371,7 +371,7 @@ Important Notes:
         if os.path.exists(checkpoint_path):
             try:
                 os.remove(checkpoint_path)
-                print(f"\n🗑️  已删除检查点文件")
+                print("\n🗑️  已删除检查点文件")
             except Exception as e:
                 print(f"\n⚠️ 删除检查点文件失败: {e}")
 
@@ -423,7 +423,7 @@ Important Notes:
 - **答案范围**: {min(answers)}-{max(answers)}
 """
         
-        report += f"""
+        report += """
 ## 题目列表
 
 | ID | 主题 | 答案 |
@@ -434,7 +434,7 @@ Important Notes:
             report += f"| {problem.get('id', 'N/A')} | {problem.get('topic', 'N/A')} | {problem.get('answer', 'N/A')} |\n"
         
         if len(problems) > 10:
-            report += f"\n*（仅显示前10个题目，完整列表请查看JSON文件）*\n"
+            report += "\n*（仅显示前10个题目，完整列表请查看JSON文件）*\n"
         
         report += f"""
 ---

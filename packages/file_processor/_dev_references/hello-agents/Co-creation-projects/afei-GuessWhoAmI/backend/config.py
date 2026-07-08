@@ -1,6 +1,5 @@
 """Application configuration"""
 
-import json
 import os
 from pathlib import Path
 from typing import Optional
@@ -40,7 +39,7 @@ class Settings:
             print("⚠️  Warning: LLM_API_KEY is not set")
             print("   Please configure LLM_API_KEY in the .env file")
             return False
-        print(f"✅ LLM config:")
+        print("✅ LLM config:")
         print(f"   Model   : {cls.LLM_MODEL_ID}")
         print(f"   Base URL: {cls.LLM_BASE_URL}")
         return True

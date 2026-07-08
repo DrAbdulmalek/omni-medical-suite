@@ -11,7 +11,6 @@
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class TableDetectionTransformer:
     def __init__(
         self,
         model_name: str = "microsoft/table-transformer-detection",
-        device: Optional[str] = None,
+        device: str | None = None,
     ):
         """
         تهيئة كاشف الجداول.
@@ -64,11 +63,11 @@ class TableDetectionTransformer:
             return True
 
         try:
+            import torch
             from transformers import (
                 AutoImageProcessor,
                 AutoModelForObjectDetection,
             )
-            import torch
 
             logger.info("جارٍ تحميل Table Transformer (الجهاز: %s)...", self.device)
 
@@ -138,7 +137,7 @@ class TableDetectionTransformer:
             for score, label, box in zip(
                 results["scores"],
                 results["labels"],
-                results["boxes"],
+                results["boxes"], strict=False,
             ):
                 box_coords = [round(i) for i in box.tolist()]
                 tables.append({

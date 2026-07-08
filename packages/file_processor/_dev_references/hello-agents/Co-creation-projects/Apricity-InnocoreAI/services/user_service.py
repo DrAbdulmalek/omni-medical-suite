@@ -2,10 +2,9 @@
 用户服务
 """
 
-from typing import Optional, List
+from typing import Optional
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from ..core.database import get_db
 from ..models.user import UserDB, User, UserCreate, UserUpdate
 from ..core.exceptions import UserNotFoundError, UserAlreadyExistsError
 

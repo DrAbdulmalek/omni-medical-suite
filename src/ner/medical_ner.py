@@ -18,7 +18,7 @@ Python نقي - لا تتطلب مكتبات خارجية.
 
 import logging
 import re
-from typing import Dict, List, Optional, Tuple, Pattern
+from re import Pattern
 
 logger = logging.getLogger(__name__)
 
@@ -65,12 +65,12 @@ class ArabicMedicalNER:
         تهيئة نظام التعرف على الكيانات ببناء أنماط الكيانات الطبية.
         """
         logger.info(_MSG_INIT)
-        self.patterns: Dict[str, List[Pattern]] = self._build_patterns()
+        self.patterns: dict[str, list[Pattern]] = self._build_patterns()
 
         total_patterns = sum(len(p) for p in self.patterns.values())
         logger.info(_MSG_PATTERNS.format(n=total_patterns))
 
-    def extract_entities(self, text: str) -> List[Dict]:
+    def extract_entities(self, text: str) -> list[dict]:
         """
         Extract medical entities from Arabic text.
 
@@ -94,8 +94,8 @@ class ArabicMedicalNER:
         text_len = len(text)
         logger.info(_MSG_EXTRACTING.format(len=text_len))
 
-        entities: List[Dict] = []
-        seen_spans: List[Tuple[int, int]] = []  # Avoid overlapping entities
+        entities: list[dict] = []
+        seen_spans: list[tuple[int, int]] = []  # Avoid overlapping entities
 
         for entity_type, pattern_list in self.patterns.items():
             for pattern in pattern_list:
@@ -137,7 +137,7 @@ class ArabicMedicalNER:
         logger.info(_MSG_FOUND.format(n=len(entities)))
         return entities
 
-    def _build_patterns(self) -> Dict[str, List[Pattern]]:
+    def _build_patterns(self) -> dict[str, list[Pattern]]:
         """
         Compile regex patterns for Arabic medical entity extraction.
 
@@ -146,7 +146,7 @@ class ArabicMedicalNER:
         Returns:
             Dictionary mapping entity types to lists of compiled patterns.
         """
-        patterns: Dict[str, List[Pattern]] = {}
+        patterns: dict[str, list[Pattern]] = {}
 
         # ============================================================
         # DRUG patterns - أسماء الأدوية
@@ -414,7 +414,7 @@ class ArabicMedicalNER:
         return min(confidence, 1.0)
 
     @staticmethod
-    def _compile_patterns(pattern_strings: List[str]) -> List[Pattern]:
+    def _compile_patterns(pattern_strings: list[str]) -> list[Pattern]:
         """
         Compile a list of regex pattern strings.
 

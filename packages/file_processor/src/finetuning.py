@@ -12,7 +12,6 @@ import os
 import io
 import logging
 from PIL import Image
-from datetime import datetime
 
 logger = logging.getLogger("HandwrittenOCR")
 

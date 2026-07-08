@@ -22,7 +22,7 @@ import os
 from modules.core.base_db import BaseDB
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
 

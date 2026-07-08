@@ -14,8 +14,7 @@ Usage:
 
 import logging
 import threading
-from functools import lru_cache
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 logger = logging.getLogger(__name__)
 

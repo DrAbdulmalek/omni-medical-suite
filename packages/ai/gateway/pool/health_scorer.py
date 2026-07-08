@@ -12,8 +12,6 @@ import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Configuration helpers
@@ -355,8 +353,8 @@ class ProviderHealthScorer:
         if not sorted_values:
             return 0.0
         k = (len(sorted_values) - 1) * (pct / 100.0)
-        lower = int(math.floor(k))
-        upper = int(math.ceil(k))
+        lower = math.floor(k)
+        upper = math.ceil(k)
         if lower == upper:
             return sorted_values[lower]
         fraction = k - lower

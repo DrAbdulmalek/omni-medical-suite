@@ -18,7 +18,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -32,7 +31,6 @@ class TestSecurityModule(unittest.TestCase):
         from interactive_learning.core.security import (
             SecureCorrectionStorage,
             AuditLogger,
-            InputSanitizer,
             RateLimiter,
         )
         self.storage = SecureCorrectionStorage()
@@ -356,10 +354,8 @@ class TestVersioningModule(unittest.TestCase):
 
     def setUp(self):
         from interactive_learning.core.versioning import (
-            SemanticVersion,
             ModelRegistry,
             DatasetVersioning,
-            VersionManager,
         )
         self.temp_dir = tempfile.mkdtemp()
         self.registry = ModelRegistry(Path(self.temp_dir) / "models")
@@ -587,7 +583,7 @@ class TestErrorRecovery(unittest.TestCase):
         large = np.ones((2000, 3000, 3), dtype=np.uint8) * 255
         segmenter = LineSegmenter(method="projection")
         start = time.time()
-        lines = segmenter.segment(large)
+        segmenter.segment(large)
         duration = time.time() - start
         self.assertLess(duration, 30)  # Should be fast
 

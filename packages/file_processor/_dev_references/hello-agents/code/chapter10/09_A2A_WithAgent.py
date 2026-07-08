@@ -6,10 +6,9 @@ A2A 协议 + HelloAgents SimpleAgent 集成案例
 
 from hello_agents.protocols import A2AServer, A2AClient
 from hello_agents import SimpleAgent, HelloAgentsLLM
-from hello_agents.tools import ToolRegistry, Tool, ToolParameter
+from hello_agents.tools import Tool, ToolParameter
 import threading
 import time
-from typing import Dict, Any
 
 # ============================================================
 # 1. 创建专业 A2A Agent 服务

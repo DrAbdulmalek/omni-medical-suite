@@ -15,15 +15,16 @@ from __future__ import annotations
 import concurrent.futures
 import tempfile
 import time
-from dataclasses import dataclass, field
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 import cv2
 import numpy as np
+from config.settings import EngineName, PipelineConfig, SpellCheckStrategy
 from PIL import Image
 
-from config.settings import PipelineConfig, EngineName, SpellCheckStrategy
 from src.utils.logger import get_logger, timed
 
 # ---------------------------------------------------------------------------
@@ -38,7 +39,7 @@ class BBox:
     x_max: float
     y_max: float
 
-    def iou(self, other: "BBox") -> float:
+    def iou(self, other: BBox) -> float:
         """Intersection-over-Union with another BBox."""
         xi1 = max(self.x_min, other.x_min)
         yi1 = max(self.y_min, other.y_min)
@@ -58,7 +59,7 @@ class EngineResult:
     text: str
     confidence: float
     engine: str
-    bbox: Optional[BBox] = None
+    bbox: BBox | None = None
 
 
 @dataclass
@@ -84,11 +85,11 @@ class PipelineResult:
         Total wall-clock time for the pipeline call.
     """
     text: str
-    lines: List[LineResult]
+    lines: list[LineResult]
     overall_confidence: float
-    engines_used: List[str]
-    preprocessing_applied: List[str]
-    spell_corrections: Dict[str, str]
+    engines_used: list[str]
+    preprocessing_applied: list[str]
+    spell_corrections: dict[str, str]
     elapsed_seconds: float
 
 
@@ -97,8 +98,8 @@ class LineResult:
     """Result for a single text line / region."""
     text: str
     confidence: float
-    engine_sources: Dict[str, float]  # engine -> its confidence
-    bbox: Optional[BBox] = None
+    engine_sources: dict[str, float]  # engine -> its confidence
+    bbox: BBox | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -118,8 +119,8 @@ class HybridSpellChecker:
 
     def __init__(
         self,
-        medical_dict_path: Optional[str] = None,
-        arabic_dict_path: Optional[str] = None,
+        medical_dict_path: str | None = None,
+        arabic_dict_path: str | None = None,
         max_edit_distance: int = 2,
         min_word_length: int = 3,
         llm_fallback: bool = False,
@@ -136,8 +137,8 @@ class HybridSpellChecker:
 
     def _load_dictionaries(
         self,
-        medical_path: Optional[str],
-        arabic_path: Optional[str],
+        medical_path: str | None,
+        arabic_path: str | None,
     ) -> None:
         """Load word lists from disk (one word per line, UTF-8)."""
         for path, target in [
@@ -191,12 +192,12 @@ class HybridSpellChecker:
 
         return word, False
 
-    def correct_text(self, text: str) -> tuple[str, Dict[str, str]]:
+    def correct_text(self, text: str) -> tuple[str, dict[str, str]]:
         """
         Correct all words in *text*, returning the corrected text and
         a mapping of ``original -> corrected`` for each change.
         """
-        corrections: Dict[str, str] = {}
+        corrections: dict[str, str] = {}
         words = text.split()
         corrected: list[str] = []
 
@@ -212,7 +213,7 @@ class HybridSpellChecker:
 
     def _best_edit_distance_candidate(
         self, word: str, dictionary: set[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return the closest word within *max_edit_distance*, or None."""
         try:
             from Levenshtein import distance as lev_dist
@@ -233,7 +234,7 @@ class HybridSpellChecker:
                     prev = curr
                 return prev[-1]
 
-        best_word: Optional[str] = None
+        best_word: str | None = None
         best_dist = self._max_edit + 1
 
         for candidate in dictionary:
@@ -270,13 +271,13 @@ class OmniMedicalOCR:
     >>> print(result.text)
     """
 
-    def __init__(self, config: Optional[PipelineConfig] = None) -> None:
+    def __init__(self, config: PipelineConfig | None = None) -> None:
         self.config: PipelineConfig = config or PipelineConfig()
         self.logger = get_logger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
         # Engine instances (lazy-loaded)
-        self._engines: Dict[str, Any] = {}
-        self._spell_checker: Optional[HybridSpellChecker] = None
+        self._engines: dict[str, Any] = {}
+        self._spell_checker: HybridSpellChecker | None = None
 
         self.logger.info("OmniMedicalOCR v0.1.0 initialising …")
         self.logger.info("Enabled engines: %s", self.config.enabled_engines)
@@ -387,7 +388,7 @@ class OmniMedicalOCR:
     # ======================================================================
 
     @timed()
-    def _preprocess(self, image: np.ndarray) -> Tuple[np.ndarray, List[str]]:
+    def _preprocess(self, image: np.ndarray) -> tuple[np.ndarray, list[str]]:
         """
         Apply the full preprocessing chain as defined in config.
 
@@ -396,7 +397,7 @@ class OmniMedicalOCR:
         (processed_image, list_of_applied_step_names)
         """
         cfg = self.config.preprocessing
-        applied: List[str] = []
+        applied: list[str] = []
 
         img = image.copy()
 
@@ -506,14 +507,14 @@ class OmniMedicalOCR:
     # Per-engine OCR runners
     # ======================================================================
 
-    def _run_tesseract(self, image: np.ndarray) -> List[EngineResult]:
+    def _run_tesseract(self, image: np.ndarray) -> list[EngineResult]:
         """Run Tesseract and return normalised results."""
         pytesseract = self._engines[EngineName.TESSERACT.value]
         lang = self.config.model.tesseract_lang
 
         data = pytesseract.image_to_data(image, lang=lang, output_type=pytesseract.Output.DICT)
 
-        results: List[EngineResult] = []
+        results: list[EngineResult] = []
         for i, txt in enumerate(data["text"]):
             txt = txt.strip()
             if not txt:
@@ -530,7 +531,7 @@ class OmniMedicalOCR:
             ))
         return results
 
-    def _run_easyocr(self, image: np.ndarray) -> List[EngineResult]:
+    def _run_easyocr(self, image: np.ndarray) -> list[EngineResult]:
         """Run EasyOCR and return normalised results."""
         reader = self._engines[EngineName.EASYOCR.value]
         # EasyOCR expects RGB
@@ -541,7 +542,7 @@ class OmniMedicalOCR:
 
         detections = reader.readtext(rgb)
 
-        results: List[EngineResult] = []
+        results: list[EngineResult] = []
         for (bbox_pts, txt, conf) in detections:
             xs = [p[0] for p in bbox_pts]
             ys = [p[1] for p in bbox_pts]
@@ -553,7 +554,7 @@ class OmniMedicalOCR:
             ))
         return results
 
-    def _run_paddleocr(self, image: np.ndarray) -> List[EngineResult]:
+    def _run_paddleocr(self, image: np.ndarray) -> list[EngineResult]:
         """Run PaddleOCR and return normalised results."""
         ocr = self._engines[EngineName.PADDLEOCR.value]
         # PaddleOCR expects BGR numpy array
@@ -564,7 +565,7 @@ class OmniMedicalOCR:
 
         result = ocr.ocr(bgr, cls=True)
 
-        results: List[EngineResult] = []
+        results: list[EngineResult] = []
         if result is None:
             return results
         for page in result:
@@ -582,7 +583,7 @@ class OmniMedicalOCR:
                 ))
         return results
 
-    def _run_trocr(self, image: np.ndarray) -> List[EngineResult]:
+    def _run_trocr(self, image: np.ndarray) -> list[EngineResult]:
         """Run TrOCR and return normalised results."""
         engine = self._engines[EngineName.TROCR.value]
         processor = engine["processor"]
@@ -620,7 +621,7 @@ class OmniMedicalOCR:
 
     def _run_engine(
         self, engine_name: str, image: np.ndarray,
-    ) -> List[EngineResult]:
+    ) -> list[EngineResult]:
         """Dispatch to the correct per-engine runner."""
         if engine_name == EngineName.TESSERACT.value:
             return self._run_tesseract(image)
@@ -633,8 +634,8 @@ class OmniMedicalOCR:
         raise ValueError(f"Unknown engine: {engine_name}")
 
     def _merge_results(
-        self, all_results: Dict[str, List[EngineResult]],
-    ) -> List[LineResult]:
+        self, all_results: dict[str, list[EngineResult]],
+    ) -> list[LineResult]:
         """
         Merge results from multiple engines using weighted voting.
 
@@ -651,10 +652,10 @@ class OmniMedicalOCR:
         min_conf = cfg.min_confidence
 
         # Flatten all results that have bounding boxes
-        bounded: List[EngineResult] = []
-        unbounded: List[EngineResult] = []
+        bounded: list[EngineResult] = []
+        unbounded: list[EngineResult] = []
 
-        for engine_name, results in all_results.items():
+        for _engine_name, results in all_results.items():
             for r in results:
                 if r.bbox is not None:
                     bounded.append(r)
@@ -662,7 +663,7 @@ class OmniMedicalOCR:
                     unbounded.append(r)
 
         # Greedy clustering by IoU
-        clusters: List[List[EngineResult]] = []
+        clusters: list[list[EngineResult]] = []
         used: set[int] = set()
 
         for i, r in enumerate(bounded):
@@ -683,12 +684,12 @@ class OmniMedicalOCR:
             clusters.append(cluster)
 
         # For each cluster, select best text by weighted confidence
-        lines: List[LineResult] = []
+        lines: list[LineResult] = []
 
         for cluster in clusters:
-            best: Optional[EngineResult] = None
+            best: EngineResult | None = None
             best_score = -1.0
-            sources: Dict[str, float] = {}
+            sources: dict[str, float] = {}
 
             for r in cluster:
                 w = weights.get(r.engine, 0.25)
@@ -764,13 +765,13 @@ class OmniMedicalOCR:
         # 1. Load image
         raw = cv2.imread(str(image_path))
         if raw is None:
-            raise IOError(f"OpenCV could not read image: {image_path}")
+            raise OSError(f"OpenCV could not read image: {image_path}")
 
         # 2. Preprocess
         processed, prep_steps = self._preprocess(raw)
 
         # 3. Run engines in parallel
-        all_results: Dict[str, List[EngineResult]] = {}
+        all_results: dict[str, list[EngineResult]] = {}
         engines_to_run = [e for e in self.config.enabled_engines
                           if e in self._engines]
 
@@ -798,7 +799,7 @@ class OmniMedicalOCR:
         merged_lines = self._merge_results(all_results)
 
         # 5. Spell check
-        all_corrections: Dict[str, str] = {}
+        all_corrections: dict[str, str] = {}
         if self._spell_checker is not None:
             for line in merged_lines:
                 corrected_text, corr = self._spell_checker.correct_text(line.text)
@@ -832,8 +833,8 @@ class OmniMedicalOCR:
     def process_batch(
         self,
         image_paths: Sequence[str | Path],
-        progress_callback: Optional[callable] = None,
-    ) -> List[PipelineResult]:
+        progress_callback: callable | None = None,
+    ) -> list[PipelineResult]:
         """
         Process a batch of images sequentially (with per-engine
         parallelism internally).
@@ -853,7 +854,7 @@ class OmniMedicalOCR:
         """
         total = len(image_paths)
         self.logger.info("Batch processing %d images …", total)
-        results: List[PipelineResult] = []
+        results: list[PipelineResult] = []
 
         for idx, path in enumerate(image_paths):
             result = self.process_image(path)
@@ -867,8 +868,8 @@ class OmniMedicalOCR:
     def process_pdf(
         self,
         pdf_path: str | Path,
-        progress_callback: Optional[callable] = None,
-    ) -> List[PipelineResult]:
+        progress_callback: callable | None = None,
+    ) -> list[PipelineResult]:
         """
         Convert each page of a PDF to an image and run the pipeline.
 
@@ -900,7 +901,7 @@ class OmniMedicalOCR:
         last = self.config.pdf_last_page or len(doc)
         total_pages = last - first + 1
 
-        results: List[PipelineResult] = []
+        results: list[PipelineResult] = []
         dpi = self.config.pdf_dpi
         zoom = dpi / 72.0  # fitz default is 72 dpi
 
@@ -946,7 +947,7 @@ class OmniMedicalOCR:
         self._engines.clear()
         self.logger.info("Resources released.")
 
-    def __enter__(self) -> "OmniMedicalOCR":
+    def __enter__(self) -> OmniMedicalOCR:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:

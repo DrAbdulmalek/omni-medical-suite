@@ -19,15 +19,13 @@ Usage:
     python offline_medical_ocr.py --dir ./scans/ --output-dir ./results/
 """
 
-import os
 import re
 import cv2
 import json
 import argparse
 import numpy as np
 from pathlib import Path
-from PIL import Image
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Dict
 
 
 class OfflineMedicalOCR:

@@ -23,16 +23,14 @@ Version: 1.0.0
 Date: 2026-06-04
 """
 
-import json
-import re
-import os
-import sys
 import argparse
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any
-from dataclasses import dataclass, asdict
-from datetime import datetime
+import json
 import logging
+import re
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -48,13 +46,13 @@ class GroundTruthEntry:
     confidence: float = 1.0  # GT assumed perfect
     font_name: str = ""
     font_size: float = 0.0
-    bbox: Tuple[int, int, int, int] = (0, 0, 0, 0)
+    bbox: tuple[int, int, int, int] = (0, 0, 0, 0)
     is_bold: bool = False
     is_italic: bool = False
     is_rtl: bool = True  # Arabic default
     original_file: str = ""
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
@@ -63,9 +61,9 @@ class DocumentImporter:
 
     def __init__(self, file_path: str):
         self.file_path = Path(file_path)
-        self.entries: List[GroundTruthEntry] = []
+        self.entries: list[GroundTruthEntry] = []
 
-    def import_document(self) -> List[GroundTruthEntry]:
+    def import_document(self) -> list[GroundTruthEntry]:
         """Import document and return list of entries."""
         raise NotImplementedError
 
@@ -94,7 +92,7 @@ class DocumentImporter:
 class DocxImporter(DocumentImporter):
     """Import .docx files (from ABBYY FineReader or ReadIRIS)."""
 
-    def import_document(self) -> List[GroundTruthEntry]:
+    def import_document(self) -> list[GroundTruthEntry]:
         try:
             from docx import Document
         except ImportError:
@@ -143,7 +141,7 @@ class DocxImporter(DocumentImporter):
 class RtfImporter(DocumentImporter):
     """Import .rtf files (from ReadIRIS)."""
 
-    def import_document(self) -> List[GroundTruthEntry]:
+    def import_document(self) -> list[GroundTruthEntry]:
         try:
             from striprtf.striprtf import rtf_to_text
         except ImportError:
@@ -151,7 +149,7 @@ class RtfImporter(DocumentImporter):
             # Fallback: manual RTF parsing
             return self._manual_rtf_parse()
 
-        with open(self.file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(self.file_path, encoding='utf-8', errors='ignore') as f:
             rtf_content = f.read()
 
         text = rtf_to_text(rtf_content)
@@ -169,9 +167,9 @@ class RtfImporter(DocumentImporter):
         logger.info(f"Imported {len(self.entries)} lines from RTF: {self.file_path}")
         return self.entries
 
-    def _manual_rtf_parse(self) -> List[GroundTruthEntry]:
+    def _manual_rtf_parse(self) -> list[GroundTruthEntry]:
         """Fallback RTF parser without striprtf."""
-        with open(self.file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(self.file_path, encoding='utf-8', errors='ignore') as f:
             content = f.read()
 
         # Remove RTF control words
@@ -191,8 +189,8 @@ class RtfImporter(DocumentImporter):
 class TxtImporter(DocumentImporter):
     """Import plain text files."""
 
-    def import_document(self) -> List[GroundTruthEntry]:
-        with open(self.file_path, 'r', encoding='utf-8') as f:
+    def import_document(self) -> list[GroundTruthEntry]:
+        with open(self.file_path, encoding='utf-8') as f:
             lines = [line.strip() for line in f if line.strip()]
 
         for i, line in enumerate(lines):
@@ -208,14 +206,14 @@ class TxtImporter(DocumentImporter):
 class HtmlImporter(DocumentImporter):
     """Import ABBYY HTML structured export."""
 
-    def import_document(self) -> List[GroundTruthEntry]:
+    def import_document(self) -> list[GroundTruthEntry]:
         try:
             from bs4 import BeautifulSoup
         except ImportError:
             logger.error("beautifulsoup4 not installed. Run: pip install beautifulsoup4")
             return []
 
-        with open(self.file_path, 'r', encoding='utf-8') as f:
+        with open(self.file_path, encoding='utf-8') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
 
         # ABBYY HTML usually has <p> or <span> with class="ocr"
@@ -252,10 +250,10 @@ class PdfFontExtractor:
 
     def __init__(self, pdf_path: str):
         self.pdf_path = Path(pdf_path)
-        self.fonts: Dict[str, Any] = {}
-        self.glyphs: List[Dict] = []
+        self.fonts: dict[str, Any] = {}
+        self.glyphs: list[dict] = []
 
-    def extract_fonts(self) -> Dict[str, Any]:
+    def extract_fonts(self) -> dict[str, Any]:
         """Extract font metadata from PDF."""
         try:
             import fitz  # PyMuPDF
@@ -288,7 +286,7 @@ class PdfFontExtractor:
         logger.info(f"Extracted {len(font_data)} fonts from {self.pdf_path}")
         return font_data
 
-    def extract_glyphs(self) -> List[Dict]:
+    def extract_glyphs(self) -> list[dict]:
         """Extract individual character glyphs with positions."""
         try:
             import fitz
@@ -338,7 +336,7 @@ class PdfFontExtractor:
             json.dump(data, f, ensure_ascii=False, indent=2)
         logger.info(f"Saved font data to {output_path}")
 
-    def build_character_map(self) -> Dict[str, List[Dict]]:
+    def build_character_map(self) -> dict[str, list[dict]]:
         """Build a map of characters to their glyph instances."""
         char_map = {}
         for glyph in self.glyphs:
@@ -349,8 +347,8 @@ class PdfFontExtractor:
         return char_map
 
 
-def merge_ground_truth_sources(sources: List[List[GroundTruthEntry]],
-                                strategy: str = "longest") -> List[GroundTruthEntry]:
+def merge_ground_truth_sources(sources: list[list[GroundTruthEntry]],
+                                strategy: str = "longest") -> list[GroundTruthEntry]:
     """
     Merge multiple ground truth sources into one.
 

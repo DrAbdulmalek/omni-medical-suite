@@ -12,10 +12,7 @@ import hashlib
 import logging
 import os
 import re
-import time
-import unicodedata
 from math import sqrt
-from typing import Dict, List, Optional, Tuple
 
 # Optional import — tiktoken is used when available for accurate GPT token
 # counting; otherwise we fall back to a fast word-level heuristic.
@@ -32,7 +29,7 @@ logger = logging.getLogger(__name__)
 # Token Counting
 # ======================================================================
 
-_tiktoken_cache: Dict[str, Any] = {}
+_tiktoken_cache: dict[str, Any] = {}
 
 
 def _get_encoding(model: str):
@@ -185,7 +182,7 @@ def normalize_arabic(text: str) -> str:
 # OCR Artifact Cleaning
 # ======================================================================
 
-_OCR_PATTERNS: List[Tuple[re.Pattern, str]] = [
+_OCR_PATTERNS: list[tuple[re.Pattern, str]] = [
     # Multiple spaces → single space
     (re.compile(r" {2,}"), " "),
     # Lines that are all dashes/dots/underscores (page-break artifacts)
@@ -262,15 +259,15 @@ def compute_hash(text: str, algorithm: str = "md5") -> str:
 # ======================================================================
 
 
-def _tokenize_simple(text: str) -> Dict[str, int]:
+def _tokenize_simple(text: str) -> dict[str, int]:
     """Whitespace tokenization → frequency dict."""
-    tokens: Dict[str, int] = {}
+    tokens: dict[str, int] = {}
     for word in text.lower().split():
         tokens[word] = tokens.get(word, 0) + 1
     return tokens
 
 
-def _cosine_sim(vec_a: Dict[str, int], vec_b: Dict[str, int]) -> float:
+def _cosine_sim(vec_a: dict[str, int], vec_b: dict[str, int]) -> float:
     """Compute cosine similarity between two term-frequency dicts."""
     # Dot product
     dot = sum(vec_a[k] * vec_b[k] for k in vec_a if k in vec_b)
@@ -343,7 +340,7 @@ def format_processing_time(seconds: float) -> str:
     hours, remainder = divmod(seconds, 3600)
     minutes, secs = divmod(remainder, 60)
 
-    parts: List[str] = []
+    parts: list[str] = []
     if hours > 0:
         parts.append(f"{hours}h")
     if minutes > 0:
@@ -361,8 +358,8 @@ def format_processing_time(seconds: float) -> str:
 
 def setup_logging(
     level: str = "INFO",
-    log_file: Optional[str] = None,
-    format_string: Optional[str] = None,
+    log_file: str | None = None,
+    format_string: str | None = None,
 ) -> logging.Logger:
     """Configure the root logger for the AI Fuel Engine.
 

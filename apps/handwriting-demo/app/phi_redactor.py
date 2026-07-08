@@ -10,9 +10,9 @@ PHI Redactor — إخفاء المعلومات الصحية المحمية (Prot
     print(result["redacted_text"])  # "رقم المريض [REDACTED] - تاريخ [REDACTED]"
 """
 
-import re
 import logging
-from typing import Dict, Any, List, Tuple
+import re
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class PHIRedactor:
     """إخفاء المعلومات الصحية المحمية (PHI) من النصوص الطبية العربية والإنجليزية."""
 
     # أنماط البحث عن المعلومات الحساسة
-    _PATTERNS: List[Tuple[str, re.Pattern]] = [
+    _PATTERNS: list[tuple[str, re.Pattern]] = [
         # أرقام الهواتف (صيغ عربية ودولية)
         ("phone", re.compile(
             r'(?:(?:\+?966|\+?971|\+?965|\+?974|\+?968|\+?20|\+?1)?'
@@ -54,7 +54,7 @@ class PHIRedactor:
         "العنوان", "رقم الهوية",
     ]
 
-    def redact_text(self, text: str, redact_context: bool = False) -> Dict[str, Any]:
+    def redact_text(self, text: str, redact_context: bool = False) -> dict[str, Any]:
         """إخفاء المعلومات الحساسة من النص.
 
         Args:
@@ -72,7 +72,7 @@ class PHIRedactor:
         if not text:
             return {"redacted_text": text, "redacted_items": [], "items_count": 0}
 
-        redacted_items: List[Dict] = []
+        redacted_items: list[dict] = []
         redacted_text = text
 
         for pattern_name, pattern in self._PATTERNS:
@@ -118,12 +118,12 @@ class PHIRedactor:
             "items_count": len(redacted_items),
         }
 
-    def extract_metadata(self, text: str) -> Dict[str, Any]:
+    def extract_metadata(self, text: str) -> dict[str, Any]:
         """استخراج بيانات تعريفية عن النص دون حجب القيم.
 
         يُرجع إحصائيات عن أنواع البيانات الموجودة (عدد لا قيمة).
         """
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "total_length": len(text),
             "word_count": len(text.split()),
             "line_count": len(text.split('\n')),

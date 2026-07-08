@@ -5,10 +5,11 @@
 يضمن المساءلة، يمنع التحيز التراكمي، ويحافظ على جودة الإجماع
 """
 
-import json, random
+import json
+import random
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import List
 
 class ExpertQuotaManager:
     def __init__(

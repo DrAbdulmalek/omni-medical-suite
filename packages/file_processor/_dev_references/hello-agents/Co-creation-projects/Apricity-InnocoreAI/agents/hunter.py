@@ -3,7 +3,6 @@ InnoCore AI 前哨探员 (Hunter Agent)
 负责每日根据关键词监控ArXiv/IEEE，初筛并下载PDF
 """
 
-import asyncio
 import aiohttp
 import feedparser
 import re
@@ -11,7 +10,6 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 import hashlib
 import os
-from urllib.parse import urljoin, quote
 
 from agents.base import BaseAgent
 from core.database import db_manager
@@ -102,10 +100,9 @@ class HunterAgent(BaseAgent):
         query = " OR ".join(query_parts)
         
         # 添加时间过滤
-        date_filter = ""
         if days_back > 0:
-            start_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y%m%d")
-            date_filter = f"submittedDate:[{start_filter}0000 TO {datetime.now().strftime('%Y%m%d')}2359]"
+            (datetime.now() - timedelta(days=days_back)).strftime("%Y%m%d")
+            f"submittedDate:[{start_filter}0000 TO {datetime.now().strftime('%Y%m%d')}2359]"
         
         params = {
             "search_query": query,
@@ -217,7 +214,6 @@ class HunterAgent(BaseAgent):
         for paper in papers:
             title = paper.get("title", "").lower()
             abstract = paper.get("abstract", "").lower()
-            combined_text = f"{title} {abstract}"
             
             # 计算关键词匹配分数
             score = 0

@@ -12,8 +12,8 @@ from hello_agents import (
     PlanAndSolveAgent
 )
 from hello_agents.tools import MCPTool, ToolRegistry, SearchTool
-from models import ColumnPlan, ReviewResult, ContentNode, ContentLevel
-from prompts import get_structure_requirements, get_react_writer_prompt, get_reflection_writer_prompts, get_planner_prompts
+from models import ColumnPlan, ReviewResult, ContentNode
+from prompts import get_structure_requirements, get_react_writer_prompt
 from config import get_settings, get_word_count
 from utils import JSONExtractor, parse_react_output, get_current_timestamp
 
@@ -28,7 +28,7 @@ class LLMService:
         """获取 LLM 实例（单例模式）"""
         if cls._instance is None:
             cls._instance = HelloAgentsLLM()
-            print(f"▸ LLM服务初始化成功")
+            print("▸ LLM服务初始化成功")
             print(f"   提供商: {cls._instance.provider}")
             print(f"   模型: {cls._instance.model}")
         return cls._instance
@@ -253,7 +253,7 @@ class PlannerAgent:
             
             # 验证缓存的主题是否匹配
             if cache_data.get('topic') != main_topic:
-                print(f"▸️  缓存主题不匹配，忽略缓存")
+                print("▸️  缓存主题不匹配，忽略缓存")
                 return None
             
             plan_data = cache_data.get('plan')
@@ -261,7 +261,7 @@ class PlannerAgent:
                 return None
             
             plan = ColumnPlan.from_dict(plan_data)
-            print(f"▸ 从缓存加载规划结果")
+            print("▸ 从缓存加载规划结果")
             print(f"   缓存文件: {cache_file}")
             return plan
         except Exception as e:
@@ -312,8 +312,8 @@ class PlannerAgent:
                 return cached_plan
         
         # 缓存未命中，调用 LLM 进行规划
-        print(f"\n▸ PlanAndSolve Agent 开始规划专栏...")
-        print(f"   使用模式: 任务分解 → 逐步执行")
+        print("\n▸ PlanAndSolve Agent 开始规划专栏...")
+        print("   使用模式: 任务分解 → 逐步执行")
         print(f"   主题: {main_topic}")
         
         # 更新 Executor 的主题（用于缓存key）
@@ -326,7 +326,7 @@ class PlannerAgent:
         plan_data = self._extract_json(response)
         plan = ColumnPlan.from_dict(plan_data)
         
-        print(f"▸ 规划完成")
+        print("▸ 规划完成")
         print(f"   专栏标题: {plan.column_title}")
         print(f"   话题数量: {plan.get_topic_count()}")
         
@@ -609,7 +609,7 @@ class WriterAgent:
             print(f"{'='*70}\n")
             
             # 打印 run() 方法的返回值（通常是 final_answer）
-            print(f"▸ ReActAgent.run() 返回值:")
+            print("▸ ReActAgent.run() 返回值:")
             print(f"   {response[:500] if response and len(response) > 500 else response}")
             print()
             
@@ -630,7 +630,7 @@ class WriterAgent:
                         if not isinstance(content_data, dict):
                             raise ValueError("提取的内容不是字典格式")
                         if 'content' not in content_data:
-                            print(f"   ▸️  提取的 JSON 缺少 'content' 字段")
+                            print("   ▸️  提取的 JSON 缺少 'content' 字段")
                             print(f"   可用字段: {list(content_data.keys())}")
                             raise ValueError("提取的 JSON 缺少 'content' 字段")
                         print("▸ 成功从原始响应中提取到内容")
@@ -659,7 +659,7 @@ class WriterAgent:
                         if not isinstance(content_data, dict):
                             raise ValueError("提取的内容不是字典格式")
                         if 'content' not in content_data:
-                            print(f"   ▸️  提取的 JSON 缺少 'content' 字段")
+                            print("   ▸️  提取的 JSON 缺少 'content' 字段")
                             print(f"   可用字段: {list(content_data.keys())}")
                             raise ValueError("提取的 JSON 缺少 'content' 字段")
                         print("▸ 成功从原始响应中提取到内容（尽管 ReActAgent 返回了错误消息）")
@@ -693,7 +693,7 @@ class WriterAgent:
             if not isinstance(content_data, dict):
                 raise ValueError(f"提取的内容不是字典格式: {type(content_data)}")
             if 'content' not in content_data:
-                print(f"▸️  提取的 JSON 缺少 'content' 字段")
+                print("▸️  提取的 JSON 缺少 'content' 字段")
                 print(f"   可用字段: {list(content_data.keys())}")
                 print(f"   响应内容（前500字符）: {response[:500]}")
                 
@@ -778,7 +778,7 @@ class WriterAgent:
 }}
 """
         
-        print(f"▸ 使用 SimpleAgent 基于历史信息生成内容...")
+        print("▸ 使用 SimpleAgent 基于历史信息生成内容...")
         response = fallback_agent.run(task)
         return self._extract_json(response)
     
@@ -884,7 +884,7 @@ class ReviewerAgent:
         Returns:
             ReviewResult 实例
         """
-        print(f"\n▸ ReviewerAgent 开始评审内容...")
+        print("\n▸ ReviewerAgent 开始评审内容...")
         print(f"   内容长度: {len(content)} 字符")
         print(f"   目标字数: {target_word_count}")
         
@@ -902,7 +902,7 @@ class ReviewerAgent:
         # 创建 ReviewResult 实例
         result = ReviewResult.from_dict(review_data)
         
-        print(f"▸ 评审完成")
+        print("▸ 评审完成")
         print(f"   评分: {result.score}/100 ({result.grade})")
         print(f"   需要修改: {'是' if result.needs_revision else '否'}")
         
@@ -975,7 +975,7 @@ class RevisionAgent:
         Returns:
             修改后的内容数据
         """
-        print(f"\n▸ RevisionAgent 开始修改内容...")
+        print("\n▸ RevisionAgent 开始修改内容...")
         print(f"   原始评分: {review_result.score}/100")
         
         current_word_count = len(original_content)
@@ -1023,7 +1023,7 @@ class RevisionAgent:
         response = self.agent.run(task)
         revised_data = self._extract_json(response)
         
-        print(f"▸ 修改完成")
+        print("▸ 修改完成")
         print(f"   修改后字数: {revised_data.get('word_count', len(revised_data.get('revised_content', '')))}")
         
         return revised_data
@@ -1122,8 +1122,8 @@ class ReflectionWriterAgent:
         Returns:
             优化后的内容数据
         """
-        print(f"\n▸ ReflectionAgent 开始写作并自我反思...")
-        print(f"   使用模式: 初稿 → 自我评审 → 优化")
+        print("\n▸ ReflectionAgent 开始写作并自我反思...")
+        print("   使用模式: 初稿 → 自我评审 → 优化")
         
         structure_requirements = get_structure_requirements(level)
         word_count = get_word_count(level)
@@ -1159,7 +1159,7 @@ class ReflectionWriterAgent:
         response = self.agent.run(task_description)
         content_data = self._extract_json(response)
         
-        print(f"▸ ReflectionAgent 完成反思优化")
+        print("▸ ReflectionAgent 完成反思优化")
         
         return content_data
     

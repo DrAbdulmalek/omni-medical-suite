@@ -12,7 +12,6 @@ crops lines from cleaned images, produces training_dataset_v2/images/ + labels.t
 
 import cv2
 import numpy as np
-import os
 import re
 import argparse
 from pathlib import Path
@@ -181,12 +180,12 @@ def build_dataset(text_file=None, images_dir=None, output_dir=None,
 
     if not text_file.exists():
         print(f"[خطأ] Error: Text file not found: {text_file}")
-        print(f"       تأكد من أن ملف النص المصحح موجود في المسار المحدد")
+        print("       تأكد من أن ملف النص المصحح موجود في المسار المحدد")
         return
 
     if not images_dir.exists():
         print(f"[خطأ] Error: Images directory not found: {images_dir}")
-        print(f"       تأكد من أن مجلد الصور موجود في المسار المحدد")
+        print("       تأكد من أن مجلد الصور موجود في المسار المحدد")
         return
 
     print(f"[معلومات] Text file / ملف النص:   {text_file}")
@@ -270,8 +269,8 @@ def build_dataset(text_file=None, images_dir=None, output_dir=None,
 
     # Summary
     print("-" * 60)
-    print(f"[نتيجة] Dataset built successfully!")
-    print(f"        تم بناء مجموعة البيانات بنجاح!")
+    print("[نتيجة] Dataset built successfully!")
+    print("        تم بناء مجموعة البيانات بنجاح!")
     print(f"        Pages processed / الصفحات المعالجة: {total_pages}")
     print(f"        Lines extracted / الأسطر المستخرجة: {total_lines}")
     print(f"        Location / الموقع: {output_dir}")

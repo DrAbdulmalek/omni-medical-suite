@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 A/B Tester - Medical OCR Benchmarks
 Author: DrAbdulmalek
@@ -10,10 +9,9 @@ Description: Compares new model against current production model on holdout data
 import json
 import logging
 import random
-from pathlib import Path
-from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -42,12 +40,12 @@ class HoldoutManager:
 
     def __init__(self, holdout_path: str):
         self.holdout_path = Path(holdout_path)
-        self.samples: List[HoldoutSample] = []
+        self.samples: list[HoldoutSample] = []
         if self.holdout_path.exists():
             self._load()
 
     def _load(self):
-        with open(self.holdout_path, 'r', encoding='utf-8') as f:
+        with open(self.holdout_path, encoding='utf-8') as f:
             data = json.load(f)
         for item in data.get('samples', []):
             self.samples.append(HoldoutSample(
@@ -66,12 +64,12 @@ class HoldoutManager:
         dataset_path = Path(dataset_path)
 
         if dataset_path.suffix == '.json':
-            with open(dataset_path, 'r', encoding='utf-8') as f:
+            with open(dataset_path, encoding='utf-8') as f:
                 full_data = json.load(f)
             items = full_data if isinstance(full_data, list) else full_data.get('samples', full_data.get('data', []))
         elif dataset_path.suffix == '.jsonl':
             items = []
-            with open(dataset_path, 'r', encoding='utf-8') as f:
+            with open(dataset_path, encoding='utf-8') as f:
                 for line in f:
                     items.append(json.loads(line.strip()))
         else:
@@ -127,7 +125,7 @@ class ABTester:
 
     def __init__(self, holdout_dataset_path: str):
         self.holdout = HoldoutManager(holdout_dataset_path)
-        self.history: List[ABTestResult] = []
+        self.history: list[ABTestResult] = []
 
     def evaluate_model(self, model_path: str) -> float:
         """
@@ -145,7 +143,7 @@ class ABTester:
         return 0.045  # Example: would be computed from actual evaluation
 
     def run_ab_test(self, current_model_cer: float, new_model_cer: float,
-                    min_improvement: float = 2.0) -> Dict:
+                    min_improvement: float = 2.0) -> dict:
         """
         Run A/B comparison between current and new model.
         The new model must be at least min_improvement% better to be deployed.

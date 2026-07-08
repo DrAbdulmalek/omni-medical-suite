@@ -10,7 +10,7 @@ with optimized settings for Arabic and English medical documents.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 import numpy as np
 
@@ -48,7 +48,7 @@ class EasyOCREngine:
 
     def __init__(
         self,
-        languages: Optional[List[str]] = None,
+        languages: list[str] | None = None,
         gpu: bool = True,
     ) -> None:
         """
@@ -96,7 +96,7 @@ class EasyOCREngine:
         """Check if EasyOCR reader is available."""
         return self._available
 
-    def extract_text(self, image: np.ndarray) -> Dict[str, Any]:
+    def extract_text(self, image: np.ndarray) -> dict[str, Any]:
         """
         Extract text from an image using EasyOCR.
 
@@ -134,7 +134,7 @@ class EasyOCREngine:
             )
 
             # Parse results
-            lines: List[Dict] = []
+            lines: list[dict] = []
             for bbox_points, text, confidence in raw_results:
                 # bbox_points is [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
                 bbox_list = [
@@ -230,7 +230,7 @@ class EasyOCREngine:
         return image
 
     @staticmethod
-    def _empty_result() -> Dict[str, Any]:
+    def _empty_result() -> dict[str, Any]:
         """Return an empty extraction result."""
         return {
             "text": "",

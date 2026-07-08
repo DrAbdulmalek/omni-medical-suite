@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+
 from packages.vision.image_preprocessor import ImagePreprocessor
 
 

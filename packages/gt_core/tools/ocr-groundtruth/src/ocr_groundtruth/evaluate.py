@@ -5,7 +5,8 @@ to measure your own engine's (Tesseract / EasyOCR / scanner-fixer pipeline)
 actual accuracy against it — real CER/WER, not invented numbers.
 """
 
-from typing import Dict, Any
+from typing import Any
+
 from .alignment import tokenize
 
 
@@ -96,7 +97,7 @@ def evaluate_engine_output(
     ground_truth_text: str,
     engine_output_text: str,
     engine_name: str = "engine"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Full evaluation of one engine's output against ground truth.
 
@@ -129,8 +130,8 @@ def evaluate_engine_output(
 
 def compare_engines(
     ground_truth_text: str,
-    engine_outputs: Dict[str, str]
-) -> Dict[str, Any]:
+    engine_outputs: dict[str, str]
+) -> dict[str, Any]:
     """
     Compares multiple engines against the same ground truth at once.
     Use this to answer: "did scanner-fixer actually improve Tesseract's

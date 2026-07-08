@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 gui/workers.py
 ================
@@ -24,11 +23,12 @@ Responding): استدعاء subprocess.run() مباشرة داخل خيط Qt ا�
 """
 
 from __future__ import annotations
-from typing import Any, Callable
 
-from PyQt5.QtCore import QThread, pyqtSignal
+from collections.abc import Callable
+from typing import Any
 
 from core.logger import get_logger
+from PyQt5.QtCore import QThread, pyqtSignal
 
 log = get_logger("workers")
 
@@ -46,7 +46,7 @@ class FunctionWorker(QThread):
     def run(self) -> None:  # يُنفَّذ في الخيط الخلفي — لا تلمس عناصر Qt هنا
         try:
             result = self._func()
-        except Exception as exc:  # noqa: BLE001 — نريد عرض أي خطأ للمستخدم بدل انهيار صامت
+        except Exception as exc:
             log.exception("فشل تنفيذ عملية في الخيط الخلفي")
             self.failed.emit(str(exc))
             return

@@ -15,15 +15,11 @@ Version: 1.0.0
 Date: 2026-06-04
 """
 
+import argparse
 import json
 import re
-import sys
-import argparse
-from pathlib import Path
-from typing import List, Tuple, Dict, Optional
-from dataclasses import dataclass
-from collections import Counter
 import unicodedata
+from dataclasses import dataclass
 
 
 @dataclass
@@ -40,8 +36,8 @@ class BenchmarkResult:
     medical_terms_found: int
     medical_terms_total: int
     medical_accuracy: float
-    confidence: Optional[float] = None
-    processing_time: Optional[float] = None
+    confidence: float | None = None
+    processing_time: float | None = None
 
 
 def normalize_text(text: str, for_cer: bool = False) -> str:
@@ -104,7 +100,7 @@ def levenshtein_distance(s1: str, s2: str) -> int:
     return previous_row[-1]
 
 
-def calculate_cer(reference: str, hypothesis: str) -> Tuple[float, int, int]:
+def calculate_cer(reference: str, hypothesis: str) -> tuple[float, int, int]:
     """
     Calculate Character Error Rate (CER).
 
@@ -126,7 +122,7 @@ def calculate_cer(reference: str, hypothesis: str) -> Tuple[float, int, int]:
     return cer, distance, len(ref)
 
 
-def calculate_wer(reference: str, hypothesis: str) -> Tuple[float, int, int]:
+def calculate_wer(reference: str, hypothesis: str) -> tuple[float, int, int]:
     """
     Calculate Word Error Rate (WER).
 
@@ -145,7 +141,7 @@ def calculate_wer(reference: str, hypothesis: str) -> Tuple[float, int, int]:
     return wer, distance, len(ref_words)
 
 
-def extract_medical_terms(text: str) -> List[str]:
+def extract_medical_terms(text: str) -> list[str]:
     """Extract potential medical terms from Arabic text."""
     # Common medical term patterns in Arabic
     patterns = [
@@ -168,7 +164,7 @@ def extract_medical_terms(text: str) -> List[str]:
     return terms
 
 
-def calculate_medical_accuracy(reference: str, hypothesis: str) -> Tuple[float, int, int]:
+def calculate_medical_accuracy(reference: str, hypothesis: str) -> tuple[float, int, int]:
     """
     Calculate medical term accuracy.
 
@@ -192,9 +188,9 @@ def calculate_medical_accuracy(reference: str, hypothesis: str) -> Tuple[float, 
     return accuracy, found, total
 
 
-def run_benchmark(reference: str, hypothesis: str, 
-                  confidence: Optional[float] = None,
-                  processing_time: Optional[float] = None) -> BenchmarkResult:
+def run_benchmark(reference: str, hypothesis: str,
+                  confidence: float | None = None,
+                  processing_time: float | None = None) -> BenchmarkResult:
     """Run full benchmark suite."""
     cer, cer_errors, cer_total = calculate_cer(reference, hypothesis)
     wer, wer_errors, wer_total = calculate_wer(reference, hypothesis)
@@ -245,19 +241,19 @@ def format_result(result: BenchmarkResult, label: str = "Result") -> str:
     return "\n".join(lines)
 
 
-def load_json_result(path: str) -> Dict:
+def load_json_result(path: str) -> dict:
     """Load OCR result from JSON file."""
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         return json.load(f)
 
 
 def load_text_file(path: str) -> str:
     """Load text from file."""
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         return f.read()
 
 
-def compare_before_after(before_json: str, after_json: str, ground_truth_file: Optional[str] = None):
+def compare_before_after(before_json: str, after_json: str, ground_truth_file: str | None = None):
     """Compare OCR results before and after postprocessing."""
     before = load_json_result(before_json)
     after = load_json_result(after_json)
@@ -298,7 +294,7 @@ def compare_before_after(before_json: str, after_json: str, ground_truth_file: O
     wer_improvement = before_result.wer - after_result.wer
     med_improvement = after_result.medical_accuracy - before_result.medical_accuracy
 
-    print(f"\n📈 IMPROVEMENT SUMMARY")
+    print("\n📈 IMPROVEMENT SUMMARY")
     print(f"{'='*60}")
     print(f"  CER Improvement:  {cer_improvement:+.4f}  ({cer_improvement*100:+.2f}%)")
     print(f"  WER Improvement:  {wer_improvement:+.4f}  ({wer_improvement*100:+.2f}%)")
@@ -352,7 +348,7 @@ def compare_before_after(before_json: str, after_json: str, ground_truth_file: O
     return before_result, after_result
 
 
-def _find_word_errors(ref_words: List[str], hyp_words: List[str]) -> List[Dict]:
+def _find_word_errors(ref_words: list[str], hyp_words: list[str]) -> list[dict]:
     """Find word-level errors using simple alignment."""
     errors = []
 
@@ -379,9 +375,9 @@ def _find_word_errors(ref_words: List[str], hyp_words: List[str]) -> List[Dict]:
     return errors
 
 
-def benchmark_single(ground_truth: str, ocr_text: str, 
-                     confidence: Optional[float] = None,
-                     processing_time: Optional[float] = None,
+def benchmark_single(ground_truth: str, ocr_text: str,
+                     confidence: float | None = None,
+                     processing_time: float | None = None,
                      label: str = "OCR Result") -> BenchmarkResult:
     """Benchmark a single OCR output against ground truth."""
     result = run_benchmark(ground_truth, ocr_text, confidence, processing_time)
@@ -487,7 +483,7 @@ Examples:
         print("   Note: For true CER/WER, provide external ground truth.\n")
 
         # Use corrected as pseudo-ground-truth for raw
-        raw_result = run_benchmark(corrected, raw, 
+        raw_result = run_benchmark(corrected, raw,
                                    confidence=data.get("confidence"),
                                    processing_time=data.get("processing_time"))
         print(format_result(raw_result, "RAW OCR (vs Corrected as Reference)"))

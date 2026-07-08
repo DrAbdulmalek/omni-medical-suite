@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 tests/test_ocr.py
 =================
@@ -7,7 +6,6 @@ tests/test_ocr.py
 اختبارات التعرف الضوئي على الحروف.
 """
 
-import pytest
 from fastapi import status
 
 

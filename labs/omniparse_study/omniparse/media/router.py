@@ -17,11 +17,12 @@ This section of the code was adapted from the CLIP repository to integrate audio
 All credits for the original implementation go to OpenAI.
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, status, Form
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
-from omniparse.models import responseDocument
-from omniparse.media import parse_audio, parse_video
+
 from omniparse import get_shared_state
+from omniparse.media import parse_audio, parse_video
+from omniparse.models import responseDocument
 
 media_router = APIRouter()
 model_state = get_shared_state()

@@ -4,9 +4,8 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock, Thread
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 import json
-import sys
 
 from rss_digest.config import build_config
 from rss_digest.db import connect, get_recent_articles, init_db

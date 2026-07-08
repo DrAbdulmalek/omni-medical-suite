@@ -5,7 +5,6 @@ CER, WER, medical term accuracy, and processing latency.
 """
 
 import statistics
-from typing import Optional
 
 from benchmarks.core.metrics import EditDistance, LatencyProfiler, MedicalTermEvaluator
 
@@ -24,7 +23,7 @@ class SuryaOCRBenchmark:
             languages: List of language codes for Surya (e.g. ['en', 'ar']).
         """
         self.languages = languages or ["en"]
-        self._available: Optional[bool] = None
+        self._available: bool | None = None
 
     def _is_available(self) -> bool:
         """Check if Surya OCR is installed.
@@ -76,8 +75,8 @@ class SuryaOCRBenchmark:
         Returns:
             A dict with extracted text, line count, and latency.
         """
-        from surya.ocr import OCR
         from PIL import Image
+        from surya.ocr import OCR
 
         model = OCR(languages=self.languages)
         profiler = LatencyProfiler(warmup_runs=1, benchmark_runs=3)

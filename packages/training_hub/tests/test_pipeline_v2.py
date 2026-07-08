@@ -4,12 +4,12 @@ Tests for Data Ingestion Pipeline v2.0
 Covers: PII scrubbing (Arabic + English), Deduplication, TSV output, Validation.
 """
 
-import os
-import sys
-import json
 import csv
-import tempfile
+import json
+import os
 import shutil
+import sys
+import tempfile
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -202,7 +202,7 @@ class TestTSVOutput:
         self.pipeline.validate_and_save(packet)
 
         tsv_path = os.path.join(self.tmp_dir, "aligned_corpus.tsv")
-        with open(tsv_path, "r", encoding="utf-8") as f:
+        with open(tsv_path, encoding="utf-8") as f:
             reader = csv.reader(f, delimiter="\t")
             header = next(reader)
             assert "predicted_text" in header
@@ -219,7 +219,7 @@ class TestTSVOutput:
             self.pipeline.validate_and_save(packet)
 
         tsv_path = os.path.join(self.tmp_dir, "aligned_corpus.tsv")
-        with open(tsv_path, "r", encoding="utf-8") as f:
+        with open(tsv_path, encoding="utf-8") as f:
             rows = list(csv.reader(f, delimiter="\t"))
             # 1 header + 3 data rows
             assert len(rows) == 4
@@ -233,7 +233,7 @@ class TestTSVOutput:
         self.pipeline.validate_and_save(packet)
 
         tsv_path = os.path.join(self.tmp_dir, "aligned_corpus.tsv")
-        with open(tsv_path, "r", encoding="utf-8") as f:
+        with open(tsv_path, encoding="utf-8") as f:
             content = f.read()
             assert "0933112233" not in content
 
@@ -269,7 +269,7 @@ class TestEndToEnd:
 
         # Verify PII redacted in saved JSON
         for jf in json_files:
-            with open(os.path.join(self.tmp_dir, jf), "r", encoding="utf-8") as f:
+            with open(os.path.join(self.tmp_dir, jf), encoding="utf-8") as f:
                 data = json.load(f)
                 # No raw phone numbers should remain
                 assert "0933" not in json.dumps(data)

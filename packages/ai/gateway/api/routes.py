@@ -6,7 +6,6 @@ from loguru import logger
 from ..config.settings import Settings
 from ..core.anthropic import get_token_count
 from ..providers.registry import ProviderRegistry
-
 from . import dependencies
 from .dependencies import get_settings, require_api_key
 from .gateway_model_ids import gateway_model_id, no_thinking_gateway_model_id

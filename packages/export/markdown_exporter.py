@@ -13,7 +13,6 @@ modules/export/markdown_exporter.py
 """
 
 import re
-from typing import Optional
 
 
 def blocks_to_markdown(layout_data: dict, rtl: bool = True) -> str:
@@ -120,7 +119,7 @@ def detect_list_items(text: str) -> list[dict]:
     return items
 
 
-def export_to_markdown(layout_data: dict, output_path: Optional[str] = None,
+def export_to_markdown(layout_data: dict, output_path: str | None = None,
                        rtl: bool = True) -> str:
     """
     واجهة رئيسية: تصدير layout_data إلى ملف Markdown.

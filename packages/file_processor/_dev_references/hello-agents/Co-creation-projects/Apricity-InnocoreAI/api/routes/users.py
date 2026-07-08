@@ -6,7 +6,6 @@ from fastapi import APIRouter, HTTPException
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
 import logging
-import uuid
 
 # from ...core.database import db_manager
 # 临时注释，避免相对导入错误

@@ -7,7 +7,6 @@ suitable for CI artifacts, pull request comments, or documentation.
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any
 
 
 class BenchmarkReporter:
@@ -53,7 +52,7 @@ class BenchmarkReporter:
         lines.append("# 🏥 Medical OCR Benchmark Report")
         lines.append("")
         lines.append(f"**Generated:** {self.timestamp}")
-        lines.append(f"**Version:** 1.0.0")
+        lines.append("**Version:** 1.0.0")
         lines.append("")
 
         # Summary section
@@ -62,8 +61,8 @@ class BenchmarkReporter:
             lines.append("## Summary")
             lines.append("")
             if isinstance(summary, dict):
-                lines.append(f"| Metric | Mean | Median | Std Dev | Min | Max |")
-                lines.append(f"|--------|------|--------|---------|-----|-----|")
+                lines.append("| Metric | Mean | Median | Std Dev | Min | Max |")
+                lines.append("|--------|------|--------|---------|-----|-----|")
                 for metric_name, stats in summary.get("metrics_summary", {}).items():
                     if isinstance(stats, dict) and "mean" in stats:
                         lines.append(

@@ -3,9 +3,6 @@
 提供直接的城市输入功能，使用真实天气数据，穿衣建议由LLM处理
 """
 import sys
-import os
-import json
-import random
 
 def get_city_input():
     """获取用户输入的城市名称"""

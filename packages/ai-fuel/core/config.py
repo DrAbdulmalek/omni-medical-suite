@@ -17,11 +17,10 @@ Environment Variable Mapping:
 
 from __future__ import annotations
 
-import os
 import logging
-from dataclasses import dataclass, field, asdict
-from typing import Dict, Any, Optional
-
+import os
+from dataclasses import asdict, dataclass, field
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +99,7 @@ class AIFuelConfig:
     # Serialization helpers
     # ------------------------------------------------------------------
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the configuration to a plain dictionary.
 
         Internal / private fields (prefixed with ``_``) are excluded.
@@ -111,7 +110,7 @@ class AIFuelConfig:
         return {k: v for k, v in asdict(self).items() if not k.startswith("_")}
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "AIFuelConfig":
+    def from_dict(cls, d: dict[str, Any]) -> AIFuelConfig:
         """Create an ``AIFuelConfig`` instance from a dictionary.
 
         Only keys that match actual dataclass fields are used; unknown keys
@@ -136,7 +135,7 @@ class AIFuelConfig:
             ) from exc
 
     @classmethod
-    def from_env(cls, prefix: str = "AI_FUEL_") -> "AIFuelConfig":
+    def from_env(cls, prefix: str = "AI_FUEL_") -> AIFuelConfig:
         """Create an ``AIFuelConfig`` by reading environment variables.
 
         Each dataclass field can be overridden via an environment variable
@@ -151,7 +150,7 @@ class AIFuelConfig:
         Returns:
             A new ``AIFuelConfig`` with environment overrides applied.
         """
-        env_values: Dict[str, Any] = {}
+        env_values: dict[str, Any] = {}
         for f in cls.__dataclass_fields__.values():
             if f.name.startswith("_"):
                 continue

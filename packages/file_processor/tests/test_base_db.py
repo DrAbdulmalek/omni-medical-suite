@@ -1,7 +1,5 @@
 """Tests for modules.core.base_db.BaseDB"""
 import pytest
-import tempfile
-import os
 from pathlib import Path
 
 class TestBaseDB:

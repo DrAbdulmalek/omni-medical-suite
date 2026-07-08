@@ -9,14 +9,14 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
 # ---------- الأنواع ----------
-LineSegment = Tuple["PIL.Image.Image", Dict[str, Any]]
+LineSegment = tuple["PIL.Image.Image", dict[str, Any]]
 
 
 def _ensure_gray(image) -> "np.ndarray":
@@ -72,7 +72,7 @@ class BaseLineSegmenter(ABC):
     """
 
     @abstractmethod
-    def segment(self, image) -> List["PIL.Image.Image"]:
+    def segment(self, image) -> list["PIL.Image.Image"]:
         """تقسيم الصورة إلى أسطر نصّية.
 
         Args:
@@ -84,7 +84,7 @@ class BaseLineSegmenter(ABC):
         ...
 
     @abstractmethod
-    def segment_with_info(self, image) -> List[LineSegment]:
+    def segment_with_info(self, image) -> list[LineSegment]:
         """تقسيم الصورة مع إرجاع البيانات الوصفية لكل سطر.
 
         Args:
@@ -124,11 +124,11 @@ class ProjectionProfileSegmenter(BaseLineSegmenter):
         self._smoothing_window = smoothing_window
         self._binary_threshold = binary_threshold
 
-    def segment(self, image) -> List["PIL.Image.Image"]:
+    def segment(self, image) -> list["PIL.Image.Image"]:
         """تقسيم الصورة إلى أسطر (الصور فقط)."""
         return [img for img, _info in self.segment_with_info(image)]
 
-    def segment_with_info(self, image) -> List[LineSegment]:
+    def segment_with_info(self, image) -> list[LineSegment]:
         """تقسيم الصورة إلى أسطر مع البيانات الوصفية.
 
         Returns:
@@ -152,14 +152,14 @@ class ProjectionProfileSegmenter(BaseLineSegmenter):
         # تحديد مناطق الأسطر
         lines = self._find_line_regions(h_profile, gray.shape[0])
 
-        result: List[LineSegment] = []
+        result: list[LineSegment] = []
         for y_start, y_end in lines:
             line_img = PIL.Image.fromarray(gray[y_start:y_end, :]).convert("RGB")
             line_patch = binary[y_start:y_end, :]
             mean_density = float(np.mean(line_patch) / 255.0)
             peak_density = float(np.max(h_profile[y_start:y_end]) / (gray.shape[1] * 255.0))
 
-            info: Dict[str, Any] = {
+            info: dict[str, Any] = {
                 "y_start": y_start,
                 "y_end": y_end,
                 "mean_density": round(mean_density, 4),
@@ -172,7 +172,7 @@ class ProjectionProfileSegmenter(BaseLineSegmenter):
 
     def _find_line_regions(
         self, profile: np.ndarray, image_height: int
-    ) -> List[Tuple[int, int]]:
+    ) -> list[tuple[int, int]]:
         """إيجاد مناطق الأسطر في المسقط الأفقي.
 
         Args:
@@ -185,8 +185,8 @@ class ProjectionProfileSegmenter(BaseLineSegmenter):
         threshold = np.max(profile) * 0.05  # عتبة تحسّس منخفضة
         in_line = False
         y_start = 0
-        regions: List[Tuple[int, int]] = []
-        last_gap_start: Optional[int] = None
+        regions: list[tuple[int, int]] = []
+        last_gap_start: int | None = None
 
         for y in range(image_height):
             if profile[y] > threshold:
@@ -216,7 +216,7 @@ class ProjectionProfileSegmenter(BaseLineSegmenter):
         # المرور الثاني: جمع مناطق الأسطر من y_start إلى last_gap_start
         in_line = False
         y_start = 0
-        final_regions: List[Tuple[int, int]] = []
+        final_regions: list[tuple[int, int]] = []
         gap_counter = 0
 
         for y in range(image_height):
@@ -257,7 +257,7 @@ class UNetLineSegmenter(BaseLineSegmenter):
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
+        model_path: str | None = None,
         device: str = "cpu",
         min_line_height: int = 10,
         confidence_threshold: float = 0.5,
@@ -294,11 +294,11 @@ class UNetLineSegmenter(BaseLineSegmenter):
             )
             self._model = None
 
-    def segment(self, image) -> List["PIL.Image.Image"]:
+    def segment(self, image) -> list["PIL.Image.Image"]:
         """تقسيم الصورة إلى أسطر (الصور فقط)."""
         return [img for img, _info in self.segment_with_info(image)]
 
-    def segment_with_info(self, image) -> List[LineSegment]:
+    def segment_with_info(self, image) -> list[LineSegment]:
         """تقسيم الصورة باستخدام U-Net مع البيانات الوصفية.
 
         في حال عدم توفر النموذج، يتراجع إلى المسقط الأفقي.
@@ -317,14 +317,14 @@ class UNetLineSegmenter(BaseLineSegmenter):
         mask = self._predict_mask(gray)
         line_regions = self._extract_regions_from_mask(mask, gray)
 
-        result: List[LineSegment] = []
+        result: list[LineSegment] = []
         for y_start, y_end in line_regions:
             line_img = PIL.Image.fromarray(gray[y_start:y_end, :]).convert("RGB")
             line_patch = mask[y_start:y_end, :]
             mean_density = float(np.mean(line_patch) / 255.0)
             peak_density = float(np.max(line_patch) / 255.0)
 
-            info: Dict[str, Any] = {
+            info: dict[str, Any] = {
                 "y_start": y_start,
                 "y_end": y_end,
                 "mean_density": round(mean_density, 4),
@@ -372,7 +372,7 @@ class UNetLineSegmenter(BaseLineSegmenter):
 
     def _extract_regions_from_mask(
         self, mask: np.ndarray, gray: np.ndarray
-    ) -> List[Tuple[int, int]]:
+    ) -> list[tuple[int, int]]:
         """استخراج مناطق الأسطر من القناع عبر المكونات المتصلة.
 
         Args:
@@ -382,14 +382,13 @@ class UNetLineSegmenter(BaseLineSegmenter):
         Returns:
             قائمة من الأزواج (y_start, y_end).
         """
-        import cv2
 
         h_profile = np.sum(mask, axis=1)
         threshold = np.max(h_profile) * self._confidence_threshold if np.max(h_profile) > 0 else 0
 
         in_line = False
         y_start = 0
-        regions: List[Tuple[int, int]] = []
+        regions: list[tuple[int, int]] = []
 
         for y in range(mask.shape[0]):
             if h_profile[y] > threshold:
@@ -440,11 +439,11 @@ class ContourLineSegmenter(BaseLineSegmenter):
         self._min_area = min_area
         self._binary_threshold = binary_threshold
 
-    def segment(self, image) -> List["PIL.Image.Image"]:
+    def segment(self, image) -> list["PIL.Image.Image"]:
         """تقسيم الصورة إلى أسطر (الصور فقط)."""
         return [img for img, _info in self.segment_with_info(image)]
 
-    def segment_with_info(self, image) -> List[LineSegment]:
+    def segment_with_info(self, image) -> list[LineSegment]:
         """تقسيم الصورة باستخدام المحيطات مع البيانات الوصفية.
 
         Returns:
@@ -453,8 +452,8 @@ class ContourLineSegmenter(BaseLineSegmenter):
                 'contour_area', 'bounding_box'
             }).
         """
-        import PIL.Image
         import cv2
+        import PIL.Image
 
         gray = _ensure_gray(image)
         binary = _to_binary(gray, self._binary_threshold)
@@ -470,7 +469,7 @@ class ContourLineSegmenter(BaseLineSegmenter):
             closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
 
-        result: List[LineSegment] = []
+        result: list[LineSegment] = []
         for contour in contours:
             area = cv2.contourArea(contour)
             if area < self._min_area:
@@ -489,7 +488,7 @@ class ContourLineSegmenter(BaseLineSegmenter):
             mean_density = float(np.mean(line_patch) / 255.0)
             peak_density = float(np.max(line_patch) / 255.0)
 
-            info: Dict[str, Any] = {
+            info: dict[str, Any] = {
                 "y_start": y_start,
                 "y_end": y_end,
                 "mean_density": round(mean_density, 4),

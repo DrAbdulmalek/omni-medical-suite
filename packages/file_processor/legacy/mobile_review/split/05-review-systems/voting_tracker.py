@@ -5,7 +5,8 @@
 يعتمد على: تطبيع عربي موحد، عدادات زمنية، وعتبة إجماع قابلة للضبط
 """
 
-import json, time, re, hashlib
+import json
+import re
 from pathlib import Path
 from collections import Counter, defaultdict
 from typing import Optional, Tuple, Dict, List

@@ -1,8 +1,10 @@
-from abc import ABC, abstractmethod
 import re
-from collections import Counter
 import string
+from abc import ABC, abstractmethod
+from collections import Counter
+
 from nltk.tokenize import sent_tokenize
+
 from omniparse.web.model_loader import load_nltk_punkt
 
 

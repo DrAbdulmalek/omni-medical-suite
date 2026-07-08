@@ -1,7 +1,6 @@
 # agents/create_plan_agent.py
 """学习计划生成 Agent"""
 
-import re
 from hello_agents import ReActAgent, HelloAgentsLLM
 from core.file_manager import FileManager
 

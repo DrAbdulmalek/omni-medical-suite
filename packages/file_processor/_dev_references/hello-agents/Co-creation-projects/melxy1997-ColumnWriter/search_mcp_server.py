@@ -1,7 +1,6 @@
 """搜索 MCP 服务器 - 为 Agent 提供联网搜索能力"""
 
 import os
-from typing import Optional
 try:
     from fastmcp import FastMCP
 except ImportError:

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 interactive_learning/core/security.py
 =====================================
@@ -20,6 +19,7 @@ Security features:
 - Regex-based input validation against SQL injection patterns
 """
 
+import contextlib
 import hashlib
 import hmac
 import json
@@ -30,7 +30,6 @@ import secrets
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +63,8 @@ def validate_correction_input(
     user_id: str,
     original_text: str,
     corrected_text: str,
-    ip_address: Optional[str] = None,
-) -> Tuple[bool, str]:
+    ip_address: str | None = None,
+) -> tuple[bool, str]:
     """
     Validate correction input against injection and format attacks.
 
@@ -144,9 +143,9 @@ class SecureCorrectionStorage:
 
     def __init__(
         self,
-        master_key: Optional[str] = None,
-        key_file: Optional[str] = None,
-        hmac_secret: Optional[str] = None,
+        master_key: str | None = None,
+        key_file: str | None = None,
+        hmac_secret: str | None = None,
     ):
         self.master_key = master_key or self._generate_key()
         self.hmac_secret = hmac_secret or secrets.token_hex(32)
@@ -177,7 +176,7 @@ class SecureCorrectionStorage:
         except ImportError:
             return None
 
-    def encrypt_correction(self, correction: Dict) -> str:
+    def encrypt_correction(self, correction: dict) -> str:
         """
         Encrypt a correction with HMAC signing.
 
@@ -210,7 +209,7 @@ class SecureCorrectionStorage:
 
         return json.dumps(package, ensure_ascii=False)
 
-    def decrypt_correction(self, encrypted_data: str) -> Dict:
+    def decrypt_correction(self, encrypted_data: str) -> dict:
         """Decrypt and verify a correction."""
         try:
             package = json.loads(encrypted_data)
@@ -256,13 +255,13 @@ class SecureCorrectionStorage:
         except (json.JSONDecodeError, Exception):
             return False
 
-    def sign_data(self, data: Dict, secret: Optional[str] = None) -> str:
+    def sign_data(self, data: dict, secret: str | None = None) -> str:
         """Sign data with HMAC-SHA256 (timing-safe comparison)."""
         secret = secret or self.hmac_secret
         message = json.dumps(data, sort_keys=True, ensure_ascii=False).encode('utf-8')
         return hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
 
-    def verify_signature(self, data: Dict, signature: str, secret: Optional[str] = None) -> bool:
+    def verify_signature(self, data: dict, signature: str, secret: str | None = None) -> bool:
         """Verify HMAC signature (timing-safe)."""
         expected = self.sign_data(data, secret)
         return hmac.compare_digest(signature, expected)
@@ -293,7 +292,7 @@ class RateLimiter:
     def __init__(self, max_requests: int = 100, window_seconds: int = 60):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self._requests: Dict[str, List[float]] = {}
+        self._requests: dict[str, list[float]] = {}
 
     def allow_request(self, client_id: str) -> bool:
         """Check if request is allowed under rate limit."""
@@ -325,7 +324,7 @@ class RateLimiter:
         active = [t for t in self._requests[client_id] if t > window_start]
         return max(0, self.max_requests - len(active))
 
-    def reset(self, client_id: Optional[str] = None):
+    def reset(self, client_id: str | None = None):
         """Reset rate limit."""
         if client_id:
             self._requests.pop(client_id, None)
@@ -381,10 +380,10 @@ class AuditLogger:
         word_id: str,
         original: str,
         corrected: str,
-        ip_address: Optional[str] = None,
-        session_id: Optional[str] = None,
-        confidence_before: Optional[float] = None,
-        confidence_after: Optional[float] = None,
+        ip_address: str | None = None,
+        session_id: str | None = None,
+        confidence_before: float | None = None,
+        confidence_after: float | None = None,
     ):
         """Log a correction with hash chain integrity."""
         entry = {
@@ -413,9 +412,9 @@ class AuditLogger:
         self,
         model_version: str,
         num_samples: int,
-        metrics: Dict,
-        user_id: Optional[str] = None,
-        duration_seconds: Optional[float] = None,
+        metrics: dict,
+        user_id: str | None = None,
+        duration_seconds: float | None = None,
     ):
         """Log a training session."""
         entry = {
@@ -439,7 +438,7 @@ class AuditLogger:
         user_id: str,
         resource: str,
         access_type: str = "read",
-        ip_address: Optional[str] = None,
+        ip_address: str | None = None,
     ):
         """Log resource access."""
         entry = {
@@ -462,7 +461,7 @@ class AuditLogger:
         user_id: str,
         export_type: str,
         num_records: int,
-        ip_address: Optional[str] = None,
+        ip_address: str | None = None,
     ):
         """Log data export."""
         entry = {
@@ -480,7 +479,7 @@ class AuditLogger:
 
         self._write_entry(entry)
 
-    def verify_chain(self) -> Tuple[bool, int, int]:
+    def verify_chain(self) -> tuple[bool, int, int]:
         """
         Verify the integrity of the entire hash chain.
 
@@ -489,7 +488,7 @@ class AuditLogger:
         """
         entries = []
         for log_file in sorted(self.log_dir.glob("audit_*.jsonl")):
-            with open(log_file, 'r', encoding='utf-8') as f:
+            with open(log_file, encoding='utf-8') as f:
                 for line in f:
                     line = line.strip()
                     if line:
@@ -516,10 +515,10 @@ class AuditLogger:
     def get_user_activity(
         self,
         user_id: str,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        action_filter: Optional[str] = None,
-    ) -> List[Dict]:
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        action_filter: str | None = None,
+    ) -> list[dict]:
         """Get activity for a user (by hashed ID)."""
         user_hash = self._peppered_hash(user_id)
         activities = []
@@ -535,7 +534,7 @@ class AuditLogger:
             if end_date and file_date > end_date:
                 continue
 
-            with open(log_file, 'r', encoding='utf-8') as f:
+            with open(log_file, encoding='utf-8') as f:
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -556,9 +555,9 @@ class AuditLogger:
 
     def get_stats(
         self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-    ) -> Dict:
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> dict:
         """Get aggregate audit statistics."""
         stats = {"total_entries": 0, "by_action": {}, "by_date": {}}
 
@@ -575,7 +574,7 @@ class AuditLogger:
                 continue
 
             day_count = 0
-            with open(log_file, 'r', encoding='utf-8') as f:
+            with open(log_file, encoding='utf-8') as f:
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -609,7 +608,7 @@ class AuditLogger:
             except (ValueError, IndexError):
                 continue
 
-    def _write_entry(self, entry: Dict):
+    def _write_entry(self, entry: dict):
         """Write entry to the current log file."""
         today = datetime.now()
         expected_name = f"audit_{today:%Y%m%d}.jsonl"
@@ -622,13 +621,13 @@ class AuditLogger:
         with open(self.current_log, 'a', encoding='utf-8') as f:
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
-    def _compute_entry_hash(self, entry: Dict) -> str:
+    def _compute_entry_hash(self, entry: dict) -> str:
         """Compute hash of an entry (excluding entry_hash field)."""
         data = {k: v for k, v in entry.items() if k != "entry_hash"}
         serialized = json.dumps(data, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(serialized.encode('utf-8')).hexdigest()[:32]
 
-    def _peppered_hash(self, identifier: Optional[str]) -> str:
+    def _peppered_hash(self, identifier: str | None) -> str:
         """Hash with pepper for anonymization (resists rainbow tables)."""
         if not identifier:
             return ""
@@ -638,20 +637,16 @@ class AuditLogger:
     def _get_last_chain_hash(self) -> str:
         """Get the hash of the most recent entry across all log files."""
         last_entry = None
-        last_file = None
 
         for log_file in sorted(self.log_dir.glob("audit_*.jsonl")):
             try:
-                with open(log_file, 'r', encoding='utf-8') as f:
+                with open(log_file, encoding='utf-8') as f:
                     lines = f.readlines()
                     if lines:
                         last_line = lines[-1].strip()
                         if last_line:
-                            try:
+                            with contextlib.suppress(json.JSONDecodeError):
                                 last_entry = json.loads(last_line)
-                                last_file = log_file
-                            except json.JSONDecodeError:
-                                pass
             except Exception:
                 continue
 

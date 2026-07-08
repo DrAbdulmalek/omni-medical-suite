@@ -197,7 +197,7 @@ class SmartSegmenter:
         )
         
         # الخطوة 1: اكتشاف التخطيط العام
-        layout_regions = self._detect_layout_regions(image)
+        self._detect_layout_regions(image)
         
         # الخطوة 2: اكتشاف الجداول
         tables = self._detect_tables(image)
@@ -423,7 +423,7 @@ class SmartSegmenter:
     def _detect_charts(self, image: np.ndarray) -> List[GraphicElement]:
         """اكتشاف المخططات البيانية."""
         # اكتشاف أعمدة البيانات
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
         # البحث عن مناطق تحتوي على أعمدة أو أجزاء دائرية
         # TODO: implement chart detection

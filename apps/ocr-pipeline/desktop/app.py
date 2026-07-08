@@ -1,11 +1,19 @@
 # desktop/app.py
 import sys
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QPushButton, QLabel, QFileDialog, QTextEdit, QProgressBar)
-from PyQt6.QtCore import Qt
+
+from PyQt6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QProgressBar,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from src.core.ocr_processor import OCRProcessor
-from PIL import Image
-import cv2
+
 
 class MedicalOCRApp(QMainWindow):
     def __init__(self):

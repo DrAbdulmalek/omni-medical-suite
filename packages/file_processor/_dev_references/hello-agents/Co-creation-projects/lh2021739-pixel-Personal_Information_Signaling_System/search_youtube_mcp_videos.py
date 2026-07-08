@@ -86,11 +86,11 @@ def load_themes():
         with open(themes_file, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
             if data is None:
-                print(f"❌ 错误: themes.yaml 文件为空或格式错误")
+                print("❌ 错误: themes.yaml 文件为空或格式错误")
                 return []
             themes = data.get('themes', [])
             if not themes:
-                print(f"⚠️  警告: themes.yaml 中未找到主题列表")
+                print("⚠️  警告: themes.yaml 中未找到主题列表")
                 return []
             print(f"✅ 加载了 {len(themes)} 个主题: {', '.join(themes)}")
             return themes
@@ -112,7 +112,7 @@ def load_whitelist_channels():
         with open(channels_file, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
             if data is None:
-                print(f"⚠️  警告: channels.yaml 文件为空或格式错误")
+                print("⚠️  警告: channels.yaml 文件为空或格式错误")
                 return []
             channels = data.get('whitelist_channels', [])
             print(f"✅ 加载了 {len(channels)} 个白名单频道")
@@ -575,7 +575,7 @@ def main():
             all_videos.extend(videos)
             print(f"    ✅ 找到 {len(videos)} 个视频")
         else:
-            print(f"    ⚠️  未找到视频或搜索失败")
+            print("    ⚠️  未找到视频或搜索失败")
     
     if not all_videos:
         print("❌ 未找到任何视频，退出")
@@ -600,7 +600,7 @@ def main():
         return
     
     # 5. 评分
-    print(f"\n⭐ 开始评分...")
+    print("\n⭐ 开始评分...")
     for video in filtered_videos:
         score = score_video(video, themes, whitelist_channels)
         video['score'] = score
@@ -614,7 +614,7 @@ def main():
     sorted_videos = sorted(filtered_videos, key=lambda x: x['score'], reverse=True)
     top3_videos = sorted_videos[:3]
     
-    print(f"\n🏆 Top 3 视频:")
+    print("\n🏆 Top 3 视频:")
     for i, video in enumerate(top3_videos, 1):
         print(f"  {i}. [{video['score']}分] {video['title']}")
         print(f"     频道: {video['channel_title']}")
@@ -706,11 +706,11 @@ def main():
                     print("🔬 研究报告摘要")
                     print("=" * 70)
                     print(f"核心问题: {research_report.get('question', 'N/A')}")
-                    print(f"\n关键发现:")
+                    print("\n关键发现:")
                     for i, finding in enumerate(research_report.get('key_findings', []), 1):
                         print(f"  {i}. {finding}")
                     print(f"\n为什么重要: {research_report.get('why_it_matters_to_me', 'N/A')}")
-                    print(f"\n下一步行动:")
+                    print("\n下一步行动:")
                     for i, step in enumerate(research_report.get('next_steps', []), 1):
                         print(f"  {i}. {step}")
                     print("=" * 70)
@@ -729,9 +729,9 @@ def main():
     print("=" * 70)
     print(f"日期: {daily_report['date']}")
     print(f"主题: {', '.join(daily_report['themes_used'])}")
-    print(f"\n推荐行动 (Action):")
+    print("\n推荐行动 (Action):")
     print(f"  {daily_report['action']}")
-    print(f"\n风险评估 (Risk):")
+    print("\n风险评估 (Risk):")
     print(f"  {daily_report['risk']}")
     print("=" * 70)
 

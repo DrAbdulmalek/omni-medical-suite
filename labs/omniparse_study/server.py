@@ -1,17 +1,17 @@
-import warnings
 import argparse
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from omniparse import load_omnimodel
-from omniparse.documents.router import document_router
-from omniparse.media.router import media_router
-from omniparse.image.router import image_router
-from omniparse.web.router import website_router
-from omniparse.demo import demo_ui
+import warnings
 
 # logging.basicConfig(level=logging.DEBUG)
 import gradio as gr
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from omniparse.demo import demo_ui
+from omniparse.documents.router import document_router
+from omniparse.image.router import image_router
+from omniparse.media.router import media_router
+from omniparse.web.router import website_router
+
+from omniparse import load_omnimodel
 
 warnings.filterwarnings(
     "ignore", category=UserWarning

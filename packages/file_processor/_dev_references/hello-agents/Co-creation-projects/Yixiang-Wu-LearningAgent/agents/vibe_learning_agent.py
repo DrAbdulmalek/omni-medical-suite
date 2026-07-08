@@ -8,7 +8,6 @@ from hello_agents import HelloAgentsLLM
 from hello_agents import SimpleAgent
 from specialist.quiz_generator import QuizGeneratorAgent
 from core.file_manager import FileManager
-from core.summary_manager import SummaryManager
 
 
 class VibeLearningAgent(SimpleAgent):
@@ -181,7 +180,7 @@ class VibeLearningAgent(SimpleAgent):
             error: 错误信息（可选）
         """
         try:
-            session_path = self.file_manager.BASE_DIR / domain / "sessions"
+            self.file_manager.BASE_DIR / domain / "sessions"
             timestamp = datetime.now().strftime("%Y-%m-%d %H-%M")
 
             content = f"# 学习会话 - {domain}\n"

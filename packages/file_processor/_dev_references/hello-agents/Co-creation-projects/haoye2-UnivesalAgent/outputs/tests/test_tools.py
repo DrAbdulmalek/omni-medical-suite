@@ -148,11 +148,11 @@ def test_browser_tool():
             else:
                 # 正常搜索测试
                 if result and len(result) > 50 and ("错误" not in result or "失败" not in result):
-                    print(f"✅ 测试通过")
+                    print("✅ 测试通过")
                     print(f"结果预览: {result[:150]}...")
                     passed += 1
                 else:
-                    print(f"❌ 测试失败")
+                    print("❌ 测试失败")
                     print(f"结果: {result[:200]}")
                     failed += 1
                     

@@ -1,8 +1,9 @@
 """Tests for the hybrid OCR engine module."""
 
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
-from unittest.mock import MagicMock, patch
 
 from packages.vision.ocr_engine import OCREngine
 

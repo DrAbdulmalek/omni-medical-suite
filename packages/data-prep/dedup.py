@@ -9,11 +9,10 @@ Version: 1.0.0
 """
 
 import hashlib
-import re
 import logging
-from typing import List, Dict, Tuple, Optional, Set
-from dataclasses import dataclass, field
+import re
 from collections import defaultdict
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class DedupResult:
     is_duplicate: bool = False
     dedup_method: str = ""  # "exact", "semantic", "context_protected"
     similarity_score: float = 0.0
-    matched_with: Optional[str] = None
+    matched_with: str | None = None
     protected: bool = False
 
 
@@ -35,22 +34,22 @@ class DedupReport:
     total_chunks: int = 0
     duplicates_found: int = 0
     protected_chunks: int = 0
-    method_counts: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    details: List[DedupResult] = field(default_factory=list)
+    method_counts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    details: list[DedupResult] = field(default_factory=list)
 
 
 class MedicalDeduplicationEngine:
     """
     Three-phase deduplication pipeline for medical document preparation.
-    
+
     Phase 1: Exact dedup (SHA-256 hash)
     Phase 2: Semantic dedup (optional, requires sentence-transformers)
     Phase 3: Medical context protection (restore protected content)
-    
+
     This is a DATA PREPARATION tool. Use it when building training datasets
     or deduplicating corpus data. Do NOT use it in the live OCR pipeline.
     """
-    
+
     # Medical content patterns that must NOT be deduplicated
     PROTECTED_PATTERNS = [
         # Drug dosages
@@ -76,36 +75,36 @@ class MedicalDeduplicationEngine:
         # Diagnostic scores
         (r'(?:APACHE|SOFA|GCS|CHARLSON)\s*[:=]?\s*\d+', 6, "diagnostic_score"),
     ]
-    
+
     def __init__(self, semantic_threshold: float = 0.95):
         self.semantic_threshold = semantic_threshold
-        self._exact_index: Dict[str, str] = {}  # hash -> chunk_id
+        self._exact_index: dict[str, str] = {}  # hash -> chunk_id
         self._semantic_model = None
-        self._semantic_index: List[Tuple[str, List[float]]] = []
-        self._protected_chunks: Set[str] = set()
-    
+        self._semantic_index: list[tuple[str, list[float]]] = []
+        self._protected_chunks: set[str] = set()
+
     def _normalize(self, text: str) -> str:
         """Normalize text for deduplication."""
         text = text.strip().lower()
         text = re.sub(r'\s+', ' ', text)
         return text
-    
+
     def _exact_hash(self, text: str) -> str:
         """Compute SHA-256 hash for exact dedup."""
         return hashlib.sha256(self._normalize(text).encode()).hexdigest()
-    
-    def _has_protected_content(self, text: str) -> Tuple[bool, int]:
+
+    def _has_protected_content(self, text: str) -> tuple[bool, int]:
         """Check if text contains medically protected content."""
         max_priority = 0
-        for pattern, priority, name in self.PROTECTED_PATTERNS:
+        for pattern, priority, _name in self.PROTECTED_PATTERNS:
             if re.search(pattern, text, re.IGNORECASE):
                 max_priority = max(max_priority, priority)
         return max_priority > 0, max_priority
-    
+
     def check_duplicate(self, chunk_id: str, text: str) -> DedupResult:
         """Check if a chunk is a duplicate."""
         # Phase 0: Check if protected
-        is_protected, priority = self._has_protected_content(text)
+        is_protected, _priority = self._has_protected_content(text)
         if is_protected:
             self._protected_chunks.add(chunk_id)
             return DedupResult(
@@ -114,7 +113,7 @@ class MedicalDeduplicationEngine:
                 dedup_method="context_protected",
                 protected=True,
             )
-        
+
         # Phase 1: Exact dedup
         hash_val = self._exact_hash(text)
         if hash_val in self._exact_index:
@@ -125,30 +124,30 @@ class MedicalDeduplicationEngine:
                 similarity_score=1.0,
                 matched_with=self._exact_index[hash_val],
             )
-        
+
         self._exact_index[hash_val] = chunk_id
-        
+
         # Phase 2: Semantic dedup (if model available)
         if self._semantic_model is not None:
             return self._semantic_check(chunk_id, text)
-        
+
         return DedupResult(chunk_id=chunk_id, is_duplicate=False)
-    
+
     def _semantic_check(self, chunk_id: str, text: str) -> DedupResult:
         """Check semantic similarity (requires sentence-transformers)."""
         try:
-            from sentence_transformers import SentenceTransformer
             import numpy as np
-            
+            from sentence_transformers import SentenceTransformer
+
             if self._semantic_model is None:
                 self._semantic_model = SentenceTransformer(
                     'paraphrase-multilingual-mpnet-base-v2'
                 )
-            
+
             embedding = self._semantic_model.encode(text)
-            
+
             for existing_id, existing_emb in self._semantic_index:
-                similarity = float(np.dot(embedding, existing_emb) / 
+                similarity = float(np.dot(embedding, existing_emb) /
                                    (np.linalg.norm(embedding) * np.linalg.norm(existing_emb) + 1e-8))
                 if similarity >= self.semantic_threshold:
                     return DedupResult(
@@ -158,36 +157,36 @@ class MedicalDeduplicationEngine:
                         similarity_score=similarity,
                         matched_with=existing_id,
                     )
-            
+
             self._semantic_index.append((chunk_id, embedding))
-            
+
         except ImportError:
             logger.debug("sentence-transformers not available, skipping semantic dedup")
         except Exception as e:
             logger.warning(f"Semantic dedup failed: {e}")
-        
+
         return DedupResult(chunk_id=chunk_id, is_duplicate=False)
-    
-    def deduplicate(self, chunks: List[Dict]) -> Tuple[List[Dict], DedupReport]:
+
+    def deduplicate(self, chunks: list[dict]) -> tuple[list[dict], DedupReport]:
         """
         Deduplicate a list of chunks.
-        
+
         Args:
             chunks: List of dicts with at least 'id' and 'text' keys
-            
+
         Returns:
             (unique_chunks, report) tuple
         """
         report = DedupReport(total_chunks=len(chunks))
         unique = []
-        
+
         for chunk in chunks:
             chunk_id = str(chunk.get('id', chunk.get('chunk_id', '')))
             text = chunk.get('text', '')
-            
+
             result = self.check_duplicate(chunk_id, text)
             report.details.append(result)
-            
+
             if result.is_duplicate:
                 report.duplicates_found += 1
                 report.method_counts[result.dedup_method] += 1
@@ -199,15 +198,15 @@ class MedicalDeduplicationEngine:
                 unique.append(chunk)
                 if result.protected:
                     report.protected_chunks += 1
-        
+
         logger.info(
             f"Deduplication complete: {report.total_chunks} → {len(unique)} unique "
             f"({report.duplicates_found} removed, {report.protected_chunks} protected)"
         )
-        
+
         return unique, report
-    
-    def get_stats(self) -> Dict:
+
+    def get_stats(self) -> dict:
         """Get deduplication statistics."""
         return {
             "exact_index_size": len(self._exact_index),

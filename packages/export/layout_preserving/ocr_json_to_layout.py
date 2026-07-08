@@ -66,7 +66,8 @@ def layout_to_html(layout_data: dict, output_html: str) -> str:
 
 def layout_to_pdf(layout_data: dict, output_pdf: str) -> str:
     """تحويل layout_data إلى PDF عبر WeasyPrint (pip install weasyprint)."""
-    import tempfile, os
+    import os
+    import tempfile
     tmp = tempfile.mktemp(suffix=".html")
     try:
         layout_to_html(layout_data, tmp)

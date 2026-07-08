@@ -67,17 +67,16 @@ _ensure_dependencies()
 
 import cv2
 import numpy as np
-import os
 import re
 import json
 import zipfile
 import time
 import logging
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 import gradio as gr
 
@@ -548,13 +547,13 @@ def process_batch_images(files, enable_protection):
 
     # تجميع التقرير
     report_lines = [
-        f"📊 **تقرير المعالجة الجماعية**",
+        "📊 **تقرير المعالجة الجماعية**",
         f"  - عدد الصور: {len(all_results)}",
         f"  - الوقت الإجمالي: {total_time} ثانية",
         f"  - إجمالي الكلمات: {sum(r.word_count for r in all_results)}",
         f"  - متوسط الثقة: {np.mean([r.confidence for r in all_results]):.1%}",
         f"  - المصطلحات المحمية: {set().union(*[r.protected_terms for r in all_results])}",
-        f"\n---\n",
+        "\n---\n",
     ]
 
     for i, r in enumerate(all_results, 1):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Unit tests for Medical Document Scanner — Core Processing Functions.
 Run with: pytest test_processing.py -v
 """
 import sys
+
 import numpy as np
 
 # Add parent directory to path for imports
@@ -14,11 +14,16 @@ sys.path.insert(0, ".")
 # We import them directly to avoid PyQt5 dependency in tests
 try:
     from medical_doc_gui_v10 import (
-        apply_processing, _remove_shadow, calc_blur, quality_label,
-        auto_detect_skew, smart_auto_crop, images_are_similar,
+        _remove_shadow,
+        apply_processing,
         assess_image_quality,
+        auto_detect_skew,
+        calc_blur,
+        images_are_similar,
+        quality_label,
+        smart_auto_crop,
     )
-except ImportError as e:
+except ImportError:
     # PyQt5 not available — skip tests
     import pytest
     pytest.skip("PyQt5 not available, skipping import", allow_module_level=True)
@@ -71,7 +76,7 @@ class TestApplyProcessing:
         """Horizontal flip should produce a mirror image."""
         img = np.random.randint(0, 255, (50, 50, 3), dtype=np.uint8)
         result = apply_processing(img, {"flip_h": True})
-        expected = cv2_flip(img, 1) if 'cv2_flip' in dir() else np.fliplr(img)
+        cv2_flip(img, 1) if 'cv2_flip' in dir() else np.fliplr(img)
         # Just check shape and that it's different from original
         assert result.shape == img.shape
 
@@ -268,7 +273,7 @@ class TestAssessImageQuality:
 
 class TestImagesAreSimilar:
     def test_identical_images(self):
-        if not hasattr(sys.modules.get('medical_doc_gui_v10', type('')), '__file__'):
+        if not hasattr(sys.modules.get('medical_doc_gui_v10', str), '__file__'):
             return
         try:
             from medical_doc_gui_v10 import HASH_SUPPORT
@@ -290,5 +295,5 @@ class TestImagesAreSimilar:
             return
         img1 = np.ones((200, 200, 3), dtype=np.uint8) * 255
         img2 = np.zeros((200, 200, 3), dtype=np.uint8)
-        is_sim, dist = images_are_similar(img1, img2)
+        is_sim, _dist = images_are_similar(img1, img2)
         assert is_sim is False

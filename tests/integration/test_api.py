@@ -21,6 +21,7 @@ class TestAPIEndpoints:
         """Test that /health endpoint returns 200."""
         try:
             from fastapi.testclient import TestClient
+
             from app.main import app
         except ImportError:
             pytest.skip("FastAPI app not importable")
@@ -33,6 +34,7 @@ class TestAPIEndpoints:
         """Test that /docs endpoint returns 200."""
         try:
             from fastapi.testclient import TestClient
+
             from app.main import app
         except ImportError:
             pytest.skip("FastAPI app not importable")

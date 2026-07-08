@@ -7,8 +7,6 @@
 
 from dotenv import load_dotenv
 load_dotenv()
-from datetime import datetime
-from typing import List
 from hello_agents.tools import MemoryTool
 
 def memory_tool_execute_demo():
@@ -23,7 +21,7 @@ def memory_tool_execute_demo():
     )
     
     print("✅ MemoryTool初始化完成")
-    print(f"📋 支持的操作: add, search, summary, stats, update, remove, forget, consolidate, clear_all")
+    print("📋 支持的操作: add, search, summary, stats, update, remove, forget, consolidate, clear_all")
     
     return memory_tool
 

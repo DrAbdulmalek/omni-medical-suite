@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Configuration helpers
 # ---------------------------------------------------------------------------
@@ -88,9 +87,7 @@ class AccountState:
             return False
         if self.rate_limited_until > now:
             return False
-        if self.current_concurrent >= self.max_concurrent:
-            return False
-        return True
+        return not self.current_concurrent >= self.max_concurrent
 
     def touches_rate_limit(self, now: float) -> bool:
         """Return *True* if the account is at its per-minute cap."""

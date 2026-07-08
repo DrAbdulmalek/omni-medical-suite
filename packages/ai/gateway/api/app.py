@@ -14,7 +14,6 @@ from starlette.types import Receive, Scope, Send
 from ..config.logging_config import configure_logging
 from ..config.settings import get_settings
 from ..providers.exceptions import ProviderError
-
 from .routes import router
 from .runtime import AppRuntime, startup_failure_message
 from .validation_log import summarize_request_validation_body

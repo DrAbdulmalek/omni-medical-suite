@@ -55,7 +55,7 @@ def run_dry_run():
     """تشغيل فحص تجريبي (بدون تدريب فعلي)"""
     print(f"\n🔍 فحص تجريبي - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     try:
-        result = subprocess.run(
+        subprocess.run(
             [sys.executable, str(AUTO_TRAIN_SCRIPT), "--dry-run"],
             capture_output=False,
             text=True,

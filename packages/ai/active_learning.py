@@ -1,11 +1,11 @@
 # active_learning.py - Active learning for OCR improvement
 
-from typing import Dict, List, Optional, Union
-from pathlib import Path
-from packages.core.base_db import BaseDB
-import json
 import logging
 from datetime import datetime
+from pathlib import Path
+
+from packages.core.base_db import BaseDB
+
 from .finetuning import TrOCRFineTuner
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ActiveLearningDB(BaseDB):
     """قاعدة بيانات للتعلم من تصحيحات المستخدم."""
 
-    def __init__(self, db_path: Union[str, Path] = "active_learning.db"):
+    def __init__(self, db_path: str | Path = "active_learning.db"):
         super().__init__(db_path)
 
     def _create_schema(self, conn):
@@ -88,7 +88,7 @@ class ActiveLearningDB(BaseDB):
             VALUES ('min_confidence', '0.7')
         """)
 
-    def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_setting(self, key: str, default: str | None = None) -> str | None:
         """الحصول على إعداد."""
         with self.connection() as conn:
             cursor = conn.cursor()
@@ -165,7 +165,7 @@ class ActiveLearningDB(BaseDB):
         limit: int = 100,
         min_confidence: float = 0.0,
         min_correction_count: int = 1
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         استعادة تصحيحات للمستخدم.
 
@@ -188,7 +188,7 @@ class ActiveLearningDB(BaseDB):
             """, (language, min_confidence, min_correction_count, limit))
 
             columns = [col[0] for col in cursor.description]
-            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
 
     def save_training_data(
         self,
@@ -225,7 +225,7 @@ class ActiveLearningDB(BaseDB):
         language: str,
         limit: int = 1000,
         min_confidence: float = 0.7
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         استعادة بيانات التدريب.
 
@@ -247,7 +247,7 @@ class ActiveLearningDB(BaseDB):
             """, (language, min_confidence, limit))
 
             columns = [col[0] for col in cursor.description]
-            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
 
     def mark_as_used_in_training(self, correction_id: int) -> bool:
         """
@@ -323,7 +323,7 @@ class ActiveLearningDB(BaseDB):
         self,
         language: str,
         limit: int = 10
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         استعادة نماذج مدربة.
 
@@ -344,14 +344,14 @@ class ActiveLearningDB(BaseDB):
             """, (language, limit))
 
             columns = [col[0] for col in cursor.description]
-            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
 
 class ActiveLearner:
     """نظام تعلم نشط من تصحيحات المستخدم."""
 
     def __init__(
         self,
-        db_path: Union[str, Path] = "active_learning.db",
+        db_path: str | Path = "active_learning.db",
     ):
         """
         تهيئة النظام.
@@ -369,7 +369,7 @@ class ActiveLearner:
         language: str,
         confidence: float,
         source: str = "manual",
-        image_path: Optional[str] = None
+        image_path: str | None = None
     ) -> int:
         """
         سجل تصحيحًا جديدًا.
@@ -478,7 +478,7 @@ class ActiveLearner:
         except Exception as e:
             logger.error(f"فشل تدريب النموذج: {e}")
 
-    def get_suggestions(self, text: str, language: str, limit: int = 5) -> List[str]:
+    def get_suggestions(self, text: str, language: str, limit: int = 5) -> list[str]:
         """
         الحصول على اقتراحات لتصحيح النص.
 
@@ -509,7 +509,7 @@ class ActiveLearner:
 
         return suggestions
 
-    def get_fine_tuned_model_path(self, language: str) -> Optional[str]:
+    def get_fine_tuned_model_path(self, language: str) -> str | None:
         """
         الحصول على مسار نموذج مدرب للغة المحددة.
 
@@ -524,7 +524,7 @@ class ActiveLearner:
             return models[0]["model_path"]
         return None
 
-    def get_training_stats(self, language: str) -> Dict:
+    def get_training_stats(self, language: str) -> dict:
         """
         الحصول على إحصائيات التدريب.
 

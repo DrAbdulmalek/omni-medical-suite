@@ -11,7 +11,6 @@ import gradio as gr
 import numpy as np
 from PIL import Image
 
-from modules.vision.batch_ocr import BatchMedicalOCR
 
 
 class BatchCorrectionUI:
@@ -184,7 +183,7 @@ class BatchCorrectionUI:
             meta_txt = gr.Textbox(label="Info", interactive=False)
 
             with gr.Row():
-                btn_prev = gr.Button("Previous")
+                gr.Button("Previous")
                 btn_next = gr.Button("Save & Next", variant="primary")
                 btn_save = gr.Button("Save All", variant="stop")
 

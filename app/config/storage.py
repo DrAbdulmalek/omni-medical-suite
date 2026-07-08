@@ -1,7 +1,7 @@
 """
 Storage Configuration - Pydantic-based
 """
-from typing import List, Optional
+
 try:
     from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
 except ImportError:
@@ -23,7 +23,7 @@ class StorageConfig(BaseSettings):
     MAX_FILES: int = 10000  # Maximum number of files
 
     # Allowed Extensions
-    ALLOWED_EXTENSIONS: List[str] = [
+    ALLOWED_EXTENSIONS: list[str] = [
         ".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".webp",
         ".txt", ".json", ".csv", ".xml", ".yaml", ".yml"
     ]
@@ -36,13 +36,13 @@ class StorageConfig(BaseSettings):
     # Cloud Storage (Optional)
     CLOUD_STORAGE_ENABLED: bool = False
     CLOUD_STORAGE_PROVIDER: str = "local"  # local, s3, gcs, azure
-    CLOUD_STORAGE_BUCKET: Optional[str] = None
+    CLOUD_STORAGE_BUCKET: str | None = None
 
     # S3 Configuration
-    S3_ENDPOINT: Optional[str] = None
-    S3_ACCESS_KEY: Optional[str] = None
-    S3_SECRET_KEY: Optional[str] = None
-    S3_REGION: Optional[str] = None
+    S3_ENDPOINT: str | None = None
+    S3_ACCESS_KEY: str | None = None
+    S3_SECRET_KEY: str | None = None
+    S3_REGION: str | None = None
 
     class Config:
         env_file = ".env"
@@ -65,7 +65,8 @@ class StorageConfig(BaseSettings):
 
 from functools import lru_cache
 
-@lru_cache()
+
+@lru_cache
 def get_storage_config() -> StorageConfig:
     """Get storage configuration - cached for performance"""
     return StorageConfig()

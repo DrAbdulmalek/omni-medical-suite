@@ -16,7 +16,6 @@ Usage::
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ else:
         def __init__(self, *args: object, **kwargs: object) -> None:
             pass
 
-        def labels(self, **kwargs: object) -> "_NoOpMetric":
+        def labels(self, **kwargs: object) -> _NoOpMetric:
             return self
 
         def inc(self, amount: float = 1.0) -> None:
@@ -73,7 +72,7 @@ else:
             """Context-manager stub that returns itself."""
             return self
 
-        def __enter__(self) -> "_NoOpMetric":
+        def __enter__(self) -> _NoOpMetric:
             return self
 
         def __exit__(self, *args: object) -> None:

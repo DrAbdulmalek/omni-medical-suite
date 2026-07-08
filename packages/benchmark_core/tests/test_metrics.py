@@ -1,14 +1,15 @@
 """Tests for benchmark metrics calculation."""
 import pytest
+
 from benchmarks.metrics import (
-    character_error_rate,
-    word_error_rate,
-    medical_term_accuracy,
-    calculate_all_metrics,
-    normalize_text,
-    normalize_arabic,
-    extract_words,
     MetricsResult,
+    calculate_all_metrics,
+    character_error_rate,
+    extract_words,
+    medical_term_accuracy,
+    normalize_arabic,
+    normalize_text,
+    word_error_rate,
 )
 
 

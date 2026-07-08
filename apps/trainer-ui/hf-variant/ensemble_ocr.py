@@ -26,19 +26,14 @@
     python ensemble_ocr.py --image scan.jpg --engines all --strategy majority_voting
 """
 
-import os
-import sys
 import json
 import time
 import logging
-import importlib
 import argparse
 from abc import ABC, abstractmethod
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, field
 
-import numpy as np
-from PIL import Image
 
 # ============================================================
 # إعدادات التسجيل
@@ -448,7 +443,6 @@ class TrocrEngine(BaseOcrEngine):
 
     def _get_model(self):
         if self._model is None:
-            import torch
             from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
             # نموذج للنص المطبوع — مناسب للوصفات والتقارير الطبية
@@ -493,7 +487,6 @@ class TrocrEngine(BaseOcrEngine):
                 if full_text:
                     w, h = img.size
                     # bbox كامل الصورة
-                    bbox = [[0, 0], [w, 0], [w, h], [0, h]]
                     words_list = full_text.split()
 
                     # تقسيم ثقة تذكرية (TrOCR لا يعطي ثقة لكل كلمة)
@@ -1264,12 +1257,12 @@ if __name__ == "__main__":
     if args.json:
         print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
     else:
-        print(f"\n📊 النتائج:")
+        print("\n📊 النتائج:")
         print(f"   إجمالي الوقت: {result.total_time:.2f}s")
         print(f"   المحركات النشطة: {result.engines_active}")
         print(f"   عدد الكلمات المدمجة: {len(result.words)}")
 
-        print(f"\n📋 نتائج كل محرك:")
+        print("\n📋 نتائج كل محرك:")
         for name, er in result.engine_results.items():
             info = EnsembleOCR.ENGINE_DESCRIPTIONS.get(name, {})
             status = f"{er.word_count} كلمة" if er.available else f"غير متاح ({er.error})"

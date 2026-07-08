@@ -14,7 +14,6 @@ Medical Handwriting OCR - Offline Pipeline v12.0
 OmniFile AI Processor - وحدة معالجة النصوص الطبية المكتوبة بخط اليد
 """
 
-import os
 import re
 import json
 import cv2

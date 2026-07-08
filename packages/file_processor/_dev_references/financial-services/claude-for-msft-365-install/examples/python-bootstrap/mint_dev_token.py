@@ -6,7 +6,11 @@ Subsequent runs reuse them.
 
     python mint_dev_token.py --oid alice --group <gid> --group <gid2>
 """
-import argparse, json, os, time, base64
+import argparse
+import json
+import os
+import time
+import base64
 import jwt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa

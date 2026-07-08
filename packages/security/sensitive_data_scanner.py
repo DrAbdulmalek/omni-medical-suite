@@ -14,9 +14,9 @@
 - أنماط Regex احتياطية (بدون مكتبات خارجية)
 """
 
+import contextlib
 import logging
 import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -294,10 +294,8 @@ class SensitiveDataScanner:
         anonymized = text
         all_patterns = self.FALLBACK_PATTERNS + self._custom_patterns
         for pattern_info in all_patterns:
-            try:
+            with contextlib.suppress(re.error):
                 anonymized = re.sub(pattern_info["regex"], mask_char, anonymized)
-            except re.error:
-                pass
 
         return anonymized
 
@@ -313,7 +311,7 @@ class SensitiveDataScanner:
             نتيجة الفحص (مثل scan_text) مع إضافة file_path
         """
         try:
-            with open(file_path, "r", encoding=encoding) as f:
+            with open(file_path, encoding=encoding) as f:
                 content = f.read()
             result = self.scan_text(content)
             result["file_path"] = file_path

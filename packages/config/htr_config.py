@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 modules/config/htr_config.py
 =============================
@@ -8,7 +7,6 @@ Configurable HTR settings.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -16,7 +14,7 @@ class HTRConfig:
     """Handwriting recognition settings."""
 
     # Model
-    model_path: Optional[str] = None
+    model_path: str | None = None
     base_model: str = "microsoft/trocr-large-handwritten"
 
     # Segmentation
@@ -34,7 +32,7 @@ class HTRConfig:
     gap_threshold_factor: float = 0.3
 
     # Dotted Recovery
-    dictionary_path: Optional[str] = None
+    dictionary_path: str | None = None
     use_language_model: bool = True
 
     # Performance

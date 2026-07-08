@@ -5,9 +5,6 @@ Tests for JSONLExporter — export sample chunks, verify file format.
 import json
 import os
 import tempfile
-import pytest
-from typing import List, Optional
-
 
 # ---------------------------------------------------------------------------
 # Minimal TextChunk and JSONLExporter replicas for standalone testing
@@ -16,7 +13,7 @@ from typing import List, Optional
 class TextChunk:
     """Lightweight text chunk for export testing."""
 
-    __slots__ = ("id", "text", "chunk_index", "source_file", "category", "confidence")
+    __slots__ = ("category", "chunk_index", "confidence", "id", "source_file", "text")
 
     def __init__(
         self,
@@ -53,7 +50,7 @@ class JSONLExporter:
 
     def export(
         self,
-        chunks: List[TextChunk],
+        chunks: list[TextChunk],
         filepath: str,
     ) -> int:
         """Write chunks to a JSONL file. Returns number of lines written."""
@@ -70,7 +67,7 @@ class JSONLExporter:
 
     def export_batch(
         self,
-        chunks: List[TextChunk],
+        chunks: list[TextChunk],
         filepath: str,
         batch_size: int = 1000,
     ) -> int:
@@ -158,7 +155,7 @@ class TestJSONLExporterExport:
             filepath = os.path.join(tmpdir, "output.jsonl")
             exporter.export(SAMPLE_CHUNKS, filepath)
 
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 lines = f.readlines()
 
             assert len(lines) == len(SAMPLE_CHUNKS)
@@ -173,7 +170,7 @@ class TestJSONLExporterExport:
             filepath = os.path.join(tmpdir, "output.jsonl")
             exporter.export(SAMPLE_CHUNKS, filepath)
 
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 records = [json.loads(line) for line in f]
 
             # Verify first record fields
@@ -189,7 +186,7 @@ class TestJSONLExporterExport:
             filepath = os.path.join(tmpdir, "unicode.jsonl")
             exporter.export(SAMPLE_CHUNKS, filepath)
 
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 records = [json.loads(line) for line in f]
 
             # The Arabic chunk should be preserved
@@ -202,7 +199,7 @@ class TestJSONLExporterExport:
             filepath = os.path.join(tmpdir, "minimal.jsonl")
             exporter.export(SAMPLE_CHUNKS, filepath)
 
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 records = [json.loads(line) for line in f]
 
             for record in records:
@@ -225,7 +222,7 @@ class TestJSONLExporterExport:
             count = exporter.export([SAMPLE_CHUNKS[0]], filepath)
             assert count == 1
 
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 lines = f.readlines()
             assert len(lines) == 1
 
@@ -236,7 +233,7 @@ class TestJSONLExporterExport:
             exporter.export(SAMPLE_CHUNKS, filepath)
             exporter.export([SAMPLE_CHUNKS[0]], filepath)
 
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 lines = f.readlines()
             # Second export should overwrite
             assert len(lines) == 1
@@ -259,7 +256,7 @@ class TestJSONLExporterBatch:
             total = exporter.export_batch(SAMPLE_CHUNKS, filepath, batch_size=2)
             assert total == len(SAMPLE_CHUNKS)
 
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 lines = f.readlines()
             assert len(lines) == len(SAMPLE_CHUNKS)
 
@@ -270,6 +267,6 @@ class TestJSONLExporterBatch:
             total = exporter.export_batch(SAMPLE_CHUNKS, filepath, batch_size=1)
             assert total == len(SAMPLE_CHUNKS)
 
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 records = [json.loads(line) for line in f]
             assert len(records) == len(SAMPLE_CHUNKS)

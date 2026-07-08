@@ -8,8 +8,6 @@ EmailSmartAssistant - Python Script Version
 """
 
 import json
-import sys
-from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
 

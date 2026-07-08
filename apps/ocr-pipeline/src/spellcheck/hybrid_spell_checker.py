@@ -1,8 +1,8 @@
 # src/spellcheck/hybrid_spell_checker.py
-import re
-import json
-from pathlib import Path
 import difflib
+import json
+import re
+
 
 class HybridSpellChecker:
     def __init__(self, dict_path="data/arabic_medical_dict.json"):
@@ -24,21 +24,21 @@ class HybridSpellChecker:
     def auto_correct(self, text: str) -> str:
         words = re.findall(r'\w+|[^\w\s]', text)
         corrected = []
-        
+
         for w in words:
             if not w.isalnum() and not re.match(r'[\u0600-\u06FF]', w):
                 corrected.append(w)
                 continue
-                
+
             fixed = self._try_digit_fix(w)
-            
+
             # Medical dict priority
             if fixed in self.medical_dict:
                 corrected.append(self.medical_dict[fixed])
                 continue
-                
+
             # Fuzzy match
             candidates = difflib.get_close_matches(fixed, list(self.medical_dict.values()), n=1, cutoff=0.85)
             corrected.append(candidates[0] if candidates else fixed)
-            
+
         return " ".join(corrected)

@@ -3,7 +3,6 @@
 from typing import Dict, List, Optional, Union
 from pathlib import Path
 from modules.core.base_db import BaseDB
-import json
 import logging
 from datetime import datetime
 from .finetuning import TrOCRFineTuner

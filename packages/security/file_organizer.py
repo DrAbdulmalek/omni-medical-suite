@@ -15,9 +15,9 @@
 
 import logging
 import shutil
-from pathlib import Path
-from typing import Optional, Callable
 from collections import defaultdict
+from collections.abc import Callable
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,6 @@ class FileOrganizer:
         ".dart": "code", ".clj": "code", ".ex": "code", ".exs": "code",
         ".hs": "code", ".ml": "code", ".lisp": "code",
         ".m": "code", ".mm": "code",
-        ".dart": "code",
         ".proto": "code", ".thrift": "code",
         ".dockerfile": "code",
         ".cmake": "code", ".makefile": "code",
@@ -150,7 +149,7 @@ class FileOrganizer:
         overwrite: bool = False,
         skip_hidden: bool = True,
         skip_symlinks: bool = True,
-        progress_callback: Optional[Callable[[str, int, int], None]] = None,
+        progress_callback: Callable[[str, int, int], None] | None = None,
     ) -> None:
         """
         تهيئة المنظم.
@@ -171,7 +170,7 @@ class FileOrganizer:
         self.overwrite: bool = overwrite
         self.skip_hidden: bool = skip_hidden
         self.skip_symlinks: bool = skip_symlinks
-        self.progress_callback: Optional[Callable[[str, int, int], None]] = progress_callback
+        self.progress_callback: Callable[[str, int, int], None] | None = progress_callback
 
         logger.info(
             "تم تهيئة المنظم — الوضع: %s | محاكاة: %s | الكتابة فوق: %s",

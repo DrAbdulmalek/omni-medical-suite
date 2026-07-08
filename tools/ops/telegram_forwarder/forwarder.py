@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Telegram Content Forwarder — Core Module v2
 =============================================
@@ -16,34 +15,36 @@ Telegram Content Forwarder — Core Module v2
   10. إضافة export_session_string لحفظ الجلسة في HF Secrets
 """
 
-import os
-import re
-import time
 import asyncio
+import contextlib
 import logging
-import tempfile
+import os
 import shutil
-from typing import Optional, List, Dict, Callable, Any
+import tempfile
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from telethon import TelegramClient
-from telethon.sessions import StringSession
 from telethon.errors import (
-    FloodWaitError,
-    ChannelPrivateError,
-    UserBannedInChannelError,
-    MessageIdInvalidError,
-    ChatWriteForbiddenError,
-    SlowModeWaitError,
-    SessionPasswordNeededError,
-    PhoneCodeInvalidError,
-    PhoneCodeExpiredError,
     ApiIdInvalidError,
+    ChannelPrivateError,
+    ChatWriteForbiddenError,
+    FloodWaitError,
+    MessageIdInvalidError,
+    PhoneCodeExpiredError,
+    PhoneCodeInvalidError,
+    SessionPasswordNeededError,
+    SlowModeWaitError,
+    UserBannedInChannelError,
 )
+from telethon.sessions import StringSession
 from telethon.tl.types import (
-    Message, MessageMediaPhoto, MessageMediaDocument,
+    Message,
+    MessageMediaDocument,
+    MessageMediaPhoto,
     MessageMediaWebPage,
 )
 
@@ -96,13 +97,13 @@ class ForwardConfig:
     media_only: bool     = False
     text_only: bool      = False
     skip_forwards: bool  = True       # تخطّي الرسائل المُعاد توجيهها
-    filter_text: Optional[str] = None
-    start_id: Optional[int]    = None
-    end_id: Optional[int]      = None
+    filter_text: str | None = None
+    start_id: int | None    = None
+    end_id: int | None      = None
     max_retries: int     = 3          # محاولات إعادة لكل رسالة
     send_caption: bool   = True       # إرفاق نص الرسالة مع الوسائط
     reverse_order: bool  = False      # ترتيب تصاعدي (الأقدم أولاً)
-    selected_ids: Optional[List[int]] = None  # إن حُدِّدت، يُنقَل هؤلاء فقط (من المعاينة)
+    selected_ids: list[int] | None = None  # إن حُدِّدت، يُنقَل هؤلاء فقط (من المعاينة)
 
 
 @dataclass
@@ -113,7 +114,7 @@ class ForwardResult:
     failed: int    = 0
     skipped: int   = 0
     cancelled: bool = False
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
     start_time: float = field(default_factory=time.time)
 
     @property
@@ -171,21 +172,21 @@ class TelegramForwarder:
         api_id: int,
         api_hash: str,
         session_name: str = "forwarder",
-        session_string: Optional[str] = None,
+        session_string: str | None = None,
     ):
         self.api_id   = api_id
         self.api_hash = api_hash
         self.session_name   = session_name
         self.session_string = session_string  # للاستخدام في HuggingFace Secrets
 
-        self.client: Optional[TelegramClient] = None
+        self.client: TelegramClient | None = None
         self._cancelled = False
-        self._progress_callback: Optional[Callable] = None
+        self._progress_callback: Callable | None = None
 
         # State لعملية تسجيل الدخول
-        self._phone: Optional[str] = None
-        self._phone_code_hash: Optional[str] = None
-        self._entity_cache: Optional[dict] = None  # {id: entity} مبني من iter_dialogs
+        self._phone: str | None = None
+        self._phone_code_hash: str | None = None
+        self._entity_cache: dict | None = None  # {id: entity} مبني من iter_dialogs
 
     # ── Connection ────────────────────────────────────────────
 
@@ -276,10 +277,8 @@ class TelegramForwarder:
 
     async def disconnect(self):
         if self.client:
-            try:
+            with contextlib.suppress(Exception):
                 await self.client.disconnect()
-            except Exception:
-                pass
             self.client = None
         self._entity_cache = None
         logger.info("Disconnected")
@@ -302,7 +301,7 @@ class TelegramForwarder:
         except Exception as e:
             raise RuntimeError(f"فشل إرسال الكود: {e}")
 
-    async def verify_code(self, code: str, password: Optional[str] = None) -> bool:
+    async def verify_code(self, code: str, password: str | None = None) -> bool:
         """تحقق من كود تسجيل الدخول."""
         if not self.client:
             raise RuntimeError("Client غير موجود — استدعِ create_client أولاً")
@@ -336,7 +335,7 @@ class TelegramForwarder:
 
     # ── Dialogs ───────────────────────────────────────────────
 
-    async def get_dialogs(self, limit: int = 500) -> List[Dict]:
+    async def get_dialogs(self, limit: int = 500) -> list[dict]:
         """جلب قائمة القنوات والمجموعات. يبني أيضاً entity cache لاستخدام النقل لاحقاً."""
         if not self.client:
             raise RuntimeError("Not connected")
@@ -470,7 +469,7 @@ class TelegramForwarder:
             s = s[1:]
         return s.isdigit()
 
-    async def get_channel_info(self, channel_id: str) -> Dict:
+    async def get_channel_info(self, channel_id: str) -> dict:
         """جلب معلومات قناة محددة."""
         if not self.client:
             raise RuntimeError("Not connected")
@@ -497,7 +496,7 @@ class TelegramForwarder:
     async def preview_messages(
         self,
         config: ForwardConfig,
-    ) -> List[MessagePreview]:
+    ) -> list[MessagePreview]:
         """
         جلب قائمة معاينة للرسائل المطابقة للفلاتر — بدون أي نقل فعلي.
         المستخدم يختار منها لاحقاً ما يريد نقله عبر config.selected_ids.
@@ -510,7 +509,7 @@ class TelegramForwarder:
         except ChannelPrivateError:
             raise RuntimeError("القناة المصدر خاصة أو لست عضواً فيها")
 
-        iter_kwargs: Dict[str, Any] = {
+        iter_kwargs: dict[str, Any] = {
             "limit":   config.limit,
             "reverse": config.reverse_order,
         }
@@ -519,7 +518,7 @@ class TelegramForwarder:
         if config.end_id:
             iter_kwargs["max_id"] = config.end_id + 1
 
-        previews: List[MessagePreview] = []
+        previews: list[MessagePreview] = []
 
         media_type_map = {
             MessageMediaPhoto:    "photo",
@@ -589,7 +588,7 @@ class TelegramForwarder:
     async def forward_content(
         self,
         config: ForwardConfig,
-        progress_callback: Optional[Callable] = None,
+        progress_callback: Callable | None = None,
     ) -> ForwardResult:
         """
         نقل المحتوى من قناة إلى أخرى.
@@ -617,7 +616,7 @@ class TelegramForwarder:
             raise RuntimeError(f"تعذّر الوصول إلى القنوات: {e}")
 
         # بناء iterator
-        iter_kwargs: Dict[str, Any] = {
+        iter_kwargs: dict[str, Any] = {
             "limit":   config.limit,
             "reverse": config.reverse_order,
         }
@@ -637,10 +636,9 @@ class TelegramForwarder:
                 # ── Filters ───────────────────────────────────
 
                 # إذا حدّد المستخدم اختياره من شاشة المعاينة، التزم به حصراً
-                if config.selected_ids is not None:
-                    if message.id not in config.selected_ids:
-                        result.skipped += 1
-                        continue
+                if config.selected_ids is not None and message.id not in config.selected_ids:
+                    result.skipped += 1
+                    continue
 
                 if config.skip_forwards and message.fwd_from:
                     result.skipped += 1
@@ -677,10 +675,8 @@ class TelegramForwarder:
                 # Progress callback
                 if cb:
                     pct = round((result.total / config.limit) * 100) if config.limit else 0
-                    try:
+                    with contextlib.suppress(Exception):
                         await cb(result, pct)
-                    except Exception:
-                        pass
 
                 # تأخير ديناميكي
                 delay = rate.get_delay()
@@ -790,7 +786,7 @@ class TelegramForwarder:
 def create_forwarder(
     api_id: int,
     api_hash: str,
-    session_string: Optional[str] = None,
+    session_string: str | None = None,
 ) -> TelegramForwarder:
     """أنشئ instance جديد من TelegramForwarder."""
     return TelegramForwarder(api_id, api_hash, session_string=session_string)

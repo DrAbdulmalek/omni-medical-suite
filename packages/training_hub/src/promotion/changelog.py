@@ -19,7 +19,6 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,7 @@ class CommitEntry:
     body: str
     author: str
     date: str
-    refs: List[str] = field(default_factory=list)
+    refs: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -46,14 +45,14 @@ class ChangelogSection:
     """A single section of the changelog (e.g., Added, Fixed)."""
 
     title: str
-    entries: List[str] = field(default_factory=list)
+    entries: list[str] = field(default_factory=list)
 
 
 # ══════════════════════════════════════════════════════════════════
 # Classification Keywords
 # ══════════════════════════════════════════════════════════════════
 
-SECTION_KEYWORDS: Dict[str, List[str]] = {
+SECTION_KEYWORDS: dict[str, list[str]] = {
     "Added": [
         "add", "added", "adding", "new", "introduce", "introduced",
         "implement", "implemented", "create", "created", "support",
@@ -116,8 +115,8 @@ class AutoChangelog:
 
     def __init__(
         self,
-        repo_dir: Optional[Path] = None,
-        remote_url: Optional[str] = None,
+        repo_dir: Path | None = None,
+        remote_url: str | None = None,
     ):
         self.repo_dir = Path(repo_dir) if repo_dir else Path.cwd()
         self.remote_url = remote_url
@@ -135,7 +134,7 @@ class AutoChangelog:
         from_ref: str = "HEAD~20",
         to_ref: str = "HEAD",
         version: str = "Unreleased",
-        output_path: Optional[Path] = None,
+        output_path: Path | None = None,
     ) -> str:
         """
         Generate a changelog from git log between two refs.
@@ -172,7 +171,7 @@ class AutoChangelog:
     def generate_for_dataset(
         self,
         dataset_id: str,
-        dataset_dir: Optional[Path] = None,
+        dataset_dir: Path | None = None,
         from_ref: str = "HEAD~20",
         to_ref: str = "HEAD",
         version: str = "Unreleased",
@@ -221,7 +220,7 @@ class AutoChangelog:
 
     # ── Git Operations ──────────────────────────────────────────
 
-    def _get_commits(self, from_ref: str, to_ref: str) -> List[CommitEntry]:
+    def _get_commits(self, from_ref: str, to_ref: str) -> list[CommitEntry]:
         """Fetch and parse git log between two refs."""
         # Use a format string that separates fields with special markers
         fmt = (
@@ -248,7 +247,7 @@ class AutoChangelog:
             logger.error("git log returned non-zero: %s", result.stderr.strip())
             return []
 
-        commits: List[CommitEntry] = []
+        commits: list[CommitEntry] = []
         raw = result.stdout.strip()
 
         if not raw:
@@ -294,8 +293,8 @@ class AutoChangelog:
         return commits
 
     def _filter_commits_by_files(
-        self, commits: List[CommitEntry], dataset_dir: Path
-    ) -> List[CommitEntry]:
+        self, commits: list[CommitEntry], dataset_dir: Path
+    ) -> list[CommitEntry]:
         """Filter commits that touch files within the given directory."""
         filtered = []
         dir_str = str(dataset_dir)
@@ -322,10 +321,10 @@ class AutoChangelog:
     # ── Classification ──────────────────────────────────────────
 
     def _classify_commits(
-        self, commits: List[CommitEntry]
-    ) -> Dict[str, ChangelogSection]:
+        self, commits: list[CommitEntry]
+    ) -> dict[str, ChangelogSection]:
         """Classify commit messages into changelog sections."""
-        sections: Dict[str, ChangelogSection] = {
+        sections: dict[str, ChangelogSection] = {
             title: ChangelogSection(title=title) for title in SECTION_ORDER
         }
 
@@ -378,7 +377,7 @@ class AutoChangelog:
     def _render(
         self,
         version: str,
-        sections: Dict[str, ChangelogSection],
+        sections: dict[str, ChangelogSection],
         from_ref: str,
         to_ref: str,
         commit_count: int,
@@ -424,7 +423,7 @@ class AutoChangelog:
 
     # ── Helpers ─────────────────────────────────────────────────
 
-    def _detect_remote_url(self) -> Optional[str]:
+    def _detect_remote_url(self) -> str | None:
         """Try to detect the GitHub remote URL from git config."""
         cmd = ["git", "remote", "get-url", "origin"]
         try:

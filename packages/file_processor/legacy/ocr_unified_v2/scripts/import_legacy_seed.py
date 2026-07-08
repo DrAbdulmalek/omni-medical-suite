@@ -1,5 +1,4 @@
 import argparse
-from pathlib import Path
 
 from config import Config
 from src.migration import DataMigrator

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 train_from_feedback.py
 =====================
@@ -37,6 +36,7 @@ train_from_feedback.py
 
 import argparse
 import base64
+import contextlib
 import hashlib
 import json
 import logging
@@ -46,7 +46,6 @@ import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image
@@ -90,7 +89,7 @@ ARABIC_EXTRA_CHARS = (
 # المرحلة 1: قراءة وفحص قاعدة بيانات التصحيحات
 # ============================================================================
 
-def read_corrections_db(db_path: str) -> List[Dict]:
+def read_corrections_db(db_path: str) -> list[dict]:
     """قراءة جميع التصحيحات من قاعدة بيانات HF Space.
 
     Parameters
@@ -130,7 +129,7 @@ def read_corrections_db(db_path: str) -> List[Dict]:
     return corrections
 
 
-def filter_corrections(corrections: List[Dict]) -> List[Dict]:
+def filter_corrections(corrections: list[dict]) -> list[dict]:
     """فلترة التصحيحات: إزالة غير الصالحة والتكرارات.
 
     الفلترة تشمل:
@@ -228,7 +227,7 @@ def filter_corrections(corrections: List[Dict]) -> List[Dict]:
     return valid
 
 
-def compute_data_stats(corrections: List[Dict]) -> Dict:
+def compute_data_stats(corrections: list[dict]) -> dict:
     """حساب إحصائيات تفصيلية للبيانات.
 
     تشمل: توزيع أطوال النصوص، توزيع المحركات، متوسط الثقة،
@@ -241,7 +240,7 @@ def compute_data_stats(corrections: List[Dict]) -> Dict:
     confidences = [c["confidence"] for c in corrections if c["confidence"] > 0]
 
     # توزيع المحركات
-    engine_counts: Dict[str, int] = {}
+    engine_counts: dict[str, int] = {}
     for c in corrections:
         engines = c.get("all_engine_texts", {})
         for engine_name in engines:
@@ -284,7 +283,7 @@ def compute_data_stats(corrections: List[Dict]) -> Dict:
 # المرحلة 2: تحويل إلى بيانات تدريب
 # ============================================================================
 
-def decode_crop_image(crop_base64: str, target_size: Tuple[int, int] = DEFAULT_IMAGE_SIZE) -> Optional[Image.Image]:
+def decode_crop_image(crop_base64: str, target_size: tuple[int, int] = DEFAULT_IMAGE_SIZE) -> Image.Image | None:
     """فك تشفير صورة القطع من base64 وتجهيزها لـ TrOCR.
 
     Parameters
@@ -336,11 +335,11 @@ def decode_crop_image(crop_base64: str, target_size: Tuple[int, int] = DEFAULT_I
 
 
 def convert_to_training_dataset(
-    corrections: List[Dict],
+    corrections: list[dict],
     output_dir: str,
     train_ratio: float = DEFAULT_TRAIN_RATIO,
     seed: int = 42,
-) -> Dict:
+) -> dict:
     """تحويل التصحيحات إلى بيانات تدريب جاهزة لـ TrOCR.
 
     يُنشئ:
@@ -390,7 +389,7 @@ def convert_to_training_dataset(
         "created_at": datetime.now().isoformat(),
     }
 
-    def _save_split(items: List[Dict], img_dir: Path, jsonl_path: Path, split_name: str):
+    def _save_split(items: list[dict], img_dir: Path, jsonl_path: Path, split_name: str):
         """حفظ مجموعة واحدة (تدريب أو اختبار)."""
         saved = 0
         failed = 0
@@ -454,7 +453,7 @@ def merge_with_existing(
     output_dir: str,
     feedback_weight: float = 0.7,
     seed: int = 42,
-) -> Dict:
+) -> dict:
     """دمج بيانات التصحيحات مع بيانات تدريب موجودة (اصطناعية أو حقيقية).
 
     يعطي وزناً أعلى لبيانات التصحيحات (feedback_weight) لأنها أكثر دقة.
@@ -562,19 +561,17 @@ def merge_with_existing(
     return stats
 
 
-def _load_jsonl(path: Path) -> List[Dict]:
+def _load_jsonl(path: Path) -> list[dict]:
     """تحميل ملف JSONL."""
     if not path.exists():
         return []
     items = []
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
-                try:
+                with contextlib.suppress(json.JSONDecodeError):
                     items.append(json.loads(line))
-                except json.JSONDecodeError:
-                    pass
     return items
 
 
@@ -605,7 +602,6 @@ def train_with_lora(
     bool
         True إذا نجح التدريب
     """
-    import importlib.util
 
     lora_script = Path(lora_config_path).parent.parent / "scripts" / "train_trocr_lora.py"
     if not lora_script.exists():
@@ -670,15 +666,15 @@ def train_standalone(
     """
     try:
         import torch
+        from evaluate import load as load_metric
+        from torch.utils.data import Dataset
         from transformers import (
+            Seq2SeqTrainer,
+            Seq2SeqTrainingArguments,
             TrOCRProcessor,
             VisionEncoderDecoderModel,
-            Seq2SeqTrainingArguments,
-            Seq2SeqTrainer,
             default_data_collator,
         )
-        from torch.utils.data import Dataset
-        from evaluate import load as load_metric
     except ImportError as e:
         logger.error("تبعيات مفقودة: %s", e)
         logger.error("ثبّت: pip install transformers torch accelerate evaluate jiwer")
@@ -994,7 +990,7 @@ def main():
     logger.info("المرحلة 2: تحويل إلى بيانات تدريب")
     logger.info("=" * 60)
 
-    convert_stats = convert_to_training_dataset(
+    convert_to_training_dataset(
         valid_corrections,
         args.output_dir,
         train_ratio=args.train_ratio,
@@ -1008,7 +1004,7 @@ def main():
         logger.info("=" * 60)
 
         merge_output = args.output_dir + "-merged"
-        merge_stats = merge_with_existing(
+        merge_with_existing(
             args.output_dir,
             args.merge_with,
             merge_output,
@@ -1080,7 +1076,6 @@ def main():
 # حاجة لـ BytesIO
 # ============================================================================
 from io import BytesIO
-
 
 if __name__ == "__main__":
     main()

@@ -116,7 +116,7 @@ def tavily_search_node(state: SearchState) -> SearchState:
         return {
             "search_results": search_results,
             "step": "searched",
-            "messages": [AIMessage(content=f"✅ 搜索完成！找到了相关信息，正在为您整理答案...")]
+            "messages": [AIMessage(content="✅ 搜索完成！找到了相关信息，正在为您整理答案...")]
         }
         
     except Exception as e:

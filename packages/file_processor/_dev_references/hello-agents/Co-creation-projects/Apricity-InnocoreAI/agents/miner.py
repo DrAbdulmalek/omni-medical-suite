@@ -3,10 +3,8 @@ InnoCore AI 洞察专家 (Miner Agent)
 核心大脑。负责阅读、理解、检索历史库、对比分析并生成报告
 """
 
-import asyncio
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 import json
-import re
 from datetime import datetime
 
 from agents.base import BaseAgent

@@ -16,23 +16,18 @@ Version: 1.0.0
 Date: 2026-06-04
 """
 
-import json
-import re
-import sys
 import argparse
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Set
+import json
 from collections import defaultdict
-import numpy as np
 
 
-def load_font_data(fonts_path: str) -> Dict:
+def load_font_data(fonts_path: str) -> dict:
     """Load font and glyph data from JSON."""
-    with open(fonts_path, 'r', encoding='utf-8') as f:
+    with open(fonts_path, encoding='utf-8') as f:
         return json.load(f)
 
 
-def build_character_index(fonts_data: Dict) -> Dict[str, List[Dict]]:
+def build_character_index(fonts_data: dict) -> dict[str, list[dict]]:
     """
     Build an index of characters to their glyph instances.
     Returns: {char: [glyph_info, ...]}
@@ -48,13 +43,13 @@ def build_character_index(fonts_data: Dict) -> Dict[str, List[Dict]]:
     return dict(char_index)
 
 
-def get_font_character_set(fonts_data: Dict) -> Set[str]:
+def get_font_character_set(fonts_data: dict) -> set[str]:
     """Get set of all characters supported by fonts."""
     char_index = build_character_index(fonts_data)
     return set(char_index.keys())
 
 
-def compute_glyph_similarity(glyph1: Dict, glyph2: Dict) -> float:
+def compute_glyph_similarity(glyph1: dict, glyph2: dict) -> float:
     """
     Compute similarity between two glyphs based on visual features.
     Returns score between 0 and 1.
@@ -78,7 +73,7 @@ def compute_glyph_similarity(glyph1: Dict, glyph2: Dict) -> float:
     return (size_sim * 0.4 + font_sim * 0.3 + size_match * 0.3)
 
 
-def find_similar_chars(char: str, fonts_data: Dict, threshold: float = 0.6) -> List[Tuple[str, float]]:
+def find_similar_chars(char: str, fonts_data: dict, threshold: float = 0.6) -> list[tuple[str, float]]:
     """
     Find characters with similar glyph shapes.
     Useful for detecting common OCR confusions:
@@ -109,7 +104,7 @@ def find_similar_chars(char: str, fonts_data: Dict, threshold: float = 0.6) -> L
     return similarities
 
 
-def validate_text(text: str, fonts_data: Dict) -> Dict:
+def validate_text(text: str, fonts_data: dict) -> dict:
     """
     Validate text against font glyphs.
     Returns validation report.
@@ -151,8 +146,8 @@ def validate_text(text: str, fonts_data: Dict) -> Dict:
     }
 
 
-def correct_with_fonts(text: str, fonts_data: Dict,
-                        ocr_confidence: Optional[Dict] = None) -> Tuple[str, List[Dict]]:
+def correct_with_fonts(text: str, fonts_data: dict,
+                        ocr_confidence: dict | None = None) -> tuple[str, list[dict]]:
     """
     Correct text using font glyph validation.
     Returns (corrected_text, corrections_applied).
@@ -186,7 +181,7 @@ def correct_with_fonts(text: str, fonts_data: Dict,
 class FontAwareOCRValidator:
     """Main validator that combines font data with OCR output."""
 
-    def __init__(self, fonts_data: Dict):
+    def __init__(self, fonts_data: dict):
         self.fonts_data = fonts_data
         self.char_index = build_character_index(fonts_data)
         self.known_confusions = {
@@ -213,7 +208,7 @@ class FontAwareOCRValidator:
             'ة': ['ه', 'ت'],
         }
 
-    def validate_and_correct(self, ocr_text: str) -> Dict:
+    def validate_and_correct(self, ocr_text: str) -> dict:
         """Full validation and correction pipeline."""
         # Step 1: Basic font validation
         validation = validate_text(ocr_text, self.fonts_data)
@@ -237,7 +232,7 @@ class FontAwareOCRValidator:
             "improvement": final_validation["validation_rate"] - validation["validation_rate"]
         }
 
-    def _apply_confusion_patterns(self, text: str) -> Dict:
+    def _apply_confusion_patterns(self, text: str) -> dict:
         """Apply known Arabic character confusion patterns."""
         corrections = []
         corrected = list(text)
@@ -245,7 +240,7 @@ class FontAwareOCRValidator:
         for i, char in enumerate(text):
             if char in self.known_confusions:
                 # Check if this character appears in an unusual context
-                context = text[max(0, i-2):i+3]
+                text[max(0, i-2):i+3]
 
                 # Simple heuristic: if surrounded by medical terms, check dictionary
                 # This would be enhanced with actual word context
@@ -291,7 +286,7 @@ Examples:
             with open(args.output, 'w', encoding='utf-8') as f:
                 json.dump({
                     "total_chars": len(char_set),
-                    "characters": sorted(list(char_set)),
+                    "characters": sorted(char_set),
                     "index": {k: len(v) for k, v in index.items()}
                 }, f, ensure_ascii=False, indent=2)
             print(f"💾 Index saved to {args.output}")
@@ -302,7 +297,7 @@ Examples:
         return
 
     # Load OCR text
-    with open(args.ocr, 'r', encoding='utf-8') as f:
+    with open(args.ocr, encoding='utf-8') as f:
         ocr_text = f.read()
 
     # Validate and correct

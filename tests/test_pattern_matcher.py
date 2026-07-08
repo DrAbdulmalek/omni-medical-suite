@@ -1,8 +1,8 @@
 """Tests for the pattern matching module."""
 
+
 import numpy as np
 import pytest
-from unittest.mock import MagicMock, patch
 
 
 @pytest.fixture

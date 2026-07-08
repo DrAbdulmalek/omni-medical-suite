@@ -5,8 +5,8 @@ Provides liveness, readiness, and full health probes compatible with
 Kubernetes/Docker health checks and Prometheus alerting.
 """
 import asyncio
-from datetime import datetime, timezone
-from typing import Dict, Any
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -17,11 +17,12 @@ router = APIRouter(prefix="/health", tags=["health"])
 logger = get_logger(__name__)
 
 
-async def check_database() -> Dict[str, Any]:
+async def check_database() -> dict[str, Any]:
     """Check PostgreSQL database connectivity."""
     try:
-        import asyncpg
         import os
+
+        import asyncpg
 
         host = os.getenv("DB_HOST", "localhost")
         port = int(os.getenv("DB_PORT", "5432"))
@@ -46,7 +47,7 @@ async def check_database() -> Dict[str, Any]:
         return {"database": "unhealthy", "status": "error", "error": str(e)}
 
 
-async def check_redis() -> Dict[str, Any]:
+async def check_redis() -> dict[str, Any]:
     """Check Redis connectivity."""
     try:
         import redis
@@ -63,11 +64,12 @@ async def check_redis() -> Dict[str, Any]:
         return {"redis": "unhealthy", "status": "error", "error": str(e)}
 
 
-async def check_qdrant() -> Dict[str, Any]:
+async def check_qdrant() -> dict[str, Any]:
     """Check Qdrant vector database connectivity."""
     try:
-        from qdrant_client import QdrantClient
         import os
+
+        from qdrant_client import QdrantClient
 
         url = os.getenv("QDRANT_URL", "http://localhost:6333")
         client = QdrantClient(url=url)
@@ -101,7 +103,7 @@ async def full_health_check() -> JSONResponse:
     result = {
         "status": status,
         "checks": checks,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     return JSONResponse(content=result)

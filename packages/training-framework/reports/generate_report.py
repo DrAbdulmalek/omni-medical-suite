@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 generate_report.py
 ==================
@@ -19,13 +18,11 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import numpy as np
-from PIL import Image
 
 
 @dataclass
@@ -34,11 +31,11 @@ class TrainingReport:
     job_id: str
     name: str
     start_time: datetime
-    end_time: Optional[datetime]
-    config: Dict
-    metrics: Dict
-    samples: List[Dict]
-    error_analysis: Optional[Dict] = None
+    end_time: datetime | None
+    config: dict
+    metrics: dict
+    samples: list[dict]
+    error_analysis: dict | None = None
 
 
 class ReportGenerator:
@@ -63,21 +60,26 @@ class ReportGenerator:
         try:
             from reportlab.lib import colors
             from reportlab.lib.pagesizes import A4
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
             from reportlab.lib.units import cm
-            from reportlab.platypus import (
-                SimpleDocTemplate, Paragraph, Spacer, Image as RLImage,
-                Table, TableStyle, PageBreak
-            )
             from reportlab.pdfbase import pdfmetrics
             from reportlab.pdfbase.ttfonts import TTFont
+            from reportlab.platypus import (
+                Image as RLImage,
+                PageBreak,
+                Paragraph,
+                SimpleDocTemplate,
+                Spacer,
+                Table,
+                TableStyle,
+            )
         except ImportError:
             raise ImportError("ثبّت: pip install reportlab")
 
         # تسجيل خط عربي
         try:
             pdfmetrics.registerFont(TTFont('Arabic', 'fonts/Amiri-Regular.ttf'))
-            arabic_style = ParagraphStyle(
+            ParagraphStyle(
                 'Arabic',
                 fontName='Arabic',
                 fontSize=12,
@@ -85,7 +87,7 @@ class ReportGenerator:
                 alignment=2  # RTL
             )
         except:
-            arabic_style = getSampleStyleSheet()['Normal']
+            getSampleStyleSheet()['Normal']
 
         # إنشاء الملف
         output_path = self.output_dir / f"report_{report.job_id}.pdf"
@@ -506,7 +508,7 @@ Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
         return output_path
 
-    def _generate_charts(self, report: TrainingReport) -> Optional[Path]:
+    def _generate_charts(self, report: TrainingReport) -> Path | None:
         """توليد الرسوم البيانية."""
         if not report.metrics.get('history'):
             return None
@@ -577,7 +579,7 @@ def create_training_report(
     job_id: str,
     checkpoint_path: Path,
     output_dir: Path = Path("./reports")
-) -> Dict[str, Path]:
+) -> dict[str, Path]:
     """
     إنشاء تقرير كامل للتدريب.
 

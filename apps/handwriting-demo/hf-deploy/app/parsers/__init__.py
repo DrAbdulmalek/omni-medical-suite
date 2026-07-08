@@ -12,9 +12,9 @@ try:
     from app.parsers.document_parser import (
         DocumentParser,
         DocumentParseResult,
+        ImageContent,
         PageContent,
         TableContent,
-        ImageContent,
     )
 except ImportError:
     DocumentParser = None
@@ -25,8 +25,8 @@ except ImportError:
 
 try:
     from app.parsers.table_extractor import (
-        TableExtractor,
         TableData,
+        TableExtractor,
     )
 except ImportError:
     TableExtractor = None
@@ -43,9 +43,9 @@ except ImportError:
 
 try:
     from app.parsers.image_processor import (
+        DetectedObject,
         MedicalImageProcessor,
         MedicalImageResult,
-        DetectedObject,
         RegionClassification,
     )
 except ImportError:
@@ -56,8 +56,8 @@ except ImportError:
 
 try:
     from app.parsers.medical_detector import (
-        MedicalObjectDetector,
         MedicalElements,
+        MedicalObjectDetector,
         PrescriptionBlock,
     )
 except ImportError:
@@ -73,10 +73,25 @@ BatchResult = None
 PatientBatchResult = None
 
 __all__ = [
-    "DocumentParser", "DocumentParseResult", "PageContent", "TableContent", "ImageContent",
-    "TableExtractor", "TableData",
-    "EquationParser", "EquationRegion",
-    "MedicalImageProcessor", "MedicalImageResult", "DetectedObject", "RegionClassification",
-    "MedicalObjectDetector", "MedicalElements", "PrescriptionBlock",
-    "BatchProcessor", "BatchJob", "BatchStatus", "BatchResult", "PatientBatchResult",
+    "BatchJob",
+    "BatchProcessor",
+    "BatchResult",
+    "BatchStatus",
+    "DetectedObject",
+    "DocumentParseResult",
+    "DocumentParser",
+    "EquationParser",
+    "EquationRegion",
+    "ImageContent",
+    "MedicalElements",
+    "MedicalImageProcessor",
+    "MedicalImageResult",
+    "MedicalObjectDetector",
+    "PageContent",
+    "PatientBatchResult",
+    "PrescriptionBlock",
+    "RegionClassification",
+    "TableContent",
+    "TableData",
+    "TableExtractor",
 ]

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ==============================================================================
   BilingualExtractor - TermExtractor Module
@@ -16,16 +15,14 @@ Version: 1.0.0
 License: MIT
 """
 
-import re
-import json
 import csv
+import json
 import logging
-import unicodedata
-from pathlib import Path
-from dataclasses import dataclass, field, asdict
-from typing import List, Dict, Tuple, Optional, Set
-from collections import Counter, defaultdict
+import re
+from collections import Counter
+from dataclasses import asdict, dataclass, field
 from difflib import SequenceMatcher
+from pathlib import Path
 
 try:
     import pandas as pd
@@ -60,10 +57,10 @@ class TermPair:
     category: str = "general"
     context_ar: str = ""
     context_en: str = ""
-    variants_ar: List[str] = field(default_factory=list)
-    variants_en: List[str] = field(default_factory=list)
+    variants_ar: list[str] = field(default_factory=list)
+    variants_en: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
@@ -80,17 +77,17 @@ class ExtractionConfig:
     morphological_analysis: bool = True
     statistical_filtering: bool = True
     deduplication_threshold: float = 0.85
-    arabic_dialects: List[str] = field(default_factory=lambda: [
+    arabic_dialects: list[str] = field(default_factory=lambda: [
         "modern_standard", "egyptian", "levantine", "gulf"
     ])
-    medical_domains: List[str] = field(default_factory=lambda: [
+    medical_domains: list[str] = field(default_factory=lambda: [
         "orthopedics", "internal_medicine", "surgery", "cardiology",
         "neurology", "pediatrics", "radiology", "pathology"
     ])
     include_context: bool = True
     max_context_length: int = 200
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
@@ -107,9 +104,9 @@ class ExtractionStats:
     processing_time_seconds: float = 0.0
     unique_arabic_terms: int = 0
     unique_english_terms: int = 0
-    categories_found: Set[str] = field(default_factory=set)
+    categories_found: set[str] = field(default_factory=set)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         data = asdict(self)
         data["categories_found"] = list(self.categories_found)
         return data
@@ -231,11 +228,11 @@ class MedicalTermResources:
 class TextPreprocessor:
     """Preprocesses Arabic and English text for term extraction."""
 
-    def __init__(self, config: Optional[ExtractionConfig] = None):
+    def __init__(self, config: ExtractionConfig | None = None):
         self.config = config or ExtractionConfig()
         self._arabic_char_ranges = self._build_arabic_char_set()
 
-    def _build_arabic_char_set(self) -> Set[str]:
+    def _build_arabic_char_set(self) -> set[str]:
         """Build the set of Arabic Unicode characters."""
         arabic_chars = set()
         for code in range(0x0600, 0x06FF + 1):
@@ -325,7 +322,7 @@ class TextPreprocessor:
         else:
             return "mixed"
 
-    def split_bilingual_text(self, text: str) -> Tuple[str, str]:
+    def split_bilingual_text(self, text: str) -> tuple[str, str]:
         """Split a bilingual text into Arabic and English parts."""
         if not text:
             return "", ""
@@ -366,7 +363,7 @@ class TextPreprocessor:
 class PatternExtractor:
     """Extracts medical terms using regex patterns and structural rules."""
 
-    def __init__(self, config: Optional[ExtractionConfig] = None):
+    def __init__(self, config: ExtractionConfig | None = None):
         self.config = config or ExtractionConfig()
         self.preprocessor = TextPreprocessor(config)
         self._compile_patterns()
@@ -446,7 +443,7 @@ class PatternExtractor:
             ),
         ]
 
-    def extract_arabic_terms(self, text: str) -> List[str]:
+    def extract_arabic_terms(self, text: str) -> list[str]:
         """Extract Arabic medical terms from text."""
         text = self.preprocessor.clean_ocr_errors(text)
         terms = set()
@@ -459,7 +456,7 @@ class PatternExtractor:
                         terms.add(normalized)
         return list(terms)
 
-    def extract_english_terms(self, text: str) -> List[str]:
+    def extract_english_terms(self, text: str) -> list[str]:
         """Extract English medical terms from text."""
         terms = set()
         for pattern in self.english_patterns:
@@ -471,7 +468,7 @@ class PatternExtractor:
                         terms.add(normalized)
         return list(terms)
 
-    def extract_bilingual_pairs(self, text: str) -> List[Tuple[str, str]]:
+    def extract_bilingual_pairs(self, text: str) -> list[tuple[str, str]]:
         """Extract bilingual term pairs from parallel text."""
         text = self.preprocessor.clean_ocr_errors(text)
         pairs = []
@@ -505,7 +502,7 @@ class PatternExtractor:
 class MorphologicalAnalyzer:
     """Lightweight morphological analysis for Arabic medical terms."""
 
-    def __init__(self, config: Optional[ExtractionConfig] = None):
+    def __init__(self, config: ExtractionConfig | None = None):
         self.config = config or ExtractionConfig()
         self.prefixes = MedicalTermResources.ARABIC_MEDICAL_PREFIXES
         self.categories = MedicalTermResources.MEDICAL_CATEGORIES
@@ -549,7 +546,7 @@ class MorphologicalAnalyzer:
         stem = re.sub(r'(ية|ي)\s*$', '', stem)
         return stem.strip()
 
-    def find_dialect_variants(self, term: str) -> List[str]:
+    def find_dialect_variants(self, term: str) -> list[str]:
         """Find dialectal variants of a term."""
         variants = []
         for standard, dialect_list in MedicalTermResources.DIALECT_MAPPINGS.items():
@@ -557,7 +554,7 @@ class MorphologicalAnalyzer:
                 variants.extend(dialect_list)
         return list(set(variants))
 
-    def check_historical_evolution(self, term: str) -> Optional[str]:
+    def check_historical_evolution(self, term: str) -> str | None:
         """Check if a term has a historical evolution/modern equivalent."""
         for old_term, new_term in MedicalTermResources.TERMINOLOGY_EVOLUTION.items():
             if term in old_term or old_term in term:
@@ -572,7 +569,7 @@ class MorphologicalAnalyzer:
 class StatisticalFilter:
     """Statistical methods for filtering and ranking extracted terms."""
 
-    def __init__(self, config: Optional[ExtractionConfig] = None):
+    def __init__(self, config: ExtractionConfig | None = None):
         self.config = config or ExtractionConfig()
 
     def calculate_confidence(self, ar_term: str, en_term: str,
@@ -610,7 +607,7 @@ class StatisticalFilter:
 
         return round(min(confidence, 1.0), 4)
 
-    def deduplicate_terms(self, terms: List[TermPair]) -> List[TermPair]:
+    def deduplicate_terms(self, terms: list[TermPair]) -> list[TermPair]:
         """Remove duplicate terms using fuzzy matching."""
         unique_terms = []
         seen_normalized = {}
@@ -621,7 +618,7 @@ class StatisticalFilter:
 
             # Check for near-duplicates
             is_dup = False
-            for seen_ar, seen_en in seen_normalized.keys():
+            for seen_ar, seen_en in seen_normalized:
                 ar_sim = SequenceMatcher(None, ar_norm, seen_ar).ratio()
                 en_sim = SequenceMatcher(None, en_norm, seen_en).ratio()
                 if ar_sim >= self.config.deduplication_threshold and \
@@ -639,11 +636,11 @@ class StatisticalFilter:
 
         return unique_terms
 
-    def rank_by_frequency(self, terms: List[TermPair]) -> List[TermPair]:
+    def rank_by_frequency(self, terms: list[TermPair]) -> list[TermPair]:
         """Rank terms by frequency."""
         return sorted(terms, key=lambda t: t.frequency, reverse=True)
 
-    def rank_by_confidence(self, terms: List[TermPair]) -> List[TermPair]:
+    def rank_by_confidence(self, terms: list[TermPair]) -> list[TermPair]:
         """Rank terms by confidence score."""
         return sorted(terms, key=lambda t: t.confidence, reverse=True)
 
@@ -663,7 +660,7 @@ class TermExtractor:
         >>> extractor.export_to_csv("output/terms.csv")
     """
 
-    def __init__(self, config: Optional[ExtractionConfig] = None):
+    def __init__(self, config: ExtractionConfig | None = None):
         self.config = config or ExtractionConfig()
         self.preprocessor = TextPreprocessor(config)
         self.pattern_extractor = PatternExtractor(config)
@@ -673,8 +670,8 @@ class TermExtractor:
 
         # Internal storage
         self._raw_text: str = ""
-        self._pages: Dict[int, str] = {}
-        self._term_pairs: Dict[Tuple[str, str], TermPair] = {}
+        self._pages: dict[int, str] = {}
+        self._term_pairs: dict[tuple[str, str], TermPair] = {}
         self._arabic_term_freq: Counter = Counter()
         self._english_term_freq: Counter = Counter()
 
@@ -690,13 +687,13 @@ class TermExtractor:
         if not path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        with open(path, 'r', encoding=encoding) as f:
+        with open(path, encoding=encoding) as f:
             self._raw_text = f.read()
 
         logger.info(f"Loaded {len(self._raw_text)} characters from {file_path}")
         return self
 
-    def load_directory(self, dir_path: str, extensions: List[str] = None,
+    def load_directory(self, dir_path: str, extensions: list[str] | None = None,
                       encoding: str = 'utf-8') -> 'TermExtractor':
         """Load all text files from a directory."""
         if extensions is None:
@@ -709,7 +706,7 @@ class TermExtractor:
         all_text = []
         for ext in extensions:
             for file in path.rglob(f'*{ext}'):
-                with open(file, 'r', encoding=encoding) as f:
+                with open(file, encoding=encoding) as f:
                     all_text.append(f.read())
                 logger.info(f"Loaded file: {file.name}")
 
@@ -720,9 +717,9 @@ class TermExtractor:
     def load_parallel_files(self, ar_file: str, en_file: str,
                            encoding: str = 'utf-8') -> 'TermExtractor':
         """Load parallel Arabic and English files."""
-        with open(ar_file, 'r', encoding=encoding) as f:
+        with open(ar_file, encoding=encoding) as f:
             ar_text = f.read()
-        with open(en_file, 'r', encoding=encoding) as f:
+        with open(en_file, encoding=encoding) as f:
             en_text = f.read()
 
         # Combine with delimiters for parallel processing
@@ -730,7 +727,7 @@ class TermExtractor:
         logger.info("Loaded parallel files")
         return self
 
-    def extract_terms(self) -> List[TermPair]:
+    def extract_terms(self) -> list[TermPair]:
         """
         Main extraction method. Extracts bilingual term pairs from loaded text.
 
@@ -768,7 +765,7 @@ class TermExtractor:
 
         # Step 3: Categorize and enrich terms
         if self.config.morphological_analysis:
-            for key, pair in list(self._term_pairs.items()):
+            for _key, pair in list(self._term_pairs.items()):
                 pair.category = self.morph_analyzer.categorize_term(pair.arabic_term)
                 pair.variants_ar = self.morph_analyzer.find_dialect_variants(pair.arabic_term)
                 historical = self.morph_analyzer.check_historical_evolution(pair.arabic_term)
@@ -777,7 +774,7 @@ class TermExtractor:
                 self.stats.categories_found.add(pair.category)
 
         # Step 4: Calculate confidence scores
-        for key, pair in self._term_pairs.items():
+        for _key, pair in self._term_pairs.items():
             ar_freq = self._arabic_term_freq.get(pair.arabic_term, 0)
             en_freq = self._english_term_freq.get(pair.english_term, 0)
             pair.confidence = self.stat_filter.calculate_confidence(
@@ -823,15 +820,15 @@ class TermExtractor:
                 category="general"
             )
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get extraction statistics."""
         return self.stats.to_dict()
 
-    def get_terms_by_category(self, category: str) -> List[TermPair]:
+    def get_terms_by_category(self, category: str) -> list[TermPair]:
         """Get terms filtered by category."""
         return [t for t in self._term_pairs.values() if t.category == category]
 
-    def get_high_confidence_terms(self, threshold: float = 0.7) -> List[TermPair]:
+    def get_high_confidence_terms(self, threshold: float = 0.7) -> list[TermPair]:
         """Get high-confidence term pairs."""
         return [t for t in self._term_pairs.values() if t.confidence >= threshold]
 
@@ -1005,7 +1002,7 @@ def demo_extraction():
     terms = extractor.extract_terms()
 
     # Display results
-    print(f"\n📊 Extraction Results:")
+    print("\n📊 Extraction Results:")
     print(f"   Total pairs found: {len(terms)}")
     print()
 
@@ -1017,7 +1014,7 @@ def demo_extraction():
 
     # Print statistics
     stats = extractor.get_stats()
-    print(f"\n📈 Statistics:")
+    print("\n📈 Statistics:")
     print(f"   Processing time: {stats['processing_time_seconds']}s")
     print(f"   High confidence pairs: {stats['high_confidence_pairs']}")
     print(f"   Categories found: {stats['categories_found']}")
@@ -1027,7 +1024,7 @@ def demo_extraction():
     csv_path = extractor.export_to_csv(str(output_dir / "demo_terms.csv"))
     json_path = extractor.export_to_json(str(output_dir / "demo_terms.json"))
 
-    print(f"\n📁 Exported files:")
+    print("\n📁 Exported files:")
     print(f"   CSV: {csv_path}")
     print(f"   JSON: {json_path}")
 

@@ -24,7 +24,7 @@ import os
 import sys
 from datetime import datetime
 from aime_generator import AIMEGenerator
-from hello_agents import SimpleAgent, HelloAgentsLLM
+from hello_agents import HelloAgentsLLM
 from hello_agents.tools import LLMJudgeTool, WinRateTool
 
 
@@ -42,11 +42,11 @@ def run_complete_evaluation(
     print("\n" + "="*80)
     print("🚀 AIME数据生成与评估完整流程")
     print("="*80)
-    print(f"\n配置信息:")
+    print("\n配置信息:")
     print(f"  - 生成题目数量: {num_problems}")
     print(f"  - API延迟: {delay_seconds}秒/题")
-    print(f"  - 生成参考数据: TianHongZXY/aime-1983-2025（900+道题）")
-    print(f"  - 评估参考: AIME 2025真题")
+    print("  - 生成参考数据: TianHongZXY/aime-1983-2025（900+道题）")
+    print("  - 评估参考: AIME 2025真题")
 
     # ========== 步骤1: 生成AIME题目 ==========
     print("\n" + "="*80)
@@ -73,7 +73,7 @@ def run_complete_evaluation(
     llm = HelloAgentsLLM()
 
     # ========== 步骤2.1: LLM Judge评估 ==========
-    print(f"\n🎯 步骤2.1: LLM Judge评估 (vs AIME 2025)")
+    print("\n🎯 步骤2.1: LLM Judge评估 (vs AIME 2025)")
 
     llm_judge_result = None
     try:
@@ -88,7 +88,7 @@ def run_complete_evaluation(
         })
 
         llm_judge_result = json.loads(llm_judge_result_json)
-        print(f"\n✅ LLM Judge评估完成！")
+        print("\n✅ LLM Judge评估完成！")
         print(f"   平均总分: {llm_judge_result['metrics']['average_total_score']:.2f}/5.0")
         print(f"   通过率: {llm_judge_result['metrics']['pass_rate']:.2%}")
     except Exception as e:
@@ -97,7 +97,7 @@ def run_complete_evaluation(
         traceback.print_exc()
 
     # ========== 步骤2.2: Win Rate评估 ==========
-    print(f"\n🏆 步骤2.2: Win Rate评估 (vs AIME 2025)")
+    print("\n🏆 步骤2.2: Win Rate评估 (vs AIME 2025)")
 
     win_rate_result = None
     try:
@@ -112,7 +112,7 @@ def run_complete_evaluation(
         })
 
         win_rate_result = json.loads(win_rate_result_json)
-        print(f"\n✅ Win Rate评估完成！")
+        print("\n✅ Win Rate评估完成！")
         print(f"   Win Rate: {win_rate_result['metrics']['win_rate']:.2%}")
     except Exception as e:
         print(f"\n❌ Win Rate评估失败: {e}")
@@ -144,7 +144,7 @@ def run_complete_evaluation(
     print("\n" + "="*80)
     print("🎉 完整评估流程完成！")
     print("="*80)
-    print(f"\n📁 输出文件:")
+    print("\n📁 输出文件:")
     print(f"   - 生成数据: {generated_data_path}")
     print(f"   - 评估结果目录: {evaluation_dir}")
 
@@ -156,7 +156,7 @@ def run_complete_evaluation(
     if comprehensive_report_path:
         print(f"   - 综合报告: {comprehensive_report_path}")
 
-    print(f"\n💡 下一步:")
+    print("\n💡 下一步:")
     if comprehensive_report_path:
         print(f"   1. 查看综合报告: {comprehensive_report_path}")
     print(f"   2. 运行人工验证: python data_generation/human_verification_ui.py {generated_data_path}")
@@ -256,7 +256,7 @@ def generate_comprehensive_report(
         else:
             report += "⚠️ **结论**: 生成数据质量**需要改进**，与AIME真题仍有差距。\n"
 
-        report += f"\n**整体指标**:\n"
+        report += "\n**整体指标**:\n"
         report += f"- LLM Judge得分: {overall_avg_score:.2f}/5.0\n"
         report += f"- Win Rate: {overall_win_rate:.2%}\n"
 

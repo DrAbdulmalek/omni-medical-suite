@@ -6,8 +6,7 @@ from fastapi import Depends, HTTPException, Request
 from loguru import logger
 from starlette.applications import Starlette
 
-from ..config.settings import Settings
-from ..config.settings import get_settings as _get_settings
+from ..config.settings import Settings, get_settings as _get_settings
 from ..core.anthropic import get_user_facing_error_message
 from ..providers.base import BaseProvider
 from ..providers.exceptions import (

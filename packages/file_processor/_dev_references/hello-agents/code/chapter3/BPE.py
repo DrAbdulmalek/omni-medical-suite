@@ -1,4 +1,5 @@
-import re, collections
+import re
+import collections
 
 def get_stats(vocab):
     """统计词元对频率"""

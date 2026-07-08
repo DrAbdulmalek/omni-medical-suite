@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 tests/test_api_performance.py
 =============================
@@ -59,8 +58,9 @@ class TestAPIPerformance:
 
     def test_memory_usage(self, client, auth_headers, sample_image):
         """اختبار استخدام الذاكرة."""
-        import psutil
         import os
+
+        import psutil
 
         process = psutil.Process(os.getpid())
         mem_before = process.memory_info().rss / 1024 / 1024  # MB

@@ -6,9 +6,8 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -25,35 +24,35 @@ class ExtendedBenchmarkResult:
 
 class NoiseTypeBenchmark:
     """Benchmark OCR accuracy under specific noise conditions."""
-    
+
     CATEGORIES = [
         "motion_blur", "out_of_focus", "rotation_skew", "low_resolution",
         "watermark_overlay", "fax_artifacts", "stamp_annotation", "grid_lines"
     ]
-    
-    def __init__(self, data_dir: Optional[str] = None):
+
+    def __init__(self, data_dir: str | None = None):
         self.data_dir = Path(data_dir or os.path.join(
             os.path.dirname(__file__), "..", "data", "golden"
         ))
         self.cases: list[dict] = []
         self._load()
-    
+
     def _load(self):
         path = self.data_dir / "noise_types.json"
         if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             self.cases = data.get("cases", [])
-    
+
     def run(self, ocr_func) -> list[ExtendedBenchmarkResult]:
         """
         Run benchmark with an OCR function.
-        
+
         Args:
             ocr_func: callable(text: str) -> str that applies noise simulation + OCR
                      For text-only testing, this can be a function that introduces
                      noise patterns and then attempts to correct them.
-        
+
         Returns:
             List of benchmark results per case.
         """
@@ -71,7 +70,7 @@ class NoiseTypeBenchmark:
                 notes=f'noise_type={case["noise_type"]}, difficulty={case["difficulty"]}'
             ))
         return results
-    
+
     def get_noise_type_summary(self, results: list[ExtendedBenchmarkResult]) -> dict:
         """Aggregate results by noise type."""
         summary = {}
@@ -88,7 +87,7 @@ class NoiseTypeBenchmark:
             s["avg_cer"] = round(s["avg_cer"] / max(s["cases"], 1), 4)
             s["pass_rate"] = round(s["passed"] / max(s["cases"], 1), 2)
         return summary
-    
+
     @staticmethod
     def _compute_cer(reference: str, hypothesis: str) -> float:
         """Compute Character Error Rate using Levenshtein distance."""
@@ -109,29 +108,29 @@ class NoiseTypeBenchmark:
 
 class HandwritingStyleBenchmark:
     """Benchmark OCR accuracy across handwriting styles."""
-    
+
     STYLES = [
         "arabic_print", "arabic_cursive", "english_print", "english_cursive",
-        "doctor_scratch", "mixed_script", "mixed_numerals", 
+        "doctor_scratch", "mixed_script", "mixed_numerals",
         "medical_shorthand", "marginal_notes"
     ]
-    
+
     DIFFICULTY_MAP = {"easy": 0.10, "medium": 0.15, "hard": 0.25, "very_hard": 0.35}
-    
-    def __init__(self, data_dir: Optional[str] = None):
+
+    def __init__(self, data_dir: str | None = None):
         self.data_dir = Path(data_dir or os.path.join(
             os.path.dirname(__file__), "..", "data", "golden"
         ))
         self.cases: list[dict] = []
         self._load()
-    
+
     def _load(self):
         path = self.data_dir / "handwriting_styles.json"
         if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             self.cases = data.get("cases", [])
-    
+
     def run(self, ocr_func) -> list[ExtendedBenchmarkResult]:
         """Run benchmark. ocr_func should simulate or perform OCR on text."""
         results = []
@@ -153,21 +152,21 @@ class HandwritingStyleBenchmark:
 
 class SpecialtyBenchmark:
     """Benchmark OCR accuracy for expanded medical specialties."""
-    
-    def __init__(self, data_dir: Optional[str] = None):
+
+    def __init__(self, data_dir: str | None = None):
         self.data_dir = Path(data_dir or os.path.join(
             os.path.dirname(__file__), "..", "data", "golden"
         ))
         self.cases: list[dict] = []
         self._load()
-    
+
     def _load(self):
         path = self.data_dir / "specialties_expanded.json"
         if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             self.cases = data.get("cases", [])
-    
+
     def run(self, ocr_func) -> list[ExtendedBenchmarkResult]:
         """Run benchmark per specialty."""
         results = []
@@ -184,7 +183,7 @@ class SpecialtyBenchmark:
                 notes=f'specialty={case["specialty"]}, language={case["language"]}'
             ))
         return results
-    
+
     def get_specialty_summary(self, results: list[ExtendedBenchmarkResult]) -> dict:
         """Aggregate results by specialty."""
         summary = {}

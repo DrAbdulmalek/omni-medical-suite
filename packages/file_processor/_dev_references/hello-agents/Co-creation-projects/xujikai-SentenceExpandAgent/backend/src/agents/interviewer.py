@@ -71,7 +71,7 @@ class InterviewerAgent:
             # 添加阶段目标信息
             result["stage_goal"] = self.get_stage_goal(stage)
             return result
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             # 如果解析失败，返回默认响应
             return {
                 "question": f"请为这个句子增加一些细节：{current_sentence}",

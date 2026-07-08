@@ -13,14 +13,14 @@ Modules:
     engine:          Top-level orchestrator combining all strategies.
 """
 
-from dedup.exact_dedup import ExactDeduplicator
-from dedup.semantic_dedup import SemanticDeduplicator
 from dedup.context_protector import MedicalContextProtector
 from dedup.engine import DeduplicationEngine
+from dedup.exact_dedup import ExactDeduplicator
+from dedup.semantic_dedup import SemanticDeduplicator
 
 __all__ = [
-    "ExactDeduplicator",
-    "SemanticDeduplicator",
-    "MedicalContextProtector",
     "DeduplicationEngine",
+    "ExactDeduplicator",
+    "MedicalContextProtector",
+    "SemanticDeduplicator",
 ]

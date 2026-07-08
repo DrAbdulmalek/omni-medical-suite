@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import json
 
 # 数据获取函数
 def get_bitcoin_price():

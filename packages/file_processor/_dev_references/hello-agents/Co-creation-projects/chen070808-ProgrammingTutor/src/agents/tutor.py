@@ -1,5 +1,4 @@
 from hello_agents import SimpleAgent, HelloAgentsLLM
-from typing import Dict, Any
 
 class TutorAgent(SimpleAgent):
     """

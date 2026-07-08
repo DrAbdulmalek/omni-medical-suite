@@ -4,7 +4,6 @@
 Setup minimal test environment with sample data.
 """
 
-import os
 import json
 from pathlib import Path
 import cv2
@@ -114,7 +113,7 @@ def create_handwritten_like_image(text: str, width: int = 800, height: int = 200
     for char in text:
         # Position variation simulating handwriting
         y_offset = np.random.randint(-5, 5)
-        angle = np.random.randint(-3, 3)
+        np.random.randint(-3, 3)
 
         # Draw character
         cv2.putText(

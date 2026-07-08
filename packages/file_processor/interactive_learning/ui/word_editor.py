@@ -8,7 +8,7 @@ interactive_learning/ui/word_editor.py
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import ttk, messagebox
 from pathlib import Path
 from typing import Callable, List, Optional, Dict
 import json

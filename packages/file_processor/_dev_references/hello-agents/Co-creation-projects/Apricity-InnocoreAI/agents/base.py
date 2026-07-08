@@ -4,7 +4,7 @@ InnoCore AI 基础智能体类
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Any, Callable
 from datetime import datetime
 import json
 import logging

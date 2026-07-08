@@ -14,7 +14,6 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from core.schemas import ClassifiedChunk
 
@@ -56,7 +55,7 @@ class JSONLExporter:
 
     def export(
         self,
-        chunks: List[ClassifiedChunk],
+        chunks: list[ClassifiedChunk],
         output_path: str,
         include_metadata: bool = True,
     ) -> str:
@@ -98,9 +97,9 @@ class JSONLExporter:
 
     def export_instruction_format(
         self,
-        chunks: List[ClassifiedChunk],
+        chunks: list[ClassifiedChunk],
         output_path: str,
-        instruction_template: Optional[str] = None,
+        instruction_template: str | None = None,
     ) -> str:
         """Export in instruction-tuning format.
 
@@ -160,7 +159,7 @@ class JSONLExporter:
         )
         return output_path
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Return exporter statistics.
 
         Returns:
@@ -176,9 +175,9 @@ class JSONLExporter:
     def _serialise_chunk(
         chunk: ClassifiedChunk,
         include_metadata: bool,
-    ) -> Dict:
+    ) -> dict:
         """Convert a :class:`ClassifiedChunk` to a JSON-serialisable dict."""
-        record: Dict = {
+        record: dict = {
             "text": chunk.chunk.text,
             "category": chunk.classification.category,
             "confidence": chunk.classification.confidence,
@@ -193,7 +192,7 @@ class JSONLExporter:
             record["alternatives"] = chunk.classification.alternatives
 
         if include_metadata:
-            metadata: Dict = {}
+            metadata: dict = {}
             metadata["chunk_id"] = chunk.chunk.id
             metadata["token_count"] = chunk.chunk.token_count
             metadata["char_count"] = chunk.chunk.char_count

@@ -8,9 +8,10 @@ HandwrittenOCR - معالجة الصور المسبقة v4.0
 - مُحصّن: crops من img_bgr الأصلية (ليس من الصورة الثنائية)
 """
 
+
 import cv2
 import numpy as np
-from typing import Tuple, Optional, List
+
 from config import Config
 
 
@@ -40,7 +41,7 @@ def preprocess_image(
     img_bgr: np.ndarray,
     config: Config = None,
     adaptive: bool = False,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     تحسين الصورة للتعرف على النصوص.
 
@@ -93,9 +94,9 @@ def compute_iou(b1, b2) -> float:
 def smart_segmentation(
     img_bgr: np.ndarray,
     binary: np.ndarray,
-    easyocr_detections: Optional[list] = None,
+    easyocr_detections: list | None = None,
     config: Config = None,
-) -> List[Tuple[int, int, int, int]]:
+) -> list[tuple[int, int, int, int]]:
     """
     تجزئة ذكية: EasyOCR أولاً + IoU matching + الكنتورات كبديل.
     Returns: قائمة بـ (x, y, w, h)

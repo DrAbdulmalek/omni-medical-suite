@@ -28,9 +28,8 @@ import json
 import logging
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from core.schemas import ClassificationResult, ReviewSample, TextChunk
 
@@ -74,7 +73,7 @@ class HumanReviewQueue:
             ``db/active_learning.db`` relative to this package.
     """
 
-    def __init__(self, db_path: Optional[str] = None) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         """Initialise the review queue and create the database table."""
         self.db_path = db_path or _DEFAULT_DB_PATH
 
@@ -119,7 +118,7 @@ class HumanReviewQueue:
         Returns:
             The auto-incremented row ID of the inserted sample.
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         # Build predictions list: always include primary + alternatives
         predictions = [
@@ -164,8 +163,8 @@ class HumanReviewQueue:
     def get_pending_samples(
         self,
         limit: int = 10,
-        category: Optional[str] = None,
-    ) -> List[ReviewSample]:
+        category: str | None = None,
+    ) -> list[ReviewSample]:
         """Get samples pending review, ordered by lowest confidence first.
 
         Args:
@@ -199,7 +198,7 @@ class HumanReviewQueue:
                     (limit,),
                 ).fetchall()
 
-            samples: List[ReviewSample] = []
+            samples: list[ReviewSample] = []
             for row in rows:
                 samples.append(self._row_to_sample(row))
 
@@ -214,7 +213,7 @@ class HumanReviewQueue:
         self,
         sample_id: int,
         correct_category: str,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> None:
         """Submit human correction for a queued sample.
 
@@ -226,7 +225,7 @@ class HumanReviewQueue:
         Raises:
             ValueError: If the sample does not exist or is not pending.
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         try:
             # Verify the sample exists and is pending
@@ -267,14 +266,14 @@ class HumanReviewQueue:
             logger.error("Failed to submit feedback for sample %d: %s", sample_id, exc)
             raise
 
-    def reject_sample(self, sample_id: int, notes: Optional[str] = None) -> None:
+    def reject_sample(self, sample_id: int, notes: str | None = None) -> None:
         """Mark a sample as rejected (incorrectly queued).
 
         Args:
             sample_id: The row ID of the sample.
             notes: Optional reason for rejection.
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         try:
             self.conn.execute(
@@ -316,7 +315,7 @@ class HumanReviewQueue:
             logger.error("Failed to skip sample %d: %s", sample_id, exc)
             raise
 
-    def get_feedback_stats(self) -> Dict:
+    def get_feedback_stats(self) -> dict:
         """Get aggregate feedback statistics.
 
         Returns:
@@ -330,8 +329,8 @@ class HumanReviewQueue:
             ).fetchall()
 
             total_pending = 0
-            category_distribution: Dict[str, int] = {}
-            status_map: Dict[str, int] = {}
+            category_distribution: dict[str, int] = {}
+            status_map: dict[str, int] = {}
 
             for row in status_counts:
                 status_map[row["status"]] = row["cnt"]
@@ -450,7 +449,7 @@ class HumanReviewQueue:
         self.conn.close()
         logger.info("Review queue database connection closed.")
 
-    def __enter__(self) -> "HumanReviewQueue":
+    def __enter__(self) -> HumanReviewQueue:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore[override]

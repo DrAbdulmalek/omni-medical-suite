@@ -4,16 +4,15 @@ Evaluate TrOCR model on test set.
 Computes CER, WER, and medical term accuracy.
 """
 
-import os
-import json
 import argparse
+import json
+import os
 from pathlib import Path
-from typing import List, Dict
 
+import jiwer
 import torch
 from PIL import Image
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-import jiwer
 
 
 class ModelEvaluator:
@@ -38,7 +37,7 @@ class ModelEvaluator:
         self.test_data = []
         metadata_path = self.test_dir / 'metadata.jsonl'
         if metadata_path.exists():
-            with open(metadata_path, 'r', encoding='utf-8') as f:
+            with open(metadata_path, encoding='utf-8') as f:
                 for line in f:
                     self.test_data.append(json.loads(line))
 
@@ -51,7 +50,7 @@ class ModelEvaluator:
 
         return self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
-    def evaluate(self) -> Dict:
+    def evaluate(self) -> dict:
         """Evaluate model on entire test set."""
         print(f"\nEvaluating on {len(self.test_data)} samples...")
 

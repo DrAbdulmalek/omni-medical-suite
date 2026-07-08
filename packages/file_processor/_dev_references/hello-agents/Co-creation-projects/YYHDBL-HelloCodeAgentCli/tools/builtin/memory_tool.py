@@ -230,7 +230,7 @@ class MemoryTool(Tool):
             stats = self.memory_manager.get_memory_stats()
 
             summary_parts = [
-                f"📊 记忆系统摘要",
+                "📊 记忆系统摘要",
                 f"总记忆数: {stats['total_memories']}",
                 f"当前会话: {self.current_session_id or '未开始'}",
                 f"对话轮次: {self.conversation_count}"
@@ -298,7 +298,7 @@ class MemoryTool(Tool):
             stats = self.memory_manager.get_memory_stats()
 
             stats_info = [
-                f"📈 记忆系统统计",
+                "📈 记忆系统统计",
                 f"总记忆数: {stats['total_memories']}",
                 f"启用的记忆类型: {', '.join(stats['enabled_types'])}",
                 f"会话ID: {self.current_session_id or '未开始'}",

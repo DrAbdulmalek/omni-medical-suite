@@ -2,10 +2,10 @@
 Tests for Pydantic schemas: TextChunk, ClassificationResult, validation.
 """
 
-import pytest
 from datetime import datetime
-from pydantic import BaseModel, Field, ValidationError
 
+import pytest
+from pydantic import BaseModel, Field, ValidationError
 
 # ---------------------------------------------------------------------------
 # Schema replicas (lightweight — no engine import required)

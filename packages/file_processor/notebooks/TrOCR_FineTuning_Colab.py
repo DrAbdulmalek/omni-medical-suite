@@ -305,7 +305,6 @@ class MedicalHandwritingDataset(Dataset):
         ]
 
         font_path = None
-        available_fonts = []
         for font_name in ARABIC_FONTS:
             # البحث في مواقع الخطوط الشائعة
             search_paths = [
@@ -607,7 +606,7 @@ def train_model(config: TrainingConfig = None) -> dict:
     logger.info("🏋️ بدء التدريب — %d حقب...", config.num_epochs)
 
     # تحويل eval_dataset إذا كان Subset
-    train_result = trainer.train()
+    trainer.train()
 
     # ── 7. حفظ النموذج ──
     final_dir = os.path.join(config.output_dir, "final")
@@ -1076,7 +1075,7 @@ if __name__ == "__main__":
         train_split=0.9,
     )
 
-    print(f"\n⚙️  الإعدادات:")
+    print("\n⚙️  الإعدادات:")
     print(f"  - النموذج: {config.model_name}")
     print(f"  - LoRA: r={config.lora_r}, alpha={config.lora_alpha}")
     print(f"  - الحقب: {config.num_epochs}, الدفعة: {config.batch_size}")

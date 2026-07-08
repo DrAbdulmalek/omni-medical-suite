@@ -82,7 +82,7 @@ class AuditReportGenerator:
         now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
         report_lines = [
-            f"# Audit Report & Performance Dashboard",
+            "# Audit Report & Performance Dashboard",
             f"**Date**: {now_str}  ",
             f"**Total Decisions Logged**: {total}  ",
             "",

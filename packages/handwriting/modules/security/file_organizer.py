@@ -57,7 +57,6 @@ class FileOrganizer:
         ".dart": "code", ".clj": "code", ".ex": "code", ".exs": "code",
         ".hs": "code", ".ml": "code", ".lisp": "code",
         ".m": "code", ".mm": "code",
-        ".dart": "code",
         ".proto": "code", ".thrift": "code",
         ".dockerfile": "code",
         ".cmake": "code", ".makefile": "code",

@@ -6,8 +6,8 @@ HandwrittenOCR - مقاييس الأداء (WER/CER) v4.0
 - يتطلب: jiwer
 """
 
-import os
 import logging
+import os
 from datetime import datetime
 
 import pandas as pd
@@ -27,7 +27,7 @@ def compute_metrics(db, metrics_log: str = "") -> dict:
         {wer, cer, samples, timestamp}
     """
     try:
-        from jiwer import wer, cer
+        from jiwer import cer, wer
     except ImportError:
         return {"error": "pip install jiwer"}
 

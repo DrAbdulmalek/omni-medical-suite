@@ -58,7 +58,7 @@ class AgenticRLPipeline:
         # 解析JSON结果
         dataset_info = json.loads(result)
 
-        self.log(f"✓ 数据集加载完成")
+        self.log("✓ 数据集加载完成")
         self.log(f"  - 样本数: {dataset_info['dataset_size']}")
         self.log(f"  - 格式: {dataset_info['format']}")
         self.log(f"  - 数据列: {', '.join(dataset_info['sample_keys'])}")
@@ -93,7 +93,7 @@ class AgenticRLPipeline:
         # 解析JSON结果
         result_data = json.loads(result)
         
-        self.log(f"✓ SFT训练完成")
+        self.log("✓ SFT训练完成")
         self.log(f"  - 模型路径: {result_data['output_dir']}")
         self.log(f"  - 状态: {result_data['status']}")
         
@@ -115,7 +115,7 @@ class AgenticRLPipeline:
         })
         eval_data = json.loads(result)
 
-        self.log(f"✓ SFT评估完成")
+        self.log("✓ SFT评估完成")
         self.log(f"  - 准确率: {eval_data['accuracy']}")
         self.log(f"  - 平均奖励: {eval_data['average_reward']}")
 
@@ -149,7 +149,7 @@ class AgenticRLPipeline:
         # 解析JSON结果
         result_data = json.loads(result)
         
-        self.log(f"✓ GRPO训练完成")
+        self.log("✓ GRPO训练完成")
         self.log(f"  - 模型路径: {result_data['output_dir']}")
         self.log(f"  - 状态: {result_data['status']}")
         
@@ -171,7 +171,7 @@ class AgenticRLPipeline:
         })
         eval_data = json.loads(result)
 
-        self.log(f"✓ GRPO评估完成")
+        self.log("✓ GRPO评估完成")
         self.log(f"  - 准确率: {eval_data['accuracy']}")
         self.log(f"  - 平均奖励: {eval_data['average_reward']}")
 

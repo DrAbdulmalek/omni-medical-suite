@@ -52,7 +52,7 @@ import argparse
 import sys
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, List, Any, Tuple
+from typing import Optional, Dict, List, Any
 
 # ---- Default dictionary file path / مسار ملف القاموس الافتراضي ----
 DEFAULT_DICT_PATH = Path("smart_medical_dictionary.json")
@@ -615,7 +615,7 @@ def interactive_mode(dictionary: SmartMedicalDictionary):
             print("\n--- Add New Term / إضافة مصطلح جديد ---")
             pattern = input("  Pattern (regex) / النمط: ").strip()
             replacement = input("  Replacement / البديل: ").strip()
-            print(f"  Available categories / التصنيفات المتاحة:")
+            print("  Available categories / التصنيفات المتاحة:")
             print(f"    {', '.join(VALID_CATEGORIES)}")
             category = input(
                 "  Category (default: custom) / التصنيف: "
@@ -660,7 +660,7 @@ def interactive_mode(dictionary: SmartMedicalDictionary):
 
         elif choice in ('stats', 'statistics', '6'):
             stats = dictionary.get_stats()
-            print(f"\n  Dictionary Statistics / إحصائيات القاموس:")
+            print("\n  Dictionary Statistics / إحصائيات القاموس:")
             print(f"  File: {stats['dict_path']}")
             print(f"  Last modified: {stats['last_modified']}")
             print(f"  Total entries: {stats['total_entries']}")
@@ -819,7 +819,7 @@ def main():
 
     if args.stats:
         stats = dictionary.get_stats()
-        print(f"\nDictionary Statistics / إحصائيات القاموس:")
+        print("\nDictionary Statistics / إحصائيات القاموس:")
         print(f"  File / الملف:          {stats['dict_path']}")
         print(f"  Last modified / آخر تعديل: {stats['last_modified']}")
         print(f"  Total entries / الإدخالات الكلية: {stats['total_entries']}")

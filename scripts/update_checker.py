@@ -9,10 +9,9 @@ import asyncio
 import json
 import logging
 import os
-import urllib.request
 import urllib.error
-from datetime import datetime, timezone
-from typing import Optional
+import urllib.request
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +34,9 @@ class UpdateChecker:
     """Checks GitHub releases for newer versions."""
 
     def __init__(self) -> None:
-        self.last_check: Optional[datetime] = None
+        self.last_check: datetime | None = None
         self.current_version: str = _get_current_version()
-        self.latest_version: Optional[str] = None
+        self.latest_version: str | None = None
         self.update_available: bool = False
 
     def check_for_updates(self) -> bool:
@@ -59,7 +58,7 @@ class UpdateChecker:
                 latest = data.get("tag_name", "v0.0.0")
                 self.latest_version = latest
                 self.update_available = latest != self.current_version
-                self.last_check = datetime.now(timezone.utc)
+                self.last_check = datetime.now(UTC)
 
                 if self.update_available:
                     logger.info(

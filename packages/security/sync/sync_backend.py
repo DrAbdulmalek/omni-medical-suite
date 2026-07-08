@@ -5,18 +5,18 @@
 تدعم: جوجل درايف، مجلد محلي، أو خادم WebDAV
 """
 
-import os, json, time, hashlib
-from pathlib import Path
-from typing import Optional, Dict, List
-from datetime import datetime
+import hashlib
+import json
 import logging
+from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 class MobileSyncBackend:
     """إدارة مزامنة التصحيحات بين الموبايل وبيئة التطوير"""
 
-    def __init__(self, sync_root: str = None, provider: str = "local"):
+    def __init__(self, sync_root: str | None = None, provider: str = "local"):
         """
         Args:
             sync_root: المسار الجذر للمزامنة (مجلد محلي أو نقطة ربط Google Drive)
@@ -33,12 +33,12 @@ class MobileSyncBackend:
 
         self.correction_index = self._load_index()
 
-    def _load_index(self) -> Dict:
+    def _load_index(self) -> dict:
         """تحميل فهرس التصحيحات لتسريع البحث"""
         index_path = self.sync_root / "corrections" / ".index.json"
         if index_path.exists():
             try:
-                with open(index_path, "r", encoding="utf-8") as f:
+                with open(index_path, encoding="utf-8") as f:
                     return json.load(f)
             except:
                 logger.warning("فشل تحميل الفهرس - سيتم إعادة بنائه")
@@ -50,7 +50,7 @@ class MobileSyncBackend:
         with open(index_path, "w", encoding="utf-8") as f:
             json.dump(self.correction_index, f, ensure_ascii=False, indent=2)
 
-    def receive_correction(self, block_id: str, data: Dict) -> bool:
+    def receive_correction(self, block_id: str, data: dict) -> bool:
         """
         استقبال تصحيح من الموبايل وحفظه
 
@@ -95,7 +95,7 @@ class MobileSyncBackend:
         logger.info(f"✅ استلام تصحيح: {block_id} → {correction_id}")
         return True
 
-    def get_pending_corrections(self, limit: int = 50) -> List[Dict]:
+    def get_pending_corrections(self, limit: int = 50) -> list[dict]:
         """جلب التصحيحات الجديدة التي لم تُدمج بعد"""
         pending = []
         corrections_dir = self.sync_root / "corrections"
@@ -105,7 +105,7 @@ class MobileSyncBackend:
                 continue  # تخطي ملفات الفهرس
 
             try:
-                with open(corr_file, "r", encoding="utf-8") as f:
+                with open(corr_file, encoding="utf-8") as f:
                     data = json.load(f)
 
                 # تحقق مما إذا كان هذا التصحيح قد دُمج سابقاً
@@ -129,20 +129,20 @@ class MobileSyncBackend:
             return False
 
         try:
-            with open(merged_file, "r", encoding="utf-8") as f:
+            with open(merged_file, encoding="utf-8") as f:
                 merged = json.load(f)
             return correction_id in merged.get("correction_ids", [])
         except:
             return False
 
-    def mark_as_merged(self, corrections: List[Dict]):
+    def mark_as_merged(self, corrections: list[dict]):
         """وضع علامة على التصحيحات كمُدمجة لمنع التكرار"""
         merged_file = self.sync_root / "exports" / "merged_corrections.json"
         merged = {"correction_ids": [], "last_update": datetime.now().isoformat()}
 
         if merged_file.exists():
             try:
-                with open(merged_file, "r", encoding="utf-8") as f:
+                with open(merged_file, encoding="utf-8") as f:
                     merged = json.load(f)
             except:
                 pass
@@ -190,12 +190,12 @@ class MobileSyncBackend:
         pending = self.get_pending_corrections()
 
         for corr in pending:
-            block_id = corr["block_id"]
+            corr["block_id"]
             # تحديث قاموس التصحيحات في مساحة العمل
             correction_dict_path = colab_workspace / "correction_dict.json"
 
             if correction_dict_path.exists():
-                with open(correction_dict_path, "r", encoding="utf-8") as f:
+                with open(correction_dict_path, encoding="utf-8") as f:
                     correction_dict = json.load(f)
             else:
                 correction_dict = {}

@@ -12,10 +12,10 @@ and is typically applied **after** segmentation but **before** classification.
 
 from __future__ import annotations
 
+import contextlib
 import logging
-import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 from core.schemas import TextChunk
 from core.utils import chunk_overlap_text, count_tokens
@@ -53,9 +53,9 @@ class ContextPreserver:
 
     def add_overlap(
         self,
-        chunks: List[TextChunk],
+        chunks: list[TextChunk],
         overlap_tokens: int = 200,
-    ) -> List[TextChunk]:
+    ) -> list[TextChunk]:
         """Add overlapping context between consecutive chunks.
 
         For each chunk (except the first), the tail of the *previous*
@@ -81,7 +81,7 @@ class ContextPreserver:
             self._logger.debug("add_overlap: nothing to do (%d chunks)", len(chunks) if chunks else 0)
             return list(chunks)  # return a shallow copy
 
-        result: List[TextChunk] = [chunks[0].model_copy(deep=True)]
+        result: list[TextChunk] = [chunks[0].model_copy(deep=True)]
 
         for i in range(1, len(chunks)):
             prev_chunk = chunks[i - 1]
@@ -124,9 +124,9 @@ class ContextPreserver:
 
     def add_metadata_context(
         self,
-        chunks: List[TextChunk],
-        source_info: Dict[str, Any],
-    ) -> List[TextChunk]:
+        chunks: list[TextChunk],
+        source_info: dict[str, Any],
+    ) -> list[TextChunk]:
         """Enrich every chunk with source metadata for traceability.
 
         The following metadata keys are automatically set (if not already
@@ -156,10 +156,10 @@ class ContextPreserver:
         if not chunks:
             return []
 
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         total = source_info.get("total_chunks", len(chunks))
 
-        result: List[TextChunk] = []
+        result: list[TextChunk] = []
         for idx, chunk in enumerate(chunks):
             enriched = chunk.model_copy(deep=True)
 
@@ -167,13 +167,11 @@ class ContextPreserver:
             if "source_file" in source_info and enriched.source_file is None:
                 enriched.source_file = str(source_info["source_file"])
             if "source_page" in source_info and enriched.source_page is None:
-                try:
+                with contextlib.suppress(TypeError, ValueError):
                     enriched.source_page = int(source_info["source_page"])
-                except (TypeError, ValueError):
-                    pass
 
             # Automatic metadata fields.
-            auto_meta: Dict[str, Any] = {
+            auto_meta: dict[str, Any] = {
                 "processed_at": timestamp,
                 "chunk_index_in_document": idx,
                 "total_chunks_in_document": total,
@@ -200,7 +198,7 @@ class ContextPreserver:
     # 3. Chunk quality pre-check
     # ------------------------------------------------------------------
 
-    def validate_chunk_quality(self, chunk: TextChunk) -> Dict[str, Any]:
+    def validate_chunk_quality(self, chunk: TextChunk) -> dict[str, Any]:
         """Check a single chunk for common quality issues.
 
         The returned dictionary always contains:
@@ -230,8 +228,8 @@ class ContextPreserver:
         Returns:
             A dictionary with ``is_valid``, ``issues``, and ``warnings``.
         """
-        issues: List[str] = []
-        warnings: List[str] = []
+        issues: list[str] = []
+        warnings: list[str] = []
 
         text = chunk.text.strip()
 
@@ -264,7 +262,7 @@ class ContextPreserver:
             )
 
         # 4. Orphan sentence — text does not end with sentence-ending punctuation.
-        sentence_endings = {".", "!", "?", "؟", "!", "۔", "،"}
+        sentence_endings = {".", "!", "?", "؟", "۔", "،"}
         if text[-1] not in sentence_endings:
             warnings.append(
                 "Chunk does not end with sentence-ending punctuation. "
@@ -312,8 +310,8 @@ class ContextPreserver:
 
     def validate_chunks_quality(
         self,
-        chunks: List[TextChunk],
-    ) -> Dict[str, Any]:
+        chunks: list[TextChunk],
+    ) -> dict[str, Any]:
         """Validate all chunks and return an aggregate report.
 
         Args:
@@ -329,8 +327,8 @@ class ContextPreserver:
         """
         total = len(chunks)
         valid_count = 0
-        all_issues: Dict[str, List[str]] = {}
-        all_warnings: Dict[str, List[str]] = {}
+        all_issues: dict[str, list[str]] = {}
+        all_warnings: dict[str, list[str]] = {}
 
         for chunk in chunks:
             result = self.validate_chunk_quality(chunk)
@@ -412,9 +410,7 @@ class ContextPreserver:
         for i, ch in enumerate(text):
             if ch in {".", "!", "?", "؟", "۔"}:
                 # Make sure it's not an abbreviation or number (e.g., "Dr." or "3.5")
-                if i + 1 < len(text) and text[i + 1].isspace():
-                    last_sentence_match = i + 1
-                elif i == len(text) - 1:
+                if (i + 1 < len(text) and text[i + 1].isspace()) or i == len(text) - 1:
                     last_sentence_match = i + 1
 
         if last_sentence_match > 10:

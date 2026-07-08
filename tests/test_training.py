@@ -6,11 +6,9 @@
 
 import json
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 from PIL import Image
 
@@ -63,7 +61,7 @@ class TestImageFolderLoader(unittest.TestCase):
                 def _load(self):
                     if not os.path.exists(self.labels_file):
                         raise FileNotFoundError(f"Labels file not found: {self.labels_file}")
-                    with open(self.labels_file, "r", encoding="utf-8") as f:
+                    with open(self.labels_file, encoding="utf-8") as f:
                         for line in f:
                             line = line.strip()
                             if not line:
@@ -190,7 +188,7 @@ class TestMobileReviewLoader(unittest.TestCase):
                 def _load(self):
                     if not os.path.exists(self.reviews_file):
                         raise FileNotFoundError(f"Reviews file not found: {self.reviews_file}")
-                    with open(self.reviews_file, "r", encoding="utf-8") as f:
+                    with open(self.reviews_file, encoding="utf-8") as f:
                         self.reviews = json.load(f)
 
                 def load(self):
@@ -311,8 +309,8 @@ class TestDatasetSplit(unittest.TestCase):
         splitter1 = Splitter(self.sample_data, seed=123)
         splitter2 = Splitter(self.sample_data, seed=123)
 
-        train1, val1, test1 = splitter1.split()
-        train2, val2, test2 = splitter2.split()
+        train1, val1, _test1 = splitter1.split()
+        train2, val2, _test2 = splitter2.split()
 
         # Same seed should produce identical splits
         self.assertEqual(

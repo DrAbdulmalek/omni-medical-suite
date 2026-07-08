@@ -12,9 +12,7 @@ The module is optional and requires a valid Gemini API key.
 
 from __future__ import annotations
 
-import json
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +53,9 @@ class GeminiRefiner:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = "gemini-2.0-flash",
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         enabled: bool = True,
         max_retries: int = 3,
     ) -> None:
@@ -84,7 +82,7 @@ class GeminiRefiner:
             logger.info("Gemini refiner disabled (no API key provided)")
 
     @staticmethod
-    def _load_api_key_from_env() -> Optional[str]:
+    def _load_api_key_from_env() -> str | None:
         """Attempt to load the Gemini API key from environment variables.
 
         Checks ``GEMINI_API_KEY`` and ``GOOGLE_API_KEY`` environment variables.

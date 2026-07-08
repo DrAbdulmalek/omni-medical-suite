@@ -9,16 +9,16 @@ Author: Dr. Abdulmalek
 Version: 1.0.0
 """
 
+import hashlib
 import json
 import uuid
-import hashlib
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from enum import Enum, StrEnum
+from typing import Any
 
 
-class EventCategory(str, Enum):
+class EventCategory(StrEnum):
     OCR_PROCESSING = "ocr_processing"
     CORRECTION = "correction"
     PHI_DETECTION = "phi_detection"
@@ -31,7 +31,7 @@ class EventCategory(str, Enum):
     CONFIG_CHANGE = "config_change"
 
 
-class EventSeverity(str, Enum):
+class EventSeverity(StrEnum):
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -39,7 +39,7 @@ class EventSeverity(str, Enum):
     CRITICAL = "critical"
 
 
-class PHIAction(str, Enum):
+class PHIAction(StrEnum):
     DETECTED = "detected"
     MASKED = "masked"
     REDACTED = "redacted"
@@ -51,11 +51,11 @@ class PHIAction(str, Enum):
 class AuditEvent:
     """
     Unified audit event for the Medical OCR Ecosystem.
-    
+
     Every auditable action in the system produces an AuditEvent.
     Events are stored as JSONL (one JSON object per line) for
     efficient append-only logging and easy parsing.
-    
+
     Traceability Chain:
         Each event links to its parent via parent_event_id,
         creating a full traceable chain of who did what, when,
@@ -63,42 +63,42 @@ class AuditEvent:
     """
     # Identity
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    parent_event_id: Optional[str] = None
+    parent_event_id: str | None = None
     correlation_id: str = ""  # Groups related events (e.g., one document processing run)
-    
+
     # Timing
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+
     # Classification
     category: EventCategory = EventCategory.SYSTEM
     severity: EventSeverity = EventSeverity.INFO
     action: str = ""  # Specific action: "ocr_run", "correction_apply", "phi_mask", etc.
-    
+
     # Actor
     actor_type: str = "system"  # "user", "system", "api", "cron"
     actor_id: str = ""  # User ID, API key hash, or "system"
     actor_ip: str = ""
-    
+
     # Resource
     resource_type: str = ""  # "document", "image", "model", "config"
     resource_id: str = ""
-    
+
     # Details
     description: str = ""
-    before_state: Optional[Dict[str, Any]] = None
-    after_state: Optional[Dict[str, Any]] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    
+    before_state: dict[str, Any] | None = None
+    after_state: dict[str, Any] | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
     # PHI tracking
     phi_detected: bool = False
-    phi_action: Optional[PHIAction] = None
-    phi_entities: List[Dict[str, str]] = field(default_factory=list)
-    
+    phi_action: PHIAction | None = None
+    phi_entities: list[dict[str, str]] = field(default_factory=list)
+
     # Outcome
     success: bool = True
     error_message: str = ""
     duration_ms: float = 0.0
-    
+
     # Integrity
     checksum: str = ""  # SHA-256 of all other fields for tamper detection
 
@@ -156,7 +156,7 @@ class AuditEvent:
 class AuditTrail:
     """
     Manages a chain of audit events for a single operation.
-    
+
     Usage:
         trail = AuditTrail(correlation_id="doc-123", actor_id="user-456")
         trail.start("document_processing", "Processing medical document")
@@ -164,7 +164,7 @@ class AuditTrail:
         trail.add_event("correction_apply", "Applied 15 corrections")
         trail.add_event("phi_mask", "Masked 3 PHI entities", phi_detected=True)
         trail.end(success=True)
-        
+
         for line in trail.to_jsonl():
             print(line)
     """
@@ -173,12 +173,12 @@ class AuditTrail:
         self.correlation_id = correlation_id or str(uuid.uuid4())
         self.actor_id = actor_id
         self.actor_type = actor_type
-        self.events: List[AuditEvent] = []
-        self._start_time: Optional[datetime] = None
+        self.events: list[AuditEvent] = []
+        self._start_time: datetime | None = None
 
     def start(self, action: str, description: str, resource_type: str = "", resource_id: str = "") -> AuditEvent:
         """Start a new audit trail."""
-        self._start_time = datetime.now(timezone.utc)
+        self._start_time = datetime.now(UTC)
         event = AuditEvent(
             correlation_id=self.correlation_id,
             category=EventCategory.SYSTEM,
@@ -198,11 +198,11 @@ class AuditTrail:
         description: str,
         category: EventCategory = EventCategory.SYSTEM,
         severity: EventSeverity = EventSeverity.INFO,
-        before_state: Optional[Dict] = None,
-        after_state: Optional[Dict] = None,
+        before_state: dict | None = None,
+        after_state: dict | None = None,
         phi_detected: bool = False,
-        phi_action: Optional[PHIAction] = None,
-        phi_entities: Optional[List[Dict]] = None,
+        phi_action: PHIAction | None = None,
+        phi_entities: list[dict] | None = None,
         success: bool = True,
         error_message: str = "",
         duration_ms: float = 0.0,
@@ -238,8 +238,8 @@ class AuditTrail:
         """End the audit trail."""
         duration = 0.0
         if self._start_time:
-            duration = (datetime.now(timezone.utc) - self._start_time).total_seconds() * 1000
-        
+            duration = (datetime.now(UTC) - self._start_time).total_seconds() * 1000
+
         parent_id = self.events[-1].event_id if self.events else None
         event = AuditEvent(
             parent_event_id=parent_id,
@@ -255,7 +255,7 @@ class AuditTrail:
         self.events.append(event)
         return event
 
-    def to_jsonl(self) -> List[str]:
+    def to_jsonl(self) -> list[str]:
         """Export the full trail as JSONL lines."""
         return [event.to_jsonl() for event in self.events]
 

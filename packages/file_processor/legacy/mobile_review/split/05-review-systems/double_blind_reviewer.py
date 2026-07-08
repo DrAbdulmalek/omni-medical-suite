@@ -5,10 +5,11 @@
 مخصص للوثائق الطبية/القانونية/المالية الحساسة
 """
 
-import json, difflib, random
+import json
+import difflib
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict
 from core.user_manager import UserManager
 
 class DoubleBlindReviewer:

@@ -10,14 +10,11 @@ Professional Arabic medical OCR web interface with 5 tabs:
   5. Medical Dictionary - Browse and manage Arabic medical terms
 """
 
-import sys
-import os
 import json
+import sys
 import time
-import tempfile
 import zipfile
 from pathlib import Path
-from typing import Optional
 
 import gradio as gr
 
@@ -61,7 +58,7 @@ def load_medical_dict() -> dict:
     """Load the Arabic medical dictionary from JSON file."""
     dict_path = PROJECT_ROOT / "data" / "arabic_medical_dict.json"
     if dict_path.exists():
-        with open(dict_path, "r", encoding="utf-8") as f:
+        with open(dict_path, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
@@ -155,7 +152,7 @@ def process_single_ocr(file, engine_choice, language, auto_correct):
                 "PaddleOCR": "paddleocr",
                 "TrOCR": "trocr",
             }
-            selected_engine = engines_map.get(engine_choice, None)
+            engines_map.get(engine_choice)
 
             # Determine if PDF or image
             file_path = file if isinstance(file, str) else file.name
@@ -172,7 +169,7 @@ def process_single_ocr(file, engine_choice, language, auto_correct):
             if auto_correct:
                 checker = get_spell_checker()
                 if checker != "demo":
-                    corrected, conf = checker.correct_with_confidence(result_text)
+                    corrected, _conf = checker.correct_with_confidence(result_text)
                     if corrected != result_text:
                         result_text = corrected
 
@@ -192,7 +189,7 @@ def process_single_ocr(file, engine_choice, language, auto_correct):
         return result_text, confidence_html, info_text
 
     except Exception as e:
-        return f"خطأ في المعالجة: {str(e)}", "", ""
+        return f"خطأ في المعالجة: {e!s}", "", ""
 
 
 # ─── Tab 2: Batch Processing ────────────────────────────────────────────────
@@ -208,7 +205,7 @@ def process_batch_ocr(files, engine_choice, progress=gr.Progress()):
     pipeline = get_pipeline()
     results = []
 
-    for i, file in enumerate(progress.tqdm(files, desc="معالجة الملفات")):
+    for _i, file in enumerate(progress.tqdm(files, desc="معالجة الملفات")):
         try:
             file_path = file if isinstance(file, str) else file.name
             file_name = Path(file_path).name
@@ -266,7 +263,7 @@ def run_spell_check(input_text):
         diff_html = _generate_diff_html(input_text, corrected)
 
         # Count corrections
-        changes = sum(1 for a, b in zip(input_text.split(), corrected.split()) if a != b)
+        changes = sum(1 for a, b in zip(input_text.split(), corrected.split(), strict=False) if a != b)
         changes = max(changes, abs(len(input_text.split()) - len(corrected.split())))
 
         summary = f"عدد التصحيحات: {changes} | ثقة التصحيح: {confidence:.1%}"
@@ -274,7 +271,7 @@ def run_spell_check(input_text):
         return corrected, diff_html, summary, f"{confidence:.1%}"
 
     except Exception as e:
-        return input_text, f"خطأ: {str(e)}", "", ""
+        return input_text, f"خطأ: {e!s}", "", ""
 
 
 def _generate_diff_html(original: str, corrected: str) -> str:
@@ -287,7 +284,7 @@ def _generate_diff_html(original: str, corrected: str) -> str:
     html_parts = ['<div class="result-box">']
 
     if len(orig_words) == len(corr_words):
-        for ow, cw in zip(orig_words, corr_words):
+        for ow, cw in zip(orig_words, corr_words, strict=False):
             if ow == cw:
                 html_parts.append(f'<span>{ow}</span> ')
             else:
@@ -356,7 +353,7 @@ def compare_engines(file):
         )
 
     except Exception as e:
-        err = f"خطأ في المقارنة: {str(e)}"
+        err = f"خطأ في المقارنة: {e!s}"
         return err, err, err, err, err
 
 
@@ -399,7 +396,7 @@ def add_dict_entry(term, correction):
             json.dump(dictionary, f, ensure_ascii=False, indent=2)
         return f"تمت إضافة: {term} → {correction}", "", ""
     except Exception as e:
-        return f"خطأ في الحفظ: {str(e)}", "", ""
+        return f"خطأ في الحفظ: {e!s}", "", ""
 
 
 # ─── Build Gradio Interface ──────────────────────────────────────────────────
@@ -464,7 +461,7 @@ def build_app() -> gr.Blocks:
                             show_copy_button=True,
                             direction="rtl",
                         )
-                        single_download = gr.Button("تحميل كـ TXT")
+                        gr.Button("تحميل كـ TXT")
 
                 single_run.click(
                     fn=process_single_ocr,
@@ -547,14 +544,13 @@ def build_app() -> gr.Blocks:
             # Tab 4: Engine Comparison
             # ══════════════════════════════════════════════════════════════════
             with gr.Tab("مقارنة المحركات"):
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        gr.Markdown("### رفع صورة للمقارنة")
-                        compare_file = gr.File(
-                            label="اختر صورة واحدة",
-                            file_types=[".png", ".jpg", ".jpeg", ".tiff", ".bmp"],
-                        )
-                        compare_run = gr.Button("مقارنة جميع المحركات", variant="primary", size="lg")
+                with gr.Row(), gr.Column(scale=1):
+                    gr.Markdown("### رفع صورة للمقارنة")
+                    compare_file = gr.File(
+                        label="اختر صورة واحدة",
+                        file_types=[".png", ".jpg", ".jpeg", ".tiff", ".bmp"],
+                    )
+                    compare_run = gr.Button("مقارنة جميع المحركات", variant="primary", size="lg")
 
                 with gr.Row(equal_height=True):
                     with gr.Column():

@@ -12,7 +12,6 @@ import csv
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List
 
 from core.schemas import ClassifiedChunk
 
@@ -53,7 +52,7 @@ class CSVExporter:
 
     def export(
         self,
-        chunks: List[ClassifiedChunk],
+        chunks: list[ClassifiedChunk],
         output_path: str,
         encoding: str = "utf-8-sig",
     ) -> str:
@@ -99,7 +98,7 @@ class CSVExporter:
 
     def export_summary(
         self,
-        chunks: List[ClassifiedChunk],
+        chunks: list[ClassifiedChunk],
         output_path: str,
         encoding: str = "utf-8-sig",
     ) -> str:
@@ -125,7 +124,7 @@ class CSVExporter:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
         # Aggregate per category
-        cat_data: Dict[str, List[ClassifiedChunk]] = defaultdict(list)
+        cat_data: dict[str, list[ClassifiedChunk]] = defaultdict(list)
         for classified in chunks:
             cat_data[classified.classification.category].append(classified)
 
@@ -163,7 +162,7 @@ class CSVExporter:
         logger.info("Exported summary CSV (%d categories): %s", len(cat_data), output_path)
         return output_path
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Return exporter statistics.
 
         Returns:
@@ -176,7 +175,7 @@ class CSVExporter:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _chunk_to_row(chunk: ClassifiedChunk) -> Dict:
+    def _chunk_to_row(chunk: ClassifiedChunk) -> dict:
         """Convert a :class:`ClassifiedChunk` to a CSV row dictionary."""
         return {
             "chunk_id": chunk.chunk.id,

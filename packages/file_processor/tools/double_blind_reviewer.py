@@ -5,14 +5,16 @@
 مخصص للوثائق الطبية/القانونية/المالية الحساسة
 """
 
-import json, difflib, random
+import json
+import difflib
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 # استيراد UserManager من modules.core
 try:
-    import sys as _sys, os as _os
+    import sys as _sys
+    import os as _os
     _root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
     if _root not in _sys.path:
         _sys.path.insert(0, _root)

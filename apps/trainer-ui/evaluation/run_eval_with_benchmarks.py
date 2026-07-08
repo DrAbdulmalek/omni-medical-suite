@@ -47,7 +47,6 @@ import sys
 import json
 import argparse
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -56,9 +55,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from evaluation.benchmark_bridge import (
     BenchmarkBridge,
-    get_cer,
-    get_wer,
-    get_medical_accuracy,
     BENCHMARKS_AVAILABLE,
 )
 
@@ -590,7 +586,7 @@ def main():
             f"MedAcc={results['medical_accuracy']:.4f}"
         )
     else:
-        print(f"\n❌ Some thresholds failed:")
+        print("\n❌ Some thresholds failed:")
         print(
             f"   CER  = {results['cer']:.4f} "
             f"(≤{args.threshold_cer})  "

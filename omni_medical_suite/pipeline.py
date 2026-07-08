@@ -6,15 +6,16 @@ before OCR, plus layout-aware line segmentation.
 """
 
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Any
-import numpy as np
+from typing import Any
+
 import cv2
+import numpy as np
 
 # Import preprocessing modules
 try:
     from .preprocessing.scanner_fixer_wrapper import (
-        ScannerFixerPreprocessor,
         SCANNER_FIXER_AVAILABLE,
+        ScannerFixerPreprocessor,
     )
 except ImportError:
     SCANNER_FIXER_AVAILABLE = False
@@ -52,8 +53,8 @@ class EnhancedOCRPipeline:
         self,
         use_scanner_fixer: bool = True,
         use_line_segmentation: bool = True,
-        scanner_fixer_config: Optional[Dict] = None,
-        line_segmentation_config: Optional[Dict] = None,
+        scanner_fixer_config: dict | None = None,
+        line_segmentation_config: dict | None = None,
     ):
         """
         Initialize the pipeline.
@@ -79,7 +80,7 @@ class EnhancedOCRPipeline:
                 **(line_segmentation_config or {})
             )
 
-    def process_image(self, image: Union[str, Path, np.ndarray]) -> Dict[str, Any]:
+    def process_image(self, image: str | Path | np.ndarray) -> dict[str, Any]:
         """
         Process a single image through the enhanced pipeline.
 
@@ -133,7 +134,7 @@ class EnhancedOCRPipeline:
 
         return result
 
-    def process_batch(self, images: List[Union[str, Path, np.ndarray]]) -> List[Dict[str, Any]]:
+    def process_batch(self, images: list[str | Path | np.ndarray]) -> list[dict[str, Any]]:
         """
         Process multiple images.
 
@@ -145,7 +146,7 @@ class EnhancedOCRPipeline:
         """
         return [self.process_image(img) for img in images]
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """Get pipeline configuration"""
         return {
             "use_scanner_fixer": self.use_scanner_fixer,

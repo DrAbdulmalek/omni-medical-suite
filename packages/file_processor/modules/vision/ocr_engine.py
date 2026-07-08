@@ -1367,7 +1367,6 @@ class OCREngine:
         """
         try:
             import torch
-            from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
             if not self._load_trocr():
                 return False

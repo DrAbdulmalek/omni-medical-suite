@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Hybrid PII Scrubber v2 - Medical OCR Training Hub
 Author: DrAbdulmalek
@@ -9,9 +8,8 @@ Description: Hybrid PII redaction engine combining:
 This is PII Shield v2 - replacing pure-regex approach for better Arabic entity coverage.
 """
 
-import re
 import logging
-from typing import List, Dict, Tuple, Optional
+import re
 from dataclasses import dataclass
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -29,7 +27,7 @@ class RedactionStats:
     organizations_found: int = 0
     total_redactions: int = 0
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         total = (self.phones_found + self.dates_found + self.emails_found +
                  self.ids_found + self.names_found + self.organizations_found)
         return {
@@ -46,7 +44,7 @@ class RedactionStats:
 class HybridPIIScrubber:
     """
     Hybrid PII Scrubber combining Regex speed with NER accuracy.
-    
+
     Architecture:
     ┌─────────────────────────────────────┐
     │          Input Text                 │
@@ -76,7 +74,7 @@ class HybridPIIScrubber:
     # Regex patterns for Layer 1 (Fast scrubbing)
     # ORDER MATTERS: dates, IDs, and emails must run BEFORE the generic phone
     # pattern to prevent the broad phone regex from consuming them.
-    REGEX_PATTERNS: List[Tuple[re.Pattern, str]] = [
+    REGEX_PATTERNS: list[tuple[re.Pattern, str]] = [
         # --- Dates (run first to avoid phone-pattern conflicts) ---
 
         # Gregorian dates: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, etc.
@@ -123,10 +121,10 @@ class HybridPIIScrubber:
         # Lab values that look like dates
     }
 
-    def __init__(self, use_ner: bool = True, ner_model: Optional[str] = None):
+    def __init__(self, use_ner: bool = True, ner_model: str | None = None):
         """
         Initialize the hybrid scrubber.
-        
+
         Args:
             use_ner: Whether to use NER for name detection (slower but more accurate)
             ner_model: HuggingFace model name for NER (default: CamelBERT)
@@ -162,13 +160,13 @@ class HybridPIIScrubber:
             logger.warning(f"Failed to load NER model: {e}. Falling back to regex-only mode.")
             self.use_ner = False
 
-    def scrub(self, text: str) -> Tuple[str, RedactionStats]:
+    def scrub(self, text: str) -> tuple[str, RedactionStats]:
         """
         Scrub PII from text using both Regex and NER layers.
-        
+
         Args:
             text: Input text that may contain PII
-            
+
         Returns:
             Tuple of (redacted_text, statistics)
         """
@@ -189,7 +187,7 @@ class HybridPIIScrubber:
 
         return redacted, stats
 
-    def _regex_scrub(self, text: str, stats: RedactionStats) -> Tuple[str, RedactionStats]:
+    def _regex_scrub(self, text: str, stats: RedactionStats) -> tuple[str, RedactionStats]:
         """Layer 1: Fast regex-based PII detection"""
         for pattern, replacement in self._compiled_patterns:
             matches = pattern.findall(text)
@@ -206,7 +204,7 @@ class HybridPIIScrubber:
 
         return text, stats
 
-    def _ner_scrub(self, text: str, stats: RedactionStats) -> Tuple[str, RedactionStats]:
+    def _ner_scrub(self, text: str, stats: RedactionStats) -> tuple[str, RedactionStats]:
         """Layer 2: NER-based entity detection for Arabic names and orgs"""
         self._load_ner_model()
         if not self._ner_pipeline:
@@ -231,7 +229,7 @@ class HybridPIIScrubber:
 
         return text, stats
 
-    def scrub_batch(self, texts: List[str]) -> List[Tuple[str, RedactionStats]]:
+    def scrub_batch(self, texts: list[str]) -> list[tuple[str, RedactionStats]]:
         """Scrub multiple texts. Returns list of (redacted_text, stats) tuples."""
         results = []
         for text in texts:
@@ -241,7 +239,7 @@ class HybridPIIScrubber:
 
 
 # Convenience function for backward compatibility
-def scrub_pii(text: str, use_ner: bool = True) -> Tuple[str, RedactionStats]:
+def scrub_pii(text: str, use_ner: bool = True) -> tuple[str, RedactionStats]:
     """
     Convenience function to scrub PII from text.
     Compatible with the existing v1 scrub_pii interface but adds NER support.

@@ -20,17 +20,13 @@ Usage:
 """
 
 import io
-import json
 import logging
-import math
-import os
 import pickle
-import struct
 import time
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
@@ -240,7 +236,6 @@ class MemoryEfficientLearner:
         Uses mixed precision, gradient accumulation, and EWC regularization.
         """
         import torch
-        from torch.nn import functional as F
 
         # Gather all corrections
         all_corrections = list(self.hot_memory)

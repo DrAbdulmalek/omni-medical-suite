@@ -105,7 +105,6 @@ class LanguageDetector:
 
         # عتبة لتحديد اللغة السائدة
         dominant_threshold = 0.70
-        mixed_threshold = 0.30  # كل لغة تمثل 30% على الأقل = مختلط
 
         if arabic_ratio >= dominant_threshold:
             language = "ar"

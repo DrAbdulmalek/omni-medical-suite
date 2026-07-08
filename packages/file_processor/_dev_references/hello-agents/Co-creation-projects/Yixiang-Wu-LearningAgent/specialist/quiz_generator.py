@@ -1,7 +1,6 @@
 # specialist/quiz_generator.py
 """测验生成器 - 根据学习计划生成测验题"""
 
-import json
 from typing import List, Union
 from hello_agents import HelloAgentsLLM
 
@@ -66,7 +65,7 @@ class QuizGeneratorAgent:
         try:
             response = self.llm.invoke(messages)
             return response.strip()
-        except Exception as e:
+        except Exception:
             # 降级：返回默认问题
             return f"请简要描述你从学习计划中学到的核心内容（难度：{difficulty_level}）"
 

@@ -2,9 +2,8 @@
 Tests for DocumentSegmenter — segment_by_size with sample text.
 """
 
-import pytest
-from typing import List
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Minimal replica for standalone testing
@@ -13,7 +12,7 @@ from typing import List
 class TextChunk:
     """Lightweight text chunk data class."""
 
-    __slots__ = ("text", "chunk_index", "token_count")
+    __slots__ = ("chunk_index", "text", "token_count")
 
     def __init__(self, text: str, chunk_index: int, token_count: int):
         self.text = text
@@ -37,12 +36,12 @@ class DocumentSegmenter:
 
     def segment_by_size(
         self, text: str, source_file: str = "unknown.txt"
-    ) -> List[TextChunk]:
+    ) -> list[TextChunk]:
         """Split text into chunks based on character count."""
         if not text.strip():
             return []
 
-        chunks: List[TextChunk] = []
+        chunks: list[TextChunk] = []
         step = self.chunk_size - self.chunk_overlap
         start = 0
         idx = 0

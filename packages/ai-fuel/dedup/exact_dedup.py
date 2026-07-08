@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ class ExactDeduplicator:
 
     def __init__(self) -> None:
         """Initialise an empty dedup index."""
-        self.seen_hashes: Dict[str, str] = {}
+        self.seen_hashes: dict[str, str] = {}
         self._total_checks: int = 0
         self._duplicate_count: int = 0
 
@@ -37,7 +36,7 @@ class ExactDeduplicator:
     # Public API
     # ------------------------------------------------------------------
 
-    def is_duplicate(self, text: str) -> Tuple[bool, Optional[str]]:
+    def is_duplicate(self, text: str) -> tuple[bool, str | None]:
         """Check whether *text* is an exact duplicate of a previously indexed chunk.
 
         The text is normalised (strip + lowercase) before hashing so that
@@ -103,7 +102,7 @@ class ExactDeduplicator:
             text_hash[:12],
         )
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Return deduplication statistics.
 
         Returns:

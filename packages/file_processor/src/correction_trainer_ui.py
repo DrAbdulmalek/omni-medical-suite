@@ -17,10 +17,13 @@ src/correction_trainer_ui.py
 OmniFile AI Processor v5.0 — Dr. Abdulmalek Tamer Al-husseini
 """
 
-import hashlib, json, logging, os, subprocess, time
+import hashlib
+import logging
+import os
+import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 import gradio as gr
 import numpy as np
 import pandas as pd
@@ -51,7 +54,8 @@ except Exception as e:
 LANG_FLAGS = {"ar": "🇸🇦 Arabic", "en": "🇬🇧 English",
               "de": "🇩🇪 Deutsch", "mixed": "🌐 Mixed"}
 
-CONF_EMOJI = lambda c: "🟢" if c >= .85 else "🟡" if c >= .60 else "🔴"
+def CONF_EMOJI(c):
+    return "🟢" if c >= .85 else "🟡" if c >= .60 else "🔴"
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -536,7 +540,7 @@ def build_trainer_tabs(use_gpu: bool = False) -> list:
                 subprocess.run(["git","add","artifacts/corrections_db_export.json",
                                 "data/arabic_fixes.json"], cwd=repo_dir, capture_output=True)
                 ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-                r1 = subprocess.run(["git","commit","-m",f"sync: corrections DB {ts}"],
+                subprocess.run(["git","commit","-m",f"sync: corrections DB {ts}"],
                                     cwd=repo_dir, capture_output=True, text=True)
                 r2 = subprocess.run([
                     "git","push",

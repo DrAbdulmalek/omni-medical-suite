@@ -8,11 +8,9 @@ Usage:
     python scripts/download_samples.py --count 5
 """
 
-import os
-import json
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
 
+from PIL import Image, ImageDraw
 
 SAMPLES_DIR = Path(__file__).parent.parent / "data" / "sample"
 
@@ -22,24 +20,24 @@ def generate_synthetic_sample(output_path: Path, text_lines: list, title: str = 
     width, height = 800, 600
     img = Image.new("RGB", (width, height), color="white")
     draw = ImageDraw.Draw(img)
-    
+
     y = 20
     if title:
         draw.text((20, y), title, fill="black")
         y += 40
-    
+
     for line in text_lines:
         # Draw RTL-compatible text (left-aligned for Arabic)
         draw.text((20, y), line, fill="black")
         y += 30
-    
+
     img.save(str(output_path), quality=95)
     print(f"  Generated: {output_path.name}")
 
 
 def main():
     SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     samples = [
         {
             "filename": "prescription_ar_001.png",
@@ -90,7 +88,7 @@ def main():
             ]
         },
     ]
-    
+
     print(f"Generating {len(samples)} synthetic samples in {SAMPLES_DIR}/")
     for sample in samples:
         output_path = SAMPLES_DIR / sample["filename"]
@@ -98,7 +96,7 @@ def main():
             generate_synthetic_sample(output_path, sample["lines"], sample["title"])
         else:
             print(f"  Skipped (exists): {output_path.name}")
-    
+
     print(f"\nDone. {len(list(SAMPLES_DIR.glob('*.png')))} samples ready.")
     print(f"Open the app and upload from: {SAMPLES_DIR}")
 

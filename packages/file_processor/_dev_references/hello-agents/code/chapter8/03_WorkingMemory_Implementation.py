@@ -6,10 +6,7 @@
 """
 
 import time
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
 from hello_agents.tools import MemoryTool
-from hello_agents.memory import MemoryItem
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -34,7 +31,7 @@ class WorkingMemoryDemo:
         print("• 优先级管理（重要性排序）")
         
         # 添加多条记忆来演示容量管理
-        print(f"\n📝 添加测试记忆...")
+        print("\n📝 添加测试记忆...")
         for i in range(10):
             importance = 0.3 + (i * 0.07)  # 递增重要性
             self.memory_tool.run({
@@ -51,7 +48,7 @@ class WorkingMemoryDemo:
         print(f"当前状态: {stats}")
         
         # 演示重要性排序
-        print(f"\n🔍 按重要性搜索:")
+        print("\n🔍 按重要性搜索:")
         result = self.memory_tool.run({
             "action":"search", 
             "query":"测试项目", 
@@ -99,7 +96,7 @@ class WorkingMemoryDemo:
             }
         ]
         
-        print(f"\n📝 添加测试记忆...")
+        print("\n📝 添加测试记忆...")
         for i, memory in enumerate(test_memories):
             content = memory.pop("content")
             importance = memory.pop("importance")
@@ -119,7 +116,7 @@ class WorkingMemoryDemo:
             ("人工智能机器学习", "测试多词匹配")
         ]
         
-        print(f"\n🔍 混合检索测试:")
+        print("\n🔍 混合检索测试:")
         for query, description in search_tests:
             print(f"\n查询: '{query}' ({description})")
             result = self.memory_tool.run({
@@ -149,7 +146,7 @@ class WorkingMemoryDemo:
             ("最旧的信息 - 很久以前的内容", 0.7, "oldest")
         ]
         
-        print(f"\n📝 添加不同时期的记忆...")
+        print("\n📝 添加不同时期的记忆...")
         for content, importance, age_category in time_test_memories:
             self.memory_tool.run({
                 "action":"add",
@@ -161,7 +158,7 @@ class WorkingMemoryDemo:
             })
         
         # 搜索测试时间衰减效果
-        print(f"\n🔍 时间衰减效果测试:")
+        print("\n🔍 时间衰减效果测试:")
         result = self.memory_tool.run({
             "action":"search",
             "query":"学习的内容",
@@ -187,7 +184,7 @@ class WorkingMemoryDemo:
         print(f"\n清理前状态: {stats_before}")
         
         # 添加一些低重要性的记忆
-        print(f"\n📝 添加低重要性记忆...")
+        print("\n📝 添加低重要性记忆...")
         for i in range(5):
             self.memory_tool.run({
                 "action":"add",
@@ -199,7 +196,7 @@ class WorkingMemoryDemo:
             })
         
         # 触发基于重要性的清理
-        print(f"\n🧹 执行基于重要性的清理...")
+        print("\n🧹 执行基于重要性的清理...")
         cleanup_result = self.memory_tool.run({
             "action":"forget",
             "strategy":"importance_based",
@@ -223,7 +220,7 @@ class WorkingMemoryDemo:
         print("• 系统重启后数据丢失（符合设计）")
         
         # 性能测试
-        print(f"\n⏱️ 性能测试:")
+        print("\n⏱️ 性能测试:")
         
         # 批量添加测试
         start_time = time.time()
@@ -243,7 +240,7 @@ class WorkingMemoryDemo:
         for i in range(10):
             self.memory_tool.run({
                 "action":"search",
-                "query":f"性能测试",
+                "query":"性能测试",
                 "memory_type":"working",
                 "limit":3
             })

@@ -5,11 +5,9 @@
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
-from ..core.database import get_db
 from ..models.task import TaskDB, Task, TaskCreate, TaskUpdate
 from ..core.exceptions import TaskNotFoundError
 from ..agents.controller import AgentController
-import json
 import asyncio
 
 class TaskService:

@@ -4,7 +4,6 @@ AutoGen 软件开发团队协作案例
 
 import os
 import asyncio
-from typing import List, Dict, Any
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -177,8 +176,8 @@ if __name__ == "__main__":
         # 运行异步协作流程
         result = asyncio.run(run_software_development_team())
         
-        print(f"\n📋 协作结果摘要：")
-        print(f"- 参与智能体数量：4个")
+        print("\n📋 协作结果摘要：")
+        print("- 参与智能体数量：4个")
         print(f"- 任务完成状态：{'成功' if result else '需要进一步处理'}")
         
     except ValueError as e:

@@ -34,7 +34,7 @@ class ChinesePrompts:
 - 以{character}的智慧和洞察力分析局势
 """
         elif role == "女巫":
-            return base_prompt + f"""
+            return base_prompt + """
 - 你是好人阵营的女巫，拥有解药和毒药各一瓶
 - 解药可以救活被狼人击杀的玩家
 - 毒药可以毒杀一名玩家

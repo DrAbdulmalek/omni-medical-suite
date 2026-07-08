@@ -4,12 +4,11 @@ Advanced Arabic Text Normalization for Medical OCR.
 Includes: Unicode NFC, diacritics removal, character unification,
 Arabic digit conversion, medical dictionary mapping, and optional CAMeL Tools integration.
 """
-import re
-import unicodedata
 import json
 import logging
+import re
+import unicodedata
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ MEDICAL_DICT: dict[str, str] = {
 }
 
 
-def load_medical_dict(dict_path: Optional[str] = None) -> None:
+def load_medical_dict(dict_path: str | None = None) -> None:
     """Load additional medical dictionary from JSON file and merge into MEDICAL_DICT."""
     global MEDICAL_DICT
     if dict_path is None:

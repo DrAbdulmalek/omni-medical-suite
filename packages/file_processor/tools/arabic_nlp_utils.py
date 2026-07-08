@@ -5,7 +5,6 @@
 مُحسّنة خصيصاً لبيئات OCR والمراجعة البشرية
 """
 import re
-from typing import Tuple
 
 def normalize_for_comparison(text: str) -> str:
     if not text or not isinstance(text, str): return ""

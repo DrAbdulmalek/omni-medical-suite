@@ -8,18 +8,15 @@ Pipeline: Upload → Preprocess → OCR Ensemble → Auto-Correct → NER → Di
 Engines: PaddleOCR (primary) + Tesseract (secondary) + EasyOCR (optional)
 """
 import json
+import logging
 import os
 import re
 import time
-import logging
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import cv2
-import numpy as np
 import gradio as gr
-from PIL import Image
+import numpy as np
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -75,7 +72,7 @@ MEDICAL_TERMS = {
     "فاموتيدين": "famotidine", "انتاسيد": "antacid", "مالوكس": "maalox",
     "اموكسيسيللاف": "amoxiclav", "سيفترياكسون": "ceftriaxone", "سيفيكسيم": "cefixime",
     "دوكسيسيكلين": "doxycycline", "سيبروفلوكساسين": "ciprofloxacin",
-    "لوفلوكساسين": "levofloxacin", "ازيثرومايسين": "azithromycin",
+    "لوفلوكساسين": "levofloxacin",
     "كلاريثرومايسين": "clarithromycin", "سالبوتامول": "salbutamol",
     "فلوتيكازون": "fluticasone", "بوديسونيد": "budesonide", "مونتيلوكاست": "montelukast",
     "لوراتادين": "loratadine", "سيتريزين": "cetirizine", "فيكسوفينادين": "fexofenadine",
@@ -157,7 +154,7 @@ OCR_CORRECTIONS = {
 
 # ── Image Preprocessing ─────────────────────────────────────────────────────
 
-def preprocess_image(image: np.ndarray) -> Tuple[np.ndarray, Dict[str, str]]:
+def preprocess_image(image: np.ndarray) -> tuple[np.ndarray, dict[str, str]]:
     """
     Advanced medical document preprocessing pipeline.
     Returns: (processed_image, processing_log)
@@ -250,7 +247,7 @@ def preprocess_image(image: np.ndarray) -> Tuple[np.ndarray, Dict[str, str]]:
 
 # ── OCR Engines ──────────────────────────────────────────────────────────────
 
-def run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict]]:
+def run_paddle_ocr(image: np.ndarray) -> tuple[str, list[dict]]:
     """Run PaddleOCR and return (text, detailed_results)."""
     if paddle_ocr is None:
         return "", []
@@ -289,10 +286,10 @@ def run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict]]:
 
     except Exception as e:
         logger.error(f"PaddleOCR error: {e}")
-        return f"[PaddleOCR Error: {str(e)}]", []
+        return f"[PaddleOCR Error: {e!s}]", []
 
 
-def run_tesseract(image: np.ndarray) -> Tuple[str, float]:
+def run_tesseract(image: np.ndarray) -> tuple[str, float]:
     """Run Tesseract OCR and return (text, avg_confidence)."""
     if not HAS_TESSERACT:
         return "", 0.0
@@ -319,12 +316,12 @@ def run_tesseract(image: np.ndarray) -> Tuple[str, float]:
 
     except Exception as e:
         logger.error(f"Tesseract error: {e}")
-        return f"[Tesseract Error: {str(e)}]", 0.0
+        return f"[Tesseract Error: {e!s}]", 0.0
 
 
 # ── Text Post-Processing ────────────────────────────────────────────────────
 
-def correct_ocr_text(text: str) -> Tuple[str, List[Dict]]:
+def correct_ocr_text(text: str) -> tuple[str, list[dict]]:
     """
     Auto-correct OCR output using medical dictionary + pattern rules.
     Returns: (corrected_text, list_of_corrections)
@@ -371,7 +368,7 @@ def correct_ocr_text(text: str) -> Tuple[str, List[Dict]]:
     return corrected, corrections
 
 
-def extract_ner_entities(text: str) -> Dict[str, List[str]]:
+def extract_ner_entities(text: str) -> dict[str, list[str]]:
     """
     Extract medical named entities from text using dictionary matching.
     Categories: medications, diseases, symptoms, body_parts, lab_tests
@@ -442,7 +439,7 @@ def extract_ner_entities(text: str) -> Dict[str, List[str]]:
 
 # ── Ensemble Logic ───────────────────────────────────────────────────────────
 
-def ensemble_vote(paddle_text: str, tesseract_text: str) -> Tuple[str, Dict]:
+def ensemble_vote(paddle_text: str, tesseract_text: str) -> tuple[str, dict]:
     """
     Combine results from multiple OCR engines using voting/selection logic.
     Strategy: Prefer PaddleOCR (better for Arabic), use Tesseract as supplement.
@@ -565,7 +562,7 @@ def process_medical_image(image, enable_preprocess):
 
     except Exception as e:
         logger.error(f"Pipeline error: {e}", exc_info=True)
-        return None, f"خطأ: {str(e)}", "", "{}", f"❌ حدث خطأ: {str(e)}"
+        return None, f"خطأ: {e!s}", "", "{}", f"❌ حدث خطأ: {e!s}"
 
 
 def export_as_json(raw_text, corrected_text, ner_json):
@@ -766,23 +763,22 @@ with gr.Blocks(
     # ── Results Tabs ────────────────────────────────────────────────────
     with gr.Tabs():
         # Tab 1: Main Results
-        with gr.Tab("📋 النتائج الرئيسية"):
-            with gr.Row():
-                with gr.Column(scale=1):
-                    cleaned_img = gr.Image(label="🖼️ الصورة بعد المعالجة", height=350)
-                with gr.Column(scale=2):
-                    raw_ocr = gr.Textbox(
-                        label="📝 النص الخام من OCR",
-                        lines=6,
-                        show_copy_button=True,
-                        elem_classes=["output-text"],
-                    )
-                    corrected_text = gr.Textbox(
-                        label="✅ النص المصحح",
-                        lines=6,
-                        show_copy_button=True,
-                        elem_classes=["output-text"],
-                    )
+        with gr.Tab("📋 النتائج الرئيسية"), gr.Row():
+            with gr.Column(scale=1):
+                cleaned_img = gr.Image(label="🖼️ الصورة بعد المعالجة", height=350)
+            with gr.Column(scale=2):
+                raw_ocr = gr.Textbox(
+                    label="📝 النص الخام من OCR",
+                    lines=6,
+                    show_copy_button=True,
+                    elem_classes=["output-text"],
+                )
+                corrected_text = gr.Textbox(
+                    label="✅ النص المصحح",
+                    lines=6,
+                    show_copy_button=True,
+                    elem_classes=["output-text"],
+                )
 
         # Tab 2: NER Entities
         with gr.Tab("🔍 الكيانات الطبية (NER)"):

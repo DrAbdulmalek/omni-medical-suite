@@ -8,12 +8,10 @@ Supports Markdown, JSON, and HTML output formats.
 from __future__ import annotations
 
 import json
-import os
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-from dataclasses import dataclass, field, asdict
+from typing import Any
 
 
 @dataclass
@@ -26,10 +24,10 @@ class EngineResult:
     avg_medical_accuracy: float = 0.0
     avg_latency: float = 0.0  # seconds per image
     throughput: float = 0.0  # images per second
-    per_language: Dict[str, Dict] = field(default_factory=dict)
-    per_specialty: Dict[str, Dict] = field(default_factory=dict)
-    per_difficulty: Dict[str, Dict] = field(default_factory=dict)
-    case_results: List[Dict] = field(default_factory=list)
+    per_language: dict[str, dict] = field(default_factory=dict)
+    per_specialty: dict[str, dict] = field(default_factory=dict)
+    per_difficulty: dict[str, dict] = field(default_factory=dict)
+    case_results: list[dict] = field(default_factory=list)
     errors: int = 0
 
 
@@ -38,15 +36,15 @@ class BenchmarkReport:
     """Complete benchmark report across all engines."""
     timestamp: str = ""
     duration: float = 0.0  # Total benchmark time in seconds
-    engine_results: Dict[str, EngineResult] = field(default_factory=dict)
-    summary: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    engine_results: dict[str, EngineResult] = field(default_factory=dict)
+    summary: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class ReportGenerator:
     """Generates benchmark reports in multiple formats."""
 
-    def __init__(self, output_dir: Optional[str] = None):
+    def __init__(self, output_dir: str | None = None):
         """
         Initialize report generator.
 
@@ -61,8 +59,8 @@ class ReportGenerator:
     def generate_all(
         self,
         report: BenchmarkReport,
-        formats: Optional[List[str]] = None,
-    ) -> List[Path]:
+        formats: list[str] | None = None,
+    ) -> list[Path]:
         """
         Generate reports in all specified formats.
 
@@ -251,7 +249,7 @@ class ReportGenerator:
         html_parts.append("</style>")
         html_parts.append("</head>")
         html_parts.append("<body>")
-        html_parts.append(f"<h1>🏥 Medical OCR Benchmark Report</h1>")
+        html_parts.append("<h1>🏥 Medical OCR Benchmark Report</h1>")
         html_parts.append(f"<p>Date: {timestamp} | Duration: {report.duration:.1f}s</p>")
 
         # Summary table
@@ -276,7 +274,7 @@ class ReportGenerator:
 
         # Per-engine details
         for name, result in report.engine_results.items():
-            html_parts.append(f'<div class="summary-card">')
+            html_parts.append('<div class="summary-card">')
             html_parts.append(f"<h2>{name} - Details</h2>")
 
             if result.per_language:

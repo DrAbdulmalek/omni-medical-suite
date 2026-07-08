@@ -136,7 +136,7 @@ class DataFilter:
         corrected = row.get('corrected_text', '')
         confidence = row.get('confidence', 1.0)
         correction_count = row.get('correction_count', 1)
-        script_class = row.get('script_class', 'auto')
+        row.get('script_class', 'auto')
 
         reasons = []
         readiness = 'pending_review'

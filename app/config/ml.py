@@ -1,7 +1,6 @@
 """
 Machine Learning Configuration - Pydantic-based
 """
-from typing import List, Optional
 try:
     from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
 except ImportError:
@@ -41,7 +40,7 @@ class MLConfig(BaseSettings):
 
     # Evaluation
     EVAL_BATCH_SIZE: int = 32
-    METRICS: List[str] = ["accuracy", "f1", "precision", "recall", "cer", "wer"]
+    METRICS: list[str] = ["accuracy", "f1", "precision", "recall", "cer", "wer"]
 
     # Hardware
     USE_CUDA: bool = True
@@ -69,7 +68,8 @@ class MLConfig(BaseSettings):
 
 from functools import lru_cache
 
-@lru_cache()
+
+@lru_cache
 def get_ml_config() -> MLConfig:
     """Get ML configuration - cached for performance"""
     return MLConfig()

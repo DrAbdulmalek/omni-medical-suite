@@ -12,17 +12,14 @@ v5.0 New features:
 - Syncthing configuration generator
 """
 
-import os
-import sys
 import json
-import csv
-import sqlite3
-import shutil
 import logging
+import os
+import sqlite3
+import sys
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,27 +34,25 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from config import Config
-from src.database import HandwritingDB
-from src.recognition import OCREngine
 from src.correction import (
+    append_feedback,
     init_correctors,
     load_correction_dict,
-    correct_text,
-    append_feedback,
 )
-from src.reconstruction import reconstruct_sentences, extract_bilingual_vocab
+from src.database import HandwritingDB
 from src.export import (
-    export_finetuning_dataset,
-    push_to_huggingface,
     auto_export,
     create_backup,
+    export_finetuning_dataset,
+    push_to_huggingface,
 )
 from src.finetuning import finetune_trocr_lora
-from src.pdf_processor import PDFProcessor
-from src.logger import setup_logging
-from src.metrics import compute_metrics, plot_metrics_fig
-from src.sync import FileLock, SyncManager
+from src.metrics import compute_metrics
 from src.migration import DataMigrator
+from src.pdf_processor import PDFProcessor
+from src.recognition import OCREngine
+from src.reconstruction import extract_bilingual_vocab
+from src.sync import FileLock, SyncManager
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -68,9 +63,9 @@ logger = logging.getLogger("HandwrittenOCR.API")
 # ---------------------------------------------------------------------------
 # Global state
 # ---------------------------------------------------------------------------
-_config: Optional[Config] = None
-_db: Optional[HandwritingDB] = None
-_ocr_engine: Optional[OCREngine] = None
+_config: Config | None = None
+_db: HandwritingDB | None = None
+_ocr_engine: OCREngine | None = None
 _models_loaded = False
 _processing_lock = threading.Lock()
 _finetuning_lock = threading.Lock()
@@ -175,12 +170,12 @@ class PushHFRequest(BaseModel):
 
 
 class SettingsUpdate(BaseModel):
-    pdf_path: Optional[str] = None
-    pages_start: Optional[int] = None
-    pages_end: Optional[int] = None
-    dpi: Optional[int] = None
-    hf_token: Optional[str] = None
-    hf_dataset_repo: Optional[str] = None
+    pdf_path: str | None = None
+    pages_start: int | None = None
+    pages_end: int | None = None
+    dpi: int | None = None
+    hf_token: str | None = None
+    hf_dataset_repo: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +219,7 @@ async def get_stats():
     stats_from_file = {}
     if os.path.isfile(cfg.stats_json):
         try:
-            with open(cfg.stats_json, "r", encoding="utf-8") as f:
+            with open(cfg.stats_json, encoding="utf-8") as f:
                 stats_from_file = json.load(f)
         except Exception:
             pass
@@ -303,7 +298,7 @@ async def get_checkpoint():
     if not os.path.exists(ckpt_path):
         return {"checkpoint": None}
     try:
-        with open(ckpt_path, "r", encoding="utf-8") as f:
+        with open(ckpt_path, encoding="utf-8") as f:
             return {"checkpoint": json.load(f)}
     except Exception:
         return {"checkpoint": None}
@@ -431,7 +426,7 @@ async def get_sentences(y_tolerance: int = Query(25, ge=5, le=100)):
         return {"sentences": []}
 
     sentences = []
-    pages = sorted(set(w["page_num"] for w in words if w["page_num"] > 0))
+    pages = sorted({w["page_num"] for w in words if w["page_num"] > 0})
 
     for page_num in pages:
         p_words = sorted(
@@ -858,7 +853,7 @@ class MigrationRequest(BaseModel):
 async def api_run_migration(req: MigrationRequest):
     """تشغيل ترحيل البيانات من النسخ القديمة"""
     cfg = _ensure_config()
-    db = _ensure_db()
+    _ensure_db()
 
     migrator = DataMigrator(cfg)
     try:
@@ -891,7 +886,7 @@ def _count_jsonl(path: str) -> int:
     if not os.path.isfile(path):
         return 0
     count = 0
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             if line.strip():
                 count += 1

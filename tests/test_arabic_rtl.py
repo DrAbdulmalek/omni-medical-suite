@@ -11,7 +11,6 @@ import pytest
 
 from packages.vision.text_reconstructor import TextReconstructor
 
-
 # ─── Arabic Character Detection Tests ────────────────────────────────
 
 class TestArabicCharacterDetection:

@@ -14,7 +14,7 @@
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 
@@ -65,8 +65,8 @@ class HTRResult:
     """
 
     text: str = ""
-    lines: List["LineResult"] = field(default_factory=list)
-    words: List["WordResult"] = field(default_factory=list)
+    lines: list["LineResult"] = field(default_factory=list)
+    words: list["WordResult"] = field(default_factory=list)
     confidence: float = 0.0
 
 
@@ -88,7 +88,7 @@ class LineResult:
     confidence: float = 0.0
     y_start: int = 0
     y_end: int = 0
-    words: List["WordResult"] = field(default_factory=list)
+    words: list["WordResult"] = field(default_factory=list)
 
 
 @dataclass
@@ -131,7 +131,7 @@ class ArabicHandwrittenHTR:
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
+        model_path: str | None = None,
         device: str = "cpu",
         *,
         line_segmentation: bool = True,
@@ -214,8 +214,8 @@ class ArabicHandwrittenHTR:
         logger.info("تمّ العثور على %d سطر.", len(line_data))
 
         # --- معالجة كل سطر ---
-        line_results: List[LineResult] = []
-        all_words: List[WordResult] = []
+        line_results: list[LineResult] = []
+        all_words: list[WordResult] = []
 
         for line_idx, (line_img, info) in enumerate(line_data):
             line_result = self._process_line(line_img, line_idx, info)
@@ -250,8 +250,8 @@ class ArabicHandwrittenHTR:
     # recognize_batch — معالجة دفعة من الصور
     # ----------------------------------------------------------
     def recognize_batch(
-        self, images: List[ImageInput]
-    ) -> List[HTRResult]:
+        self, images: list[ImageInput]
+    ) -> list[HTRResult]:
         """التعرف على النصّ في مجموعة من الصور.
 
         Args:
@@ -261,7 +261,7 @@ class ArabicHandwrittenHTR:
             قائمة من كائنات HTRResult.
         """
         logger.info("بدء معالجة دفعة من %d صورة.", len(images))
-        results: List[HTRResult] = []
+        results: list[HTRResult] = []
         for idx, img in enumerate(images):
             logger.info("معالجة الصورة %d/%d ...", idx + 1, len(images))
             results.append(self.recognize(img))
@@ -295,8 +295,8 @@ class ArabicHandwrittenHTR:
         else:
             word_images = [line_image]
 
-        word_results: List[WordResult] = []
-        recognized_texts: List[str] = []
+        word_results: list[WordResult] = []
+        recognized_texts: list[str] = []
 
         for w_idx, w_img in enumerate(word_images):
             text, conf = self._trocr.recognize(w_img)

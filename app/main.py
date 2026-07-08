@@ -1,9 +1,10 @@
 # app/main.py - Omni Medical Suite FastAPI Application
-from fastapi import FastAPI, Request, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import logging
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import get_app_config, get_security_config
 
@@ -79,24 +80,31 @@ async def add_security_headers(request: Request, call_next):
 
 # Include routers
 from app.routers.auth import router as auth_router
+
 app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
 
 from app.routers.pipeline import router as pipeline_router
+
 app.include_router(pipeline_router, prefix="/api/pipeline", tags=["pipeline"])
 
 from app.routers.ocr import router as ocr_router
+
 app.include_router(ocr_router, prefix="/api/ocr", tags=["ocr"])
 
 from app.routers.jobs import router as jobs_router
+
 app.include_router(jobs_router, prefix="/api/jobs", tags=["jobs"])
 
 from app.routers.datasets import router as datasets_router
+
 app.include_router(datasets_router, prefix="/api/datasets", tags=["datasets"])
 
 from app.routers.models import router as models_router
+
 app.include_router(models_router, prefix="/api/models", tags=["models"])
 
 from app.routers.admin import router as admin_router
+
 app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
 
 # Try to include package routers (optional, may not exist)

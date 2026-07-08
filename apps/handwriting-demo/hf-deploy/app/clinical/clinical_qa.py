@@ -11,9 +11,9 @@ to work standalone on HuggingFace Spaces.
 
 import logging
 import re
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-class EvidenceLevel(str, Enum):
+class EvidenceLevel(StrEnum):
     SYSTEMATIC_REVIEW = "systematic_review"
     RANDOMISED_TRIAL = "randomised_trial"
     COHORT_STUDY = "cohort_study"
@@ -35,14 +35,14 @@ class EvidenceLevel(str, Enum):
     CLINICAL_EXPERIENCE = "clinical_experience"
 
 
-class SeverityLevel(str, Enum):
+class SeverityLevel(StrEnum):
     CONTRAINDICATED = "contraindicated"
     MAJOR = "major"
     MODERATE = "moderate"
     MINOR = "minor"
 
 
-class DosageStatus(str, Enum):
+class DosageStatus(StrEnum):
     WITHIN_RANGE = "within_range"
     BELOW_MINIMUM = "below_minimum"
     ABOVE_MAXIMUM = "above_maximum"
@@ -53,11 +53,11 @@ class DosageStatus(str, Enum):
 class Evidence(BaseModel):
     evidence_id: str = Field(default_factory=lambda: str(uuid4()))
     source: str
-    source_url: Optional[str] = None
+    source_url: str | None = None
     level: EvidenceLevel = Field(default=EvidenceLevel.EXPERT_OPINION)
     excerpt: str
-    excerpt_ar: Optional[str] = None
-    publication_year: Optional[int] = None
+    excerpt_ar: str | None = None
+    publication_year: int | None = None
     relevance_score: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
@@ -65,25 +65,25 @@ class ClinicalAnswer(BaseModel):
     answer_id: str = Field(default_factory=lambda: str(uuid4()))
     question: str
     answer: str
-    answer_ar: Optional[str] = None
+    answer_ar: str | None = None
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
-    evidence: List[Evidence] = Field(default_factory=list)
-    related_conditions: List[str] = Field(default_factory=list)
+    evidence: list[Evidence] = Field(default_factory=list)
+    related_conditions: list[str] = Field(default_factory=list)
     disclaimer: str = Field(
         default="This information is for clinical decision support only and "
         "does not replace professional medical judgment.",
     )
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class InteractionReport(BaseModel):
     report_id: str = Field(default_factory=lambda: str(uuid4()))
-    drug_list: List[str]
-    interactions: List["DrugInteraction"] = Field(default_factory=list)
+    drug_list: list[str]
+    interactions: list["DrugInteraction"] = Field(default_factory=list)
     severity_summary: SeverityLevel = Field(default=SeverityLevel.MINOR)
     recommendation: str = ""
-    recommendation_ar: Optional[str] = None
-    reviewed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    recommendation_ar: str | None = None
+    reviewed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class DrugInteraction(BaseModel):
@@ -91,7 +91,7 @@ class DrugInteraction(BaseModel):
     drug_b: str
     severity: SeverityLevel = SeverityLevel.MODERATE
     mechanism: str = ""
-    mechanism_ar: Optional[str] = None
+    mechanism_ar: str | None = None
     clinical_effect: str = ""
     management: str = ""
     evidence_level: EvidenceLevel = Field(default=EvidenceLevel.EXPERT_OPINION)
@@ -104,68 +104,68 @@ class Contraindication(BaseModel):
     condition: str
     severity: SeverityLevel = SeverityLevel.MAJOR
     details: str = ""
-    details_ar: Optional[str] = None
-    alternative_suggestion: Optional[str] = None
-    alternative_suggestion_ar: Optional[str] = None
-    evidence: List[Evidence] = Field(default_factory=list)
+    details_ar: str | None = None
+    alternative_suggestion: str | None = None
+    alternative_suggestion_ar: str | None = None
+    evidence: list[Evidence] = Field(default_factory=list)
 
 
 class DifferentialDiagnosis(BaseModel):
     diagnosis_id: str = Field(default_factory=lambda: str(uuid4()))
     condition: str
-    condition_ar: Optional[str] = None
+    condition_ar: str | None = None
     probability: float = Field(default=0.0, ge=0.0, le=1.0)
-    supporting_symptoms: List[str] = Field(default_factory=list)
-    supporting_symptoms_ar: Optional[List[str]] = None
-    distinguishing_features: List[str] = Field(default_factory=list)
-    distinguishing_features_ar: Optional[List[str]] = None
-    recommended_tests: List[str] = Field(default_factory=list)
-    icd10_code: Optional[str] = None
+    supporting_symptoms: list[str] = Field(default_factory=list)
+    supporting_symptoms_ar: list[str] | None = None
+    distinguishing_features: list[str] = Field(default_factory=list)
+    distinguishing_features_ar: list[str] | None = None
+    recommended_tests: list[str] = Field(default_factory=list)
+    icd10_code: str | None = None
 
 
 class TreatmentStep(BaseModel):
     step_number: int
     description: str
-    description_ar: Optional[str] = None
-    duration: Optional[str] = None
-    notes: Optional[str] = None
-    notes_ar: Optional[str] = None
+    description_ar: str | None = None
+    duration: str | None = None
+    notes: str | None = None
+    notes_ar: str | None = None
 
 
 class TreatmentProtocol(BaseModel):
     protocol_id: str = Field(default_factory=lambda: str(uuid4()))
     condition: str
-    condition_ar: Optional[str] = None
-    icd10_code: Optional[str] = None
-    severity_grades: List[str] = Field(default_factory=list)
-    steps: List[TreatmentStep] = Field(default_factory=list)
-    medications: List[str] = Field(default_factory=list)
-    follow_up: Optional[str] = None
-    follow_up_ar: Optional[str] = None
-    source: Optional[str] = None
-    last_updated: Optional[datetime] = None
+    condition_ar: str | None = None
+    icd10_code: str | None = None
+    severity_grades: list[str] = Field(default_factory=list)
+    steps: list[TreatmentStep] = Field(default_factory=list)
+    medications: list[str] = Field(default_factory=list)
+    follow_up: str | None = None
+    follow_up_ar: str | None = None
+    source: str | None = None
+    last_updated: datetime | None = None
 
 
 class DosageValidation(BaseModel):
     validation_id: str = Field(default_factory=lambda: str(uuid4()))
     drug: str
-    drug_ar: Optional[str] = None
-    patient_weight_kg: Optional[float] = None
-    patient_age_years: Optional[float] = None
-    suggested_min_mg: Optional[float] = None
-    suggested_max_mg: Optional[float] = None
-    calculated_dose_mg: Optional[float] = None
+    drug_ar: str | None = None
+    patient_weight_kg: float | None = None
+    patient_age_years: float | None = None
+    suggested_min_mg: float | None = None
+    suggested_max_mg: float | None = None
+    calculated_dose_mg: float | None = None
     status: DosageStatus = DosageStatus.WITHIN_RANGE
     notes: str = ""
-    notes_ar: Optional[str] = None
-    adjustment_factors: List[str] = Field(default_factory=list)
+    notes_ar: str | None = None
+    adjustment_factors: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
 # Inline knowledge base
 # ---------------------------------------------------------------------------
 
-_DRUG_INTERACTIONS: Dict[Tuple[str, str], DrugInteraction] = {
+_DRUG_INTERACTIONS: dict[tuple[str, str], DrugInteraction] = {
     ("warfarin", "aspirin"): DrugInteraction(
         drug_a="Warfarin", drug_b="Aspirin",
         severity=SeverityLevel.MAJOR,
@@ -204,7 +204,7 @@ _DRUG_INTERACTIONS: Dict[Tuple[str, str], DrugInteraction] = {
     ),
 }
 
-_CONTRAINDICATIONS: Dict[Tuple[str, str], Contraindication] = {
+_CONTRAINDICATIONS: dict[tuple[str, str], Contraindication] = {
     ("nsaid", "peptic_ulcer"): Contraindication(
         drug="NSAIDs", condition="Active Peptic Ulcer Disease",
         severity=SeverityLevel.CONTRAINDICATED,
@@ -229,7 +229,7 @@ _CONTRAINDICATIONS: Dict[Tuple[str, str], Contraindication] = {
     ),
 }
 
-_DOSAGE_REFERENCE: Dict[str, Dict[str, Any]] = {
+_DOSAGE_REFERENCE: dict[str, dict[str, Any]] = {
     "amoxicillin": {
         "min_mg_per_kg_day": 25, "max_mg_per_kg_day": 50, "max_total_mg": 1500,
         "frequency": "8-hourly",
@@ -270,7 +270,7 @@ class ClinicalQA:
     # ------------------------------------------------------------------
 
     async def ask_clinical_question(
-        self, question: str, patient_context: Optional[Dict[str, Any]] = None,
+        self, question: str, patient_context: dict[str, Any] | None = None,
     ) -> ClinicalAnswer:
         logger.info("ask_clinical_question – question='%s'", question[:120])
 
@@ -312,9 +312,9 @@ class ClinicalQA:
                 confidence=0.0,
             )
 
-    async def check_drug_interactions(self, drug_list: List[str]) -> InteractionReport:
+    async def check_drug_interactions(self, drug_list: list[str]) -> InteractionReport:
         normalised = [self._normalise_text(d).lower().strip() for d in drug_list]
-        interactions: List[DrugInteraction] = []
+        interactions: list[DrugInteraction] = []
         severity_order = [SeverityLevel.CONTRAINDICATED, SeverityLevel.MAJOR, SeverityLevel.MODERATE, SeverityLevel.MINOR]
 
         for i, da in enumerate(normalised):
@@ -343,9 +343,9 @@ class ClinicalQA:
             severity_summary=worst, recommendation=rec,
         )
 
-    async def get_contraindications(self, drug: str, conditions: List[str]) -> List[Contraindication]:
+    async def get_contraindications(self, drug: str, conditions: list[str]) -> list[Contraindication]:
         drug_n = self._normalise_text(drug).lower().strip()
-        results: List[Contraindication] = []
+        results: list[Contraindication] = []
 
         for cond in conditions:
             cond_n = self._normalise_text(cond).lower().strip()
@@ -360,10 +360,10 @@ class ClinicalQA:
 
         return results
 
-    async def suggest_differential(self, symptoms: List[str]) -> List[DifferentialDiagnosis]:
+    async def suggest_differential(self, symptoms: list[str]) -> list[DifferentialDiagnosis]:
         normalised = [self._normalise_text(s).lower().strip() for s in symptoms]
 
-        symptom_map: Dict[str, Dict[str, float]] = {
+        symptom_map: dict[str, dict[str, float]] = {
             "headache": {"migraine": 0.35, "tension_headache": 0.30, "sinusitis": 0.15, "meningitis": 0.05},
             "fever": {"upper_respiratory_infection": 0.40, "influenza": 0.25, "urinary_tract_infection": 0.15, "meningitis": 0.05},
             "chest_pain": {"acute_coronary_syndrome": 0.20, "pulmonary_embolism": 0.10, "gastroesophageal_reflux": 0.25},
@@ -373,8 +373,8 @@ class ClinicalQA:
             "الحمى": {"upper_respiratory_infection": 0.40, "influenza": 0.25, "urinary_tract_infection": 0.15},
         }
 
-        scores: Dict[str, float] = {}
-        cond_syms: Dict[str, List[str]] = {}
+        scores: dict[str, float] = {}
+        cond_syms: dict[str, list[str]] = {}
         for sym in normalised:
             for cond, prob in symptom_map.get(sym, {}).items():
                 scores[cond] = scores.get(cond, 0.0) + prob
@@ -410,10 +410,10 @@ class ClinicalQA:
             steps=steps, medications=proto.get("medications", []),
             follow_up=proto.get("follow_up"), follow_up_ar=proto.get("follow_up_ar"),
             source=proto.get("source", "Clinical Knowledge Base"),
-            last_updated=datetime.now(timezone.utc),
+            last_updated=datetime.now(UTC),
         )
 
-    async def validate_dosage(self, drug: str, patient_weight: Optional[float] = None, age: Optional[float] = None) -> DosageValidation:
+    async def validate_dosage(self, drug: str, patient_weight: float | None = None, age: float | None = None) -> DosageValidation:
         drug_n = self._normalise_text(drug).lower().strip()
         is_arabic = self._is_arabic_text(drug)
         ref = self._dosage_ref.get(drug_n)
@@ -426,7 +426,7 @@ class ClinicalQA:
         status = DosageStatus.WITHIN_RANGE
         notes = ref.get("notes", "")
         notes_ar = ref.get("notes_ar", "")
-        adj: List[str] = []
+        adj: list[str] = []
         calc = sug_min = sug_max = None
 
         if patient_weight and patient_weight > 0:
@@ -456,7 +456,7 @@ class ClinicalQA:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    async def _answer_interaction_question(self, question: str, ctx: Optional[Dict]) -> ClinicalAnswer:
+    async def _answer_interaction_question(self, question: str, ctx: dict | None) -> ClinicalAnswer:
         drugs = self._extract_drug_names(question)
         if len(drugs) >= 2:
             report = await self.check_drug_interactions(drugs)
@@ -468,7 +468,7 @@ class ClinicalQA:
                                  confidence=0.85 if report.interactions else 0.7)
         return ClinicalAnswer(question=question, answer="Please specify at least two drugs.", confidence=0.5)
 
-    async def _answer_dosage_question(self, question: str, ctx: Optional[Dict]) -> ClinicalAnswer:
+    async def _answer_dosage_question(self, question: str, ctx: dict | None) -> ClinicalAnswer:
         drug = self._extract_single_drug(question)
         if drug:
             w = (ctx or {}).get("weight")
@@ -479,7 +479,7 @@ class ClinicalQA:
                                  confidence=0.8)
         return ClinicalAnswer(question=question, answer="Please specify a drug name.", confidence=0.5)
 
-    async def _answer_contraindication_question(self, question: str, ctx: Optional[Dict]) -> ClinicalAnswer:
+    async def _answer_contraindication_question(self, question: str, ctx: dict | None) -> ClinicalAnswer:
         drug = self._extract_single_drug(question)
         conds = self._extract_conditions_from_question(question)
         if (ctx or {}).get("conditions"):
@@ -495,7 +495,7 @@ class ClinicalQA:
                 return ClinicalAnswer(question=question, answer="\n".join(parts), confidence=0.85)
         return ClinicalQA(question=question, answer="Specify a drug and conditions.", confidence=0.5)
 
-    async def _answer_treatment_question(self, question: str, ctx: Optional[Dict]) -> ClinicalAnswer:
+    async def _answer_treatment_question(self, question: str, ctx: dict | None) -> ClinicalAnswer:
         conds = self._extract_conditions_from_question(question)
         for c in conds:
             proto = await self.get_treatment_protocol(c)
@@ -508,7 +508,7 @@ class ClinicalQA:
                 return ClinicalQA(question=question, answer="\n".join(parts), confidence=0.8)
         return ClinicalQA(question=question, answer="No specific treatment protocol found.", confidence=0.5)
 
-    def _general_answer(self, question: str, ctx: Optional[Dict]) -> tuple:
+    def _general_answer(self, question: str, ctx: dict | None) -> tuple:
         conds = self._extract_conditions_from_question(question)
         if conds:
             a = (f"Based on the clinical question regarding '{conds[0]}', "
@@ -518,7 +518,7 @@ class ClinicalQA:
         return "Unable to classify question. Please rephrase with medical terminology.", []
 
     @staticmethod
-    def _lookup_protocol(condition: str) -> Optional[Dict[str, Any]]:
+    def _lookup_protocol(condition: str) -> dict[str, Any] | None:
         protocols = {
             "hypertension": {
                 "condition": "Hypertension", "condition_ar": "ارتفاع ضغط الدم", "icd10_code": "I10",
@@ -559,7 +559,7 @@ class ClinicalQA:
         return None
 
     @staticmethod
-    def _extract_drug_names(question: str) -> List[str]:
+    def _extract_drug_names(question: str) -> list[str]:
         known = ["warfarin", "aspirin", "amoxicillin", "paracetamol", "ibuprofen",
                  "metformin", "amlodipine", "simvastatin", "lisinopril", "losartan",
                  "sertraline", "tramadol", "insulin", "omeprazole"]
@@ -567,12 +567,12 @@ class ClinicalQA:
         return [d for d in known if d in q]
 
     @staticmethod
-    def _extract_single_drug(question: str) -> Optional[str]:
+    def _extract_single_drug(question: str) -> str | None:
         drugs = ClinicalQA._extract_drug_names(question)
         return drugs[0] if drugs else None
 
     @staticmethod
-    def _extract_conditions_from_question(question: str) -> List[str]:
+    def _extract_conditions_from_question(question: str) -> list[str]:
         known = ["hypertension", "diabetes", "heart failure", "asthma", "copd",
                  "peptic ulcer", "renal failure", "migraine", "meningitis",
                  "ارتفاع ضغط الدم", "داء السكري", "قصور القلب", "الربو",

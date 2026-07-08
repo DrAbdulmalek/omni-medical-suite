@@ -1,11 +1,13 @@
 import base64
 import os
+
 from art import text2art
+
 from omniparse.models import responseDocument
 
 
 def encode_images(images, inputDocument: responseDocument):
-    for i, (filename, image) in enumerate(images.items()):
+    for _i, (filename, image) in enumerate(images.items()):
         # print(f"Processing image {filename}")
         # Save image as PNG
         image.save(filename, "PNG")

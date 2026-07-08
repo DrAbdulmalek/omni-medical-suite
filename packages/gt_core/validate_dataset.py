@@ -13,14 +13,13 @@ Author: Dr. Abdulmalek
 Version: 1.0.0
 """
 
-import json
-import sys
 import argparse
-from pathlib import Path
-from typing import List, Dict, Any
-from dataclasses import dataclass, field
-import unicodedata
+import json
 import re
+import sys
+import unicodedata
+from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass
@@ -36,9 +35,9 @@ class ValidationIssue:
 class ValidationReport:
     version: str = ""
     total_files: int = 0
-    issues: List[ValidationIssue] = field(default_factory=list)
-    gates_passed: List[str] = field(default_factory=list)
-    gates_failed: List[str] = field(default_factory=list)
+    issues: list[ValidationIssue] = field(default_factory=list)
+    gates_passed: list[str] = field(default_factory=list)
+    gates_failed: list[str] = field(default_factory=list)
 
     @property
     def is_valid(self) -> bool:
@@ -74,7 +73,7 @@ def check_completeness(data_dir: Path, report: ValidationReport) -> None:
         return
 
     try:
-        with open(manifest_path, 'r', encoding='utf-8') as f:
+        with open(manifest_path, encoding='utf-8') as f:
             manifest = json.load(f)
         report.version = manifest.get("version", "unknown")
 
@@ -133,7 +132,7 @@ def check_consistency(data_dir: Path, report: ValidationReport) -> None:
         except UnicodeDecodeError:
             report.issues.append(ValidationIssue(
                 severity="error", gate=gate,
-                message=f"File is not valid UTF-8",
+                message="File is not valid UTF-8",
                 file_path=str(tf)
             ))
             continue
@@ -143,7 +142,7 @@ def check_consistency(data_dir: Path, report: ValidationReport) -> None:
         if content != normalized:
             report.issues.append(ValidationIssue(
                 severity="warning", gate=gate,
-                message=f"File is not NFC normalized",
+                message="File is not NFC normalized",
                 file_path=str(tf)
             ))
 
@@ -214,7 +213,7 @@ def check_integration(data_dir: Path, report: ValidationReport) -> None:
     manifest_path = data_dir / "manifest.json"
     if manifest_path.exists():
         try:
-            with open(manifest_path, 'r', encoding='utf-8') as f:
+            with open(manifest_path, encoding='utf-8') as f:
                 manifest = json.load(f)
 
             consumers = manifest.get("upstream_consumers", [])
@@ -231,7 +230,7 @@ def check_integration(data_dir: Path, report: ValidationReport) -> None:
                         message=f"upstream_consumers missing: {ec}",
                         file_path=str(manifest_path)
                     ))
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             pass
 
     report.gates_passed.append(gate) if not any(
@@ -290,7 +289,7 @@ def main():
         print(f"\nVALIDATION FAILED: {report.error_count} error(s)")
         sys.exit(1)
     else:
-        print(f"\nVALIDATION PASSED")
+        print("\nVALIDATION PASSED")
 
 
 if __name__ == "__main__":

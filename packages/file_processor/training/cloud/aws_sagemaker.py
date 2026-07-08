@@ -15,11 +15,10 @@ training/cloud/aws_sagemaker.py
 المؤلف: Dr. Abdulmalek Al-husseini
 """
 
-import json
 import os
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict
 
 import boto3
 
@@ -118,7 +117,6 @@ class SageMakerTrainer:
         training_script = self._generate_training_script(hyperparameters)
 
         # رفع الـ script
-        script_s3_uri = f"s3://{self.bucket}/scripts/{full_job_name}/train.py"
         self.s3.put_object(
             Bucket=self.bucket,
             Key=f"scripts/{full_job_name}/train.py",
@@ -184,7 +182,7 @@ class SageMakerTrainer:
             training_params['StoppingCondition']['MaxWaitTimeInSeconds'] = max_wait * 2
 
         # إنشاء المهمة
-        response = self.sagemaker.create_training_job(**training_params)
+        self.sagemaker.create_training_job(**training_params)
 
         print(f"🚀 تم إنشاء مهمة التدريب: {full_job_name}")
         print(f"   Instance: {instance_type}")

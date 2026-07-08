@@ -145,7 +145,7 @@ class MySimpleAgent(SimpleAgent):
     def _execute_tool_call(self, tool_name: str, parameters: str) -> str:
         """执行工具调用"""
         if not self.tool_registry:
-            return f"❌ 错误：未配置工具注册表"
+            return "❌ 错误：未配置工具注册表"
 
         try:
             # 智能参数解析

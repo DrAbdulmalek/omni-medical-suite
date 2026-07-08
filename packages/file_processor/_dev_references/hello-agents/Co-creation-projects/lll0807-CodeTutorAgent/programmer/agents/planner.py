@@ -80,7 +80,7 @@ class PlannerAgent(SimpleAgent):
         return result
 
     def _update_learning_plan(self, markdown: str, input_text: str):
-        title_and_note_id_str = self.knowledge.recall(input_text)
+        self.knowledge.recall(input_text)
         self.note_tool.run({
             "note_id": self.note_tool.notes_index['notes'][-1]['id'],
             "action": "update",  # 注意是 update

@@ -1,12 +1,10 @@
 # modules/export/docx_exporter.py
 from pathlib import Path
-from typing import Optional, List
 from docx import Document as DocxDocument
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from bs4 import BeautifulSoup
-import re
 
 class DOCXExporter:
     """مصدّر للنصوص إلى DOCX."""

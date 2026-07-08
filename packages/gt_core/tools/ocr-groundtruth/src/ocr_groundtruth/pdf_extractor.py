@@ -7,12 +7,13 @@ an invisible text layer, but no ALTO/hOCR/XML — this is the workaround).
 Requires: pip install pymupdf
 """
 
-import fitz  # PyMuPDF
 from pathlib import Path
-from typing import List, Dict, Any, Union
+from typing import Any
+
+import fitz  # PyMuPDF
 
 
-def extract_pdf_words(pdf_path: Union[str, Path]) -> List[Dict[str, Any]]:
+def extract_pdf_words(pdf_path: str | Path) -> list[dict[str, Any]]:
     """
     Extracts every word with its bounding box and page number from a
     searchable PDF (as produced by ABBYY/Readiris OCR export).
@@ -51,7 +52,7 @@ def extract_pdf_words(pdf_path: Union[str, Path]) -> List[Dict[str, Any]]:
     return words
 
 
-def extract_pdf_text(pdf_path: Union[str, Path]) -> str:
+def extract_pdf_text(pdf_path: str | Path) -> str:
     """
     Extracts plain text (page-by-page, newline-joined) from a searchable PDF.
     Use this for quick comparisons when bounding boxes aren't needed.
@@ -73,7 +74,7 @@ def extract_pdf_text(pdf_path: Union[str, Path]) -> str:
     return "\n".join(pages_text)
 
 
-def extract_pdf_lines(pdf_path: Union[str, Path]) -> List[Dict[str, Any]]:
+def extract_pdf_lines(pdf_path: str | Path) -> list[dict[str, Any]]:
     """
     Extracts text grouped by line, with bounding boxes.
     Useful for layout-level comparison rather than word-level.
@@ -116,7 +117,7 @@ def extract_pdf_lines(pdf_path: Union[str, Path]) -> List[Dict[str, Any]]:
     return lines
 
 
-def is_text_layer_present(pdf_path: Union[str, Path]) -> bool:
+def is_text_layer_present(pdf_path: str | Path) -> bool:
     """
     Sanity check: confirms the PDF actually has an extractable text layer
     (i.e. it was OCR'd, not just a raw scanned image PDF).

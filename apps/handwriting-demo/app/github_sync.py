@@ -9,13 +9,13 @@ Three-repo architecture:
 All private repo access requires GITHUB_TOKEN (set in HF Space secrets).
 """
 
+import base64
+import contextlib
 import json
 import logging
 import os
-import base64
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ _DICT_CACHE.mkdir(parents=True, exist_ok=True)
 _WORK_CACHE.mkdir(parents=True, exist_ok=True)
 
 
-def _headers() -> Dict[str, str]:
+def _headers() -> dict[str, str]:
     if not _GITHUB_TOKEN:
         return {"Accept": "application/vnd.github.v3+json"}
     return {
@@ -58,7 +58,7 @@ def _is_configured() -> bool:
 # Dictionary Repo Operations
 # ---------------------------------------------------------------------------
 
-def load_dictionary_terms() -> Optional[set]:
+def load_dictionary_terms() -> set | None:
     """Load all terms from the private dictionary repo.
 
     Downloads all JSON files from the dictionary repo (root + subdirectories),
@@ -72,7 +72,7 @@ def load_dictionary_terms() -> Optional[set]:
     cache_file = _DICT_CACHE / "all_terms.json"
     if cache_file.exists():
         try:
-            with open(cache_file, "r", encoding="utf-8") as f:
+            with open(cache_file, encoding="utf-8") as f:
                 terms = set(json.load(f))
             logger.info("Dictionary: loaded %d terms from cache", len(terms))
             return terms
@@ -133,7 +133,7 @@ def _extract_terms(data) -> set:
         for entry in data:
             if isinstance(entry, dict):
                 for key in ("term", "word", "name", "arabic", "ar", "headword"):
-                    if key in entry and entry[key]:
+                    if entry.get(key):
                         terms.add(str(entry[key]))
             elif isinstance(entry, str) and entry.strip():
                 terms.add(entry.strip())
@@ -144,7 +144,7 @@ def _extract_terms(data) -> set:
                 terms.add(val.strip())
             elif isinstance(val, dict):
                 for k2 in ("term", "word", "name", "definition", "meaning"):
-                    if k2 in val and val[k2]:
+                    if val.get(k2):
                         terms.add(str(val[k2]))
     return terms
 
@@ -153,7 +153,7 @@ def _extract_terms(data) -> set:
 # Work Data Repo Operations (corrections, training, logs)
 # ---------------------------------------------------------------------------
 
-def save_correction_to_github(correction_data: Dict) -> Dict:
+def save_correction_to_github(correction_data: dict) -> dict:
     """Save a single correction to the private work-data repo.
 
     Creates/updates a daily JSONL file: corrections/YYYY-MM-DD.jsonl
@@ -162,8 +162,7 @@ def save_correction_to_github(correction_data: Dict) -> Dict:
         return {"status": "error", "message": "GITHUB_TOKEN not configured"}
 
     try:
-        import requests
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         file_path = f"corrections/{today}.jsonl"
 
         # Read existing content
@@ -178,7 +177,7 @@ def save_correction_to_github(correction_data: Dict) -> Dict:
 
         # Append new entry
         entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "source": "hf_space",
             **correction_data,
         }
@@ -195,7 +194,7 @@ def save_correction_to_github(correction_data: Dict) -> Dict:
         return {"status": "error", "message": str(exc)}
 
 
-def save_corrections_batch_to_github(corrections: List[Dict]) -> Dict:
+def save_corrections_batch_to_github(corrections: list[dict]) -> dict:
     """Save a batch of corrections to the private work-data repo."""
     if not _is_configured():
         return {"status": "error", "message": "GITHUB_TOKEN not configured"}
@@ -218,7 +217,7 @@ def save_corrections_batch_to_github(corrections: List[Dict]) -> Dict:
     }
 
 
-def export_training_data_to_github(training_jsonl: str) -> Dict:
+def export_training_data_to_github(training_jsonl: str) -> dict:
     """Export training-ready JSONL data to the private work-data repo.
 
     Saves to: training_exports/YYYYMMDD_HHMMSS.jsonl
@@ -227,7 +226,7 @@ def export_training_data_to_github(training_jsonl: str) -> Dict:
         return {"status": "error", "message": "GITHUB_TOKEN not configured"}
 
     try:
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         file_path = f"training_exports/{ts}.jsonl"
         commit_msg = f"training export: {len(training_jsonl.splitlines())} entries"
 
@@ -244,7 +243,7 @@ def export_training_data_to_github(training_jsonl: str) -> Dict:
         return {"status": "error", "message": str(exc)}
 
 
-def save_work_log(message: str, category: str = "general", data: Optional[Dict] = None) -> Dict:
+def save_work_log(message: str, category: str = "general", data: dict | None = None) -> dict:
     """Append a work log entry to the private work-data repo.
 
     Saves to: logs/YYYY-MM-DD.jsonl
@@ -253,19 +252,17 @@ def save_work_log(message: str, category: str = "general", data: Optional[Dict] 
         return {"status": "skipped", "message": "GITHUB_TOKEN not configured"}
 
     try:
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         file_path = f"logs/{today}.jsonl"
 
         existing_content = _read_github_file(WORK_REPO, file_path)
         existing_lines = []
         if existing_content:
-            try:
+            with contextlib.suppress(Exception):
                 existing_lines = [l for l in existing_content.split("\n") if l.strip()]
-            except Exception:
-                pass
 
         entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "category": category,
             "message": message,
         }
@@ -284,7 +281,7 @@ def save_work_log(message: str, category: str = "general", data: Optional[Dict] 
         return {"status": "error", "message": str(exc)}
 
 
-def get_work_stats() -> Dict:
+def get_work_stats() -> dict:
     """Get statistics from the private work-data repo."""
     if not _is_configured():
         return {"status": "not_configured", "message": "Set GITHUB_TOKEN in HF Space secrets"}
@@ -323,7 +320,7 @@ def get_work_stats() -> Dict:
 # GitHub API Helpers
 # ---------------------------------------------------------------------------
 
-def _read_github_file(repo: str, path: str) -> Optional[str]:
+def _read_github_file(repo: str, path: str) -> str | None:
     """Read a file from a GitHub repo via API."""
     import requests
     url = f"https://api.github.com/repos/{_OWNER}/{repo}/contents/{path}"
@@ -339,7 +336,7 @@ def _read_github_file(repo: str, path: str) -> Optional[str]:
     return None
 
 
-def _write_github_file(repo: str, path: str, content: str, message: str) -> Dict:
+def _write_github_file(repo: str, path: str, content: str, message: str) -> dict:
     """Write/update a file in a GitHub repo via API."""
     import requests
     url = f"https://api.github.com/repos/{_OWNER}/{repo}/contents/{path}"
@@ -369,7 +366,7 @@ def _write_github_file(repo: str, path: str, content: str, message: str) -> Dict
 # Public Repo References (updates README in public repo)
 # ---------------------------------------------------------------------------
 
-def get_private_repos_info() -> Dict:
+def get_private_repos_info() -> dict:
     """Return info about the private repos for display in the public project."""
     return {
         "dictionaries": {
@@ -393,7 +390,7 @@ def get_private_repos_info() -> Dict:
     }
 
 
-def get_sync_status() -> Dict:
+def get_sync_status() -> dict:
     """Get full sync status for all repos."""
     result = {
         "github_token": bool(_GITHUB_TOKEN),

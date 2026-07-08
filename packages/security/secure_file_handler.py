@@ -15,10 +15,8 @@ Security Features:
 """
 
 import logging
-import os
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +40,9 @@ class SecureFileHandler:
 
     def __init__(
         self,
-        upload_dir: Optional[str] = None,
+        upload_dir: str | None = None,
         max_size_mb: int = 50,
-        allowed_extensions: Optional[set] = None,
+        allowed_extensions: set | None = None,
     ) -> None:
         """Initialize the secure file handler.
 

@@ -25,13 +25,12 @@ mobile_review_connector.py
 
 import json
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import requests
-from PIL import Image
 
 # ============================================================================
 # إعدادات التسجيل
@@ -322,7 +321,7 @@ class MobileReviewConnector:
             discarded=discarded
         )
         
-        logger.info(f"📊 تصنيف:")
+        logger.info("📊 تصنيف:")
         logger.info(f"   🟢 تدريب تلقائي: {len(auto_train)}")
         logger.info(f"   🟡 تحتاج مراجعة: {len(needs_review)}")
         logger.info(f"   🔴 مرفوضة: {len(discarded)}")

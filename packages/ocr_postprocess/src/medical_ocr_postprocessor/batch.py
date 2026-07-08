@@ -63,14 +63,13 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
-from medical_ocr_postprocessor.core import CorrectionResult, PostProcessor
+from medical_ocr_postprocessor.core import PostProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -102,9 +101,8 @@ def _run_single_file(
     dict
         Processing result dictionary.
     """
-    from pathlib import Path as _Path
     import json as _json
-    import os as _os
+    from pathlib import Path as _Path
 
     filepath = _Path(input_path)
     out_dir = _Path(output_dir)

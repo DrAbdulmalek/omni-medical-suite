@@ -14,7 +14,6 @@ import json
 import logging
 import os
 import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +104,6 @@ class TechnicalTranslator:
         "client": "عميل",
         "endpoint": "نقطة نهاية",
         "payload": "حمولة البيانات",
-        "middleware": "برمجية وسيطة",
         "dependency": "تبعية",
         "package": "حزمة",
         "module": "وحدة",
@@ -141,7 +139,7 @@ class TechnicalTranslator:
         self,
         model_name: str = "Helsinki-NLP/opus-mt-en-ar",
         device: str = "cpu",
-        cache_file: Optional[str] = None,
+        cache_file: str | None = None,
     ) -> None:
         """
         تهيئة المترجم التقني.
@@ -156,7 +154,7 @@ class TechnicalTranslator:
         self._tokenizer = None
         self._model = None
         self._model_available = False
-        self._model_name_loaded: Optional[str] = None
+        self._model_name_loaded: str | None = None
 
         # التخزين المؤقت
         if cache_file:
@@ -222,7 +220,7 @@ class TechnicalTranslator:
         """تحميل التخزين المؤقت من الملف."""
         try:
             if os.path.exists(self._cache_file):
-                with open(self._cache_file, "r", encoding="utf-8") as f:
+                with open(self._cache_file, encoding="utf-8") as f:
                     self._cache = json.load(f)
                 logger.info("تم تحميل التخزين المؤقت: %d مدخل", len(self._cache))
         except Exception as e:
@@ -256,7 +254,7 @@ class TechnicalTranslator:
         placeholders: dict[str, str] = {}
         counter = 0
 
-        for pattern_name, pattern in self._PROTECTION_PATTERNS:
+        for _pattern_name, pattern in self._PROTECTION_PATTERNS:
             matches = list(pattern.finditer(protected))
             for match in reversed(matches):  # عكسي لتجنب إزاحة المواضع
                 placeholder = f"__PROTECTED_{counter}__"
@@ -300,7 +298,7 @@ class TechnicalTranslator:
     # ------------------------------------------------------------------
     # تحميل النموذج (كسول)
     # ------------------------------------------------------------------
-    def _load_model(self, model_name: Optional[str] = None) -> bool:
+    def _load_model(self, model_name: str | None = None) -> bool:
         """تحميل نموذج الترجمة (يتم مرة واحدة لكل نموذج)."""
         target_model = model_name or self.model_name
 

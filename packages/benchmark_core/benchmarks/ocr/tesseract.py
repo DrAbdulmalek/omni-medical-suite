@@ -4,9 +4,7 @@ Benchmarks Tesseract OCR engine on medical documents, measuring
 CER, WER, medical term accuracy, and processing latency.
 """
 
-import time
 import statistics
-from typing import Optional
 
 from benchmarks.core.metrics import EditDistance, LatencyProfiler, MedicalTermEvaluator
 
@@ -27,7 +25,7 @@ class TesseractBenchmark:
         """
         self.lang = lang
         self.tesseract_cmd = tesseract_cmd
-        self._available: Optional[bool] = None
+        self._available: bool | None = None
 
     def _is_available(self) -> bool:
         """Check if Tesseract is installed and available.
@@ -81,7 +79,7 @@ class TesseractBenchmark:
                 timeout=60,
             )
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 return f.read().strip()
         finally:
             import os

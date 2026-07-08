@@ -1,9 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import quote_plus
 import time
 import re
-import html
 
 class BrowserTool:
     name = "browser_search"
@@ -435,7 +434,6 @@ class BrowserTool:
 
     def _extract_duckduckgo_results(self, soup, limit=5):
         """提取DuckDuckGo搜索结果"""
-        results = []
         
         # DuckDuckGo现在返回202状态码，需要JavaScript渲染
         # 我们尝试从HTML中提取任何有用的信息
@@ -722,18 +720,16 @@ class BrowserTool:
         
         # 对于中文搜索，直接使用Searx搜索引擎，跳过DuckDuckGo（避免202问题）
         if is_chinese:
-            print(f"🌐 检测到中文查询，使用多引擎搜索策略...")
+            print("🌐 检测到中文查询，使用多引擎搜索策略...")
             searx_results, searx_success = self._search_searx(query, limit)
             
             if searx_success and searx_results:
                 results = searx_results
-                search_engine = "Searx多引擎"
                 print(f"✅ 中文搜索成功，找到 {len(results)} 个结果")
             else:
                 # 如果Searx失败，提供搜索建议
                 print("⚠️ 所有搜索引擎失败，提供搜索建议")
                 results = self._get_search_suggestions(query)
-                search_engine = "搜索建议"
         else:
             # 英文搜索：先尝试DuckDuckGo，失败后使用Searx
             max_retries = 2  # 减少重试次数，快速切换到Searx
@@ -768,7 +764,6 @@ class BrowserTool:
                     
                     if results and len(results) > 0:
                         duckduckgo_success = True
-                        search_engine = "DuckDuckGo"
                         print(f"✅ DuckDuckGo搜索成功，找到 {len(results)} 个结果")
                         break
                         
@@ -786,12 +781,10 @@ class BrowserTool:
                 
                 if searx_success and searx_results:
                     results = searx_results
-                    search_engine = "Searx多引擎"
                     print(f"✅ Searx搜索成功，找到 {len(results)} 个结果")
                 else:
                     print("⚠️ 所有搜索引擎失败，提供搜索建议")
                     results = self._get_search_suggestions(query)
-                    search_engine = "搜索建议"
         
         # 增强搜索结果（提取内容预览）
         if results:

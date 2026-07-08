@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from memory.store import (
     get_diet_reflect,

@@ -18,13 +18,11 @@ Usage:
 
 import json
 import logging
-import os
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -63,7 +61,7 @@ def git_commit_push(repo_path: Path, message: str, branch: str = "main") -> bool
         return False
 
 
-def hf_to_github() -> Dict:
+def hf_to_github() -> dict:
     """
     Pull exported corrections from HF Space data directory
     and merge into GitHub training-hub.
@@ -95,7 +93,7 @@ def hf_to_github() -> Dict:
                 shutil.copy2(f, target)
                 stats["files_copied"] += 1
                 # Count entries
-                with open(target, "r", encoding="utf-8") as fh:
+                with open(target, encoding="utf-8") as fh:
                     count = sum(1 for _ in fh)
                 stats["total_entries"] += count
                 logger.info("Copied: %s (%d entries)", f.name, count)
@@ -119,7 +117,7 @@ def hf_to_github() -> Dict:
             logger.error("DB export failed: %s", e)
 
     if stats["files_copied"] > 0 or stats.get("db_export"):
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
         git_commit_push(
             GITHUB_REPO_PATH,
             f"sync: HF corrections → training hub ({timestamp})\n"
@@ -130,7 +128,7 @@ def hf_to_github() -> Dict:
     return stats
 
 
-def github_to_hf() -> Dict:
+def github_to_hf() -> dict:
     """
     Push ground truth + model configs from GitHub training-hub
     to HF Space so the app can use them.
@@ -166,7 +164,7 @@ def github_to_hf() -> Dict:
         stats["files_copied"] += 1
 
     if stats["files_copied"] > 0:
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
         git_commit_push(
             HF_SPACE_PATH,
             f"sync: training hub → HF Space ({timestamp})\n"
@@ -176,16 +174,16 @@ def github_to_hf() -> Dict:
     return stats
 
 
-def generate_sync_log(direction: str, result: Dict) -> None:
+def generate_sync_log(direction: str, result: dict) -> None:
     """Write a sync log entry."""
     logs_dir = GITHUB_REPO_PATH / "logs" / "corrections"
     logs_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     log_file = logs_dir / f"sync_{direction}_{timestamp}.json"
 
     log_entry = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "direction": direction,
         "result": result,
     }

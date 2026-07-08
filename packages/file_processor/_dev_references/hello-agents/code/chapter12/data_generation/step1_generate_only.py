@@ -21,10 +21,10 @@ def main():
     print("\n" + "="*80)
     print("📝 步骤1: 生成AIME题目")
     print("="*80)
-    print(f"\n配置信息:")
+    print("\n配置信息:")
     print(f"  - 生成题目数量: {num_problems}")
     print(f"  - API延迟: {delay_seconds}秒/题")
-    print(f"  - 生成参考数据: TianHongZXY/aime-1983-2025（900+道题）")
+    print("  - 生成参考数据: TianHongZXY/aime-1983-2025（900+道题）")
     
     # 创建生成器
     generator = AIMEGenerator(delay_seconds=delay_seconds)
@@ -36,7 +36,7 @@ def main():
     )
     
     print(f"\n✅ 步骤1完成！生成数据保存在: {generated_data_path}")
-    print(f"\n下一步：运行评估")
+    print("\n下一步：运行评估")
     print(f"python data_generation/step2_evaluate_only.py {generated_data_path} 2024")
 
 

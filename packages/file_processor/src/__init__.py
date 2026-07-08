@@ -118,7 +118,6 @@ def __getattr__(name: str):
 
         # إظهار تحذير الإهمال
         old_path = f"src.{name}"
-        new_path = f"{module_path}.{attr_name}"
         warnings.warn(
             f"استيراد '{old_path}' مُهمَل وسيتم إزالته في v6.0. "
             f"استخدم: from {module_path} import {attr_name}",

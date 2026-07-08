@@ -3,7 +3,6 @@
 
 import json
 import requests
-import os
 from datetime import datetime
 from typing import Dict, Any
 from hello_agents.protocols import MCPServer

@@ -3,10 +3,9 @@
 #  Transforms JSONL audit log into actionable Markdown reports
 # ══════════════════════════════════════════════════════════╝
 
-import json
 import datetime
+import json
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class AuditReportGenerator:
@@ -15,7 +14,7 @@ class AuditReportGenerator:
     تتضمن مؤشرات KPIs وتوصيات تحسين النظام.
     """
 
-    def __init__(self, log_dir: Optional[str] = None):
+    def __init__(self, log_dir: str | None = None):
         if log_dir is None:
             log_dir = str(Path(__file__).parent.parent.parent / 'data' / 'audit_logs')
 
@@ -26,13 +25,13 @@ class AuditReportGenerator:
     # Load Data
     # ────────────────────────────────────────────────────────
 
-    def load_logs(self) -> List[Dict]:
+    def load_logs(self) -> list[dict]:
         """تحميل جميع السجلات من ملف JSONL."""
         if not self.log_file.exists():
             return []
 
         logs = []
-        with open(self.log_file, 'r', encoding='utf-8') as f:
+        with open(self.log_file, encoding='utf-8') as f:
             for line in f:
                 if line.strip():
                     logs.append(json.loads(line))
@@ -42,7 +41,7 @@ class AuditReportGenerator:
     # Generate Markdown Report
     # ────────────────────────────────────────────────────────
 
-    def generate_report(self, output_path: Optional[str] = None) -> str:
+    def generate_report(self, output_path: str | None = None) -> str:
         """
         إنشاء تقرير أداء ومراجعة التدقيق الطبي بصيغة Markdown.
 
@@ -73,7 +72,7 @@ class AuditReportGenerator:
             v = l.get('model_version', 'unknown')
             model_versions[v] = model_versions.get(v, 0) + 1
 
-        action_dist: Dict[str, int] = {}
+        action_dist: dict[str, int] = {}
         for l in logs:
             act = l.get('action', 'UNKNOWN')
             action_dist[act] = action_dist.get(act, 0) + 1
@@ -82,7 +81,7 @@ class AuditReportGenerator:
         now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
         report_lines = [
-            f"# Audit Report & Performance Dashboard",
+            "# Audit Report & Performance Dashboard",
             f"**Date**: {now_str}  ",
             f"**Total Decisions Logged**: {total}  ",
             "",
@@ -156,7 +155,7 @@ class AuditReportGenerator:
     # Summary Stats (for programmatic use)
     # ────────────────────────────────────────────────────────
 
-    def get_summary(self) -> Dict:
+    def get_summary(self) -> dict:
         """إرجاع ملخص إحصائي قصير (للاستخدام البرمجي)."""
         logs = self.load_logs()
         if not logs:

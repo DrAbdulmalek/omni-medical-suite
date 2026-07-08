@@ -16,17 +16,17 @@ import os
 import time
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+from concurrent.futures import ThreadPoolExecutor
+
+from omniparse.models import responseDocument
+from omniparse.web.config import DEFAULT_PROVIDER, MIN_WORD_THRESHOLD
+from omniparse.web.crawler_strategy import CrawlerStrategy, LocalSeleniumCrawlerStrategy
 from omniparse.web.models import UrlModel
 from omniparse.web.utils import (
-    get_content_of_website,
-    extract_metadata,
     InvalidCSSSelectorError,
+    extract_metadata,
+    get_content_of_website,
 )
-from omniparse.web.crawler_strategy import CrawlerStrategy, LocalSeleniumCrawlerStrategy
-from typing import List
-from concurrent.futures import ThreadPoolExecutor
-from omniparse.web.config import DEFAULT_PROVIDER, MIN_WORD_THRESHOLD
-from omniparse.models import responseDocument
 
 
 class WebCrawler:
@@ -58,10 +58,10 @@ class WebCrawler:
         self,
         url_model: UrlModel,
         provider: str = DEFAULT_PROVIDER,
-        api_token: str = None,
+        api_token: str | None = None,
         extract_blocks_flag: bool = True,
         word_count_threshold=MIN_WORD_THRESHOLD,
-        css_selector: str = None,
+        css_selector: str | None = None,
         screenshot: bool = False,
         use_cached_html: bool = False,
         **kwargs,
@@ -78,16 +78,16 @@ class WebCrawler:
 
     def fetch_pages(
         self,
-        url_models: List[UrlModel],
+        url_models: list[UrlModel],
         provider: str = DEFAULT_PROVIDER,
-        api_token: str = None,
+        api_token: str | None = None,
         extract_blocks_flag: bool = True,
         word_count_threshold=MIN_WORD_THRESHOLD,
         use_cached_html: bool = False,
-        css_selector: str = None,
+        css_selector: str | None = None,
         screenshot: bool = False,
         **kwargs,
-    ) -> List[responseDocument]:
+    ) -> list[responseDocument]:
         def fetch_page_wrapper(url_model, *args, **kwargs):
             return self.fetch_page(url_model, *args, **kwargs)
 
@@ -114,9 +114,9 @@ class WebCrawler:
         url: str,
         word_count_threshold=MIN_WORD_THRESHOLD,
         bypass_cache: bool = False,
-        css_selector: str = None,
+        css_selector: str | None = None,
         screenshot: bool = False,
-        user_agent: str = None,
+        user_agent: str | None = None,
         verbose=True,
         **kwargs,
     ) -> responseDocument:
@@ -184,7 +184,7 @@ class WebCrawler:
                 f"[LOG]  Crawling done for {url}, success: True, time taken: {time.time() - t} seconds"
             )
 
-        screenshot = None if not screenshot else screenshot
+        screenshot = screenshot if screenshot else None
 
         return {
             "url": url,

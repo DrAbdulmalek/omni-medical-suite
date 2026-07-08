@@ -8,9 +8,10 @@ Impact: Reduces CER by 40-50% on average on scanned medical documents.
 """
 
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Union
-import numpy as np
+from typing import Any
+
 import cv2
+import numpy as np
 
 # Import scanner-fixer v1.0 Python API directly (no subprocess)
 try:
@@ -40,7 +41,7 @@ class ScannerFixerPreprocessor:
         do_deskew: bool = True,
         do_enhance: bool = True,
         binarize: bool = False,
-        target_dpi: Optional[int] = 300,
+        target_dpi: int | None = 300,
         deskew_method: str = "hough",
         crop_padding: int = 10,
     ):
@@ -66,7 +67,7 @@ class ScannerFixerPreprocessor:
         self.deskew_method = deskew_method
         self.crop_padding = crop_padding
 
-    def process(self, image: Union[str, Path, np.ndarray]) -> np.ndarray:
+    def process(self, image: str | Path | np.ndarray) -> np.ndarray:
         """
         Apply scanner-fixer preprocessing to a single image.
 
@@ -110,8 +111,8 @@ class ScannerFixerPreprocessor:
         return result["image"]
 
     def process_with_report(
-        self, image: Union[str, Path, np.ndarray]
-    ) -> Dict[str, Any]:
+        self, image: str | Path | np.ndarray
+    ) -> dict[str, Any]:
         """
         Process image and return both the result and the processing report.
 
@@ -145,7 +146,7 @@ class ScannerFixerPreprocessor:
 
         return result  # Already has "image", "steps", "report" keys
 
-    def process_batch(self, images: List[Union[str, Path, np.ndarray]]) -> List[np.ndarray]:
+    def process_batch(self, images: list[str | Path | np.ndarray]) -> list[np.ndarray]:
         """
         Process multiple images.
 

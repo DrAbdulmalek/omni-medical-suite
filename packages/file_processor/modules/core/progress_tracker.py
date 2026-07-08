@@ -44,8 +44,6 @@ from typing import (
     List,
     Optional,
     Protocol,
-    Sequence,
-    Set,
     runtime_checkable,
 )
 
@@ -565,7 +563,7 @@ class ProgressTracker:
             percentage = step.percentage
 
         # حساب النسبة المئوية الإجمالية عبر جميع الخطوات
-        overall = self._calculate_overall_percentage()
+        self._calculate_overall_percentage()
 
         # إرسال إشعار التقدّم
         self._notify(
@@ -1438,7 +1436,6 @@ class ProcessingPipeline:
         display_name = step.description or step.name
         self._tracker.start_step(display_name)
 
-        last_error: Optional[Exception] = None
         attempts = step.retry_count + 1
 
         for attempt in range(attempts):
@@ -1463,7 +1460,6 @@ class ProcessingPipeline:
                 return result
 
             except Exception as exc:
-                last_error = exc
 
                 if attempt < attempts - 1:
                     logger.warning(

@@ -8,14 +8,13 @@ HF Connector - ربط تطبيق سطح المكتب مع Hugging Face Space
 - Batch processing عبر HF
 """
 
-import os
-import cv2
-import numpy as np
-from pathlib import Path
-from datetime import datetime
-from typing import Optional, Dict, List, Tuple
-import tempfile
 import json
+import os
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+import cv2
 
 # For HF API calls
 try:
@@ -25,7 +24,7 @@ except ImportError:
     handle_file = None
 
 try:
-    from huggingface_hub import HfApi, create_repo, upload_file, dataset_upload
+    from huggingface_hub import HfApi, create_repo, dataset_upload, upload_file
 except ImportError:
     HfApi = None
 
@@ -33,10 +32,10 @@ except ImportError:
 class HFConnector:
     """موصل Hugging Face للتطبيق المحلي"""
 
-    def __init__(self, 
+    def __init__(self,
                  space_name: str = "DrAbdulmalek/medical-ocr-demo",
                  dataset_name: str = "DrAbdulmalek/arabic-medical-ocr-corrections",
-                 hf_token: Optional[str] = None):
+                 hf_token: str | None = None):
         """
         تهيئة الموصل
 
@@ -79,7 +78,7 @@ class HFConnector:
             return
         self.client.view_api()
 
-    def process_image_via_hf(self, image_path: str, mode: str = "standard") -> Dict:
+    def process_image_via_hf(self, image_path: str, mode: str = "standard") -> dict:
         """
         معالجة صورة عبر HF Space
 
@@ -90,9 +89,8 @@ class HFConnector:
         Returns:
             dict مع النتائج: {cleaned_image, raw_text, corrected_text, entities, status}
         """
-        if not self.client:
-            if not self.connect_to_space():
-                return {"error": "Failed to connect to HF Space"}
+        if not self.client and not self.connect_to_space():
+            return {"error": "Failed to connect to HF Space"}
 
         try:
             # رفع الصورة واستدعاء API
@@ -115,9 +113,9 @@ class HFConnector:
         except Exception as e:
             return {"error": str(e), "success": False}
 
-    def send_correction_to_hf(self, 
-                             image_path: str, 
-                             raw_text: str, 
+    def send_correction_to_hf(self,
+                             image_path: str,
+                             raw_text: str,
                              corrected_text: str,
                              category: str = "prescription") -> bool:
         """
@@ -137,8 +135,8 @@ class HFConnector:
             return False
 
         try:
-            from datasets import Dataset
             import pandas as pd
+            from datasets import Dataset
 
             # إنشاء سجل
             record = {
@@ -182,15 +180,15 @@ class HFConnector:
         backup_dir = Path("local_corrections_backup")
         backup_dir.mkdir(exist_ok=True)
 
-        with open(backup_dir / f"correction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", 
+        with open(backup_dir / f"correction_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                   'w', encoding='utf-8') as f:
             json.dump(record, f, ensure_ascii=False, indent=2)
         print(f"💾 Local backup saved to {backup_dir}")
 
-    def batch_process_via_hf(self, 
-                            image_folder: str, 
+    def batch_process_via_hf(self,
+                            image_folder: str,
                             output_folder: str,
-                            mode: str = "standard") -> List[Dict]:
+                            mode: str = "standard") -> list[dict]:
         """
         معالجة مجلد كامل عبر HF Space
 
@@ -202,9 +200,8 @@ class HFConnector:
         Returns:
             قائمة بالنتائج
         """
-        if not self.client:
-            if not self.connect_to_space():
-                return []
+        if not self.client and not self.connect_to_space():
+            return []
 
         image_files = list(Path(image_folder).glob("*.jpg")) +                      list(Path(image_folder).glob("*.png")) +                      list(Path(image_folder).glob("*.jpeg"))
 
@@ -254,8 +251,8 @@ class HFConnector:
             return False
 
         try:
-            from datasets import Dataset, load_dataset
             import pandas as pd
+            from datasets import Dataset
 
             # قراءة البيانات المحلية
             df = pd.read_csv(local_dataset_path)
@@ -285,7 +282,7 @@ class DesktopHFIntegration:
         except ImportError:
             pass
 
-    def hybrid_process(self, image_path: str, use_hf: bool = True) -> Dict:
+    def hybrid_process(self, image_path: str, use_hf: bool = True) -> dict:
         """
         معالجة هجينة: محلية أولاً ثم HF
 
@@ -330,7 +327,7 @@ class DesktopHFIntegration:
 
         json_files = list(folder.glob("*.json"))
         for jf in json_files:
-            with open(jf, 'r', encoding='utf-8') as f:
+            with open(jf, encoding='utf-8') as f:
                 record = json.load(f)
 
             self.connector.send_correction_to_hf(

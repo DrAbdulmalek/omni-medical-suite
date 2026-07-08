@@ -2,8 +2,6 @@
 from typing import Optional, Dict, List, Tuple
 from pathlib import Path
 from .format_parser import FormatParser
-import base64
-import re
 
 class HTMLExporter:
     """مصدّر للنصوص إلى HTML مع حفظ التنسيق."""
@@ -89,8 +87,8 @@ class HTMLExporter:
         html = f'<!DOCTYPE html>\n<html lang="{self.language}" dir="{self._get_dir()}">\n<head>\n'
 
         # العنوان
-        html += f'    <meta charset="UTF-8">\n'
-        html += f'    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+        html += '    <meta charset="UTF-8">\n'
+        html += '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
         html += f'    <title>{title}</title>\n'
 
         # أنماط CSS
@@ -111,19 +109,19 @@ class HTMLExporter:
 
         # استبدال الجداول
         for i, table in enumerate(tables):
-            table_html = self._generate_table_html(table, i)
+            self._generate_table_html(table, i)
             table_text = self._table_to_text(table)
             processed_text = processed_text.replace(table_text, f'<!-- TABLE:{i} -->')
 
         # استبدال الصور
         for i, image in enumerate(images):
-            image_html = self._generate_image_html(image, i)
+            self._generate_image_html(image, i)
             image_text = f'![{image["alt"]}]({image["url"]})'
             processed_text = processed_text.replace(image_text, f'<!-- IMAGE:{i} -->')
 
         # استبدال كتل الكود
         for i, code_block in enumerate(code_blocks):
-            code_html = self._generate_code_html(code_block, i)
+            self._generate_code_html(code_block, i)
             code_text = f'```{code_block["language"]}\n{code_block["code"]}\n```'
             processed_text = processed_text.replace(code_text, f'<!-- CODE:{i} -->')
 

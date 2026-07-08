@@ -9,8 +9,6 @@ adapted for OmniFile_Processor's structure.
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
-
 
 # ─── Implementation from evaluation/metrics.py for testing ────────────
 
@@ -256,12 +254,12 @@ class TestCER:
         assert total == 5
 
     def test_cer_with_errors(self):
-        cer, errors, total = calculate_cer("مرحبا", "محبا")
+        cer, errors, _total = calculate_cer("مرحبا", "محبا")
         assert cer > 0
         assert errors > 0
 
     def test_cer_complete_wrong(self):
-        cer, errors, total = calculate_cer("مرحبا", "xxxxx")
+        cer, errors, _total = calculate_cer("مرحبا", "xxxxx")
         assert cer == 1.0
         assert errors == 5
 
@@ -278,12 +276,12 @@ class TestCER:
         assert total == 5
 
     def test_both_empty(self):
-        cer, errors, total = calculate_cer("", "")
+        cer, errors, _total = calculate_cer("", "")
         assert cer == 0.0
         assert errors == 0
 
     def test_cer_english(self):
-        cer, errors, total = calculate_cer("hello world", "hello world")
+        cer, _errors, _total = calculate_cer("hello world", "hello world")
         assert cer == 0.0
 
     def test_cer_with_diacritics(self):
@@ -303,32 +301,32 @@ class TestWER:
         assert total == 2
 
     def test_wer_with_errors(self):
-        wer, errors, total = calculate_wer("مرحبا بالعالم", "مرحبا العالم")
+        wer, errors, _total = calculate_wer("مرحبا بالعالم", "مرحبا العالم")
         assert wer > 0
         assert errors > 0
 
     def test_wer_complete_wrong(self):
-        wer, errors, total = calculate_wer("مرحبا بالعالم", "كلمة أخرى")
+        wer, errors, _total = calculate_wer("مرحبا بالعالم", "كلمة أخرى")
         assert wer == 1.0
         assert errors == 2
 
     def test_empty_reference(self):
-        wer, errors, total = calculate_wer("", "مرحبا")
+        wer, errors, _total = calculate_wer("", "مرحبا")
         assert wer == 1.0
         assert errors == 1
 
     def test_empty_hypothesis(self):
-        wer, errors, total = calculate_wer("مرحبا", "")
+        wer, errors, _total = calculate_wer("مرحبا", "")
         assert wer == 1.0
         assert errors == 1
 
     def test_both_empty(self):
-        wer, errors, total = calculate_wer("", "")
+        wer, errors, _total = calculate_wer("", "")
         assert wer == 0.0
         assert errors == 0
 
     def test_wer_extra_words(self):
-        wer, errors, total = calculate_wer("مرحبا", "مرحبا بالعالم")
+        wer, _errors, _total = calculate_wer("مرحبا", "مرحبا بالعالم")
         assert wer > 0
 
 

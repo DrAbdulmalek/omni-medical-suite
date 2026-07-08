@@ -1,12 +1,11 @@
 """Tests for the Hybrid PII Scrubber v2."""
 
-import pytest
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.ingestion.hybrid_scrubber import HybridPIIScrubber, scrub_pii, RedactionStats
+from src.ingestion.hybrid_scrubber import HybridPIIScrubber, RedactionStats, scrub_pii
 
 
 class TestRegexScrubbing:
@@ -29,7 +28,7 @@ class TestRegexScrubbing:
 
     def test_uae_phone(self):
         text = "UAE: +971-50-123-4567"
-        redacted, stats = self.scrubber.scrub(text)
+        redacted, _stats = self.scrubber.scrub(text)
         assert '[REDACTED_PHONE]' in redacted
 
     def test_email(self):
@@ -46,7 +45,7 @@ class TestRegexScrubbing:
 
     def test_arabic_numeral_date(self):
         text = "التاريخ: ٢٥/٠٦/٢٠٢٥"
-        redacted, stats = self.scrubber.scrub(text)
+        redacted, _stats = self.scrubber.scrub(text)
         assert '[REDACTED_DATE]' in redacted
 
     def test_national_id(self):
@@ -58,13 +57,13 @@ class TestRegexScrubbing:
     def test_medical_dosage_not_redacted(self):
         """Drug dosages should NOT be redacted as IDs"""
         text = "Prescription: Amoxicillin 500mg three times daily"
-        redacted, stats = self.scrubber.scrub(text)
+        redacted, _stats = self.scrubber.scrub(text)
         assert '500mg' in redacted or '500 mg' in redacted
         assert '[REDACTED_ID]' not in redacted
 
     def test_multiple_pii_types(self):
         text = "Patient Ahmed, Phone: +963-911-234-567, DOB: 15/03/1985, Email: test@test.com"
-        redacted, stats = self.scrubber.scrub(text)
+        _redacted, stats = self.scrubber.scrub(text)
         assert stats.total_redactions >= 3
 
 
@@ -96,7 +95,7 @@ class TestRedactionStats:
 
 class TestConvenienceFunction:
     def test_scrub_pii_function(self):
-        redacted, stats = scrub_pii("Phone: +963-911-234-567", use_ner=False)
+        redacted, _stats = scrub_pii("Phone: +963-911-234-567", use_ner=False)
         assert '[REDACTED_PHONE]' in redacted
 
 
@@ -105,7 +104,7 @@ class TestNERLayer:
         """NER should work when enabled (if transformers available)"""
         scrubber = HybridPIIScrubber(use_ner=False)
         text = "Patient: Ahmed Al-Rashid"
-        redacted, stats = scrubber.scrub(text)
+        _redacted, stats = scrubber.scrub(text)
         # With NER disabled, names won't be detected
         assert stats.names_found == 0
 

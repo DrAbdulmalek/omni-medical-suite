@@ -9,13 +9,12 @@ confidence is high (auto-accept). When they disagree, the word is flagged
 for human review or treated as a hard training example.
 """
 
-import re
 import difflib
-from typing import List, Dict, Any
 from collections import Counter
+from typing import Any
 
 
-def tokenize(text: str) -> List[str]:
+def tokenize(text: str) -> list[str]:
     """
     Splits text into words, preserving Arabic and Latin scripts.
     Strips punctuation-only tokens but keeps words with internal punctuation
@@ -37,7 +36,7 @@ def tokenize(text: str) -> List[str]:
     return tokens
 
 
-def align_two_sources(tokens_a: List[str], tokens_b: List[str]) -> List[Dict[str, Any]]:
+def align_two_sources(tokens_a: list[str], tokens_b: list[str]) -> list[dict[str, Any]]:
     """
     Aligns two token sequences using difflib's SequenceMatcher
     (same algorithm family used for computing WER/diff).
@@ -68,9 +67,9 @@ def align_two_sources(tokens_a: List[str], tokens_b: List[str]) -> List[Dict[str
 
 
 def merge_multi_source(
-    sources: Dict[str, str],
-    primary_source: str = None
-) -> Dict[str, Any]:
+    sources: dict[str, str],
+    primary_source: str | None = None
+) -> dict[str, Any]:
     """
     Merges 2+ OCR text sources into a single ground-truth candidate.
 

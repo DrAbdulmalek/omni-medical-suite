@@ -10,7 +10,6 @@
 """
 
 import logging
-import traceback
 import pandas as pd
 from langdetect import detect
 
@@ -82,7 +81,7 @@ def reconstruct_sentences(db, y_tolerance=25, verified_only=True) -> list[dict] 
                 lang = detect(text_preview)
             except Exception:
                 lang = "en"
-                logger.debug(f"    فشل كشف اللغة — افتراضي: en")
+                logger.debug("    فشل كشف اللغة — افتراضي: en")
 
             # ترتيب حسب اللغة
             is_rtl = (lang == "ar")
@@ -125,7 +124,8 @@ def reconstruct_sentences_direct(df, y_tolerance=25) -> list[str]:
     try:
         from langdetect import detect
     except ImportError:
-        detect = lambda _: "en"
+        def detect(_):
+            return "en"
 
     lines_out = []
     for pg in sorted(df["page_num"].dropna().unique()):

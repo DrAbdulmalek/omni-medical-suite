@@ -14,16 +14,17 @@ URL: https://huggingface.co/spaces/gokaygokay/Florence-2
 
 import io
 import random
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-import matplotlib.pyplot as plt
+
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image, ImageDraw
 
 
 def plot_bbox(image, data):
     fig, ax = plt.subplots()
     ax.imshow(image)
-    for bbox, label in zip(data["bboxes"], data["labels"]):
+    for bbox, label in zip(data["bboxes"], data["labels"], strict=False):
         x1, y1, x2, y2 = bbox
         rect = patches.Rectangle(
             (x1, y1), x2 - x1, y2 - y1, linewidth=1, edgecolor="r", facecolor="none"
@@ -35,7 +36,7 @@ def plot_bbox(image, data):
             label,
             color="white",
             fontsize=8,
-            bbox=dict(facecolor="red", alpha=0.5),
+            bbox={"facecolor": "red", "alpha": 0.5},
         )
     ax.axis("off")
     return fig
@@ -67,7 +68,7 @@ colormap = [
 def draw_polygons(image, prediction, fill_mask=False):
     draw = ImageDraw.Draw(image)
     scale = 1
-    for polygons, label in zip(prediction["polygons"], prediction["labels"]):
+    for polygons, label in zip(prediction["polygons"], prediction["labels"], strict=False):
         color = random.choice(colormap)
         fill_color = random.choice(colormap) if fill_mask else None
         for _polygon in polygons:
@@ -95,13 +96,13 @@ def draw_ocr_bboxes(image, prediction):
     scale = 1
     draw = ImageDraw.Draw(image)
     bboxes, labels = prediction["quad_boxes"], prediction["labels"]
-    for box, label in zip(bboxes, labels):
+    for box, label in zip(bboxes, labels, strict=False):
         color = random.choice(colormap)
         new_box = (np.array(box) * scale).tolist()
         draw.polygon(new_box, width=3, outline=color)
         draw.text(
             (new_box[0] + 8, new_box[1] + 2),
-            "{}".format(label),
+            f"{label}",
             align="right",
             fill=color,
         )

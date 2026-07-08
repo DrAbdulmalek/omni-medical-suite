@@ -15,9 +15,8 @@ Author: Dr. Abdulmalek
 Version: 1.0.0
 """
 
-import re
 import logging
-from typing import List, Dict, Optional, Tuple
+import re
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -33,18 +32,18 @@ class TextChunk:
     end_char: int = 0
     language: str = "auto"  # "arabic", "english", "mixed", "auto"
     source_page: int = 0
-    metadata: Dict = field(default_factory=dict)
+    metadata: dict = field(default_factory=dict)
 
 
 class MedicalDocumentSegmenter:
     """
     Segments medical documents into chunks suitable for OCR training,
     benchmarking, or RAG ingestion.
-    
+
     This is a DATA PREPARATION tool, not part of the core OCR pipeline.
     Use it when preparing datasets for training or evaluation.
     """
-    
+
     def __init__(
         self,
         max_tokens: int = 512,
@@ -56,14 +55,14 @@ class MedicalDocumentSegmenter:
         self.min_tokens = min_tokens
         self.overlap_tokens = overlap_tokens
         self.strategy = strategy
-        
+
         # Arabic sentence boundaries
         self._arabic_punctuation = r'[٫؟!。]'
         self._sentence_split_re = re.compile(
             r'(?<=[.!?।' + self._arabic_punctuation[1:-1] + r'])\s+'
         )
-    
-    def segment(self, text: str, **kwargs) -> List[TextChunk]:
+
+    def segment(self, text: str, **kwargs) -> list[TextChunk]:
         """Segment text using the configured strategy."""
         if self.strategy == "size":
             return self._segment_by_size(text)
@@ -75,13 +74,13 @@ class MedicalDocumentSegmenter:
             return self._segment_hybrid(text)
         else:
             raise ValueError(f"Unknown strategy: {self.strategy}")
-    
+
     def _estimate_tokens(self, text: str) -> int:
         """Estimate token count (Arabic ≈ 3.5 chars/token, English ≈ 4.0)."""
         arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
         other_chars = len(text) - arabic_chars
         return int(arabic_chars / 3.5 + other_chars / 4.0)
-    
+
     def _detect_language(self, text: str) -> str:
         """Detect if text is Arabic, English, or mixed."""
         arabic = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
@@ -94,32 +93,32 @@ class MedicalDocumentSegmenter:
         elif english / total_alpha > 0.8:
             return "english"
         return "mixed"
-    
-    def _split_sentences(self, text: str) -> List[str]:
+
+    def _split_sentences(self, text: str) -> list[str]:
         """Split text into sentences, Arabic-aware."""
         sentences = self._sentence_split_re.split(text)
         return [s.strip() for s in sentences if s.strip()]
-    
-    def _segment_by_size(self, text: str) -> List[TextChunk]:
+
+    def _segment_by_size(self, text: str) -> list[TextChunk]:
         """Segment by token window with overlap."""
         sentences = self._split_sentences(text)
         if not sentences:
             return [self._make_chunk(text, 0, 0, len(text))]
-        
+
         chunks = []
         current_sentences = []
         current_tokens = 0
         char_start = 0
-        
+
         for sent in sentences:
             sent_tokens = self._estimate_tokens(sent)
-            
+
             if current_tokens + sent_tokens > self.max_tokens and current_sentences:
                 # Emit current chunk
                 chunk_text = ' '.join(current_sentences)
                 chunk = self._make_chunk(chunk_text, len(chunks), char_start, char_start + len(chunk_text))
                 chunks.append(chunk)
-                
+
                 # Start new chunk with overlap
                 overlap_text = self._get_overlap_text(current_sentences)
                 overlap_tokens = self._estimate_tokens(overlap_text)
@@ -129,35 +128,35 @@ class MedicalDocumentSegmenter:
             else:
                 current_sentences.append(sent)
                 current_tokens += sent_tokens
-        
+
         # Final chunk
         if current_sentences:
             chunk_text = ' '.join(current_sentences)
             chunk = self._make_chunk(chunk_text, len(chunks), char_start, char_start + len(chunk_text))
             chunks.append(chunk)
-        
+
         return self._merge_small_chunks(chunks)
-    
-    def _segment_by_semantic(self, text: str) -> List[TextChunk]:
+
+    def _segment_by_semantic(self, text: str) -> list[TextChunk]:
         """Segment by sentence similarity grouping (simplified without ML)."""
         sentences = self._split_sentences(text)
         if not sentences:
             return [self._make_chunk(text, 0, 0, len(text))]
-        
+
         # Group sentences by shared medical keywords
         groups = []
         current_group = [sentences[0]]
-        
+
         for i in range(1, len(sentences)):
             if self._sentences_related(current_group, sentences[i]):
                 current_group.append(sentences[i])
             else:
                 groups.append(current_group)
                 current_group = [sentences[i]]
-        
+
         if current_group:
             groups.append(current_group)
-        
+
         # Create chunks from groups, splitting large ones
         chunks = []
         for group in groups:
@@ -170,16 +169,16 @@ class MedicalDocumentSegmenter:
                 for sc in sub_chunks:
                     sc.chunk_id = len(chunks)
                     chunks.append(sc)
-        
+
         return self._merge_small_chunks(chunks)
-    
-    def _segment_by_structure(self, text: str) -> List[TextChunk]:
+
+    def _segment_by_structure(self, text: str) -> list[TextChunk]:
         """Segment by document structure (headings, lists, paragraphs)."""
         chunks = []
         lines = text.split('\n')
         current_section = []
         char_pos = 0
-        
+
         def flush_section():
             if not current_section:
                 return
@@ -187,39 +186,39 @@ class MedicalDocumentSegmenter:
             if section_text:
                 chunks.append(self._make_chunk(section_text, len(chunks)))
             current_section.clear()
-        
+
         for line in lines:
             stripped = line.strip()
-            
+
             # Detect headings
             if re.match(r'^(#{1,6}\s|[\d]+[.)]\s|[-*]\s)', stripped):
                 flush_section()
                 current_section.append(stripped)
                 char_pos += len(line) + 1
                 continue
-            
+
             # Detect blank lines (paragraph separator)
             if not stripped:
                 flush_section()
                 char_pos += len(line) + 1
                 continue
-            
+
             current_section.append(stripped)
             char_pos += len(line) + 1
-            
+
             # Flush if too large
             section_text = '\n'.join(current_section)
             if self._estimate_tokens(section_text) > self.max_tokens:
                 flush_section()
-        
+
         flush_section()
         return self._merge_small_chunks(chunks)
-    
-    def _segment_hybrid(self, text: str) -> List[TextChunk]:
+
+    def _segment_hybrid(self, text: str) -> list[TextChunk]:
         """Hybrid: structure → size enforcement → semantic merge of small chunks."""
         # Pass 1: Structural segmentation
         chunks = self._segment_by_structure(text)
-        
+
         # Pass 2: Split any oversized chunks
         final_chunks = []
         for chunk in chunks:
@@ -232,13 +231,13 @@ class MedicalDocumentSegmenter:
             else:
                 chunk.chunk_id = len(final_chunks)
                 final_chunks.append(chunk)
-        
+
         # Pass 3: Merge very small chunks
         final_chunks = self._merge_small_chunks(final_chunks)
-        
+
         return final_chunks
-    
-    def _sentences_related(self, group: List[str], new_sentence: str) -> bool:
+
+    def _sentences_related(self, group: list[str], new_sentence: str) -> bool:
         """Check if a sentence is topically related to the current group (keyword-based)."""
         # Medical keyword overlap heuristic
         medical_keywords = set(re.findall(
@@ -246,32 +245,29 @@ class MedicalDocumentSegmenter:
             ' '.join(group) + ' ' + new_sentence,
             re.IGNORECASE
         ))
-        
+
         # Also check English medical terms
         en_keywords = set(re.findall(
             r'(?:patient|treatment|surgery|diagnosis|drug|lab|radiology|hospital|doctor|nurse|icu|er|emergency|cardiology|orthopedic|pediatric|neurology|oncology|pathology|dose|mg|ml|hr|bp|spo2)',
             ' '.join(group) + ' ' + new_sentence,
             re.IGNORECASE
         ))
-        
+
         total_keywords = len(medical_keywords) + len(en_keywords)
-        
+
         # If group already has medical context and new sentence shares keywords
         if total_keywords >= 2:
             return True
-        
+
         # If new sentence is short, likely part of current context
-        if self._estimate_tokens(new_sentence) < 15:
-            return True
-        
-        return False
-    
-    def _get_overlap_text(self, sentences: List[str], max_overlap_tokens: int = 0) -> str:
+        return self._estimate_tokens(new_sentence) < 15
+
+    def _get_overlap_text(self, sentences: list[str], max_overlap_tokens: int = 0) -> str:
         """Get tail sentences for overlap."""
         if not sentences:
             return ""
         max_overlap_tokens = max_overlap_tokens or self.overlap_tokens
-        
+
         overlap = []
         tokens = 0
         for sent in reversed(sentences[:-1]):  # Skip the last (already in next chunk)
@@ -280,9 +276,9 @@ class MedicalDocumentSegmenter:
                 break
             overlap.insert(0, sent)
             tokens += sent_tokens
-        
+
         return ' '.join(overlap)
-    
+
     def _make_chunk(self, text: str, chunk_id: int, start: int = 0, end: int = 0) -> TextChunk:
         """Create a TextChunk with computed metadata."""
         return TextChunk(
@@ -297,16 +293,16 @@ class MedicalDocumentSegmenter:
                 "max_tokens": self.max_tokens,
             }
         )
-    
-    def _merge_small_chunks(self, chunks: List[TextChunk]) -> List[TextChunk]:
+
+    def _merge_small_chunks(self, chunks: list[TextChunk]) -> list[TextChunk]:
         """Merge chunks that are too small."""
         if not chunks:
             return chunks
-        
+
         merged = []
         buffer = []
         buffer_tokens = 0
-        
+
         for chunk in chunks:
             if chunk.token_count < self.min_tokens:
                 buffer.append(chunk)
@@ -323,10 +319,10 @@ class MedicalDocumentSegmenter:
                     merged.append(merged_chunk)
                     buffer = []
                     buffer_tokens = 0
-                
+
                 chunk.chunk_id = len(merged)
                 merged.append(chunk)
-        
+
         # Flush remaining buffer
         if buffer:
             merged_text = ' '.join(c.text for c in buffer)
@@ -336,5 +332,5 @@ class MedicalDocumentSegmenter:
             )
             merged_chunk.source_page = buffer[0].source_page
             merged.append(merged_chunk)
-        
+
         return merged

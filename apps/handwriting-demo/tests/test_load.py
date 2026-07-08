@@ -6,15 +6,15 @@ Run: pytest tests/test_load.py -m load -v
      pytest tests/test_load.py -m load -v --timeout=120
 """
 
+import asyncio
 import io
 import os
+import statistics
 import sys
-import asyncio
 import time
 import tracemalloc
-import statistics
-from unittest.mock import MagicMock, patch
 from dataclasses import dataclass, field
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
@@ -60,8 +60,8 @@ if "app.celery_app" not in sys.modules:
 # Import the application
 # ─────────────────────────────────────────────────────────────
 
-from app.main import app  # noqa: E402
-from app.database import get_db, Base  # noqa: E402
+from app.database import Base, get_db
+from app.main import app
 
 # Mark every test as load AND slow (these take time)
 pytestmark = [pytest.mark.load, pytest.mark.slow]
@@ -294,7 +294,7 @@ async def test_consecutive_health_checks(client, mock_db):
 
     start_time = time.perf_counter()
     try:
-        for i in range(count):
+        for _i in range(count):
             start = time.perf_counter()
             try:
                 resp = await client.get("/health")

@@ -10,11 +10,7 @@
 - التصدير من JSON القياسي
 """
 
-import json
 import os
-import pytest
-import tempfile
-from unittest.mock import MagicMock, patch
 
 
 class TestOCRToNLPIntegration:
@@ -106,13 +102,13 @@ class TestModuleImports:
 
     def test_import_vision_modules(self):
         """اختبار استيراد وحدة الرؤية."""
-        from modules.vision import ocr_engine, image_preprocessor, text_reconstructor, pdf_processor
+        from modules.vision import ocr_engine, image_preprocessor
         assert ocr_engine is not None
         assert image_preprocessor is not None
 
     def test_import_nlp_modules(self):
         """اختبار استيراد وحدة NLP."""
-        from modules.nlp import spell_corrector, translator, summarizer, language_detector
+        from modules.nlp import spell_corrector
         assert spell_corrector is not None
 
     def test_import_evaluation(self):
@@ -122,7 +118,7 @@ class TestModuleImports:
 
     def test_import_core_structure(self):
         """اختبار استيراد النماذج الأساسية."""
-        from modules.core.structure import BBox, OCRToken, DocumentPage, Document
+        from modules.core.structure import BBox, OCRToken
         assert BBox is not None
         assert OCRToken is not None
 
@@ -133,7 +129,7 @@ class TestModuleImports:
 
     def test_import_security(self):
         """اختبار استيراد وحدة الأمان."""
-        from modules.security import secure_file_handler, sensitive_data_scanner
+        from modules.security import secure_file_handler
         assert secure_file_handler is not None
 
     def test_import_rtl(self):

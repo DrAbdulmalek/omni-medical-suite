@@ -6,7 +6,6 @@
 
 import sys
 from pathlib import Path
-import json
 
 # 添加项目路径
 project_root = Path(__file__).parent.parent / "HelloAgents"
@@ -25,7 +24,7 @@ def evaluate_sft_model():
     
     使用测试集评估模型的准确率
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "evaluate",
@@ -59,7 +58,7 @@ def evaluate_grpo_model():
     
     对比GRPO模型和SFT模型的性能
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "evaluate",
@@ -93,7 +92,7 @@ def compare_sft_grpo():
     
     在相同的测试集上评估两个模型
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     print("="*80)
     print("SFT vs GRPO 模型对比")
@@ -146,7 +145,7 @@ def evaluate_baseline():
     
     用于对比训练效果
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "evaluate",
@@ -180,7 +179,7 @@ def complete_evaluation():
     
     评估基线、SFT和GRPO三个模型
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     models = {
         "基线模型": "Qwen/Qwen3-0.6B",
@@ -192,17 +191,11 @@ def complete_evaluation():
     print("完整评估流程")
     print("="*80)
     
-    results = {}
     
     for name, model_path in models.items():
         print(f"\n评估 {name}...")
         print(f"  路径: {model_path}")
         
-        config = {
-            "action": "evaluate",
-            "model_path": model_path,
-            "max_samples": 100
-        }
         
         # 实际评估时取消注释
         # result = tool.run(config)
@@ -237,7 +230,7 @@ def practical_evaluation():
     
     评估quick_test训练的模型
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     print("="*80)
     print("实际评估示例")

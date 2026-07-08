@@ -13,10 +13,11 @@ v6.0 changes:
 - إضافة _is_protected_word() مع دعم الكلمات المخصصة
 - get_suggestions/auto_correct/check_text تتجاوز الكلمات المحمية
 """
-import json, logging, re
+import json
+import logging
+import re
 from difflib import get_close_matches
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 ARABIC_FIXES_PATH = "data/arabic_fixes.json"
@@ -62,7 +63,7 @@ PYTHON_KEYWORDS = {
     "format", "replace", "lower", "upper", "title", "capitalize",
     "enumerate", "zip", "map", "filter", "sorted", "reversed",
     "isinstance", "issubclass", "hasattr", "getattr", "setattr",
-    "import", "from", "as", "module", "package",
+    "module", "package",
 }
 
 # مجموعة داخلية للحصول على أفضل أداء (كلها lowercase)
@@ -168,7 +169,7 @@ class HybridSpellChecker:
 
     # ── الاقتراحات ───────────────────────────────────────────────────
 
-    def get_suggestions(self, word: str, lang: Optional[str] = None, n: int = 5) -> list:
+    def get_suggestions(self, word: str, lang: str | None = None, n: int = 5) -> list:
         """
         اقتراحات تصحيح من أربعة مصادر: fixes + DB + spellchecker + difflib.
         الكلمات المحمية تُتجاوز مباشرة وتُعاد كما هي.
@@ -323,14 +324,13 @@ class HybridSpellChecker:
         corrected = []
         for word in words:
             clean = word.strip(".,;:!?\"'()-")
-            if clean and all(c.isalnum() or c in "_-/" for c in clean):
-                if any(c.isdigit() for c in clean):
-                    fixed = clean
-                    for letter, digit in self._DIGIT_CORRECTIONS.items():
-                        fixed = fixed.replace(letter, digit)
-                    if fixed != clean and fixed.isdigit():
-                        corrected.append(word.replace(clean, fixed))
-                        continue
+            if clean and all(c.isalnum() or c in "_-/" for c in clean) and any(c.isdigit() for c in clean):
+                fixed = clean
+                for letter, digit in self._DIGIT_CORRECTIONS.items():
+                    fixed = fixed.replace(letter, digit)
+                if fixed != clean and fixed.isdigit():
+                    corrected.append(word.replace(clean, fixed))
+                    continue
             corrected.append(word)
         return " ".join(corrected)
 

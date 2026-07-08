@@ -18,19 +18,20 @@ All credits for the original implementation go to VikParuchuri.
 """
 
 import os
-import tempfile
 import subprocess
+import tempfile
 
 # from omniparse.documents.parse import parse_single_pdf
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
-from omniparse import get_shared_state
 
 # from omniparse.documents import parse_pdf , parse_ppt , parse_doc
 # from omniparse.documents import parse_pdf
 from marker.convert import convert_single_pdf
-from omniparse.utils import encode_images
+
+from omniparse import get_shared_state
 from omniparse.models import responseDocument
+from omniparse.utils import encode_images
 
 document_router = APIRouter()
 model_state = get_shared_state()

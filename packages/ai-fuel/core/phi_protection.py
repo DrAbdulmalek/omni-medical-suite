@@ -20,9 +20,7 @@ from __future__ import annotations
 
 import logging
 import re
-from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
 
 from core.schemas import PHIDetection
 
@@ -36,7 +34,7 @@ logger = logging.getLogger(__name__)
 # Each entry maps a PHI type name to a list of regex patterns.
 # Patterns are compiled lazily on first use to avoid startup cost.
 
-_PHI_PATTERNS: Dict[str, List[str]] = {
+_PHI_PATTERNS: dict[str, list[str]] = {
     "EMAIL": [
         # Standard email regex
         r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}",
@@ -94,7 +92,7 @@ _PHI_PATTERNS: Dict[str, List[str]] = {
 }
 
 # Mask character for each PHI type
-_MASK_CHAR: Dict[str, str] = {
+_MASK_CHAR: dict[str, str] = {
     "EMAIL": "*",
     "PHONE": "X",
     "DATE": "X",
@@ -118,23 +116,23 @@ class _PHIAuditEntry:
     start_pos: int
     end_pos: int
     mode: str  # tag, mask, remove
-    source_file: Optional[str] = None
+    source_file: str | None = None
 
 
 # ======================================================================
 # Compiled Pattern Cache
 # ======================================================================
 
-_compiled_cache: Dict[str, List[re.Pattern]] = {}
+_compiled_cache: dict[str, list[re.Pattern]] = {}
 
 
-def _get_compiled_patterns() -> Dict[str, List[re.Pattern]]:
+def _get_compiled_patterns() -> dict[str, list[re.Pattern]]:
     """Lazily compile and cache regex patterns for all PHI types."""
     if _compiled_cache:
         return _compiled_cache
 
     for phi_type, patterns in _PHI_PATTERNS.items():
-        compiled: List[re.Pattern] = []
+        compiled: list[re.Pattern] = []
         for pattern in patterns:
             try:
                 compiled.append(re.compile(pattern, re.IGNORECASE | re.UNICODE))
@@ -185,7 +183,7 @@ class PHIMasker:
             )
         self.masking_mode = masking_mode
         self.enabled = enabled
-        self._audit_log: List[_PHIAuditEntry] = []
+        self._audit_log: list[_PHIAuditEntry] = []
 
     # ------------------------------------------------------------------
     # Public API
@@ -194,8 +192,8 @@ class PHIMasker:
     def detect(
         self,
         text: str,
-        source_file: Optional[str] = None,
-    ) -> List[PHIDetection]:
+        source_file: str | None = None,
+    ) -> list[PHIDetection]:
         """Scan *text* for PHI and return detection results without modifying it.
 
         Args:
@@ -215,7 +213,7 @@ class PHIMasker:
     def mask(
         self,
         text: str,
-        source_file: Optional[str] = None,
+        source_file: str | None = None,
     ) -> str:
         """Detect PHI in *text* and return a masked version.
 
@@ -263,7 +261,7 @@ class PHIMasker:
     def remove(
         self,
         text: str,
-        source_file: Optional[str] = None,
+        source_file: str | None = None,
     ) -> str:
         """Convenience method that masks with ``remove`` mode.
 
@@ -287,7 +285,7 @@ class PHIMasker:
     def tag(
         self,
         text: str,
-        source_file: Optional[str] = None,
+        source_file: str | None = None,
     ) -> str:
         """Convenience method that masks with ``tag`` mode.
 
@@ -308,7 +306,7 @@ class PHIMasker:
         finally:
             self.masking_mode = original_mode
 
-    def get_audit_log(self) -> List[Dict[str, object]]:
+    def get_audit_log(self) -> list[dict[str, object]]:
         """Return the full audit log of PHI detections.
 
         Returns:
@@ -346,10 +344,10 @@ class PHIMasker:
     # Internal
     # ------------------------------------------------------------------
 
-    def _scan_text(self, text: str) -> List[PHIDetection]:
+    def _scan_text(self, text: str) -> list[PHIDetection]:
         """Run all PHI pattern detectors over *text* and deduplicate overlapping spans."""
         patterns = _get_compiled_patterns()
-        all_detections: List[PHIDetection] = []
+        all_detections: list[PHIDetection] = []
 
         for phi_type, compiled_list in patterns.items():
             for pattern in compiled_list:
@@ -372,7 +370,7 @@ class PHIMasker:
         return self._resolve_overlaps(all_detections)
 
     @staticmethod
-    def _resolve_overlaps(detections: List[PHIDetection]) -> List[PHIDetection]:
+    def _resolve_overlaps(detections: list[PHIDetection]) -> list[PHIDetection]:
         """Remove overlapping detections, keeping the longest span.
 
         Overlapping PHI patterns (e.g., a name inside an email) are resolved
@@ -385,7 +383,7 @@ class PHIMasker:
         # Sort by start position, then by span length (descending)
         detections.sort(key=lambda d: (d.start_pos, -(d.end_pos - d.start_pos)))
 
-        resolved: List[PHIDetection] = []
+        resolved: list[PHIDetection] = []
         last_end = -1
 
         for det in detections:
@@ -397,9 +395,9 @@ class PHIMasker:
 
     def _log_detections(
         self,
-        detections: List[PHIDetection],
+        detections: list[PHIDetection],
         mode: str,
-        source_file: Optional[str] = None,
+        source_file: str | None = None,
     ) -> None:
         """Append detections to the audit log."""
         for det in detections:

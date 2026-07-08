@@ -5,10 +5,8 @@ v4.0: مُرحَّل إلى BaseDB (WAL + retry + context manager موحَّد)
 مخطط v3 يبقى متوافقاً تماماً مع الكود القديم.
 """
 
-import sqlite3
 import logging
-from typing import Optional
-from pathlib import Path
+import sqlite3
 from datetime import datetime
 
 from packages.core.base_db import BaseDB, validate_identifier
@@ -143,8 +141,8 @@ class HandwritingDB(BaseDB):
     def update_word(
         self,
         image_id: int,
-        predicted_text: Optional[str] = None,
-        status: Optional[str] = None,
+        predicted_text: str | None = None,
+        status: str | None = None,
     ) -> None:
         """تحديث نص أو حالة كلمة مع updated_at تلقائي"""
         sets, vals = [], []
@@ -196,7 +194,7 @@ class HandwritingDB(BaseDB):
             conn.row_factory = sqlite3.Row
             return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
-    def get_word(self, image_id: int) -> Optional[dict]:
+    def get_word(self, image_id: int) -> dict | None:
         rows = self._rows("SELECT * FROM handwriting_data WHERE image_id=?", (image_id,))
         return rows[0] if rows else None
 

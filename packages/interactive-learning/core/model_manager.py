@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 interactive_learning/core/model_manager.py
 ==========================================
@@ -11,12 +10,10 @@ Only includes models verified to exist on HuggingFace Hub.
 """
 
 import hashlib
-import json
 import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +28,8 @@ class ModelInfo:
     min_python: str = "3.8"
     min_torch: str = "1.9.0"
     min_transformers: str = "4.20.0"
-    local_path: Optional[Path] = None
-    metadata: Dict = field(default_factory=dict)
+    local_path: Path | None = None
+    metadata: dict = field(default_factory=dict)
 
 
 # ============================================================================
@@ -42,7 +39,7 @@ class ModelInfo:
 # Non-existent models have been removed.
 # ============================================================================
 
-VERIFIED_MODELS: Dict[str, ModelInfo] = {
+VERIFIED_MODELS: dict[str, ModelInfo] = {
     "trocr-base-handwritten": ModelInfo(
         repo_id="microsoft/trocr-base-handwritten",
         revision="main",
@@ -99,18 +96,18 @@ class ModelManager:
         print(f"Model loaded from: {info.local_path}")
     """
 
-    def __init__(self, cache_dir: Optional[str] = None):
+    def __init__(self, cache_dir: str | None = None):
         self.cache_dir = Path(cache_dir or os.getenv(
             "OMNIFILE_MODEL_CACHE", "./models_cache"
         ))
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self._loaded_models: Dict[str, ModelInfo] = {}
+        self._loaded_models: dict[str, ModelInfo] = {}
 
-    def list_available_models(self) -> List[str]:
+    def list_available_models(self) -> list[str]:
         """List all verified model names."""
         return list(VERIFIED_MODELS.keys())
 
-    def get_model_info(self, model_name: str) -> Optional[ModelInfo]:
+    def get_model_info(self, model_name: str) -> ModelInfo | None:
         """Get info about a verified model."""
         return VERIFIED_MODELS.get(model_name)
 
@@ -208,7 +205,7 @@ class ModelManager:
 
     def cleanup_old_versions(self, keep_versions: int = 1):
         """Remove old cached model versions."""
-        for model_name, info in VERIFIED_MODELS.items():
+        for _model_name, info in VERIFIED_MODELS.items():
             local_path = self._get_local_path(info.repo_id)
             if local_path.exists():
                 # Keep only the latest version

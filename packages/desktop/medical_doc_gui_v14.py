@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 medical_doc_gui_v14.py — Smart Client
 =======================================
@@ -20,28 +19,37 @@ medical_doc_gui_v14.py — Smart Client
 المشروع: OmniMedical Suite
 """
 
-import sys
-import os
-import json
-import time
 import asyncio
-import threading
+import json
 import queue as queue_mod
-from typing import Tuple, Optional, List, Dict, Any
-from pathlib import Path
+import sys
+import threading
+import time
+from typing import Any
 
 import cv2
 import numpy as np
+from PyQt5.QtCore import QObject, Qt, QThread, QTimer, pyqtSignal
+from PyQt5.QtGui import QImage, QPixmap
 
 # GUI imports
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QFileDialog, QSpinBox, QDoubleSpinBox,
-    QCheckBox, QGroupBox, QScrollArea, QMessageBox, QProgressBar,
-    QTextEdit, QSplitter, QFrame, QComboBox, QStatusBar
+    QApplication,
+    QCheckBox,
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSplitter,
+    QStatusBar,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QObject
-from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor
 
 try:
     import pytesseract
@@ -177,7 +185,7 @@ class RedisCache:
     def available(self) -> bool:
         return self._available
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         """قراءة قيمة من الكاش."""
         if not self._available:
             return None
@@ -222,7 +230,7 @@ class RedisCache:
 
 def find_page_bounds_fixed(image: np.ndarray,
                            gray_threshold: int = 200,
-                           padding: int = 10) -> Optional[Tuple[int, int, int, int]]:
+                           padding: int = 10) -> tuple[int, int, int, int] | None:
     """
     كشف حدود الصفحة باستخدام Contour Detection و Projection Profiles
     يعمل على الصور الملونة والرمادية والمستندات ذات الخلفيات المعقدة
@@ -327,7 +335,7 @@ def auto_detect_skew_fixed(image: np.ndarray,
 
 
 def smart_auto_crop(image: np.ndarray,
-                    bounds: Tuple[int, int, int, int],
+                    bounds: tuple[int, int, int, int],
                     margin: int = 20) -> np.ndarray:
     """قص ذكي مع الحفاظ على هوامش مناسبة."""
     if image is None:
@@ -363,7 +371,7 @@ def apply_deskew(image: np.ndarray, angle: float) -> np.ndarray:
                            borderValue=border_value)
 
 
-def run_ocr(image: np.ndarray, lang: str = "ara+eng") -> Dict[str, Any]:
+def run_ocr(image: np.ndarray, lang: str = "ara+eng") -> dict[str, Any]:
     """تشغيل OCR على الصورة المعالجة."""
     if not TESSERACT_AVAILABLE:
         return {"text": "", "words": [], "confidence": 0.0, "error": "pytesseract not installed"}
@@ -455,7 +463,7 @@ class ProcessThread(QThread):
             self.finished_signal.emit(results)
 
         except Exception as e:
-            self.status.emit(f"خطأ: {str(e)}")
+            self.status.emit(f"خطأ: {e!s}")
             self.finished_signal.emit({"error": str(e)})
 
 
@@ -772,7 +780,7 @@ class MedicalDocScanner(QMainWindow):
             synced = 0
             while not self.offline_queue.empty():
                 try:
-                    path = self.offline_queue.get_nowait()
+                    self.offline_queue.get_nowait()
                     # إرسال للمزامنة مع السحابة
                     # في الإنتاج: requests.post("http://localhost:8080/api/sync", ...)
                     synced += 1

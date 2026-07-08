@@ -189,7 +189,7 @@ async def validate_citation(request: CitationValidationRequest):
                 bibtex_parts.append(f"  pages={{{pages}}}")
             if arxiv_id:
                 bibtex_parts.append(f"  eprint={{{arxiv_id}}}")
-                bibtex_parts.append(f"  archivePrefix={{arXiv}}")
+                bibtex_parts.append("  archivePrefix={arXiv}")
             if doi:
                 bibtex_parts.append(f"  doi={{{doi}}}")
             

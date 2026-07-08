@@ -29,14 +29,12 @@ active_learning_pipeline.py
 
 import argparse
 import json
-import pickle
 import random
 from abc import ABC, abstractmethod
-from collections import defaultdict
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import Dict, List, Optional
 
 import numpy as np
 import requests
@@ -567,7 +565,7 @@ class ActiveLearningManager:
         
         # 4. إرسال للمراجعة
         if reviewer:
-            review_ids = reviewer.send_for_review(selected, predictions)
+            reviewer.send_for_review(selected, predictions)
             
             # انتظار المراجعة (أو حفظ للمراجعة لاحقاً)
             logger.info("⏳ في انتظار المراجعة البشرية...")

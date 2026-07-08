@@ -9,7 +9,6 @@ adapted for OmniFile_Processor's structure.
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 # ─── Implementation from evaluation/metrics.py for testing ────────────

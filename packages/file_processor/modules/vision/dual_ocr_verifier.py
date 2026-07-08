@@ -186,8 +186,8 @@ class DualOCRVerifier:
         mask = np.zeros_like(thresh)
         for i in range(1, num_labels):
             area = stats[i, cv2.CC_STAT_AREA]
-            x = stats[i, cv2.CC_STAT_LEFT]
-            y = stats[i, cv2.CC_STAT_TOP]
+            stats[i, cv2.CC_STAT_LEFT]
+            stats[i, cv2.CC_STAT_TOP]
             cw = stats[i, cv2.CC_STAT_WIDTH]
             ch = stats[i, cv2.CC_STAT_HEIGHT]
             aspect = cw / max(1, ch)

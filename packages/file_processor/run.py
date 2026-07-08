@@ -14,7 +14,6 @@ Usage:
 
 import argparse
 import sys
-import os
 
 def launch_gradio():
     """Launch the main Gradio interface."""

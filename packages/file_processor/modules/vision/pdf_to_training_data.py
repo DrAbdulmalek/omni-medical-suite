@@ -22,17 +22,15 @@ License: MIT
 """
 
 import cv2
-import io
 import json
 import logging
 import os
 import random
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-import glob
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image
@@ -134,7 +132,7 @@ class PDFPageLoader:
         try:
             from pdf2image import convert_from_path
             # pdf2image doesn't have a direct count, use PyMuPDF approach
-            images = convert_from_path(pdf_path, first_page=1, last_page=1, dpi=72)
+            convert_from_path(pdf_path, first_page=1, last_page=1, dpi=72)
             return -1  # Unknown
         except Exception:
             return -1

@@ -397,7 +397,7 @@ class HelloClawAgent:
                 if self._memory_flush_manager.is_silent_response(response):
                     print("📝 Agent 选择不保存记忆")
                 else:
-                    print(f"📝 Agent 已保存记忆")
+                    print("📝 Agent 已保存记忆")
 
             except Exception as e:
                 print(f"⚠️ Memory Flush 失败: {e}")

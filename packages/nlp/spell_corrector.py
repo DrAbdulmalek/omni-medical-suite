@@ -14,7 +14,6 @@ import json
 import logging
 import os
 import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +71,9 @@ class SpellCorrector:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         device: str = "cpu",
-        correction_file: Optional[str] = None,
+        correction_file: str | None = None,
         min_votes: int = 2,
     ) -> None:
         """
@@ -161,7 +160,7 @@ class SpellCorrector:
         """تحميل التصحيحات المُتعلمة من الملف."""
         try:
             if os.path.exists(self._correction_file):
-                with open(self._correction_file, "r", encoding="utf-8") as f:
+                with open(self._correction_file, encoding="utf-8") as f:
                     data = json.load(f)
                     # التحويل: الصيغة القديمة {خطأ: تصحيح} → الجديدة {خطأ: {تصحيح: أصوات}}
                     self._learned_corrections = {}
@@ -215,7 +214,7 @@ class SpellCorrector:
                      wrong_word, correct_word,
                      self._learned_corrections[wrong_word][correct_word])
 
-    def _get_learned_correction(self, word: str) -> Optional[str]:
+    def _get_learned_correction(self, word: str) -> str | None:
         """
         البحث عن تصحيح مُتعلم لكلمة.
 
@@ -259,7 +258,7 @@ class SpellCorrector:
     # ------------------------------------------------------------------
     # تصحيح الكلمات الفردية
     # ------------------------------------------------------------------
-    def _correct_english_word(self, word: str) -> Optional[str]:
+    def _correct_english_word(self, word: str) -> str | None:
         """
         تصحيح كلمة إنجليزية.
 
@@ -299,7 +298,7 @@ class SpellCorrector:
 
         return None
 
-    def _correct_arabic_word(self, word: str) -> Optional[str]:
+    def _correct_arabic_word(self, word: str) -> str | None:
         """
         تصحيح كلمة عربية.
 
@@ -375,10 +374,7 @@ class SpellCorrector:
             return True
 
         # كلمات قصيرة جداً
-        if len(word) <= 1:
-            return True
-
-        return False
+        return len(word) <= 1
 
     # ------------------------------------------------------------------
     # الواجهة العامة
@@ -458,7 +454,7 @@ class SpellCorrector:
     def correct_with_protection(
         self,
         text: str,
-        protected_terms: Optional[list[str]] = None,
+        protected_terms: list[str] | None = None,
     ) -> dict:
         """
         تصحيح النص مع حماية مصطلحات محددة.
@@ -555,7 +551,7 @@ class SpellCorrector:
         except Exception as e:
             logger.warning("فشل تحميل مصحح الألمانية: %s", e)
 
-    def _correct_german_word(self, word: str) -> Optional[str]:
+    def _correct_german_word(self, word: str) -> str | None:
         """
         تصحيح كلمة ألمانية.
 

@@ -13,7 +13,7 @@ text extraction from Arabic medical documents.
 
 import logging
 import subprocess
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 import numpy as np
 
@@ -63,7 +63,7 @@ class OCREnsemble:
         """
         logger.info(_MSG_INIT)
 
-        self.engines: Dict[str, Any] = {}
+        self.engines: dict[str, Any] = {}
         total_expected = 4  # paddle, easyocr, tesseract, surya
 
         # --- PaddleOCR ---
@@ -157,11 +157,11 @@ class OCREnsemble:
             )
 
     @property
-    def available_engines(self) -> List[str]:
+    def available_engines(self) -> list[str]:
         """Return list of loaded engine names."""
         return list(self.engines.keys())
 
-    def run_all(self, image: np.ndarray) -> Dict[str, Any]:
+    def run_all(self, image: np.ndarray) -> dict[str, Any]:
         """
         Run all available OCR engines on an image and return combined results.
 
@@ -178,7 +178,7 @@ class OCREnsemble:
         """
         logger.info(_MSG_RUN_ALL)
 
-        all_results: Dict[str, Dict] = {}
+        all_results: dict[str, dict] = {}
 
         for name, engine in self.engines.items():
             try:
@@ -288,7 +288,7 @@ class OCREnsemble:
         all_results = self.run_all(image)
 
         # Collect all lines with their engine and confidence
-        engine_lines: Dict[str, List[Dict]] = {}
+        engine_lines: dict[str, list[dict]] = {}
 
         for name, result in all_results["results"].items():
             lines = result.get("lines", [])
@@ -345,7 +345,7 @@ class OCREnsemble:
         all_results = self.run_all(image)
         separator = "=" * 80
 
-        lines: List[str] = [
+        lines: list[str] = [
             separator,
             f"{'جدول مقارنة محركات OCR | OCR Engine Comparison Table':^80}",
             separator,
@@ -453,7 +453,7 @@ class _TesseractAdapter:
     def is_available(self) -> bool:
         return self._available
 
-    def extract_text(self, image: np.ndarray) -> Dict[str, Any]:
+    def extract_text(self, image: np.ndarray) -> dict[str, Any]:
         """Extract text using Tesseract."""
         try:
             # Ensure RGB
@@ -470,8 +470,8 @@ class _TesseractAdapter:
                 output_type=self.pytesseract.Output.DICT,
             )
 
-            lines: List[Dict] = []
-            current_line: List[Dict] = []
+            lines: list[dict] = []
+            current_line: list[dict] = []
             current_line_num = -1
 
             for i in range(len(data["text"])):
@@ -516,7 +516,7 @@ class _TesseractAdapter:
             return {"text": "", "lines": [], "num_lines": 0, "engine": "tesseract"}
 
     @staticmethod
-    def _merge_line(words: List[Dict]) -> Dict:
+    def _merge_line(words: list[dict]) -> dict:
         """Merge word-level results into a line result."""
         if not words:
             return {"text": "", "bbox": [], "confidence": 0.0}
@@ -552,7 +552,7 @@ class _SuryaOCRExtractor:
     def is_available(self) -> bool:
         return self._analyzer.is_available
 
-    def extract_text(self, image: np.ndarray) -> Dict[str, Any]:
+    def extract_text(self, image: np.ndarray) -> dict[str, Any]:
         """Extract text using Surya."""
         result = self._analyzer.analyze(image)
         # Normalize keys to match other engines

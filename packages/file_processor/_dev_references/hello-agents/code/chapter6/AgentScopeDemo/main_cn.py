@@ -6,7 +6,7 @@
 import asyncio
 import os
 import random
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 from agentscope.agent import ReActAgent
 from agentscope.model import DashScopeChatModel
@@ -119,7 +119,7 @@ class ThreeKingdomsWerewolfGame:
         if not self.werewolves:
             return None
             
-        await self.moderator.announce(f"🐺 狼人请睁眼，选择今晚要击杀的目标...")
+        await self.moderator.announce("🐺 狼人请睁眼，选择今晚要击杀的目标...")
         
         # 狼人讨论
         async with MsgHub(
@@ -173,12 +173,12 @@ class ThreeKingdomsWerewolfGame:
 
         # 检查返回结果是否有效
         if check_result is None or not hasattr(check_result, 'metadata') or check_result.metadata is None:
-            print(f"⚠️ 预言家查验失败,跳过此阶段")
+            print("⚠️ 预言家查验失败,跳过此阶段")
             return
 
         target_name = check_result.metadata.get("target")
         if not target_name:
-            print(f"⚠️ 预言家未选择查验目标,跳过此阶段")
+            print("⚠️ 预言家未选择查验目标,跳过此阶段")
             return
 
         target_role = self.roles.get(target_name, "村民")
@@ -207,7 +207,7 @@ class ThreeKingdomsWerewolfGame:
 
         # 检查返回结果是否有效
         if witch_action is None or not hasattr(witch_action, 'metadata') or witch_action.metadata is None:
-            print(f"⚠️ 女巫行动失败,视为不使用技能")
+            print("⚠️ 女巫行动失败,视为不使用技能")
         else:
             if witch_action.metadata.get("use_antidote") and self.witch_has_antidote:
                 if killed_player:
@@ -241,7 +241,7 @@ class ThreeKingdomsWerewolfGame:
 
             # 检查返回结果是否有效
             if hunter_action is None or not hasattr(hunter_action, 'metadata') or hunter_action.metadata is None:
-                print(f"⚠️ 猎人技能使用失败,视为放弃开枪")
+                print("⚠️ 猎人技能使用失败,视为放弃开枪")
                 return None
 
             if hunter_action.metadata.get("shoot"):
@@ -250,7 +250,7 @@ class ThreeKingdomsWerewolfGame:
                     await self.moderator.announce(f"猎人{hunter_agent.name}开枪带走了{target}")
                     return target
                 else:
-                    print(f"⚠️ 猎人选择开枪但未指定目标,视为放弃")
+                    print("⚠️ 猎人选择开枪但未指定目标,视为放弃")
                     return None
         
         return None

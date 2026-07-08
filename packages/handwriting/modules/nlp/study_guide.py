@@ -31,9 +31,7 @@
 from __future__ import annotations
 
 import csv
-import json
 import logging
-import os
 import random
 from collections import defaultdict
 from datetime import datetime
@@ -525,7 +523,7 @@ class StudyGuideGenerator:
             if en:
                 # جملة بسيطة: "The term ___ means ..."
                 cards.append({
-                    "front": f"The term ___ in English refers to: {ar}" if ar else f"Fill in: ___",
+                    "front": f"The term ___ in English refers to: {ar}" if ar else "Fill in: ___",
                     "back": en,
                     "tags": ["fill_blank", "EN"],
                 })

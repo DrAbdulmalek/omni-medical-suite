@@ -16,12 +16,11 @@ import argparse
 import gzip
 import json
 import logging
-import os
 import shutil
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -78,7 +77,7 @@ class GovernanceConfig:
 class CheckResult:
     """Result of a governance policy check."""
 
-    __slots__ = ("allowed", "reason", "repo", "branch", "operation", "mode")
+    __slots__ = ("allowed", "branch", "mode", "operation", "reason", "repo")
 
     def __init__(
         self,
@@ -107,7 +106,7 @@ class CheckResult:
 # ---------------------------------------------------------------------------
 
 
-def load_config(path: Optional[Path] = None) -> GovernanceConfig:
+def load_config(path: Path | None = None) -> GovernanceConfig:
     """Load and parse the governance YAML configuration.
 
     Args:
@@ -124,7 +123,7 @@ def load_config(path: Optional[Path] = None) -> GovernanceConfig:
     if not config_path.exists():
         raise FileNotFoundError(f"Governance config not found: {config_path}")
 
-    with open(config_path, "r", encoding="utf-8") as fh:
+    with open(config_path, encoding="utf-8") as fh:
         try:
             data = yaml.safe_load(fh)
         except yaml.YAMLError as exc:
@@ -146,7 +145,7 @@ def check_push_allowed(
     branch: str = "main",
     mode: str = "safe-push",
     operation: str = "push",
-    config: Optional[GovernanceConfig] = None,
+    config: GovernanceConfig | None = None,
 ) -> CheckResult:
     """Check whether a sync operation is allowed under governance policy.
 
@@ -259,17 +258,16 @@ def check_push_allowed(
         )
 
     # 7. Allowlist check
-    if repo in [r.lower() for r in config.allowlist]:
-        if mode in ("safe-push", "full-write"):
-            # safe-push to main is allowed for allowlist repos
-            return CheckResult(
-                allowed=True,
-                reason=f"Repository '{repo_name}' is on the allowlist. {mode} to '{branch}' approved.",
-                repo=repo,
-                branch=branch,
-                operation=operation,
-                mode=mode,
-            )
+    if repo in [r.lower() for r in config.allowlist] and mode in ("safe-push", "full-write"):
+        # safe-push to main is allowed for allowlist repos
+        return CheckResult(
+            allowed=True,
+            reason=f"Repository '{repo_name}' is on the allowlist. {mode} to '{branch}' approved.",
+            repo=repo,
+            branch=branch,
+            operation=operation,
+            mode=mode,
+        )
 
     # 8. Not on any list — deny by default (read-only default)
     return CheckResult(
@@ -315,9 +313,8 @@ def _rotate_logs(config: GovernanceConfig) -> None:
             dst = log_path.parent / (log_path.stem + ".log.1.gz")
             if dst.exists():
                 dst.unlink()
-            with open(log_path, "rb") as f_in:
-                with gzip.open(dst, "wb") as f_out:
-                    shutil.copyfileobj(f_in, f_out)
+            with open(log_path, "rb") as f_in, gzip.open(dst, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
         elif src.exists():
             if dst.exists():
                 dst.unlink()
@@ -334,7 +331,7 @@ def log_operation(
     branch: str,
     result: str,
     details: str = "",
-    config: Optional[GovernanceConfig] = None,
+    config: GovernanceConfig | None = None,
 ) -> None:
     """Append an entry to the audit log.
 
@@ -360,7 +357,7 @@ def log_operation(
     _rotate_logs(config)
 
     entry: dict[str, str] = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "operation": operation,
         "repo": repo,
         "branch": branch,
@@ -373,7 +370,7 @@ def log_operation(
         fh.write(line + "\n")
 
 
-def log_check_result(result: CheckResult, config: Optional[GovernanceConfig] = None) -> None:
+def log_check_result(result: CheckResult, config: GovernanceConfig | None = None) -> None:
     """Log a CheckResult to the audit log.
 
     Args:
@@ -396,7 +393,7 @@ def log_check_result(result: CheckResult, config: Optional[GovernanceConfig] = N
 # ---------------------------------------------------------------------------
 
 
-def print_status(config: Optional[GovernanceConfig] = None) -> None:
+def print_status(config: GovernanceConfig | None = None) -> None:
     """Print a summary of the current governance configuration.
 
     Args:

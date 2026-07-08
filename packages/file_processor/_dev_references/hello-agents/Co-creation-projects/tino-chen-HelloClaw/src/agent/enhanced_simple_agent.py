@@ -377,7 +377,7 @@ class EnhancedSimpleAgent(SimpleAgent):
         self.add_message(Message(messages[-1]["content"], "user"))
         self.add_message(Message(full_response, "assistant"))
 
-        print(f"💬 回复完成")
+        print("💬 回复完成")
 
         yield StreamEvent.create(
             StreamEventType.AGENT_FINISH,

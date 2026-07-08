@@ -1,5 +1,4 @@
 """Tests for modules.core.corrections_manager.CorrectionsDictManager"""
-import pytest
 import json
 
 class TestCorrectionsDictManager:
@@ -42,7 +41,6 @@ class TestCorrectionsDictManager:
         assert stats["total"] == 2
     
     def test_export(self, tmp_path):
-        from modules.core.corrections_manager import CorrectionsDictManager
         mgr = self._make_manager(tmp_path)
         mgr.add("w1", "c1")
         export_path = str(tmp_path / "exported.json")
@@ -52,7 +50,6 @@ class TestCorrectionsDictManager:
         assert "w1" in data
     
     def test_import_and_merge(self, tmp_path):
-        from modules.core.corrections_manager import CorrectionsDictManager
         mgr = self._make_manager(tmp_path)
         
         # Create import file

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """三国狼人杀游戏工具函数"""
-import asyncio
 import random
 from typing import List, Dict, Optional, Any
 from collections import Counter

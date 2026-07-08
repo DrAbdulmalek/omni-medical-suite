@@ -14,7 +14,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -64,20 +64,20 @@ class SemanticMatcher:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
-        qdrant_url: Optional[str] = None,
-        collection_name: Optional[str] = None,
-        taxonomy_path: Optional[str] = None,
+        model_name: str | None = None,
+        qdrant_url: str | None = None,
+        collection_name: str | None = None,
+        taxonomy_path: str | None = None,
     ) -> None:
         self.model_name: str = model_name or self._DEFAULT_MODEL
-        self.qdrant_url: Optional[str] = qdrant_url
+        self.qdrant_url: str | None = qdrant_url
         self.collection_name: str = collection_name or "ai_fuel_categories"
         self.taxonomy_path: str = taxonomy_path or self._DEFAULT_TAXONOMY_PATH
 
         # ── Lazy-loaded state ──────────────────────────────────────────
         self._model: Any = None
         self._qdrant_client: Any = None
-        self._local_index: Optional[_LocalVectorIndex] = None
+        self._local_index: _LocalVectorIndex | None = None
         self._index_built: bool = False
 
         # Track whether optional dependencies are available
@@ -118,22 +118,22 @@ class SemanticMatcher:
 
     # ── Taxonomy loading ──────────────────────────────────────────────
 
-    def _load_taxonomy(self) -> List[Dict]:
+    def _load_taxonomy(self) -> list[dict]:
         """Load categories from the taxonomy JSON file."""
         path = self.taxonomy_path
         if not os.path.exists(path):
             logger.warning("Taxonomy file not found at %s — using empty taxonomy", path)
             return []
 
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
         return data.get("categories", [])
 
     # ── Index builders ────────────────────────────────────────────────
 
     def _build_reference_descriptions(
-        self, taxonomy: List[Dict]
-    ) -> List[Tuple[str, str, str]]:
+        self, taxonomy: list[dict]
+    ) -> list[tuple[str, str, str]]:
         """Build rich text descriptions for each category.
 
         Combines the English and Arabic name, description, and keywords
@@ -142,7 +142,7 @@ class SemanticMatcher:
         Returns:
             List of ``(category_id, category_name, description_text)``.
         """
-        descriptions: List[Tuple[str, str, str]] = []
+        descriptions: list[tuple[str, str, str]] = []
         for cat in taxonomy:
             cat_id = cat["id"]
             name_en = cat.get("name_en", cat_id)
@@ -161,7 +161,7 @@ class SemanticMatcher:
 
         return descriptions
 
-    def _build_local_index(self, taxonomy: List[Dict]) -> None:
+    def _build_local_index(self, taxonomy: list[dict]) -> None:
         """Build a local in-memory vector index from taxonomy."""
         descriptions = self._build_reference_descriptions(taxonomy)
         if not descriptions:
@@ -186,11 +186,11 @@ class SemanticMatcher:
             embeddings.shape[1] if hasattr(embeddings, "shape") else 0,
         )
 
-    def _build_qdrant_index(self, taxonomy: List[Dict]) -> None:
+    def _build_qdrant_index(self, taxonomy: list[dict]) -> None:
         """Build a Qdrant collection with category reference embeddings."""
         try:
             from qdrant_client import QdrantClient
-            from qdrant_client.models import Distance, VectorParams, PointStruct
+            from qdrant_client.models import Distance, PointStruct, VectorParams
         except ImportError:
             raise RuntimeError(
                 "qdrant-client is required for Qdrant backend. "
@@ -227,7 +227,7 @@ class SemanticMatcher:
                     "description": d[2],
                 },
             )
-            for idx, (d, emb) in enumerate(zip(descriptions, embeddings))
+            for idx, (d, emb) in enumerate(zip(descriptions, embeddings, strict=False))
         ]
 
         self._qdrant_client.upsert(
@@ -247,7 +247,7 @@ class SemanticMatcher:
         text: str,
         chunk_id: str = "unknown",
         threshold: float = 0.85,
-    ) -> Optional["ClassificationResult"]:
+    ) -> ClassificationResult | None:
         """Classify text using semantic similarity.
 
         Args:
@@ -329,7 +329,7 @@ class SemanticMatcher:
 
     def _search_qdrant(
         self, query: Any, top_k: int = 5
-    ) -> List[Tuple[str, str, float]]:
+    ) -> list[tuple[str, str, float]]:
         """Search Qdrant for the closest category."""
         hits = self._qdrant_client.search(
             collection_name=self.collection_name,
@@ -348,7 +348,7 @@ class SemanticMatcher:
     # ── Training / augmentation ───────────────────────────────────────
 
     def add_training_examples(
-        self, texts: List[str], categories: List[str]
+        self, texts: list[str], categories: list[str]
     ) -> None:
         """Add training examples to the reference index for better matching.
 
@@ -372,7 +372,7 @@ class SemanticMatcher:
         embeddings = self._model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
 
         if self._local_index is not None:
-            for text, cat_id, emb in zip(texts, categories, embeddings):
+            for text, cat_id, emb in zip(texts, categories, embeddings, strict=False):
                 self._local_index.add_embedding(cat_id, cat_id, emb)
             logger.info("Added %d training examples to local index", len(texts))
         elif self._qdrant_client is not None:
@@ -385,7 +385,7 @@ class SemanticMatcher:
             offset = points[0][0] if points[0] else 0
 
             new_points = []
-            for i, (text, cat_id, emb) in enumerate(zip(texts, categories, embeddings)):
+            for i, (text, cat_id, emb) in enumerate(zip(texts, categories, embeddings, strict=False)):
                 # Re-encode full text for richer embedding
                 combined = text
                 new_points.append(
@@ -422,12 +422,12 @@ class _LocalVectorIndex:
 
     def __init__(
         self,
-        category_ids: List[str],
-        category_names: List[str],
+        category_ids: list[str],
+        category_names: list[str],
         embeddings: Any,
     ) -> None:
-        self.category_ids: List[str] = list(category_ids)
-        self.category_names: List[str] = list(category_names)
+        self.category_ids: list[str] = list(category_ids)
+        self.category_names: list[str] = list(category_names)
 
         if np is not None:
             self.embeddings = np.array(embeddings, dtype=np.float32)
@@ -442,7 +442,7 @@ class _LocalVectorIndex:
 
     def search(
         self, query: Any, top_k: int = 5
-    ) -> List[Tuple[str, str, float]]:
+    ) -> list[tuple[str, str, float]]:
         """Find the top-k closest categories by cosine similarity.
 
         Args:
@@ -464,7 +464,7 @@ class _LocalVectorIndex:
         # Get top-k indices
         top_indices = np.argsort(scores)[-top_k:][::-1]
 
-        results: List[Tuple[str, str, float]] = []
+        results: list[tuple[str, str, float]] = []
         for idx in top_indices:
             score = float(scores[idx])
             if score > 0:  # only return positive similarities

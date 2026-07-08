@@ -57,13 +57,13 @@ for i, problem in enumerate(generated_problems, 1):
     result = judge.evaluate_single(problem)
     
     # 显示评估结果
-    print(f"\n评估结果:")
+    print("\n评估结果:")
     print(f"  正确性: {result['correctness']}/5")
     print(f"  清晰度: {result['clarity']}/5")
     print(f"  难度匹配: {result['difficulty_match']}/5")
     print(f"  完整性: {result['completeness']}/5")
     print(f"  平均分: {result['average_score']:.2f}/5")
-    print(f"\n评语:")
+    print("\n评语:")
     print(f"  {result['feedback']}")
     
     all_scores.append(result)
@@ -79,7 +79,7 @@ avg_difficulty = sum(s['difficulty_match'] for s in all_scores) / len(all_scores
 avg_completeness = sum(s['completeness'] for s in all_scores) / len(all_scores)
 avg_overall = sum(s['average_score'] for s in all_scores) / len(all_scores)
 
-print(f"\n平均分:")
+print("\n平均分:")
 print(f"  正确性: {avg_correctness:.2f}/5")
 print(f"  清晰度: {avg_clarity:.2f}/5")
 print(f"  难度匹配: {avg_difficulty:.2f}/5")
@@ -87,7 +87,7 @@ print(f"  完整性: {avg_completeness:.2f}/5")
 print(f"  总体平均: {avg_overall:.2f}/5")
 
 # 5. 质量评估
-print(f"\n质量评估:")
+print("\n质量评估:")
 if avg_overall >= 4.0:
     print("✅ 优秀 - 题目质量很高，可以直接使用")
 elif avg_overall >= 3.0:

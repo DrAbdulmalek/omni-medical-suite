@@ -9,11 +9,9 @@ Author: Dr. Abdulmalek
 Version: 1.0.0
 """
 
-import re
 import logging
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
 from collections import defaultdict
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -124,27 +122,27 @@ class ClassificationResult:
     category: str
     confidence: float
     method: str  # "keyword", "semantic", "fallback"
-    top_categories: List[Tuple[str, float]] = field(default_factory=list)
+    top_categories: list[tuple[str, float]] = field(default_factory=list)
 
 
 class MedicalDocumentClassifier:
     """
     Two-layer medical document classifier for data preparation.
-    
+
     Layer 1: Keyword routing (< 1ms) — inverted index with weighted voting
     Layer 2: Semantic matching (~50ms, optional) — vector similarity
-    
+
     This is a DATA PREPARATION tool, not part of the live OCR pipeline.
     Use it when organizing corpus data or building datasets.
     """
-    
-    def __init__(self, taxonomy: Optional[Dict] = None, confidence_threshold: float = 0.7):
+
+    def __init__(self, taxonomy: dict | None = None, confidence_threshold: float = 0.7):
         self.taxonomy = taxonomy or MEDICAL_TAXONOMY
         self.confidence_threshold = confidence_threshold
         self._inverted_index = self._build_inverted_index()
         self._semantic_model = None
         self._taxonomy_embeddings = {}
-    
+
     def _normalize_arabic(self, text: str) -> str:
         """Normalize Arabic text for matching."""
         # Remove diacritics
@@ -155,11 +153,11 @@ class MedicalDocumentClassifier:
         text = text.replace('\u0622', '\u0627')
         text = text.replace('\u0649', '\u064a')
         return text.lower()
-    
-    def _build_inverted_index(self) -> Dict[str, List[Tuple[str, float]]]:
+
+    def _build_inverted_index(self) -> dict[str, list[tuple[str, float]]]:
         """Build inverted index: keyword → [(category, weight)]."""
         index = defaultdict(list)
-        
+
         for category, data in self.taxonomy.items():
             # English keywords
             for kw in data.get("keywords_en", []):
@@ -168,7 +166,7 @@ class MedicalDocumentClassifier:
                 if len(kw.split()) > 1:
                     weight = 1.5
                 index[kw.lower()].append((category, weight))
-            
+
             # Arabic keywords
             for kw in data.get("keywords_ar", []):
                 normalized = self._normalize_arabic(kw)
@@ -176,22 +174,22 @@ class MedicalDocumentClassifier:
                 if len(kw.split()) > 1:
                     weight = 1.5
                 index[normalized].append((category, weight))
-        
+
         return dict(index)
-    
+
     def classify(self, text: str) -> ClassificationResult:
         """Classify a medical document text."""
         # Layer 1: Keyword routing
         result = self._keyword_classify(text)
-        
+
         if result and result.confidence >= self.confidence_threshold:
             return result
-        
+
         # Layer 2: Semantic (if available)
         semantic_result = self._semantic_classify(text)
         if semantic_result:
             return semantic_result
-        
+
         # Fallback
         return ClassificationResult(
             text=text,
@@ -200,33 +198,33 @@ class MedicalDocumentClassifier:
             method="fallback",
             top_categories=result.top_categories if result else [],
         )
-    
-    def _keyword_classify(self, text: str) -> Optional[ClassificationResult]:
+
+    def _keyword_classify(self, text: str) -> ClassificationResult | None:
         """Layer 1: Fast keyword-based classification."""
         text_lower = text.lower()
         text_ar = self._normalize_arabic(text)
-        
+
         scores = defaultdict(float)
         total_weight = 0.0
-        
+
         # Check all keywords
         for keyword, entries in self._inverted_index.items():
             if keyword in text_lower or keyword in text_ar:
                 for category, weight in entries:
                     scores[category] += weight
                     total_weight += weight
-        
+
         if not scores:
             return None
-        
+
         # Normalize scores
         for cat in scores:
             scores[cat] /= max(total_weight, 1)
-        
+
         # Sort by score
         sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         best_category, best_score = sorted_cats[0]
-        
+
         return ClassificationResult(
             text=text,
             category=best_category,
@@ -234,13 +232,13 @@ class MedicalDocumentClassifier:
             method="keyword",
             top_categories=sorted_cats[:5],
         )
-    
-    def _semantic_classify(self, text: str) -> Optional[ClassificationResult]:
+
+    def _semantic_classify(self, text: str) -> ClassificationResult | None:
         """Layer 2: Semantic classification using sentence embeddings."""
         try:
-            from sentence_transformers import SentenceTransformer
             import numpy as np
-            
+            from sentence_transformers import SentenceTransformer
+
             if self._semantic_model is None:
                 self._semantic_model = SentenceTransformer(
                     'paraphrase-multilingual-mpnet-base-v2'
@@ -250,21 +248,21 @@ class MedicalDocumentClassifier:
                     all_terms = data.get("keywords_en", []) + data.get("keywords_ar", [])
                     combined = ' '.join(all_terms)
                     self._taxonomy_embeddings[category] = self._semantic_model.encode(combined)
-            
+
             text_embedding = self._semantic_model.encode(text)
-            
+
             similarities = {}
             for category, cat_embedding in self._taxonomy_embeddings.items():
                 sim = float(np.dot(text_embedding, cat_embedding) /
                            (np.linalg.norm(text_embedding) * np.linalg.norm(cat_embedding) + 1e-8))
                 similarities[category] = sim
-            
+
             sorted_cats = sorted(similarities.items(), key=lambda x: x[1], reverse=True)
             best_category, best_score = sorted_cats[0]
-            
+
             if best_score < self.confidence_threshold:
                 return None
-            
+
             return ClassificationResult(
                 text=text,
                 category=best_category,
@@ -272,15 +270,15 @@ class MedicalDocumentClassifier:
                 method="semantic",
                 top_categories=sorted_cats[:5],
             )
-            
+
         except ImportError:
             logger.debug("sentence-transformers not available, skipping semantic classification")
             return None
         except Exception as e:
             logger.warning(f"Semantic classification failed: {e}")
             return None
-    
-    def classify_batch(self, texts: List[str]) -> List[ClassificationResult]:
+
+    def classify_batch(self, texts: list[str]) -> list[ClassificationResult]:
         """Classify multiple texts."""
         return [self.classify(text) for text in texts]
 

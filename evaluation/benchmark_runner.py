@@ -8,12 +8,11 @@ Usage:
     python evaluation/benchmark_runner.py --input-dir ./test-docs/ --output results.json
     python evaluation/benchmark_runner.py --quick  # Run with sample data
 """
+import argparse
 import json
 import time
-import argparse
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from dataclasses import dataclass, asdict
-from typing import List, Optional
 
 
 @dataclass
@@ -36,7 +35,7 @@ class BenchmarkSuite:
     """Complete benchmark results for a pipeline configuration."""
     profile: str  # lite, standard, gpu-production
     timestamp: str
-    results: List[BenchmarkResult]
+    results: list[BenchmarkResult]
     summary: dict
 
     def to_json(self) -> str:
@@ -48,7 +47,7 @@ class BenchmarkSuite:
 
 def run_benchmark(
     input_dir: str,
-    engines: List[str] = None,
+    engines: list[str] | None = None,
     profile: str = "lite",
     output: str = "benchmark_results.json",
 ) -> BenchmarkSuite:

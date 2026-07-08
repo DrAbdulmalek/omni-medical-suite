@@ -3,13 +3,10 @@ Mistral AI Integration for Medical Document Processing.
 Features: OCR 3, Document Classification, Structured Extraction, FHIR Generation.
 """
 
-import os
 import json
-import base64
 import logging
-import tempfile
-import shutil
-from typing import Optional, Dict, Any, List
+import os
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +22,7 @@ except ImportError:
 class MistralOCR:
     """Mistral OCR 3 engine for document OCR."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("MISTRAL_API_KEY")
         self.client = None
         if self.api_key and HAS_MISTRAL:
@@ -34,7 +31,7 @@ class MistralOCR:
     def is_available(self) -> bool:
         return self.client is not None
 
-    def ocr_document(self, file_path: str) -> Dict[str, Any]:
+    def ocr_document(self, file_path: str) -> dict[str, Any]:
         """
         Run OCR on a document using Mistral OCR 3.
 
@@ -129,7 +126,7 @@ pathology_report, unknown
 {text}
 """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("MISTRAL_API_KEY")
         self.client = None
         if self.api_key and HAS_MISTRAL:
@@ -138,7 +135,7 @@ pathology_report, unknown
     def is_available(self) -> bool:
         return self.client is not None
 
-    def classify_text(self, text: str) -> Dict[str, Any]:
+    def classify_text(self, text: str) -> dict[str, Any]:
         """Classify document from OCR text."""
         if not self.is_available():
             return {"error": "Mistral API not available"}
@@ -169,7 +166,7 @@ pathology_report, unknown
             logger.error(f"Classification failed: {e}")
             return {"error": str(e)}
 
-    def classify_file(self, file_path: str, ocr_result: Optional[Dict] = None) -> Dict[str, Any]:
+    def classify_file(self, file_path: str, ocr_result: dict | None = None) -> dict[str, Any]:
         """Classify document from file (with optional pre-computed OCR)."""
         text = ""
         if ocr_result and ocr_result.get("pages"):
@@ -212,7 +209,7 @@ class StructuredExtractor:
         }
     }
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("MISTRAL_API_KEY")
         self.client = None
         if self.api_key and HAS_MISTRAL:
@@ -221,7 +218,7 @@ class StructuredExtractor:
     def is_available(self) -> bool:
         return self.client is not None
 
-    def extract(self, text: str, doc_type: str) -> Dict[str, Any]:
+    def extract(self, text: str, doc_type: str) -> dict[str, Any]:
         """Extract structured data from text based on document type."""
         if not self.is_available():
             return {"error": "Mistral API not available"}
@@ -260,7 +257,7 @@ class FHIRConverter:
     """Convert extracted medical data to FHIR R4 format."""
 
     @staticmethod
-    def vitals_to_fhir(data: Dict[str, Any], patient_id: str = "unknown") -> Dict[str, Any]:
+    def vitals_to_fhir(data: dict[str, Any], patient_id: str = "unknown") -> dict[str, Any]:
         """Convert vitals data to FHIR Observation resources."""
         resources = []
 
@@ -294,9 +291,8 @@ class FHIRConverter:
         return FHIRConverter._create_bundle(resources, f"Vitals for {patient_id}")
 
     @staticmethod
-    def lab_to_fhir(data: Dict[str, Any], patient_id: str = "unknown") -> Dict[str, Any]:
+    def lab_to_fhir(data: dict[str, Any], patient_id: str = "unknown") -> dict[str, Any]:
         """Convert lab results to FHIR DiagnosticReport + Observations."""
-        from datetime import datetime
 
         observations = []
         for test in data.get("tests", []):
@@ -331,10 +327,10 @@ class FHIRConverter:
             "result": [{"reference": f"Observation/{i}"} for i in range(len(observations))]
         }
 
-        return FHIRConverter._create_bundle([report] + observations, f"Lab results for {patient_id}")
+        return FHIRConverter._create_bundle([report, *observations], f"Lab results for {patient_id}")
 
     @staticmethod
-    def prescription_to_fhir(data: Dict[str, Any], patient_id: str = "unknown") -> Dict[str, Any]:
+    def prescription_to_fhir(data: dict[str, Any], patient_id: str = "unknown") -> dict[str, Any]:
         """Convert prescription to FHIR MedicationRequest resources."""
         resources = []
 
@@ -359,7 +355,7 @@ class FHIRConverter:
         return FHIRConverter._create_bundle(resources, f"Prescription for {patient_id}")
 
     @staticmethod
-    def _create_bundle(entries: List[Dict], title: str = "") -> Dict[str, Any]:
+    def _create_bundle(entries: list[dict], title: str = "") -> dict[str, Any]:
         """Wrap resources in a FHIR Bundle."""
         return {
             "resourceType": "Bundle",
@@ -373,7 +369,7 @@ class FHIRConverter:
 class MistralIntegration:
     """Unified Mistral AI integration combining OCR, Classification, Extraction, and FHIR."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.ocr = MistralOCR(api_key)
         self.classifier = DocumentClassifier(api_key)
         self.extractor = StructuredExtractor(api_key)
@@ -383,7 +379,7 @@ class MistralIntegration:
         return self.ocr.is_available()
 
     def process_document(self, file_path: str, patient_id: str = "unknown",
-                          generate_fhir: bool = True) -> Dict[str, Any]:
+                          generate_fhir: bool = True) -> dict[str, Any]:
         """
         Full document processing pipeline:
         1. OCR

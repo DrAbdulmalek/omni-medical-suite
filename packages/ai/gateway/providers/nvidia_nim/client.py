@@ -10,7 +10,6 @@ from ...config.nim import NimSettings
 from ..base import ProviderConfig
 from ..defaults import NVIDIA_NIM_DEFAULT_BASE
 from ..openai_compat import OpenAIChatTransport
-
 from .request import (
     build_request_body,
     clone_body_without_chat_template,

@@ -21,7 +21,6 @@ import logging
 import gradio as gr
 import pandas as pd
 from datasets import load_dataset, Dataset
-from huggingface_hub import HfApi
 import httpx
 
 # إعداد التسجيل
@@ -741,7 +740,7 @@ def create_gradio_interface():
                 
                 with gr.Tabs():
                     with gr.Tab("📚 عرض القواعد"):
-                        rules_list = gr.DataFrame(
+                        gr.DataFrame(
                             value=pd.DataFrame([
                                 {
                                     "المعرف": r.rule_id,

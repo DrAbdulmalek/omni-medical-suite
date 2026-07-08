@@ -3,7 +3,7 @@ InnoCore AI 引用格式化工具
 """
 
 import re
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from datetime import datetime
 
 class CitationFormatter:

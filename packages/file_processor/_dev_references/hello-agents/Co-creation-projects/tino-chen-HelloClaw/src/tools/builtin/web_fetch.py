@@ -1,6 +1,5 @@
 """网页抓取工具 - 抓取网页内容并转换为 Markdown"""
 
-import os
 import re
 from typing import List, Dict, Any
 from urllib.request import Request, urlopen

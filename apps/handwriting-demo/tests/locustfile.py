@@ -28,10 +28,8 @@ import io
 import random
 import struct
 import zlib
-from typing import List
 
-from locust import HttpUser, task, between, events
-
+from locust import HttpUser, between, events, task
 
 # ─────────────────────────────────────────────────────────────
 # Helpers
@@ -77,7 +75,7 @@ _SMALL_PNG_BYTES: bytes = _make_png(50, 50)
 API_KEY: str = ""  # Override with: locust ... --env API_KEY=your-key
 
 # Sample medical terms for suggestion queries (Arabic + Latin)
-_MEDICAL_TERMS: List[str] = [
+_MEDICAL_TERMS: list[str] = [
     "Ostecb(astoma",
     "Chondrosarcoma",
     "FOGMACIN",
@@ -213,9 +211,7 @@ class OCRUser(HttpUser):
             elif response.status_code == 400:
                 # Image decode failure — acceptable in load test
                 response.success()
-            elif response.status_code == 401:
-                response.success()
-            elif response.status_code == 413:
+            elif response.status_code == 401 or response.status_code == 413:
                 response.success()
             else:
                 response.failure(
@@ -292,7 +288,7 @@ def on_request(request_type, name, response_time, response_length, exception, **
 def on_test_start(environment, **kwargs):
     """Called when the load test starts."""
     print(f"\n{'='*60}")
-    print(f"  Medical Handwriting OCR — Locust Load Test")
+    print("  Medical Handwriting OCR — Locust Load Test")
     print(f"  Target: {environment.host}")
     print(f"  API Key: {'configured' if API_KEY else 'not set'}")
     print(f"{'='*60}\n")
@@ -303,7 +299,7 @@ def on_test_stop(environment, **kwargs):
     """Called when the load test ends — print summary."""
     stats = environment.runner.stats
     print(f"\n{'='*60}")
-    print(f"  Load Test Complete")
+    print("  Load Test Complete")
     print(f"{'='*60}")
     print(f"  Total Requests:     {stats.total.num_requests}")
     print(f"  Total Failures:     {stats.total.num_failures}")

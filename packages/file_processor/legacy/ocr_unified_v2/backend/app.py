@@ -15,9 +15,7 @@ v5.0 New features:
 import os
 import sys
 import json
-import csv
 import sqlite3
-import shutil
 import logging
 import threading
 from datetime import datetime
@@ -42,7 +40,6 @@ from src.recognition import OCREngine
 from src.correction import (
     init_correctors,
     load_correction_dict,
-    correct_text,
     append_feedback,
     load_custom_vocabulary,
     get_protected_words_count,
@@ -53,7 +50,7 @@ from src.study_guide import (
     generate_flashcards, export_flashcards_anki,
 )
 from src.preprocessing import column_aware_sort
-from src.reconstruction import reconstruct_sentences, extract_bilingual_vocab
+from src.reconstruction import extract_bilingual_vocab
 from src.export import (
     export_finetuning_dataset,
     push_to_huggingface,
@@ -62,8 +59,7 @@ from src.export import (
 )
 from src.finetuning import finetune_trocr_lora
 from src.pdf_processor import PDFProcessor
-from src.logger import setup_logging
-from src.metrics import compute_metrics, plot_metrics_fig
+from src.metrics import compute_metrics
 from src.sync import FileLock, SyncManager
 from src.migration import DataMigrator
 
@@ -875,7 +871,7 @@ class ColumnSortRequest(BaseModel):
 async def api_run_migration(req: MigrationRequest):
     """تشغيل ترحيل البيانات من النسخ القديمة"""
     cfg = _ensure_config()
-    db = _ensure_db()
+    _ensure_db()
 
     migrator = DataMigrator(cfg)
     try:
@@ -907,7 +903,7 @@ async def api_rebuild_correction_dict():
 @app.get("/api/vocabulary/protected")
 async def api_get_protected_vocabulary():
     """عرض الكلمات المحمية من التصحيح الإملائي"""
-    from src.correction import TECHNICAL_KEYWORDS, PYTHON_KEYWORDS, get_protected_words_count
+    from src.correction import TECHNICAL_KEYWORDS, PYTHON_KEYWORDS
 
     counts = get_protected_words_count()
 
@@ -924,7 +920,6 @@ async def api_get_protected_vocabulary():
 @app.post("/api/vocabulary/custom")
 async def api_add_custom_vocabulary(req: CustomVocabRequest):
     """إضافة مصطلحات مخصصة لحمايتها من التصحيح الإملائي"""
-    from src.correction import load_custom_vocabulary, get_protected_words_count
 
     if not req.words:
         raise HTTPException(status_code=400, detail="قائمة الكلمات فارغة")
@@ -1004,7 +999,6 @@ async def api_column_sort(req: ColumnSortRequest):
     ترتيب كلمات صفحة محددة مع كشف الأعمدة.
     مفيد للصفحات المكتوبة في أعمدة (مثل جداول المفردات).
     """
-    from src.preprocessing import column_aware_sort
     db = _ensure_db()
 
     conn = db._conn()
@@ -1129,7 +1123,7 @@ async def api_generate_flashcards(
     shuffle: bool = True,
 ):
     """توليد بطاقات تعليمية (Flashcards) من البيانات المستخرجة"""
-    cfg = _ensure_config()
+    _ensure_config()
     db = _ensure_db()
 
     cards = generate_flashcards(

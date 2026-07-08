@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 gui/startup_dialog.py
 ========================
@@ -10,13 +9,19 @@ gui/startup_dialog.py
 
 from __future__ import annotations
 
-from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QPushButton, QLabel, QHeaderView, QMessageBox,
-)
+from modules.startup_manager import AutostartEntry, list_entries, toggle_entry
 from PyQt5.QtCore import Qt
-
-from modules.startup_manager import list_entries, toggle_entry, AutostartEntry
+from PyQt5.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
 
 
 class StartupManagerDialog(QDialog):
@@ -87,6 +92,6 @@ class StartupManagerDialog(QDialog):
             return
         try:
             toggle_entry(entry)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             QMessageBox.critical(self, "خطأ", f"تعذّر تعديل {entry.display_name}:\n{exc}")
         self._reload()

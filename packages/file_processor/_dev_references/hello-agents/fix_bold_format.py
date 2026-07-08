@@ -7,7 +7,6 @@
 
 import re
 import os
-import glob
 
 def fix_bold_format_in_file(file_path):
     """修复单个文件中的加粗格式"""

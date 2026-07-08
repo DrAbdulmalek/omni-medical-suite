@@ -16,9 +16,10 @@ import logging
 import os
 import sys
 import time
+from collections.abc import Callable
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 # ---------------------------------------------------------------------------
 # ANSI colour helpers
@@ -176,7 +177,7 @@ def get_logger(
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def timed(logger: Optional[logging.Logger] = None, level: int = logging.INFO) -> Callable[[F], F]:
+def timed(logger: logging.Logger | None = None, level: int = logging.INFO) -> Callable[[F], F]:
     """
     Decorator that logs the wall-clock execution time of the wrapped function.
 

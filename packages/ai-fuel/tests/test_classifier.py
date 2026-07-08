@@ -2,8 +2,6 @@
 Tests for KeywordRouter — classify sample medical text, verify category and confidence.
 """
 
-import pytest
-from typing import Dict, List, Optional
 
 
 # ---------------------------------------------------------------------------
@@ -11,7 +9,7 @@ from typing import Dict, List, Optional
 # ---------------------------------------------------------------------------
 
 # Medical category keyword definitions
-CATEGORY_KEYWORDS: Dict[str, List[str]] = {
+CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "anatomy": [
         "anatomical", "organ", "tissue", "cell", "bone", "muscle",
         "nerve", "vessel", "artery", "vein", "ligament", "tendon",
@@ -48,14 +46,14 @@ CATEGORY_KEYWORDS: Dict[str, List[str]] = {
 class ClassificationResult:
     """Lightweight classification result."""
 
-    __slots__ = ("chunk_id", "category", "confidence", "matched_keywords", "method")
+    __slots__ = ("category", "chunk_id", "confidence", "matched_keywords", "method")
 
     def __init__(
         self,
         chunk_id: str,
         category: str,
         confidence: float,
-        matched_keywords: List[str],
+        matched_keywords: list[str],
         method: str = "keyword",
     ):
         self.chunk_id = chunk_id
@@ -68,7 +66,7 @@ class ClassificationResult:
 class KeywordRouter:
     """Classify text chunks using keyword matching."""
 
-    def __init__(self, keywords: Optional[Dict[str, List[str]]] = None):
+    def __init__(self, keywords: dict[str, list[str]] | None = None):
         self.keywords = keywords or CATEGORY_KEYWORDS
 
     def classify(self, text: str, chunk_id: str = "unknown") -> ClassificationResult:
@@ -82,8 +80,8 @@ class KeywordRouter:
             )
 
         text_lower = text.lower()
-        scores: Dict[str, int] = {}
-        keyword_matches: Dict[str, List[str]] = {}
+        scores: dict[str, int] = {}
+        keyword_matches: dict[str, list[str]] = {}
 
         for category, kws in self.keywords.items():
             matched = [kw for kw in kws if kw.lower() in text_lower]
@@ -203,7 +201,7 @@ class TestKeywordRouterClassify:
         text = "The cardiac muscle tissue showed inflammation and infection."
         result = router.classify(text)
         if result.category != "unclassified":
-            cat_keywords = set(kw.lower() for kw in router.keywords[result.category])
+            cat_keywords = {kw.lower() for kw in router.keywords[result.category]}
             for kw in result.matched_keywords:
                 assert kw.lower() in cat_keywords, f"Keyword '{kw}' not in category '{result.category}'"
 

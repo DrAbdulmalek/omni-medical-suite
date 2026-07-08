@@ -133,7 +133,7 @@ class TestRotate:
         # Add text concentrated in top half (upright)
         for y in range(100, 300, 20):
             cv2.line(img, (50, y), (750, y), (0, 0, 0), 3)
-        assert detect_180_flip(img) == False
+        assert not detect_180_flip(img)
 
     def test_auto_rotate_returns_tuple(self):
         img = make_text_page()
@@ -157,7 +157,6 @@ class TestRotate:
 class TestEnhance:
     def test_denoise_preserves_shape(self):
         img = make_white_page()
-        from scanner_fixer.enhance import remove_noise
         result = remove_noise(img)
         assert result.shape == img.shape
 

@@ -2,9 +2,8 @@
 Tests for ExactDeduplicator — add texts, check duplicates, verify stats.
 """
 
-import pytest
-from typing import List, Tuple
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Minimal ExactDeduplicator replica for standalone testing
@@ -13,7 +12,7 @@ from typing import List, Tuple
 class DeduplicationResult:
     """Result of a deduplication check."""
 
-    __slots__ = ("text", "is_duplicate", "duplicate_of")
+    __slots__ = ("duplicate_of", "is_duplicate", "text")
 
     def __init__(self, text: str, is_duplicate: bool, duplicate_of: str | None = None):
         self.text = text
@@ -59,7 +58,7 @@ class ExactDeduplicator:
         normalized = self._normalize(text)
         return normalized in self._seen
 
-    def add_batch(self, items: List[Tuple[str, str]]) -> List[DeduplicationResult]:
+    def add_batch(self, items: list[tuple[str, str]]) -> list[DeduplicationResult]:
         """Add multiple (text, chunk_id) pairs and return results."""
         return [self.add(text, cid) for text, cid in items]
 

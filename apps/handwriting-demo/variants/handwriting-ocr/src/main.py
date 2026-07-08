@@ -8,7 +8,6 @@ Gradio UI كاملة (7 تبويبات) + FP16 + memory_mode + HuggingFace Space
 
 import time
 import logging
-import os
 from config import Config
 from src.logger import setup_logging
 from src.recognition import OCREngine
@@ -31,7 +30,7 @@ def _check_available_memory() -> tuple[int, int]:
                     value = int(parts[1])  # كيلوبايت
                     meminfo[key] = value
 
-        mem_total = meminfo.get("MemTotal", 0) // 1024  # MB
+        meminfo.get("MemTotal", 0) // 1024  # MB
         mem_available = meminfo.get("MemAvailable", 0) // 1024  # MB
         swap_total = meminfo.get("SwapTotal", 0) // 1024  # MB
         return mem_available, swap_total
@@ -77,7 +76,7 @@ def main(config: Config | None = None):
         config.setup_easyocr_symlink()
 
     logger = setup_logging(config)
-    logger.info(f"بدء تشغيل HandwrittenOCR v6.0 Unified")
+    logger.info("بدء تشغيل HandwrittenOCR v6.0 Unified")
     logger.info(f"ملف PDF: {config.pdf_path}")
     logger.info(f"مجلد الإخراج: {config.output_dir or config.project_root}")
     if config.model_cache_dir or config.cache_dir:
@@ -176,7 +175,7 @@ def main(config: Config | None = None):
             logger.debug(f"Metrics: {e}")
 
     # ملفات المراقبة
-    print(f"\nملفات المراقبة:")
+    print("\nملفات المراقبة:")
     print(f"  سجل الأحداث:   {config.log_file}")
     print(f"  إحصائيات:      {config.stats_json}")
     print(f"  تصحيحات:       {config.feedback_csv}")

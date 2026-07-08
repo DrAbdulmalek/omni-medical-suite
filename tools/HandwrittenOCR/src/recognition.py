@@ -9,16 +9,15 @@ HandwrittenOCR - محرك التعرف على النصوص v4.0
 - دعم cache_dir + HF_TOKEN
 """
 
+import logging
 import os
+
 import cv2
-import io
+import easyocr
 import numpy as np
 import torch
-import logging
-from typing import Tuple, Optional, List
 from PIL import Image
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-import easyocr
 
 logger = logging.getLogger("HandwrittenOCR")
 
@@ -51,9 +50,9 @@ class OCREngine:
     def __init__(
         self,
         trocr_model_name: str = "David-Magdy/TR_OCR_LARGE",
-        ocr_languages: Optional[list] = None,
+        ocr_languages: list | None = None,
         max_text_length: int = 64,
-        device: Optional[str] = None,
+        device: str | None = None,
         cache_dir: str = "",
         hf_token: str = "",
         trocr_default_confidence: float = 0.70,
@@ -129,7 +128,7 @@ class OCREngine:
         except Exception as e:
             logger.warning(f"فشل تحميل LoRA: {e}")
 
-    def batch_predict(self, crops: List[np.ndarray]) -> List[str]:
+    def batch_predict(self, crops: list[np.ndarray]) -> list[str]:
         """
         Batch inference لـ TrOCR — التحسين الأهم: 3-6x تسريع
         مع beam search لدقة أعلى.
@@ -160,8 +159,8 @@ class OCREngine:
     def recognize_word_ensemble(
         self,
         img_bgr: np.ndarray,
-        easyocr_raw: Optional[list] = None,
-    ) -> Tuple[str, float, str, bool]:
+        easyocr_raw: list | None = None,
+    ) -> tuple[str, float, str, bool]:
         """
         Ensemble ذكي: يتخطى TrOCR إذا ثقة EasyOCR > easy_conf_threshold.
 

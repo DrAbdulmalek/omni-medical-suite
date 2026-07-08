@@ -1,29 +1,33 @@
 import base64
+from collections.abc import Callable
 from io import BytesIO
-from PIL import Image as PILImage
-from typing import Callable, List, Dict, Any, Union
+from typing import Any, Dict, List, Union
+
 from fastapi import HTTPException
+from PIL import Image as PILImage
 from pydantic import BaseModel, Field
 
 
 class responseImage(BaseModel):
     image: str = ""
     image_name: str = ""
-    image_info: Union[Dict[str, Any], None] = Field(default_factory=dict)
+    image_info: dict[str, Any] | None = Field(default_factory=dict)
 
 
 class responseDocument(BaseModel):
     text: str = ""
-    images: List[responseImage] = Field(default_factory=list)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    chunks: List[str] = Field(default_factory=list)
+    images: list[responseImage] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    chunks: list[str] = Field(default_factory=list)
 
     def add_image(
         self,
         image_name: str,
-        image_data: Union[str, PILImage.Image],
-        image_info: Union[Dict[str, Any], None] = {},
+        image_data: str | PILImage.Image,
+        image_info: dict[str, Any] | None = None,
     ):
+        if image_info is None:
+            image_info = {}
         if isinstance(image_data, str):
             # If image_data is base64 encoded, decode it
             try:
@@ -31,7 +35,7 @@ class responseDocument(BaseModel):
                 pil_image = PILImage.open(BytesIO(image_bytes))
             except Exception as e:
                 raise HTTPException(
-                    status_code=500, detail=f"Failed to decode base64 image: {str(e)}"
+                    status_code=500, detail=f"Failed to decode base64 image: {e!s}"
                 )
         elif isinstance(image_data, PILImage.Image):
             # If image_data is already a PIL.Image instance, use it directly
@@ -60,5 +64,5 @@ class responseDocument(BaseModel):
             if not img.image_info.get("caption"):  # Only generate caption if it's empty
                 img.image_info["caption"] = image_processor(img.image_name)
 
-    def chunk_text(self, chunker: Callable[[str], List[str]]):
+    def chunk_text(self, chunker: Callable[[str], list[str]]):
         self.chunks = chunker(self.text)

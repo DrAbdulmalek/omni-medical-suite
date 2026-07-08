@@ -7,8 +7,6 @@
 
 from dotenv import load_dotenv
 load_dotenv()
-from typing import List, Optional, Dict, Any
-from datetime import datetime
 from hello_agents.tools import MemoryTool
 from hello_agents.memory import MemoryConfig
 
@@ -37,7 +35,7 @@ class MemoryToolArchitectureDemo:
             memory_types=self.memory_types
         )
         
-        print(f"\n✅ MemoryTool初始化完成")
+        print("\n✅ MemoryTool初始化完成")
         print(f"👤 用户ID: {memory_tool.memory_manager.user_id}")
         print(f"🧠 启用的记忆类型: {memory_tool.memory_types}")
         print(f"⚙️ 配置对象: {type(memory_tool.memory_config).__name__}")
@@ -57,13 +55,13 @@ class MemoryToolArchitectureDemo:
         # 获取MemoryManager实例
         memory_manager = memory_tool.memory_manager
         
-        print(f"\n📊 MemoryManager状态:")
+        print("\n📊 MemoryManager状态:")
         print(f"用户ID: {memory_manager.user_id}")
         print(f"配置类型: {type(memory_manager.config).__name__}")
         print(f"记忆类型数量: {len(memory_manager.memory_types)}")
         
         # 显示各记忆类型的状态
-        print(f"\n🧠 记忆类型组件:")
+        print("\n🧠 记忆类型组件:")
         for memory_type, memory_instance in memory_manager.memory_types.items():
             print(f"  • {memory_type}: {type(memory_instance).__name__}")
     
@@ -160,7 +158,7 @@ class MemoryToolArchitectureDemo:
             ("stats", {}),
         ]
         
-        print(f"\n🔧 统一接口操作演示:")
+        print("\n🔧 统一接口操作演示:")
         for operation, params in operations:
             print(f"\n操作: {operation}")
             print(f"参数: {params}")
@@ -183,7 +181,7 @@ class MemoryToolArchitectureDemo:
         custom_config.working_memory_capacity = 100
         custom_config.working_memory_ttl_minutes = 120
         
-        print(f"\n⚙️ 自定义配置示例:")
+        print("\n⚙️ 自定义配置示例:")
         print(f"工作记忆容量: {custom_config.working_memory_capacity}")
         print(f"工作记忆TTL: {custom_config.working_memory_ttl_minutes}分钟")
         
@@ -194,7 +192,7 @@ class MemoryToolArchitectureDemo:
             memory_types=["working", "semantic"]  # 只启用部分类型
         )
         
-        print(f"\n🎯 选择性启用示例:")
+        print("\n🎯 选择性启用示例:")
         print(f"启用的记忆类型: {selective_memory_tool.memory_types}")
         print("✅ 系统支持根据需求灵活配置")
 

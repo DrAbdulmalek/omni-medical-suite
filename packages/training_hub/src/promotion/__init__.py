@@ -5,8 +5,8 @@ Provides a 4-stage promotion workflow (draft -> candidate -> approved -> product
 with automated readiness scoring, changelog generation, and state management.
 """
 
+from .changelog import AutoChangelog
 from .pipeline import PromotionPipeline
 from .readiness import ReadinessScorer
-from .changelog import AutoChangelog
 
-__all__ = ["PromotionPipeline", "ReadinessScorer", "AutoChangelog"]
+__all__ = ["AutoChangelog", "PromotionPipeline", "ReadinessScorer"]

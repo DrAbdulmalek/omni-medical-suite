@@ -3,10 +3,9 @@
 #  Decision Logging | Performance Tracking | Analytical Reports
 # ══════════════════════════════════════════════════════════╝
 
-import json
 import datetime
+import json
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class AuditLogger:
@@ -17,7 +16,7 @@ class AuditLogger:
     السجل يُخزن بصيغة JSONL (append-only) لضمان النزاهة وعدم التعديل.
     """
 
-    def __init__(self, log_dir: Optional[str] = None, reviewer_id: str = "DrUser"):
+    def __init__(self, log_dir: str | None = None, reviewer_id: str = "DrUser"):
         if log_dir is None:
             log_dir = str(Path(__file__).parent.parent.parent / 'data' / 'audit_logs')
 
@@ -38,7 +37,7 @@ class AuditLogger:
         easyocr_text: str,
         similarity: float,
         recommendation: str,
-        critical_alerts: List[str],
+        critical_alerts: list[str],
         final_text: str,
         action: str,
         confidence: str,
@@ -85,7 +84,7 @@ class AuditLogger:
     # ────────────────────────────────────────────────────────
 
     @staticmethod
-    def _generate_reason(rec: str, alerts: List[str], action: str) -> str:
+    def _generate_reason(rec: str, alerts: list[str], action: str) -> str:
         """توليد سبب القرار بناءً على المعطيات."""
         if action == "AUTO_ACCEPT":
             return f"High similarity ({rec}) without critical contradictions"
@@ -99,13 +98,13 @@ class AuditLogger:
     # Read / Query Logs
     # ────────────────────────────────────────────────────────
 
-    def read_logs(self, limit: Optional[int] = None) -> List[Dict]:
+    def read_logs(self, limit: int | None = None) -> list[dict]:
         """قراءة جميع السجلات (أو عدد محدود آخرها)."""
         logs = []
         if not self.log_file.exists():
             return logs
 
-        with open(self.log_file, "r", encoding="utf-8") as f:
+        with open(self.log_file, encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     logs.append(json.loads(line))
@@ -115,7 +114,7 @@ class AuditLogger:
 
         return logs
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """
         حساب إحصائيات سريعة من السجل.
         Returns dict with: total, auto_rate, manual_rate, critical_rate, etc.
@@ -134,7 +133,7 @@ class AuditLogger:
         auto_count = sum(1 for l in logs if l.get('action') == 'AUTO_ACCEPT')
         critical_count = sum(1 for l in logs if len(l.get('critical_alerts', [])) > 0)
 
-        action_dist: Dict[str, int] = {}
+        action_dist: dict[str, int] = {}
         for l in logs:
             act = l.get('action', 'UNKNOWN')
             action_dist[act] = action_dist.get(act, 0) + 1
@@ -151,7 +150,7 @@ class AuditLogger:
     # Log Rotation / Backup
     # ────────────────────────────────────────────────────────
 
-    def rotate_log(self, backup_suffix: Optional[str] = None):
+    def rotate_log(self, backup_suffix: str | None = None):
         """
         تدوير السجل: ينقل السجل الحالي إلى ملف نسخ احتياطي ويبدأ سجل جديد.
         """

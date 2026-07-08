@@ -12,21 +12,21 @@ License: Apache 2.0 License
 URL: https://github.com/unclecode/crawl4ai/blob/main/LICENSE
 """
 
+import base64
+import logging
 from abc import ABC, abstractmethod
+from io import BytesIO
+
+from PIL import Image, ImageDraw, ImageFont
 from selenium import webdriver
+from selenium.common.exceptions import InvalidArgumentException
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import InvalidArgumentException
+from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-import logging
-import base64
-from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-from typing import List
-from pathlib import Path
+
 from omniparse.web.utils import wrap_text
 
 logger = logging.getLogger("selenium.webdriver.remote.remote_connection")
@@ -136,7 +136,7 @@ class LocalSeleniumCrawlerStrategy(CrawlerStrategy):
         except InvalidArgumentException:
             raise InvalidArgumentException(f"Invalid URL {url}")
         except Exception as e:
-            raise Exception(f"Failed to crawl {url}: {str(e)}")
+            raise Exception(f"Failed to crawl {url}: {e!s}")
 
     def take_screenshot(self) -> str:
         try:
@@ -161,12 +161,12 @@ class LocalSeleniumCrawlerStrategy(CrawlerStrategy):
             img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
             if self.verbose:
-                print(f"[LOG] 📸 Screenshot taken and converted to base64")
+                print("[LOG] 📸 Screenshot taken and converted to base64")
 
             return img_base64
 
         except Exception as e:
-            error_message = f"Failed to take screenshot: {str(e)}"
+            error_message = f"Failed to take screenshot: {e!s}"
             print(error_message)
 
             # Generate an image with black background
@@ -176,7 +176,7 @@ class LocalSeleniumCrawlerStrategy(CrawlerStrategy):
             # Load a font
             try:
                 font = ImageFont.truetype("arial.ttf", 40)
-            except IOError:
+            except OSError:
                 font = ImageFont.load_default(size=40)
 
             # Define text color and wrap the text

@@ -57,7 +57,7 @@ class AgentIntegrationDemo:
         print("✅ 工具注册完成")
         
         # 显示Agent状态
-        print(f"\n📊 Agent状态:")
+        print("\n📊 Agent状态:")
         print(f"  名称: {self.agent.name}")
         print(f"  描述: {self.agent.system_prompt}")
         print(f"  可用工具: {list(self.tool_registry._tools.keys())}")
@@ -74,7 +74,7 @@ class AgentIntegrationDemo:
         print("• 🎯 工具能力发现")
         
         # 演示工具注册过程
-        print(f"\n🔧 工具注册详情:")
+        print("\n🔧 工具注册详情:")
         
         for tool_name, tool_instance in self.tool_registry._tools.items():
             print(f"\n工具: {tool_name}")
@@ -83,14 +83,14 @@ class AgentIntegrationDemo:
             
             # 显示工具的主要功能
             if tool_name == "memory":
-                print(f"  主要功能: 记忆管理、搜索、整合、遗忘")
+                print("  主要功能: 记忆管理、搜索、整合、遗忘")
                 print(f"  记忆类型: {tool_instance.memory_types}")
             elif tool_name == "rag":
-                print(f"  主要功能: 文档处理、智能问答、知识检索")
+                print("  主要功能: 文档处理、智能问答、知识检索")
                 print(f"  命名空间: {tool_instance.rag_namespace}")
         
         # 演示工具发现机制
-        print(f"\n🔍 工具能力发现:")
+        print("\n🔍 工具能力发现:")
         available_tools = self.tool_registry.list_tools()
         print(f"可用工具列表: {available_tools}")
         
@@ -98,7 +98,7 @@ class AgentIntegrationDemo:
         memory_tool = self.tool_registry.get_tool("memory")
         rag_tool = self.tool_registry.get_tool("rag")
         
-        print(f"\n✅ 工具获取成功:")
+        print("\n✅ 工具获取成功:")
         print(f"  Memory工具: {type(memory_tool).__name__}")
         print(f"  RAG工具: {type(rag_tool).__name__}")
     
@@ -114,10 +114,10 @@ class AgentIntegrationDemo:
         print("• 🔄 简化的工具切换")
         
         # 演示统一的run接口
-        print(f"\n🔗 统一run接口演示:")
+        print("\n🔗 统一run接口演示:")
         
         # Memory工具操作
-        print(f"\n1. Memory工具操作:")
+        print("\n1. Memory工具操作:")
         memory_operations = [
             ("add", {
                 "content": "学习了Agent工具集成模式",
@@ -138,7 +138,7 @@ class AgentIntegrationDemo:
             print(f"  结果: {str(result)[:100]}...")
         
         # RAG工具操作
-        print(f"\n2. RAG工具操作:")
+        print("\n2. RAG工具操作:")
         
         # 先添加一些内容
         self.rag_tool.run({"action":"add_text",
@@ -174,7 +174,7 @@ class AgentIntegrationDemo:
         print("• 📊 学习分析 → 两工具统计整合")
         
         # 场景1：学习新知识
-        print(f"\n📚 场景1：学习新知识")
+        print("\n📚 场景1：学习新知识")
         
         # 向RAG添加学习资料
         learning_content = """# 设计模式：观察者模式
@@ -209,7 +209,7 @@ class AgentIntegrationDemo:
         print(f"Memory记录结果: {memory_result}")
         
         # 场景2：回顾学习历程
-        print(f"\n🔍 场景2：回顾学习历程")
+        print("\n🔍 场景2：回顾学习历程")
         
         # 从记忆系统检索学习历史
         memory_search = self.memory_tool.run({"action":"search",
@@ -224,7 +224,7 @@ class AgentIntegrationDemo:
         print(f"知识内容补充: {rag_search}")
         
         # 场景3：知识应用
-        print(f"\n💡 场景3：知识应用")
+        print("\n💡 场景3：知识应用")
         
         # 通过RAG查询应用方法
         application_query = self.rag_tool.run({"action":"ask",
@@ -241,7 +241,7 @@ class AgentIntegrationDemo:
         print(f"应用记录: {application_memory}")
         
         # 场景4：学习分析
-        print(f"\n📊 场景4：学习分析")
+        print("\n📊 场景4：学习分析")
         
         # 获取记忆系统统计
         memory_stats = self.memory_tool.run({"action":"stats"})
@@ -267,11 +267,11 @@ class AgentIntegrationDemo:
         print("• 🎯 目标导向执行")
         
         # 模拟复杂任务的工具编排
-        print(f"\n🎭 复杂任务编排示例:")
-        print(f"任务: 创建一个关于机器学习的学习计划")
+        print("\n🎭 复杂任务编排示例:")
+        print("任务: 创建一个关于机器学习的学习计划")
         
         # 步骤1：从RAG获取机器学习知识结构
-        print(f"\n步骤1: 获取知识结构")
+        print("\n步骤1: 获取知识结构")
         
         # 添加机器学习知识
         ml_content = """# 机器学习学习路径
@@ -302,7 +302,7 @@ class AgentIntegrationDemo:
         print(f"知识结构: {knowledge_structure[:200]}...")
         
         # 步骤2：记录学习计划到记忆系统
-        print(f"\n步骤2: 记录学习计划")
+        print("\n步骤2: 记录学习计划")
         
         plan_memory = self.memory_tool.run({"action":"add",
                                              "content":"制定了机器学习学习计划，包括基础、进阶、高级三个阶段",
@@ -313,7 +313,7 @@ class AgentIntegrationDemo:
         print(f"计划记录: {plan_memory}")
         
         # 步骤3：检索相关学习经验
-        print(f"\n步骤3: 检索学习经验")
+        print("\n步骤3: 检索学习经验")
         
         experience_search = self.memory_tool.run({"action":"search",
                                                     "query":"学习计划 学习经验",
@@ -321,7 +321,7 @@ class AgentIntegrationDemo:
         print(f"相关经验: {experience_search}")
         
         # 步骤4：整合生成最终建议
-        print(f"\n步骤4: 生成最终建议")
+        print("\n步骤4: 生成最终建议")
         
         final_advice = self.rag_tool.run({"action":"ask",
                                             "question":"如何制定有效的机器学习学习计划？",
@@ -348,10 +348,10 @@ class AgentIntegrationDemo:
         print("• 🎯 任务完成效率")
         
         # 性能测试
-        print(f"\n📊 性能测试:")
+        print("\n📊 性能测试:")
         
         # 单工具性能测试
-        print(f"\n1. 单工具性能:")
+        print("\n1. 单工具性能:")
         
         # Memory工具性能
         start_time = time.time()
@@ -373,7 +373,7 @@ class AgentIntegrationDemo:
         print(f"RAG工具 - 3次搜索操作: {rag_time:.3f}秒")
         
         # 协同工作性能测试
-        print(f"\n2. 协同工作性能:")
+        print("\n2. 协同工作性能:")
         
         start_time = time.time()
         
@@ -387,11 +387,11 @@ class AgentIntegrationDemo:
                                 "memory_type":"working",
                                 "importance":0.6})
         
-        rag_result = self.rag_tool.run({"action":"search",
+        self.rag_tool.run({"action":"search",
                                          "query":"性能测试",
                                          "limit":1})
         
-        memory_result = self.memory_tool.run({"action":"search",
+        self.memory_tool.run({"action":"search",
                                                 "query":"性能测试",
                                                 "limit":1})
         
@@ -399,7 +399,7 @@ class AgentIntegrationDemo:
         print(f"协同工作流程: {collaborative_time:.3f}秒")
         
         # 性能分析总结
-        print(f"\n📈 性能分析总结:")
+        print("\n📈 性能分析总结:")
         print(f"Memory工具平均响应: {memory_time/5:.3f}秒/操作")
         print(f"RAG工具平均响应: {rag_time/3:.3f}秒/操作")
         print(f"协同工作效率: {collaborative_time:.3f}秒/流程")
@@ -408,7 +408,7 @@ class AgentIntegrationDemo:
         final_memory_stats = self.memory_tool.run({"action":"stats"})
         final_rag_stats = self.rag_tool.run({"action":"stats"})
         
-        print(f"\n📊 最终系统状态:")
+        print("\n📊 最终系统状态:")
         print(f"Memory系统: {final_memory_stats}")
         print(f"RAG系统: {final_rag_stats}")
 

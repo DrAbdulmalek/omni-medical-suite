@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 core/logger.py
 ==============
@@ -10,6 +9,7 @@ core/logger.py
 """
 
 from __future__ import annotations
+
 import logging
 import os
 from pathlib import Path

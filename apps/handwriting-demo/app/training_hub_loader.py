@@ -14,7 +14,6 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ logger = logging.getLogger(__name__)
 DATA_DIR = Path(os.environ.get("TRAINING_HUB_DIR", "/data/training_hub"))
 
 
-def load_config() -> Optional[Dict]:
+def load_config() -> dict | None:
     """Load config.yaml from the training hub data directory."""
     config_path = DATA_DIR / "config.yaml"
     if not config_path.exists():
@@ -36,7 +35,7 @@ def load_config() -> Optional[Dict]:
 
     try:
         import yaml
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             return yaml.safe_load(f)
     except ImportError:
         logger.warning("PyYAML not installed — config.yaml not loaded")
@@ -46,7 +45,7 @@ def load_config() -> Optional[Dict]:
         return None
 
 
-def load_ground_truth() -> Dict[str, str]:
+def load_ground_truth() -> dict[str, str]:
     """
     Load ground truth corrections as a raw→corrected mapping.
     Returns: {raw_text: corrected_text}
@@ -60,10 +59,10 @@ def load_ground_truth() -> Dict[str, str]:
         logger.info("No ground truth directory found")
         return {}
 
-    mapping: Dict[str, str] = {}
+    mapping: dict[str, str] = {}
     for jsonl_file in sorted(gt_dir.glob("*.jsonl")):
         try:
-            with open(jsonl_file, "r", encoding="utf-8") as f:
+            with open(jsonl_file, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -84,7 +83,7 @@ def load_ground_truth() -> Dict[str, str]:
     return mapping
 
 
-def load_word_corrections(limit: int = 5000) -> List[Dict]:
+def load_word_corrections(limit: int = 5000) -> list[dict]:
     """
     Load recent word-level corrections from the hub.
     Used for training data preview and statistics.
@@ -96,10 +95,10 @@ def load_word_corrections(limit: int = 5000) -> List[Dict]:
     if not crops_dir.exists():
         return []
 
-    corrections: List[Dict] = []
+    corrections: list[dict] = []
     for jsonl_file in sorted(crops_dir.glob("corrections_*.jsonl"), reverse=True):
         try:
-            with open(jsonl_file, "r", encoding="utf-8") as f:
+            with open(jsonl_file, encoding="utf-8") as f:
                 for line in f:
                     if not line.strip():
                         continue
@@ -112,7 +111,7 @@ def load_word_corrections(limit: int = 5000) -> List[Dict]:
     return corrections
 
 
-def get_training_stats() -> Dict:
+def get_training_stats() -> dict:
     """Get training data statistics for the dashboard."""
     config = load_config()
     gt = load_ground_truth()
@@ -157,7 +156,7 @@ def get_training_stats() -> Dict:
     }
 
 
-def get_model_configs() -> Dict[str, Dict]:
+def get_model_configs() -> dict[str, dict]:
     """Load model configuration files."""
     configs_dir = DATA_DIR / "models" / "configs"
     if not configs_dir.exists():
@@ -170,13 +169,13 @@ def get_model_configs() -> Dict[str, Dict]:
     for f in configs_dir.glob("*.yaml"):
         try:
             import yaml
-            with open(f, "r", encoding="utf-8") as fh:
+            with open(f, encoding="utf-8") as fh:
                 configs[f.stem] = yaml.safe_load(fh)
         except Exception:
             pass
     for f in configs_dir.glob("*.json"):
         try:
-            with open(f, "r", encoding="utf-8") as fh:
+            with open(f, encoding="utf-8") as fh:
                 configs[f.stem] = json.load(fh)
         except Exception:
             pass

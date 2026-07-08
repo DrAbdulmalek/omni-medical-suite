@@ -3,7 +3,6 @@
 
 from hello_agents import SimpleAgent, HelloAgentsLLM
 from core.file_manager import FileManager
-from pathlib import Path
 
 
 class SummaryAgent(SimpleAgent):

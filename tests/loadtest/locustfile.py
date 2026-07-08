@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 locustfile.py
 =============
@@ -19,11 +18,12 @@ locustfile.py
 المشروع: OmniMedical Suite
 """
 
-from locust import HttpUser, task, between, events
+import contextlib
 import json
-import time
-import random
 import logging
+import random
+
+from locust import HttpUser, between, events, task
 
 logger = logging.getLogger(__name__)
 
@@ -134,10 +134,8 @@ class MedicalClient(HttpUser):
     def on_stop(self):
         """تنظيف الموارد."""
         if self.ws:
-            try:
+            with contextlib.suppress(Exception):
                 self.ws.close()
-            except Exception:
-                pass
 
     def _connect_ws(self):
         """
@@ -148,7 +146,7 @@ class MedicalClient(HttpUser):
             return
         try:
             self.ws = websocket.create_connection(
-                f"ws://localhost:8765",
+                "ws://localhost:8765",
                 timeout=5
             )
             self.ws.send(json.dumps({

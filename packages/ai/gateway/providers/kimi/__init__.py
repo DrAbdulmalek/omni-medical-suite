@@ -1,7 +1,6 @@
 """Kimi (Moonshot) provider exports."""
 
 from ..defaults import KIMI_DEFAULT_BASE
-
 from .client import KimiProvider
 
 __all__ = [

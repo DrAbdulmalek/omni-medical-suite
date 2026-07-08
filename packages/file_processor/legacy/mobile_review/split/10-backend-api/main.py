@@ -8,7 +8,6 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Optional, List
 import os
-from pathlib import Path
 
 from . import models, schemas, crud
 from .database import engine, get_db

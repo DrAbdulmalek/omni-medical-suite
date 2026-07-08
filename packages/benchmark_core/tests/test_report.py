@@ -1,12 +1,12 @@
 """Tests for report generation."""
 import json
-import os
-from pathlib import Path
+
 import pytest
+
 from benchmarks.report import (
-    ReportGenerator,
     BenchmarkReport,
     EngineResult,
+    ReportGenerator,
 )
 
 
@@ -105,7 +105,7 @@ class TestReportGenerator:
 
     def test_output_dir_created(self, tmp_path):
         new_dir = tmp_path / "new_reports"
-        gen = ReportGenerator(str(new_dir))
+        ReportGenerator(str(new_dir))
         assert new_dir.exists()
 
     def test_json_roundtrip(self, generator, sample_report):

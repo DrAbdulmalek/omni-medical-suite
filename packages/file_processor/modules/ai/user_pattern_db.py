@@ -25,11 +25,9 @@ Usage:
 import hashlib
 import json
 import logging
-import os
 from modules.core.base_db import BaseDB
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import cv2
 import numpy as np

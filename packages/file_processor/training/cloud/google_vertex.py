@@ -18,10 +18,9 @@ training/cloud/google_vertex.py
 import os
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict
 
 from google.cloud import aiplatform, storage
-from google.cloud.aiplatform.gapic.schema import trainingjob
 
 
 class VertexTrainer:
@@ -203,7 +202,7 @@ class VertexTrainer:
         }
 
         if job.state.name == 'JOB_STATE_SUCCEEDED':
-            print(f"✅ اكتمل التدريب!")
+            print("✅ اكتمل التدريب!")
             print(f"   Output: {job.base_output_dir}")
 
             # تسجيل النموذج

@@ -9,9 +9,8 @@ This is the HF Spaces standalone version — it removes the dependency
 on ``app.config.settings`` and ``app.ai.llm_integration`` (no LLM fallback).
 """
 
-import re
 import logging
-from typing import Optional, List, Dict, Any
+import re
 from datetime import datetime
 from uuid import uuid4
 
@@ -27,12 +26,12 @@ logger = logging.getLogger(__name__)
 
 class VitalSigns(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
-    systolic_bp: Optional[float] = None
-    diastolic_bp: Optional[float] = None
-    heart_rate: Optional[int] = None
-    temperature: Optional[float] = None
-    spo2: Optional[float] = None
-    respiratory_rate: Optional[int] = None
+    systolic_bp: float | None = None
+    diastolic_bp: float | None = None
+    heart_rate: int | None = None
+    temperature: float | None = None
+    spo2: float | None = None
+    respiratory_rate: int | None = None
     source_text: str = ""
     extracted_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
@@ -40,20 +39,20 @@ class VitalSigns(BaseModel):
 class Medication(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
-    dosage: Optional[str] = None
-    frequency: Optional[str] = None
-    route: Optional[str] = None
-    duration: Optional[str] = None
-    notes: Optional[str] = None
+    dosage: str | None = None
+    frequency: str | None = None
+    route: str | None = None
+    duration: str | None = None
+    notes: str | None = None
     source_text: str = ""
 
 
 class Diagnosis(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
-    code: Optional[str] = None
+    code: str | None = None
     description: str
-    severity: Optional[str] = None
-    laterality: Optional[str] = None
+    severity: str | None = None
+    laterality: str | None = None
     chronic: bool = False
     source_text: str = ""
 
@@ -61,37 +60,37 @@ class Diagnosis(BaseModel):
 class LabResult(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     test_name: str
-    value: Optional[float] = None
-    unit: Optional[str] = None
-    reference_range: Optional[str] = None
+    value: float | None = None
+    unit: str | None = None
+    reference_range: str | None = None
     is_abnormal: bool = False
-    status: Optional[str] = None
+    status: str | None = None
     source_text: str = ""
 
 
 class PatientInfo(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
-    name: Optional[str] = None
-    age: Optional[str] = None
-    gender: Optional[str] = None
-    date_of_birth: Optional[str] = None
-    patient_id: Optional[str] = None
-    phone: Optional[str] = None
-    address: Optional[str] = None
-    allergies: List[str] = Field(default_factory=list)
+    name: str | None = None
+    age: str | None = None
+    gender: str | None = None
+    date_of_birth: str | None = None
+    patient_id: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    allergies: list[str] = Field(default_factory=list)
     source_text: str = ""
 
 
 class MedicalDataExtract(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     vital_signs: VitalSigns = Field(default_factory=VitalSigns)
-    medications: List[Medication] = Field(default_factory=list)
-    diagnoses: List[Diagnosis] = Field(default_factory=list)
-    lab_results: List[LabResult] = Field(default_factory=list)
+    medications: list[Medication] = Field(default_factory=list)
+    diagnoses: list[Diagnosis] = Field(default_factory=list)
+    lab_results: list[LabResult] = Field(default_factory=list)
     patient_info: PatientInfo = Field(default_factory=PatientInfo)
     extraction_method: str = "regex"
-    confidence_scores: Dict[str, float] = Field(default_factory=dict)
-    warnings: List[str] = Field(default_factory=list)
+    confidence_scores: dict[str, float] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
     extracted_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
 
@@ -282,8 +281,8 @@ class MedicalSchemaExtractor:
 
         return vitals
 
-    def extract_medications(self, text: str) -> List[Medication]:
-        medications: List[Medication] = []
+    def extract_medications(self, text: str) -> list[Medication]:
+        medications: list[Medication] = []
         seen_names: set = set()
 
         for match in _RE_MEDICATION.finditer(text):
@@ -303,8 +302,8 @@ class MedicalSchemaExtractor:
 
         return medications
 
-    def extract_diagnoses(self, text: str) -> List[Diagnosis]:
-        diagnoses: List[Diagnosis] = []
+    def extract_diagnoses(self, text: str) -> list[Diagnosis]:
+        diagnoses: list[Diagnosis] = []
 
         for match in _RE_DIAGNOSIS_KEYWORD.finditer(text):
             desc = match.group(1).strip()
@@ -337,8 +336,8 @@ class MedicalSchemaExtractor:
 
         return diagnoses
 
-    def extract_lab_results(self, text: str) -> List[LabResult]:
-        results: List[LabResult] = []
+    def extract_lab_results(self, text: str) -> list[LabResult]:
+        results: list[LabResult] = []
         seen_tests: set = set()
 
         for match in _RE_LAB_RESULT.finditer(text):
@@ -415,7 +414,7 @@ class MedicalSchemaExtractor:
         return info
 
     def extract_all(self, text: str) -> MedicalDataExtract:
-        warnings: List[str] = []
+        warnings: list[str] = []
 
         vital_signs = self.extract_vital_signs(text)
         medications = self.extract_medications(text)
@@ -423,7 +422,7 @@ class MedicalSchemaExtractor:
         lab_results = self.extract_lab_results(text)
         patient_info = self.extract_patient_info(text)
 
-        confidence_scores: Dict[str, float] = {}
+        confidence_scores: dict[str, float] = {}
         confidence_scores["vital_signs"] = self._vital_signs_confidence(vital_signs)
         confidence_scores["medications"] = min(1.0, len(medications) * 0.8) if medications else 0.0
         confidence_scores["diagnoses"] = min(1.0, len(diagnoses) * 0.7) if diagnoses else 0.0
@@ -451,7 +450,7 @@ class MedicalSchemaExtractor:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _check_reference(value: float, ref_range: str, current_status: Optional[str]) -> tuple:
+    def _check_reference(value: float, ref_range: str, current_status: str | None) -> tuple:
         is_abnormal = current_status is not None
         try:
             ref_clean = ref_range.strip().replace(" ", "")

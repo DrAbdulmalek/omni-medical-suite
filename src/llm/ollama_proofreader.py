@@ -11,9 +11,8 @@ proofreading, with special attention to Arabic medical terminology.
 بالمصطلحات الطبية العربية.
 """
 
-import json
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +175,7 @@ class OllamaProofreader:
         self,
         ocr_text: str,
         medical_context: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Proofread OCR-extracted text using Ollama.
 
@@ -284,9 +283,9 @@ class OllamaProofreader:
 
     def batch_proofread(
         self,
-        texts: List[str],
+        texts: list[str],
         medical_context: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Proofread multiple texts in sequence.
 
@@ -304,7 +303,7 @@ class OllamaProofreader:
         """
         logger.info(_MSG_BATCH.format(n=len(texts)))
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
 
         for idx, text in enumerate(texts):
             logger.debug(

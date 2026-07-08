@@ -27,14 +27,12 @@ Author:  Dr Abdulmalek Tamer Al-husseini
 License: MIT
 """
 
-import io
 import json
 import logging
 import os
 import time
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -367,8 +365,6 @@ class TrOCRFinetuner:
         Falls back to the hot-loaded model if model_path is not provided.
         """
         import torch
-        from transformers import VisionEncoderDecoderModel, TrOCRProcessor
-        from peft import PeftModel
 
         model = getattr(self, '_loaded_model', None)
         if model is None and model_path:

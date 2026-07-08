@@ -6,6 +6,7 @@ Exports the main orchestrator and its configuration dataclass.
 """
 
 from config.settings import PipelineConfig
+
 from src.core.pipeline import (
     BBox,
     EngineResult,

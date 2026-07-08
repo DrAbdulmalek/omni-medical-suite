@@ -6,7 +6,6 @@
 
 import sys
 from pathlib import Path
-import json
 
 # 添加项目路径
 project_root = Path(__file__).parent.parent / "HelloAgents"
@@ -25,7 +24,7 @@ def minimal_sft_training():
     
     只需要调用RLTrainingTool即可
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",
@@ -62,7 +61,7 @@ def standard_sft_training():
     - 合理的训练参数
     - 使用部分数据集
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",
@@ -113,7 +112,7 @@ def full_dataset_training():
     
     max_samples=None 表示使用全部数据
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",
@@ -134,9 +133,9 @@ def full_dataset_training():
     
     print("完整数据集训练:")
     print(f"  模型: {config['model_name']}")
-    print(f"  样本数: 全部 (max_samples=None)")
+    print("  样本数: 全部 (max_samples=None)")
     print(f"  训练轮数: {config['num_epochs']}")
-    print(f"  预计样本数: ~7500 (GSM8K训练集)")
+    print("  预计样本数: ~7500 (GSM8K训练集)")
     
     # 实际训练时取消注释
     # result = tool.run(config)
@@ -169,7 +168,7 @@ def compare_learning_rates():
     for name, lr in learning_rates.items():
         print(f"\n{name}:")
         print(f"  learning_rate: {lr}")
-        print(f"  适用场景: ", end="")
+        print("  适用场景: ", end="")
         if lr == 1e-5:
             print("模型已经很好,只需微调")
         elif lr == 5e-5:
@@ -179,7 +178,7 @@ def compare_learning_rates():
     
     # 训练示例
     print("\n训练示例 (推荐学习率):")
-    tool = RLTrainingTool()
+    RLTrainingTool()
     config = {
         "action": "train",
         "algorithm": "sft",
@@ -209,7 +208,7 @@ def memory_optimized_training():
     - 减小batch size
     - 使用较小的LoRA秩
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",
@@ -233,7 +232,7 @@ def memory_optimized_training():
     print(f"  batch_size: {config['batch_size']} (最小)")
     print(f"  lora_r: {config['lora_r']} (较小)")
     print(f"  use_lora: {config['use_lora']}")
-    print(f"  预计显存占用: ~3-4GB")
+    print("  预计显存占用: ~3-4GB")
     
     # 实际训练时取消注释
     # result = tool.run(config)
@@ -249,7 +248,7 @@ def practical_training_example():
     """
     实际训练示例 - 可以直接运行
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "train",

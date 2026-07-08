@@ -6,12 +6,10 @@
 import io
 import logging
 import sys
-import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, List
+from typing import List
 
-import numpy as np
 from PIL import Image
 
 # === Project Path Setup ===

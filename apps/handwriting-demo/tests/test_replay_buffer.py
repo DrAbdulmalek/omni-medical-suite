@@ -2,13 +2,15 @@
 Tests for the Replay Buffer module.
 """
 
-import pytest
-import json
 import random
-from pathlib import Path
+
+import pytest
 from training.replay_buffer import (
-    ReplayBuffer, SampleMetadata, HardExampleMiner,
-    DiversitySampler, StratifiedSampler,
+    DiversitySampler,
+    HardExampleMiner,
+    ReplayBuffer,
+    SampleMetadata,
+    StratifiedSampler,
 )
 
 
@@ -66,7 +68,7 @@ class TestReplayBuffer:
     def test_reservoir_sampling(self, buffer):
         """Test reservoir sampling behavior when buffer is full."""
         random.seed(42)
-        
+
         # Fill buffer
         for i in range(100):
             buffer.add({
@@ -77,7 +79,7 @@ class TestReplayBuffer:
                 "region_id": f"uuid-{i}",
             })
         assert len(buffer.buffer) == 100
-        
+
         # Add more samples - buffer should stay at capacity
         for i in range(50):
             buffer.add({
@@ -93,7 +95,7 @@ class TestReplayBuffer:
         """Test that stratification maintains class balance."""
         classes = ["arabic", "latin", "mixed"]
         samples_per_class = 30
-        
+
         # Add balanced samples
         for cls in classes:
             for i in range(samples_per_class):
@@ -104,11 +106,11 @@ class TestReplayBuffer:
                     "confidence": 0.8,
                     "region_id": f"uuid-{cls}-{i}",
                 })
-        
+
         # Check class counts
         stats = buffer.get_statistics()
         dist = stats["class_distribution"]
-        
+
         for cls in classes:
             assert dist.get(cls, 0) == samples_per_class
 
@@ -123,7 +125,7 @@ class TestReplayBuffer:
                 "confidence": 0.7,
                 "region_id": f"uuid-old-{i}",
             })
-        
+
         new_samples = [
             {
                 "file_name": f"images/new_{i:06d}.png",
@@ -134,9 +136,9 @@ class TestReplayBuffer:
             }
             for i in range(20)
         ]
-        
+
         combined = buffer.merge_with_new(new_samples, replay_ratio=0.5)
-        
+
         # Combined should have new samples + replay samples
         assert len(combined) >= 20  # At least the new samples
         assert buffer.get_statistics()["current_size"] == 100
@@ -152,12 +154,12 @@ class TestReplayBuffer:
                     "confidence": 0.8,
                     "region_id": f"uuid-{cls}-{i}",
                 })
-        
+
         batch = buffer.get_stratified_batch(15)
         assert len(batch) <= 15
-        
+
         # Check all classes are represented
-        classes_in_batch = set(s["script_class"] for s in batch)
+        classes_in_batch = {s["script_class"] for s in batch}
         assert len(classes_in_batch) == 3
 
     def test_save_and_load(self, buffer, tmp_path):
@@ -170,16 +172,16 @@ class TestReplayBuffer:
                 "confidence": 0.8,
                 "region_id": f"uuid-{i}",
             })
-        
+
         buffer.save()
-        
+
         # Create new buffer and load
         new_buffer = ReplayBuffer(
             capacity=100,
             persist_path=str(tmp_path / "test_buffer.json"),
         )
         loaded = new_buffer.load()
-        
+
         assert loaded is True
         assert len(new_buffer.buffer) == 30
         assert new_buffer.buffer[0]["text"] == "word_0"
@@ -188,7 +190,7 @@ class TestReplayBuffer:
         """Test clearing the buffer."""
         buffer.add({"text": "test", "script_class": "latin"})
         assert len(buffer.buffer) == 1
-        
+
         buffer.clear()
         assert len(buffer.buffer) == 0
         assert buffer.get_statistics()["current_size"] == 0
@@ -202,7 +204,7 @@ class TestReplayBuffer:
                 "confidence": 0.8,
                 "region_id": f"uuid-{i}",
             })
-        
+
         stats = buffer.get_statistics()
         assert stats["current_size"] == 50
         assert stats["capacity"] == 100

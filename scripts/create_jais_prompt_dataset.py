@@ -24,9 +24,8 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List
 
-from datasets import load_dataset, Dataset
+from datasets import Dataset, load_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ _SYMPTOMS = [
 _DOSAGE_RE = re.compile(r'(\d+(?:\.\d+)?)\s*(?:ملغ|mg|مغ|مللي|مل|حبة|كبسولة|قرص|امبول|مرتين|يومي|صباحا|مساء)')
 
 
-def extract_entities(text: str) -> Dict[str, List[str]]:
+def extract_entities(text: str) -> dict[str, list[str]]:
     """
     Rule-based NER using medical dictionary.
     Returns dict with categories as keys and matched terms as values.
@@ -95,7 +94,7 @@ def extract_entities(text: str) -> Dict[str, List[str]]:
     return entities
 
 
-def _entities_to_completion(entities: Dict[str, List[str]]) -> str:
+def _entities_to_completion(entities: dict[str, list[str]]) -> str:
     """Convert extracted entities to Jais completion format."""
     meds = ", ".join(entities["medications"]) if entities["medications"] else "-"
     dis = ", ".join(entities["diseases"]) if entities["diseases"] else "-"

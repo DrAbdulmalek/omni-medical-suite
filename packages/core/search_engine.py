@@ -22,9 +22,9 @@
 import logging
 import os
 import re
-from packages.core.base_db import BaseDB, validate_identifier
-from datetime import datetime
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Any
+
+from packages.core.base_db import BaseDB
 
 logger = logging.getLogger(__name__)
 
@@ -97,13 +97,13 @@ class SearchEngine(BaseDB):
         query: str,
         limit: int = 50,
         offset: int = 0,
-        category: Optional[str] = None,
-        language: Optional[str] = None,
-        min_confidence: Optional[float] = None,
-        date_from: Optional[str] = None,
-        date_to: Optional[str] = None,
+        category: str | None = None,
+        language: str | None = None,
+        min_confidence: float | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
         search_mode: str = "standard",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         البحث الشامل في الأرشيف.
 
@@ -146,10 +146,10 @@ class SearchEngine(BaseDB):
 
     def _search_standard(
         self, query: str, limit: int, offset: int,
-        category: Optional[str], language: Optional[str],
-        min_confidence: Optional[float], date_from: Optional[str],
-        date_to: Optional[str],
-    ) -> Dict[str, Any]:
+        category: str | None, language: str | None,
+        min_confidence: float | None, date_from: str | None,
+        date_to: str | None,
+    ) -> dict[str, Any]:
         """بحث قياسي باستخدام LIKE مع سياق."""
         conditions = []
         params = []
@@ -234,10 +234,10 @@ class SearchEngine(BaseDB):
 
     def _search_fts5(
         self, query: str, limit: int, offset: int,
-        category: Optional[str], language: Optional[str],
-        min_confidence: Optional[float], date_from: Optional[str],
-        date_to: Optional[str],
-    ) -> Dict[str, Any]:
+        category: str | None, language: str | None,
+        min_confidence: float | None, date_from: str | None,
+        date_to: str | None,
+    ) -> dict[str, Any]:
         """بحث باستخدام محرك FTS5 (أسرع)."""
         try:
             fts_query = self._to_fts5_query(query)
@@ -299,10 +299,10 @@ class SearchEngine(BaseDB):
 
     def _search_advanced(
         self, query: str, limit: int, offset: int,
-        category: Optional[str], language: Optional[str],
-        min_confidence: Optional[float], date_from: Optional[str],
-        date_to: Optional[str],
-    ) -> Dict[str, Any]:
+        category: str | None, language: str | None,
+        min_confidence: float | None, date_from: str | None,
+        date_to: str | None,
+    ) -> dict[str, Any]:
         """بحث متقدم يدعم عوامل AND, OR, NOT."""
         # تحليل الاستعلام المتقدم
         terms = self._parse_advanced_query(query)
@@ -311,10 +311,7 @@ class SearchEngine(BaseDB):
         params = []
 
         for operator, term in terms:
-            if operator == "AND":
-                conditions.append("(extracted_text LIKE ? OR file_name LIKE ?)")
-                params.extend([f"%{term}%", f"%{term}%"])
-            elif operator == "OR":
+            if operator == "AND" or operator == "OR":
                 conditions.append("(extracted_text LIKE ? OR file_name LIKE ?)")
                 params.extend([f"%{term}%", f"%{term}%"])
             elif operator == "NOT":
@@ -427,7 +424,7 @@ class SearchEngine(BaseDB):
         return " AND ".join(f'"{w}"' for w in words if w)
 
     @staticmethod
-    def _parse_advanced_query(query: str) -> List[Tuple[str, str]]:
+    def _parse_advanced_query(query: str) -> list[tuple[str, str]]:
         """
         تحليل استعلام متقدم مع عوامل AND, OR, NOT.
 
@@ -436,7 +433,7 @@ class SearchEngine(BaseDB):
         - "قلب OR عظام" → [("OR", "قلب"), ("OR", "عظام")]
         - "جراحة NOT قلب" → [("AND", "جراحة"), ("NOT", "قلب")]
         """
-        operators = re.findall(r'\b(AND|OR|NOT)\b', query.upper())
+        re.findall(r'\b(AND|OR|NOT)\b', query.upper())
         parts = re.split(r'\b(AND|OR|NOT)\b', query, flags=re.IGNORECASE)
 
         result = []
@@ -500,9 +497,9 @@ class SearchEngine(BaseDB):
         self,
         directory: str,
         query: str,
-        extensions: Optional[List[str]] = None,
+        extensions: list[str] | None = None,
         recursive: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         بحث مباشر في ملفات .txt في مجلد (بدون قاعدة بيانات).
 
@@ -531,7 +528,7 @@ class SearchEngine(BaseDB):
 
                 filepath = os.path.join(root, filename)
                 try:
-                    with open(filepath, "r", encoding="utf-8") as f:
+                    with open(filepath, encoding="utf-8") as f:
                         content = f.read()
 
                     if query_lower in content.lower():
@@ -558,7 +555,7 @@ class SearchEngine(BaseDB):
         )
         return results
 
-    def get_categories(self) -> List[str]:
+    def get_categories(self) -> list[str]:
         """الحصول على قائمة التصنيفات المتاحة في الأرشيف."""
         with self.connection() as conn:
             cursor = conn.execute(
@@ -566,7 +563,7 @@ class SearchEngine(BaseDB):
             )
             return [row["category"] for row in cursor.fetchall()]
 
-    def get_languages(self) -> List[str]:
+    def get_languages(self) -> list[str]:
         """الحصول على قائمة اللغات المتاحة في الأرشيف."""
         with self.connection() as conn:
             cursor = conn.execute(
@@ -576,7 +573,7 @@ class SearchEngine(BaseDB):
 
     def export_results(
         self,
-        results: List[Dict[str, Any]],
+        results: list[dict[str, Any]],
         output_path: str,
         format_type: str = "json",
     ) -> bool:

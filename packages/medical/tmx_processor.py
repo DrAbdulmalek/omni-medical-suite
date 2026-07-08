@@ -16,19 +16,18 @@
     entries = processor.get_entries_for_review(status="pending")
 """
 
-import xml.etree.ElementTree as ET
-import re
-import os
-import json
 import csv
-import sqlite3
-import logging
 import html
-from typing import Dict, List, Optional, Tuple, Any, Iterator
+import json
+import logging
+import os
+import re
+import sqlite3
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +100,7 @@ class TMXEntry:
             "is_medical": self.is_medical,
         }
 
-    def to_pair(self) -> Dict[str, str]:
+    def to_pair(self) -> dict[str, str]:
         """زوج ترجمة بسيط: {source_lang: text, target_lang: text}"""
         return {
             self.source_lang: self.source_text,
@@ -142,8 +141,8 @@ class TMXImportResult:
     file_path: str = ""
     total_tus: int = 0
     medical_terms: int = 0
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
     duration_seconds: float = 0.0
     tmx_version: str = ""
 
@@ -198,20 +197,20 @@ class TMXParser:
     def __init__(self, encoding: str = "UTF-8"):
         self.encoding = encoding
 
-    def parse(self, filepath: str) -> Tuple[TMXHeader, List[TMXEntry]]:
+    def parse(self, filepath: str) -> tuple[TMXHeader, list[TMXEntry]]:
         """
         تحليل ملف TMX واستخراج المداخل.
-        
+
         المعاملات:
             filepath: مسار ملف TMX
-            
+
         العائد:
             (TMXHeader, List[TMXEntry])
         """
         logger.info(f"تحليل ملف TMX: {filepath}")
 
         # قراءة الملف مع معالجة الترميز
-        with open(filepath, "r", encoding=self.encoding, errors="replace") as f:
+        with open(filepath, encoding=self.encoding, errors="replace") as f:
             content = f.read()
 
         # تنظيف المحتوى من وسوم غير صالحة
@@ -268,7 +267,7 @@ class TMXParser:
 
         return header
 
-    def _parse_body(self, root: ET.Element, header: TMXHeader) -> List[TMXEntry]:
+    def _parse_body(self, root: ET.Element, header: TMXHeader) -> list[TMXEntry]:
         """تحليل جسم TMX واستخراج وحدات الترجمة"""
         entries = []
 
@@ -291,7 +290,7 @@ class TMXParser:
 
         return entries
 
-    def _parse_tu(self, tu: ET.Element, default_srclang: str) -> Optional[TMXEntry]:
+    def _parse_tu(self, tu: ET.Element, default_srclang: str) -> TMXEntry | None:
         """تحليل وحدة ترجمة واحدة"""
         tu_id = tu.get("tuid", tu.get("id", ""))
         tu_srclang = tu.get("srclang", default_srclang)
@@ -386,7 +385,7 @@ class TMXParser:
             text += child_text + (child.tail or "")
         return text.strip()
 
-    def export_to_tmx(self, entries: List[TMXEntry], header: TMXHeader,
+    def export_to_tmx(self, entries: list[TMXEntry], header: TMXHeader,
                       output_path: str) -> bool:
         """تصدير المداخل إلى ملف TMX"""
         logger.info(f"تصدير {len(entries)} مدخلة إلى TMX: {output_path}")
@@ -396,18 +395,18 @@ class TMXParser:
         lines = [
             '<?xml version="1.4" encoding="UTF-8"?>',
             '<!DOCTYPE tmx SYSTEM "tmx14.dtd">',
-            f'<tmx version="1.4">',
-            f'  <header',
-            f'    creationtool="OmniMedical Suite"',
-            f'    creationtoolversion="2.0"',
-            f'    datatype="plaintext"',
-            f'    segtype="sentence"',
+            '<tmx version="1.4">',
+            '  <header',
+            '    creationtool="OmniMedical Suite"',
+            '    creationtoolversion="2.0"',
+            '    datatype="plaintext"',
+            '    segtype="sentence"',
             f'    adminlang="{header.adminlang}"',
             f'    srclang="{header.srclang}"',
-            f'    o-tmf="OmniMedical"',
+            '    o-tmf="OmniMedical"',
             f'    creationdate="{datetime.now().strftime("%Y%m%dT%H%M%SZ")}"',
             f'    changedate="{datetime.now().strftime("%Y%m%dT%H%M%SZ")}"',
-            f'  />',
+            '  />',
             '  <body>',
         ]
 
@@ -418,13 +417,13 @@ class TMXParser:
                         f'>')
             lines.append(f'      <tuv xml:lang="{entry.source_lang}">')
             lines.append(f'        <seg>{self._escape_xml(entry.source_text)}</seg>')
-            lines.append(f'      </tuv>')
+            lines.append('      </tuv>')
             lines.append(f'      <tuv xml:lang="{entry.target_lang}">')
             lines.append(f'        <seg>{self._escape_xml(entry.target_text)}</seg>')
-            lines.append(f'      </tuv>')
+            lines.append('      </tuv>')
             if entry.notes:
                 lines.append(f'      <note>{self._escape_xml(entry.notes)}</note>')
-            lines.append(f'    </tu>')
+            lines.append('    </tu>')
 
         lines.extend(['  </body>', '</tmx>'])
 
@@ -462,15 +461,15 @@ class TMXMedicalExtractor:
                 "en": re.compile(langs["en"], re.IGNORECASE),
             }
 
-    def extract_medical_terms(self, entries: List[TMXEntry],
-                               confidence_threshold: float = 0.0) -> List[MedicalTermEntry]:
+    def extract_medical_terms(self, entries: list[TMXEntry],
+                               confidence_threshold: float = 0.0) -> list[MedicalTermEntry]:
         """
         استخراج المصطلحات الطبية من مداخل TMX.
-        
+
         المعاملات:
             entries: قائمة مداخل TMX
             confidence_threshold: الحد الأدنى للثقة
-            
+
         العائد:
             قائمة المصطلحات الطبية المستخرجة
         """
@@ -480,7 +479,7 @@ class TMXMedicalExtractor:
         for entry in entries:
             # كشف المصطلحات الطبية
             result = self._analyze_entry(entry)
-            
+
             if result and result.confidence >= confidence_threshold:
                 key = (result.term_source.lower(), result.term_target.lower())
                 if key not in seen:
@@ -490,7 +489,7 @@ class TMXMedicalExtractor:
         logger.info(f"تم استخراج {len(medical_terms)} مصطلح طبي من {len(entries)} مدخلة")
         return medical_terms
 
-    def _analyze_entry(self, entry: TMXEntry) -> Optional[MedicalTermEntry]:
+    def _analyze_entry(self, entry: TMXEntry) -> MedicalTermEntry | None:
         """تحليل مدخلة واحدة وكشف ما إذا كانت مصطلحاً طبياً"""
         source = entry.source_text.strip()
         target = entry.target_text.strip()
@@ -559,12 +558,12 @@ class TMXMedicalExtractor:
 
         return min(confidence, 1.0)
 
-    def filter_by_confidence(self, entries: List[MedicalTermEntry],
-                              min_confidence: float) -> List[MedicalTermEntry]:
+    def filter_by_confidence(self, entries: list[MedicalTermEntry],
+                              min_confidence: float) -> list[MedicalTermEntry]:
         """تصفية حسب مستوى الثقة"""
         return [e for e in entries if e.confidence >= min_confidence]
 
-    def deduplicate(self, entries: List[MedicalTermEntry]) -> List[MedicalTermEntry]:
+    def deduplicate(self, entries: list[MedicalTermEntry]) -> list[MedicalTermEntry]:
         """إزالة التكرار مع الاحتفاظ بالأعلى ثقة"""
         seen = {}
         for entry in entries:
@@ -573,7 +572,7 @@ class TMXMedicalExtractor:
                 seen[key] = entry
         return list(seen.values())
 
-    def export_to_dictionary(self, entries: List[MedicalTermEntry],
+    def export_to_dictionary(self, entries: list[MedicalTermEntry],
                              output_path: str, format: str = "json") -> bool:
         """تصدير المصطلحات إلى ملف"""
         os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -601,7 +600,7 @@ class TMXMedicalExtractor:
                     writer.writerow(e.to_dict())
         return True
 
-    def get_statistics(self, entries: List[MedicalTermEntry]) -> Dict[str, Any]:
+    def get_statistics(self, entries: list[MedicalTermEntry]) -> dict[str, Any]:
         """إحصائيات المصطلحات المستخرجة"""
         categories = {}
         for e in entries:
@@ -613,8 +612,8 @@ class TMXMedicalExtractor:
             "categories": categories,
             "avg_confidence": sum(e.confidence for e in entries) / max(len(entries), 1),
             "high_confidence": sum(1 for e in entries if e.confidence >= 0.7),
-            "source_langs": list(set(e.source_lang for e in entries)),
-            "target_langs": list(set(e.target_lang for e in entries)),
+            "source_langs": list({e.source_lang for e in entries}),
+            "target_langs": list({e.target_lang for e in entries}),
         }
 
 
@@ -623,17 +622,17 @@ class TMXMedicalExtractor:
 class TMXProcessor:
     """
     معالج TMX الرئيسي — يوفر واجهة موحدة لجميع عمليات TMX.
-    
+
     يدمج بين محلل TMX، مستخرج المصطلحات، ونظام المراجعة.
     """
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: str | None = None):
         self.db_path = db_path
         self.parser = TMXParser()
         self.extractor = TMXMedicalExtractor()
-        self._entries: List[TMXEntry] = []
-        self._header: Optional[TMXHeader] = None
-        self._review_db: Optional[sqlite3.Connection] = None
+        self._entries: list[TMXEntry] = []
+        self._header: TMXHeader | None = None
+        self._review_db: sqlite3.Connection | None = None
 
         if db_path:
             os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
@@ -710,12 +709,12 @@ class TMXProcessor:
                    confidence_threshold: float = 0.0) -> TMXImportResult:
         """
         استيراد ملف TMX ومعالجته.
-        
+
         المعاملات:
             filepath: مسار ملف TMX
             auto_detect_medical: كشف المصطلحات الطبية تلقائياً
             confidence_threshold: الحد الأدنى للثقة
-            
+
         العائد:
             TMXImportResult
         """
@@ -765,7 +764,7 @@ class TMXProcessor:
 
         return result
 
-    def _save_entries_to_db(self, entries: List[TMXEntry]):
+    def _save_entries_to_db(self, entries: list[TMXEntry]):
         """حفظ المداخل في قاعدة بيانات المراجعة"""
         cursor = self._review_db.cursor()
         batch = []
@@ -792,7 +791,7 @@ class TMXProcessor:
 
     def get_entries_for_review(self, status: str = "pending",
                                 medical_only: bool = False,
-                                page: int = 1, page_size: int = 50) -> Dict[str, Any]:
+                                page: int = 1, page_size: int = 50) -> dict[str, Any]:
         """
         الحصول على مداخل للمراجعة مع ترقيم الصفحات.
         """
@@ -814,7 +813,7 @@ class TMXProcessor:
 
         # البيانات
         offset = (page - 1) * page_size
-        params_with_limit = params + [offset, page_size]
+        params_with_limit = [*params, offset, page_size]
         cursor.execute(
             f"SELECT * FROM tmx_entries WHERE {where} ORDER BY created_at DESC LIMIT ? OFFSET ?",
             params_with_limit,
@@ -830,10 +829,10 @@ class TMXProcessor:
             "pages": (total + page_size - 1) // page_size,
         }
 
-    def update_entry(self, tu_id: str, source_text: Optional[str] = None,
-                     target_text: Optional[str] = None,
-                     notes: Optional[str] = None,
-                     status: Optional[str] = None) -> bool:
+    def update_entry(self, tu_id: str, source_text: str | None = None,
+                     target_text: str | None = None,
+                     notes: str | None = None,
+                     status: str | None = None) -> bool:
         """تحديث مدخلة (بعد مراجعة المستخدم)"""
         if not self._review_db:
             return False
@@ -889,7 +888,7 @@ class TMXProcessor:
 
         return False
 
-    def batch_update(self, tu_ids: List[str], status: str = "approved") -> int:
+    def batch_update(self, tu_ids: list[str], status: str = "approved") -> int:
         """تحديث مجموعة مداخل دفعة واحدة"""
         if not self._review_db or not tu_ids:
             return 0
@@ -899,12 +898,12 @@ class TMXProcessor:
         cursor.execute(
             f"UPDATE tmx_entries SET status = ?, updated_at = CURRENT_TIMESTAMP "
             f"WHERE tu_id IN ({placeholders})",
-            [status] + tu_ids,
+            [status, *tu_ids],
         )
         self._review_db.commit()
         return cursor.rowcount
 
-    def get_review_statistics(self) -> Dict[str, Any]:
+    def get_review_statistics(self) -> dict[str, Any]:
         """إحصائيات المراجعة"""
         if not self._review_db:
             return {}
@@ -942,7 +941,7 @@ class TMXProcessor:
 
     # ============ اقتراحات الذكاء الاصطناعي ============
 
-    def get_ai_suggestions(self, tu_id: str) -> List[Dict[str, Any]]:
+    def get_ai_suggestions(self, tu_id: str) -> list[dict[str, Any]]:
         """الحصول على اقتراحات الذكاء الاصطناعي لمدخلة"""
         if not self._review_db:
             return []
@@ -1002,7 +1001,7 @@ class TMXProcessor:
     # ============ التصدير ============
 
     def export_corrected(self, output_path: str,
-                         status_filter: Optional[str] = None) -> bool:
+                         status_filter: str | None = None) -> bool:
         """تصدير المداخل المُنقّحة إلى ملف TMX"""
         if not self._review_db or not self._header:
             return False

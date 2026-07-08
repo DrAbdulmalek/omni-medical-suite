@@ -61,7 +61,6 @@ print(result)
 # 注意：MCPTool 主要用于 Stdio 和 Memory 传输
 # 对于 HTTP/SSE 等远程传输，建议使用底层的 MCPClient
 
-import asyncio
 from hello_agents.protocols.mcp.client import MCPClient
 
 async def test_http_transport():

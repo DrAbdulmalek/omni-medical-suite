@@ -7,7 +7,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'HelloAgents'))
 
 from hello_agents import SimpleAgent, HelloAgentsLLM
-from typing import Dict, Optional, Tuple
+from typing import Dict
 import json
 import re
 

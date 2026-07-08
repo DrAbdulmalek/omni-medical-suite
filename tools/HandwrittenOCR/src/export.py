@@ -7,13 +7,13 @@ HandwrittenOCR - تصدير بيانات التدريب ورفع إلى HuggingF
 - push_to_huggingface(): مع commit_message يحتوي التاريخ
 """
 
-import os
+import contextlib
 import json
+import logging
+import os
 import random
 import shutil
-import logging
 from datetime import datetime
-from pathlib import Path
 
 import pandas as pd
 
@@ -23,7 +23,7 @@ logger = logging.getLogger("HandwrittenOCR")
 def auto_export(
     db,
     run_id: str,
-    output_dir: str = None,
+    output_dir: str | None = None,
     config=None,
 ) -> dict:
     """
@@ -181,8 +181,8 @@ def export_finetuning_dataset(
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         return path
 
-    train_path = save_jsonl(train_data, "train.jsonl")
-    val_path = save_jsonl(val_data, "val.jsonl")
+    save_jsonl(train_data, "train.jsonl")
+    save_jsonl(val_data, "val.jsonl")
 
     logger.info(
         f"تم التصدير: {len(jsonl_records)} عينة "
@@ -252,12 +252,10 @@ def push_to_huggingface(
 
     api = HfApi()
 
-    try:
+    with contextlib.suppress(Exception):
         api.create_repo(
             repo_id=hf_repo_id, repo_type="dataset", exist_ok=True
         )
-    except Exception:
-        pass
 
     # commit_message مع التاريخ
     if not commit_message:

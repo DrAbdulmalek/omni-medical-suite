@@ -3,25 +3,26 @@ test_core.py — اختبارات الوحدة لمعالج الوثائق ال�
 تشغيل: pytest test_core.py -v
 """
 
+import os
+import sys
+
 import numpy as np
 import pytest
-import sys
-import os
 
 # ── إضافة المجلد الجذر للمسار ─────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from medical_doc_gui import (
-    apply_processing,
-    calc_blur,
-    quality_label,
-    smart_auto_crop,
-    cv2_to_pixmap,
     AdaptiveLearner,
     ImageFeatureExtractor,
     TrainingDataCollector,
     _remove_shadow,
+    apply_processing,
     auto_detect_skew,
+    calc_blur,
+    cv2_to_pixmap,
+    quality_label,
+    smart_auto_crop,
 )
 
 # ══════════════════════════════════════════════
@@ -119,7 +120,6 @@ class TestApplyProcessing:
         نستخدم صورة رمادية بخط نصف اللون (128) بجانب أبيض
         حتى يظهر أثر kernel التحسين بوضوح.
         """
-        import cv2
         img = make_white_img(100, 100)
         # خط رمادي عمودي في المنتصف — حافة واضحة
         img[:, 48:52] = 128
@@ -272,17 +272,17 @@ class TestCalcBlur:
 class TestQualityLabel:
 
     def test_excellent(self):
-        label, color, icon = quality_label(300.0, 100.0)
+        label, _color, icon = quality_label(300.0, 100.0)
         assert label == "ممتازة"
         assert icon  == "✅"
 
     def test_acceptable(self):
-        label, color, icon = quality_label(120.0, 100.0)
+        label, _color, icon = quality_label(120.0, 100.0)
         assert label == "مقبولة"
         assert icon  == "⚠️"
 
     def test_blurry(self):
-        label, color, icon = quality_label(50.0, 100.0)
+        label, _color, icon = quality_label(50.0, 100.0)
         assert label == "ضبابية"
         assert icon  == "❌"
 
@@ -327,7 +327,7 @@ class TestSmartAutoCrop:
         import cv2
         # مستطيل في المنتصف تقريباً
         cv2.rectangle(img, (150, 150), (250, 250), (0, 0, 0), -1)
-        l, t, r, b = smart_auto_crop(img, padding=0)
+        l, _t, r, _b = smart_auto_crop(img, padding=0)
         # المحتوى في الوسط → هوامش يمين ويسار متقاربة
         assert abs(l - r) < 30
 
@@ -491,7 +491,6 @@ class TestTrainingDataCollector:
     def test_save_record_increases_count(self, tmp_path):
         """حفظ سجل يزيد العدد."""
         import json
-        from pathlib import Path
 
         # نستخدم ملف مؤقت
         test_file = tmp_path / "test_training.jsonl"
@@ -513,7 +512,7 @@ class TestTrainingDataCollector:
         assert len(tdc.records) == 1
         # الملف يجب أن يُكتب
         assert test_file.exists()
-        with open(test_file, "r") as f:
+        with open(test_file) as f:
             lines = f.readlines()
         assert len(lines) == 1
         data = json.loads(lines[0])
@@ -571,7 +570,6 @@ class TestTrainingDataCollector:
 
     def test_quality_fields_in_record(self, tmp_path):
         """حقول الجودة موجودة في السجل المحفوظ."""
-        import json
 
         test_file = tmp_path / "test_quality.jsonl"
         tdc = TrainingDataCollector.__new__(TrainingDataCollector)
@@ -606,7 +604,7 @@ class TestCv2ToPixmap:
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
+        QApplication.instance() or QApplication([])
         img = make_white_img(200, 150)
         pix = cv2_to_pixmap(img, max_w=100, max_h=100)
         assert not pix.isNull()
@@ -615,7 +613,7 @@ class TestCv2ToPixmap:
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
+        QApplication.instance() or QApplication([])
         img = make_white_img(1000, 800)
         pix = cv2_to_pixmap(img, max_w=200, max_h=200)
         assert pix.width()  <= 200
@@ -626,7 +624,7 @@ class TestCv2ToPixmap:
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
+        QApplication.instance() or QApplication([])
         img = make_white_img(100, 100)
         pix = cv2_to_pixmap(img, zoom=2.0)
         assert pix.width() == 200
@@ -637,7 +635,7 @@ class TestCv2ToPixmap:
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
+        QApplication.instance() or QApplication([])
         img = make_white_img(100, 100)
         pix = cv2_to_pixmap(img, zoom=5.0, max_w=200, max_h=200)
         assert pix.width() <= 200
@@ -648,7 +646,7 @@ class TestCv2ToPixmap:
         import os
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
+        QApplication.instance() or QApplication([])
         # make_white_img(h=200, w=150) → الصورة بالشكل (200, 150, 3)
         img = make_white_img(200, 150)
         pix = cv2_to_pixmap(img)

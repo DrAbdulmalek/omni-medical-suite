@@ -34,7 +34,7 @@ def prompt_topic(default_topic: str) -> str:
 
     try:
         raw = input(
-            f"请输入历史议题（直接回车使用示例）：\n> ",
+            "请输入历史议题（直接回车使用示例）：\n> ",
         ).strip()
     except EOFError:
         return default_topic

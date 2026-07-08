@@ -7,15 +7,12 @@ interactive_learning/graphics/diagram_renderer.py
 رسم المخططات الصندوقية والرسوم البيانية بشكل جميل ومنسق.
 """
 
-import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
-import uuid
 
 import numpy as np
 import svgwrite
-from svgwrite import cm, mm
 
 
 @dataclass

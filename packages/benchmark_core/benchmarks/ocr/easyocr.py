@@ -4,9 +4,7 @@ Benchmarks EasyOCR engine on medical documents, measuring
 CER, WER, medical term accuracy, and processing latency.
 """
 
-import time
 import statistics
-from typing import Optional
 
 from benchmarks.core.metrics import EditDistance, LatencyProfiler, MedicalTermEvaluator
 
@@ -28,7 +26,7 @@ class EasyOCRBenchmark:
         self.languages = languages or ["en"]
         self.gpu = gpu
         self._reader = None
-        self._available: Optional[bool] = None
+        self._available: bool | None = None
 
     def _is_available(self) -> bool:
         """Check if EasyOCR is installed.

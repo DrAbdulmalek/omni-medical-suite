@@ -6,11 +6,11 @@ Integrates scanner-fixer preprocessing + Tesseract OCR.
 
 Based on Kimi Code review — fixed API_URL issue and added RTL support.
 """
-import os
-import gradio as gr
-import cv2
-import numpy as np
 from pathlib import Path
+
+import cv2
+import gradio as gr
+import numpy as np
 
 # Optional imports with fallback
 try:
@@ -70,7 +70,7 @@ def process_image(image):
 
         return text if text else "No text detected."
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error: {e!s}"
 
 
 def process_and_show(image):
@@ -95,7 +95,7 @@ def process_and_show(image):
 
         return processed_rgb, text if text else "No text detected."
     except Exception as e:
-        return None, f"Error: {str(e)}"
+        return None, f"Error: {e!s}"
 
 
 # Build examples

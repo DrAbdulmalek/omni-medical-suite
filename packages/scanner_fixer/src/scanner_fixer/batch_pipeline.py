@@ -16,12 +16,10 @@ import os
 import shutil
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
-import cv2
-import numpy as np
 
 from .pipeline import fix_scan
 

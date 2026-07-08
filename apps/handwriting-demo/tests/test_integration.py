@@ -63,9 +63,8 @@ if "app.celery_app" not in sys.modules:
 # Now safe to import the application
 # ─────────────────────────────────────────────────────────────
 
-from app.main import app  # noqa: E402
-from app.database import get_db, Base  # noqa: E402
-from app.models import RegionCorrection  # noqa: E402
+from app.database import Base, get_db
+from app.main import app
 
 # Mark every test in this module as integration
 pytestmark = pytest.mark.integration
@@ -412,7 +411,7 @@ async def test_api_key_auth(client, mock_db):
     """When API key auth is enabled, requests without a key should get 401."""
     from app.middleware.api_key_auth import APIKeyMiddleware
 
-    original_bypass = set(APIKeyMiddleware.__dict__.get("_bypass_paths", set()))
+    set(APIKeyMiddleware.__dict__.get("_bypass_paths", set()))
 
     try:
         # Temporarily enable API key auth and clear bypass paths

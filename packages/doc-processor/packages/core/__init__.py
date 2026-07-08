@@ -14,6 +14,7 @@ All modules share the same logger with consistent formatting.
 import logging
 import sys
 
+
 # Configure root logger for the core package
 def _setup_logging():
     formatter = logging.Formatter(
@@ -37,28 +38,28 @@ logger = _setup_logging()
 
 # Re-export main processing functions for convenience
 from .image_processor import (
-    find_page_bounds,
-    auto_detect_skew,
-    smart_auto_crop,
-    remove_shadow,
-    detect_blur_laplacian,
-    sharpen_image,
-    extract_page_number,
-    assess_image_quality,
     apply_processing,
+    assess_image_quality,
+    auto_detect_skew,
+    detect_blur_laplacian,
+    extract_page_number,
+    find_page_bounds,
     image_segmentation,
+    remove_shadow,
+    sharpen_image,
+    smart_auto_crop,
 )
 
 __all__ = [
-    "logger",
-    "find_page_bounds",
-    "auto_detect_skew",
-    "smart_auto_crop",
-    "remove_shadow",
-    "detect_blur_laplacian",
-    "sharpen_image",
-    "extract_page_number",
-    "assess_image_quality",
     "apply_processing",
+    "assess_image_quality",
+    "auto_detect_skew",
+    "detect_blur_laplacian",
+    "extract_page_number",
+    "find_page_bounds",
     "image_segmentation",
+    "logger",
+    "remove_shadow",
+    "sharpen_image",
+    "smart_auto_crop",
 ]

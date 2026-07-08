@@ -21,7 +21,6 @@ Usage:
 """
 import logging
 import re
-from typing import Dict, List, Tuple
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -52,8 +51,8 @@ class JaisNER:
     def extract_entities(
         self,
         text: str,
-        entity_types: List[str] = None,
-    ) -> Dict[str, List[str]]:
+        entity_types: list[str] | None = None,
+    ) -> dict[str, list[str]]:
         """
         Extract medical entities from Arabic text using zero-shot prompting.
 
@@ -94,9 +93,9 @@ class JaisNER:
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return self._parse_response(response)
 
-    def _parse_response(self, response: str) -> Dict[str, List[str]]:
+    def _parse_response(self, response: str) -> dict[str, list[str]]:
         """Parse Jais response into structured entity dict."""
-        result: Dict[str, List[str]] = {
+        result: dict[str, list[str]] = {
             "drug": [],
             "disease": [],
             "symptom": [],
@@ -142,7 +141,7 @@ class JaisNER:
         # Clean empty strings
         return {k: [v for v in vs if v] for k, vs in result.items()}
 
-    def annotate_tokens(self, text: str) -> Tuple[List[str], List[int]]:
+    def annotate_tokens(self, text: str) -> tuple[list[str], list[int]]:
         """
         Convert extract_entities output to (tokens, ner_tags) format.
         Compatible with MedicalNER training data format.

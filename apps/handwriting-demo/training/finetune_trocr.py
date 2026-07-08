@@ -4,24 +4,20 @@ TrOCR Fine-tuning Script for Medical Handwriting OCR
 Designed to run on Google Colab or local GPU.
 """
 
-import os
-import json
 import argparse
+import json
 from pathlib import Path
-from typing import Dict, List
 
 import torch
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
 from PIL import Image
+from torch.utils.data import DataLoader, Dataset
 from transformers import (
-    TrOCRProcessor,
-    VisionEncoderDecoderModel,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
+    TrOCRProcessor,
+    VisionEncoderDecoderModel,
     default_data_collator,
 )
-from datasets import load_dataset
 
 
 class MedicalOCRDataset(Dataset):
@@ -35,7 +31,7 @@ class MedicalOCRDataset(Dataset):
         # Load metadata
         metadata_path = self.root_dir / 'metadata.jsonl'
         self.metadata = []
-        with open(metadata_path, 'r', encoding='utf-8') as f:
+        with open(metadata_path, encoding='utf-8') as f:
             for line in f:
                 self.metadata.append(json.loads(line))
 
@@ -201,7 +197,7 @@ def train_trocr(
     # Evaluate final model
     print("\nFinal evaluation...")
     results = trainer.evaluate()
-    print(f"\nFinal Results:")
+    print("\nFinal Results:")
     print(f"  CER: {results['eval_cer']:.4f}")
     print(f"  WER: {results['eval_wer']:.4f}")
 
@@ -276,7 +272,7 @@ def _compute_ewc_penalty(
     processor: TrOCRProcessor,
     device: torch.device,
     num_samples: int = 200,
-) -> Dict:
+) -> dict:
     """Compute Fisher Information Matrix for EWC regularization.
 
     Estimates the importance of each parameter by computing the diagonal
@@ -357,7 +353,7 @@ def _compute_ewc_penalty(
 def _apply_ewc_to_trainer(
     trainer: Seq2SeqTrainer,
     model: VisionEncoderDecoderModel,
-    ewc_reg: Dict,
+    ewc_reg: dict,
     device: torch.device,
 ) -> None:
     """Apply EWC regularization to the trainer's loss computation.

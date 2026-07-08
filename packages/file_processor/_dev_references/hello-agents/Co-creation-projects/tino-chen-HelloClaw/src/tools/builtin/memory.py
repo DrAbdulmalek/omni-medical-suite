@@ -1,6 +1,6 @@
 """记忆工具 - 支持记忆检索和更新"""
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import re
 
 from hello_agents.tools import Tool, ToolParameter, ToolResponse, tool_action

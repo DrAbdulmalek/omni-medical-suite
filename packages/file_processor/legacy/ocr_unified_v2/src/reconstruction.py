@@ -87,7 +87,8 @@ def reconstruct_sentences_direct(df: pd.DataFrame, y_tolerance: int = 25) -> lis
     try:
         from langdetect import detect
     except ImportError:
-        detect = lambda _: "en"
+        def detect(_):
+            return "en"
 
     lines_out = []
     for pg in sorted(df["page_num"].dropna().unique()):

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 medical_doc_gui_v18.py — OmniMedical Desktop Client (Final)
 ======================================
@@ -12,21 +11,28 @@ Features:
 
 from __future__ import annotations
 
-import sys
-import os
-import json
 import logging
-import threading
-from typing import List, Optional
+import os
+import sys
 
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QFont, QImage, QPixmap
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QCheckBox, QProgressBar, QTextEdit,
-    QFileDialog, QMessageBox, QGroupBox, QComboBox, QTabWidget,
-    QStatusBar, QToolBar, QAction, QSplitter,
+    QApplication,
+    QCheckBox,
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSplitter,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject
-from PyQt5.QtGui import QImage, QPixmap, QFont, QIcon
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +129,7 @@ class FusionV3Engine:
     dynamic engine weights and ML-based quality scoring.
     """
 
-    def fuse(self, engine_results: List[list], img=None) -> list:
+    def fuse(self, engine_results: list[list], img=None) -> list:
         """Merge results from multiple OCR engines."""
         all_tokens = []
         for tokens in engine_results:
@@ -198,8 +204,8 @@ class OmniMedicalGUI(QMainWindow):
         self.setGeometry(100, 100, 1280, 860)
 
         self.current_image = None
-        self.engines: List[OCREngine] = []
-        self.worker: Optional[ProcessingWorker] = None
+        self.engines: list[OCREngine] = []
+        self.worker: ProcessingWorker | None = None
 
         self._apply_dark_theme()
         self._setup_ui()
@@ -358,7 +364,6 @@ class OmniMedicalGUI(QMainWindow):
                 QMessageBox.warning(self, "Error", f"Failed to load image: {path}")
 
     def _show_image(self, img):
-        import cv2
         h, w, ch = img.shape
         bytes_per_line = ch * w
         qimg = QImage(img.data, w, h, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
@@ -405,7 +410,7 @@ class OmniMedicalGUI(QMainWindow):
 
     def _on_processing_error(self, error_msg):
         self.btn_process.setEnabled(True)
-        self.lbl_status.setText(f"Status: Error")
+        self.lbl_status.setText("Status: Error")
         self.lbl_status.setStyleSheet("color: #f44336; font-weight: bold;")
         self.txt_result.setPlainText(f"Error:\n{error_msg}")
         self.statusBar().showMessage("Processing failed")

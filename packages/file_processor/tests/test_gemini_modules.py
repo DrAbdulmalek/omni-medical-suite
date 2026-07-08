@@ -15,7 +15,6 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
 
 # إضافة مسار المشروع
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

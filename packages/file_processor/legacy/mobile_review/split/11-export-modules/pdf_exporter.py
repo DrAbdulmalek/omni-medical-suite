@@ -1,8 +1,7 @@
 # pdf_exporter.py - PDF export module (updated)
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional
 import pdfkit
-import os
 import logging
 
 logger = logging.getLogger(__name__)

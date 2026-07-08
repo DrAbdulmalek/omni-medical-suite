@@ -13,7 +13,6 @@ import random
 import shutil
 import logging
 from datetime import datetime
-from pathlib import Path
 
 import pandas as pd
 
@@ -181,8 +180,8 @@ def export_finetuning_dataset(
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         return path
 
-    train_path = save_jsonl(train_data, "train.jsonl")
-    val_path = save_jsonl(val_data, "val.jsonl")
+    save_jsonl(train_data, "train.jsonl")
+    save_jsonl(val_data, "val.jsonl")
 
     logger.info(
         f"تم التصدير: {len(jsonl_records)} عينة "

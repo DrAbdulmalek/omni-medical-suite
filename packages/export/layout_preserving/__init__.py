@@ -40,7 +40,7 @@ def ocr_result_to_layout(ocr_json: dict[str, Any], image_path: str = "") -> dict
 
 
 def _read_json(path: str | Path) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -62,7 +62,7 @@ def _write_html(layout_data: dict[str, Any], output_path: str) -> str:
         if btype == "table":
             rows = []
             for row in block.get("cells", []):
-                cells = "".join(f"<td>{str(cell)}</td>" for cell in row)
+                cells = "".join(f"<td>{cell!s}</td>" for cell in row)
                 rows.append(f"<tr>{cells}</tr>")
             blocks_html.append(f"<table dir='rtl'>{''.join(rows)}</table>")
         elif btype == "header":

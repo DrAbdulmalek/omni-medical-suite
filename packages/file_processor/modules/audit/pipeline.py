@@ -6,7 +6,7 @@
 
 import cv2
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from modules.vision.dual_ocr_verifier import DualOCRVerifier
 from modules.audit.audit_logger import AuditLogger

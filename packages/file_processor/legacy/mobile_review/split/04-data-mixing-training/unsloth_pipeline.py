@@ -5,8 +5,6 @@
 متوافق مع Colab Free Tier (T4 16GB)
 """
 
-import os, json
-import torch
 from unsloth import FastLanguageModel
 from trl import SFTTrainer
 from transformers import TrainingArguments, DataCollatorForSeq2Seq

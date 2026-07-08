@@ -12,7 +12,6 @@
 import json
 import os
 import logging
-import traceback
 import pandas as pd
 from datetime import datetime
 from collections import Counter, defaultdict

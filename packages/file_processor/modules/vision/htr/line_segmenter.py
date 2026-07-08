@@ -382,7 +382,6 @@ class UNetLineSegmenter(BaseLineSegmenter):
         Returns:
             قائمة من الأزواج (y_start, y_end).
         """
-        import cv2
 
         h_profile = np.sum(mask, axis=1)
         threshold = np.max(h_profile) * self._confidence_threshold if np.max(h_profile) > 0 else 0

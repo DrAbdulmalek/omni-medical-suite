@@ -17,7 +17,7 @@ Usage (standalone / Gradio):
 """
 
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from prometheus_client import (
     CONTENT_TYPE_LATEST,

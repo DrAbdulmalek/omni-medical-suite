@@ -2,10 +2,10 @@ import sys
 import os
 import json
 import uvicorn
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 
 # Add parent directory to sys.path to import agents
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

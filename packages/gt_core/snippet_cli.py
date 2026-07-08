@@ -29,11 +29,8 @@ Date: 2026-06-04
 """
 
 import argparse
-import sys
-import json
 import csv
-from pathlib import Path
-from typing import List, Dict
+import sys
 
 from ocr_snippet_trainer import OCRSnippetTrainer
 
@@ -110,13 +107,11 @@ def cmd_review(args):
                 print("\n\nExiting...")
                 break
 
-            if action == 'q':
-                break
-            elif action == 's':
+            if action == 'q' or action == 's':
                 break
             elif action == 'a':
                 result = trainer.submit_correction(snippet.id, snippet.ocr_text)
-                print(f"✓ Marked as correct")
+                print("✓ Marked as correct")
                 reviewed += 1
                 break
             elif action == 'c':
@@ -211,7 +206,7 @@ def cmd_batch_correct(args):
     print(f"Reading corrections from: {csv_path}")
 
     try:
-        with open(csv_path, 'r', encoding='utf-8') as f:
+        with open(csv_path, encoding='utf-8') as f:
             reader = csv.DictReader(f)
 
             applied = 0

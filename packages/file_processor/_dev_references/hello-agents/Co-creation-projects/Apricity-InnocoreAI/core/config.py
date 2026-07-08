@@ -2,7 +2,7 @@
 InnoCore AI 核心配置模块
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 import os

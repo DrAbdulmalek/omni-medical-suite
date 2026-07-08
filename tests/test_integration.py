@@ -2,19 +2,17 @@
 # OmniMedical Suite — Integration Tests
 # ============================================================================
 
-import pytest
-import json
-import os
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add packages to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from packages.omni_ocr.adapter import UnifiedOCR, OCRResult
+from packages.learning.unified_learning import UnifiedLearning
 from packages.nlp.pipeline import MedicalNLPPipeline, NLPPipelineResult
-from packages.learning.unified_learning import UnifiedLearning, FeatureVector
+from packages.omni_ocr.adapter import OCRResult, UnifiedOCR
 
 
 class TestUnifiedOCR:

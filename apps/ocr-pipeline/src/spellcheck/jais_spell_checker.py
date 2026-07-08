@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import List, Optional, Tuple
 
 import torch
 
@@ -65,8 +64,8 @@ class JaisSpellChecker:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
-        device: Optional[str] = None,
+        model_name: str | None = None,
+        device: str | None = None,
         use_8bit: bool = True,
         temperature: float = 0.1,
         max_tokens: int = 512,
@@ -87,7 +86,7 @@ class JaisSpellChecker:
 
     def _load_model(
         self,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         use_8bit: bool = True,
     ) -> None:
         """Attempt to load the model pipeline."""
@@ -95,12 +94,12 @@ class JaisSpellChecker:
             from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
             # Determine which model to attempt
-            candidates: List[str] = []
+            candidates: list[str] = []
             if model_name:
                 candidates.append(model_name)
             candidates.extend([JAIS_MODEL_ID, FALLBACK_MODEL_ID])
 
-            loaded_model_id: Optional[str] = None
+            loaded_model_id: str | None = None
             model = None
             tokenizer = None
 
@@ -233,7 +232,7 @@ class JaisSpellChecker:
             logger.error("JaisSpellChecker correction failed: %s", exc)
             return text
 
-    def correct_batch(self, texts: List[str]) -> List[str]:
+    def correct_batch(self, texts: list[str]) -> list[str]:
         """Correct a batch of texts.
 
         Parameters
@@ -252,7 +251,7 @@ class JaisSpellChecker:
             )
             return list(texts)
 
-        results: List[str] = []
+        results: list[str] = []
         for i in range(0, len(texts), self._batch_size):
             batch = texts[i : i + self._batch_size]
             batch_results = [self.correct(t) for t in batch]
@@ -264,7 +263,7 @@ class JaisSpellChecker:
         return self._model_available
 
     @property
-    def loaded_model_id(self) -> Optional[str]:
+    def loaded_model_id(self) -> str | None:
         """Identifier of the loaded model, or ``None`` if unavailable."""
         return getattr(self, "_loaded_model_id", None)
 
@@ -273,7 +272,7 @@ class JaisSpellChecker:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _extract_correction(generated: str, prompt: str) -> Optional[str]:
+    def _extract_correction(generated: str, prompt: str) -> str | None:
         """Extract the corrected text from the model's full output.
 
         Attempts several heuristics to locate the correction after the

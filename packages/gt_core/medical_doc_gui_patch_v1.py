@@ -10,11 +10,10 @@ Date: 2026-06-04
 """
 
 import json
-import re
-import os
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any
 import logging
+import os
+import re
+from typing import Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -27,7 +26,7 @@ class ArabicMedicalOCRPostprocessor:
     Integrates dictionary-based correction, regex patterns, and medical term validation.
     """
 
-    def __init__(self, dictionary_path: Optional[str] = None):
+    def __init__(self, dictionary_path: str | None = None):
         self.dictionary = {"corrections": {}, "phrases": {}, "regex_patterns": []}
         self.correction_log = []
         self.stats = {"total_corrections": 0, "phrase_corrections": 0, "regex_corrections": 0}
@@ -49,7 +48,7 @@ class ArabicMedicalOCRPostprocessor:
     def load_dictionary(self, path: str):
         """Load correction dictionary from JSON file."""
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 self.dictionary = json.load(f)
             meta = self.dictionary.get("_meta", {})
             logger.info(f"Loaded dictionary: {meta.get('name', 'Unknown')} v{meta.get('version', '?')} — {meta.get('total_entries', 0)} entries")
@@ -64,7 +63,7 @@ class ArabicMedicalOCRPostprocessor:
         text = re.sub(r'\s+', ' ', text)
         return text.strip()
 
-    def apply_word_corrections(self, text: str) -> Tuple[str, List[Dict]]:
+    def apply_word_corrections(self, text: str) -> tuple[str, list[dict]]:
         """Apply word-level dictionary corrections."""
         corrections = self.dictionary.get("corrections", {})
         applied = []
@@ -102,7 +101,7 @@ class ArabicMedicalOCRPostprocessor:
 
         return ' '.join(new_words), applied
 
-    def apply_phrase_corrections(self, text: str) -> Tuple[str, List[Dict]]:
+    def apply_phrase_corrections(self, text: str) -> tuple[str, list[dict]]:
         """Apply phrase-level corrections (multi-word)."""
         phrases = self.dictionary.get("phrases", {})
         applied = []
@@ -123,7 +122,7 @@ class ArabicMedicalOCRPostprocessor:
 
         return text, applied
 
-    def apply_regex_corrections(self, text: str) -> Tuple[str, List[Dict]]:
+    def apply_regex_corrections(self, text: str) -> tuple[str, list[dict]]:
         """Apply regex-based corrections."""
         patterns = self.dictionary.get("regex_patterns", [])
         applied = []
@@ -149,7 +148,7 @@ class ArabicMedicalOCRPostprocessor:
 
         return text, applied
 
-    def correct(self, text: str) -> Tuple[str, List[Dict], Dict]:
+    def correct(self, text: str) -> tuple[str, list[dict], dict]:
         """Main correction pipeline."""
         if not text or not text.strip():
             return text, [], {"total": 0}
@@ -220,7 +219,7 @@ class ArabicMedicalOCRPostprocessor:
         text = text.strip()
         return text
 
-    def validate_medical_terms(self, text: str) -> List[Dict]:
+    def validate_medical_terms(self, text: str) -> list[dict]:
         """Validate extracted text against known medical terms."""
         issues = []
 
@@ -240,7 +239,7 @@ class ArabicMedicalOCRPostprocessor:
                 })
 
         # Check for uncorrected known misspellings (only check full words)
-        known_bad = ["المعتويات", "القبنة", "الشثل", "الشن", "الشنل", "العضنية", 
+        known_bad = ["المعتويات", "القبنة", "الشثل", "الشن", "الشنل", "العضنية",
                      "الورث", "=رية", "انناك", "القفدا", "انقدم", "شازكو", "Rickels"]
 
         for bad in known_bad:
@@ -256,8 +255,8 @@ class ArabicMedicalOCRPostprocessor:
         return issues
 
 
-def patch_ocr_result(ocr_result: Dict[str, Any], 
-                     dictionary_path: Optional[str] = None) -> Dict[str, Any]:
+def patch_ocr_result(ocr_result: dict[str, Any],
+                     dictionary_path: str | None = None) -> dict[str, Any]:
     """
     Drop-in function to patch an OCR result dict.
 
@@ -297,7 +296,7 @@ def patch_ocr_result(ocr_result: Dict[str, Any],
     return enhanced
 
 
-def _estimate_confidence(raw: str, corrected: str, stats: Dict, issues: List) -> float:
+def _estimate_confidence(raw: str, corrected: str, stats: dict, issues: list) -> float:
     """Estimate realistic confidence after correction."""
     base = 0.85
 

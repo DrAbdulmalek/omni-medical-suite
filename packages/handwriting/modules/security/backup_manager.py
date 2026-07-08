@@ -18,7 +18,6 @@ import hashlib
 import json
 import logging
 import shutil
-import tarfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -631,7 +630,7 @@ class BackupManager:
                 btype = "directory"
             else:
                 return {"path": str(path), "size_bytes": 0, "size_formatted": "0 B", "type": "unknown"}
-        except PermissionError as exc:
+        except PermissionError:
             logger.error("لا صلاحية لقراءة: %s", path)
             raise
 

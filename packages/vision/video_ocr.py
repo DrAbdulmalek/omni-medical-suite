@@ -25,9 +25,10 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -143,10 +144,10 @@ class VideoOCR:
     def __init__(
         self,
         frame_interval: int = 30,
-        ocr_engine: Optional[Any] = None,
+        ocr_engine: Any | None = None,
         confidence_threshold: float = 0.3,
         min_text_length: int = 2,
-        max_results: Optional[int] = None,
+        max_results: int | None = None,
     ) -> None:
         """تهيئة مستخرج النصوص من الفيديو.
 
@@ -220,8 +221,8 @@ class VideoOCR:
     def extract_frames(
         self,
         video_path: str | Path,
-        output_dir: Optional[str | Path] = None,
-        progress_callback: Optional[Callable[[int, int], None]] = None,
+        output_dir: str | Path | None = None,
+        progress_callback: Callable[[int, int], None] | None = None,
     ) -> list[tuple[int, Any]]:
         """استخراج إطارات من ملف فيديو.
 
@@ -310,8 +311,8 @@ class VideoOCR:
     def process_video(
         self,
         video_path: str | Path,
-        languages: Optional[list[str]] = None,
-        progress_callback: Optional[Callable[[int, int, float], None]] = None,
+        languages: list[str] | None = None,
+        progress_callback: Callable[[int, int, float], None] | None = None,
     ) -> VideoTimeline:
         """معالجة ملف فيديو واستخراج النصوص من إطاراته.
 
@@ -450,8 +451,8 @@ class VideoOCR:
         self,
         camera_id: int = 0,
         duration: float = 10.0,
-        languages: Optional[list[str]] = None,
-        progress_callback: Optional[Callable[[int, int, float], None]] = None,
+        languages: list[str] | None = None,
+        progress_callback: Callable[[int, int, float], None] | None = None,
     ) -> list[FrameResult]:
         """معالجة بث مباشر من الكاميرا واستخراج النصوص.
 
@@ -553,8 +554,8 @@ class VideoOCR:
     def get_timeline(
         self,
         video_path: str | Path,
-        languages: Optional[list[str]] = None,
-        progress_callback: Optional[Callable[[int, int, float], None]] = None,
+        languages: list[str] | None = None,
+        progress_callback: Callable[[int, int, float], None] | None = None,
     ) -> dict[str, Any]:
         """الحصول على الجدول الزمني للنصوص في الفيديو.
 

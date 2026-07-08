@@ -153,7 +153,7 @@ def create_gradio_interface():
                 )
         
         # 示例城市
-        examples = gr.Examples(
+        gr.Examples(
             examples=[["beijing"], ["tokoy"], ["london"], ["new york"], ["paris"], ["seoul"], ["bangkok"], ["harbin"]],
             inputs=city_input,
             label="💡 点击示例快速体验"

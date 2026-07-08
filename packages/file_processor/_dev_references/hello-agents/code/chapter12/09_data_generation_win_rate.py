@@ -58,9 +58,9 @@ evaluator = WinRateEvaluator(
 )
 
 # 4. 运行Win Rate评估
-print(f"\n开始Win Rate评估...")
+print("\n开始Win Rate评估...")
 print(f"  生成题目数: {len(generated_problems)}")
-print(f"  对比数量: 20")
+print("  对比数量: 20")
 
 results = evaluator.evaluate(
     generated_problems=generated_problems,
@@ -76,14 +76,14 @@ print(f"\nWin Rate: {results['win_rate']:.2%}")
 print(f"Tie Rate: {results['tie_rate']:.2%}")
 print(f"Loss Rate: {results['loss_rate']:.2%}")
 
-print(f"\n详细统计:")
+print("\n详细统计:")
 print(f"  总对比数: {results['total_comparisons']}")
 print(f"  生成题目胜: {results['wins']}")
 print(f"  平局: {results['ties']}")
 print(f"  真题胜: {results['losses']}")
 
 # 6. 质量评估
-print(f"\n质量评估:")
+print("\n质量评估:")
 win_rate = results['win_rate']
 
 if 0.45 <= win_rate <= 0.55:

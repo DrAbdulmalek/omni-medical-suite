@@ -19,7 +19,6 @@ HandwrittenOCR - مولّد المرجع الدراسي v5.3 (محسّن)
 """
 
 import os
-import json
 import csv
 import logging
 import random

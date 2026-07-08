@@ -19,7 +19,6 @@ import threading
 from collections import deque, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 from typing import Callable, Dict, List, Optional, Any
 import json
 
@@ -528,7 +527,7 @@ class QualityAssurance:
                 results['warnings'].append(f'Rule error ({rule_name}): {e}')
 
         # Final validity check
-        passed_checks = [
+        [
             v for v in results['checks'].values()
             if v is not None and v is not False
         ]

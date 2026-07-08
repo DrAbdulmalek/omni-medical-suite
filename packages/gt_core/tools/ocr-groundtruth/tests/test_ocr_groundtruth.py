@@ -3,27 +3,26 @@ Tests for ocr_groundtruth.
 Run with: pytest tests/ -v
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from ocr_groundtruth.alignment import (
-    tokenize,
     align_two_sources,
-    merge_multi_source,
     compute_similarity_ratio,
+    merge_multi_source,
+    tokenize,
 )
 from ocr_groundtruth.evaluate import (
-    levenshtein_distance,
     character_error_rate,
-    word_error_rate,
-    evaluate_engine_output,
     compare_engines,
+    evaluate_engine_output,
+    levenshtein_distance,
+    word_error_rate,
 )
 from ocr_groundtruth.groundtruth_builder import build_ground_truth_record
-
 
 # ─── Tokenize tests ──────────────────────────────────────────────────────────
 

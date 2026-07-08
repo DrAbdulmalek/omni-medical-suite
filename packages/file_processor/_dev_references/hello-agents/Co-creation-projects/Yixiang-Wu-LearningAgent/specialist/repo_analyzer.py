@@ -1,7 +1,6 @@
 # specialist/repo_analyzer.py
 """GitHub 仓库分析专家"""
 
-import re
 from typing import Dict, List, Optional
 import requests
 from hello_agents import HelloAgentsLLM
@@ -210,7 +209,7 @@ class RepoAnalyzerAgent:
         ]
 
         try:
-            response = self.llm.invoke(messages)
+            self.llm.invoke(messages)
             # 简化实现：返回基本信息（实际应该解析 LLM 返回的 JSON）
             return {
                 "domain": repo_name.lower().replace("-", " "),

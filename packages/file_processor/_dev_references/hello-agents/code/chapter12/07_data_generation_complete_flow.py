@@ -39,11 +39,11 @@ if __name__ == "__main__":
     print("="*80)
     print("🚀 AIME数据生成与评估完整流程")
     print("="*80)
-    print(f"\n配置:")
+    print("\n配置:")
     print(f"  生成数量: {num_problems}道题目")
     print(f"  延迟设置: {delay_seconds}秒/题")
-    print(f"  生成模型: gpt-4o")
-    print(f"  评估模型: gpt-4o")
+    print("  生成模型: gpt-4o")
+    print("  评估模型: gpt-4o")
     print()
     
     # 运行完整流程

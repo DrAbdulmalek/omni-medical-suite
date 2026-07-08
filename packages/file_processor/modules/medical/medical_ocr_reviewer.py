@@ -9,7 +9,6 @@ import re
 import json
 import zipfile
 from pathlib import Path
-from PIL import Image
 from typing import List, Dict, Optional, Tuple
 
 

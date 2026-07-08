@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 gui/module_card.py
 ===================
@@ -17,14 +16,19 @@ Wise Care 365 — أخضر=سليم، أصفر=تنبيه، أحمر=حرج.
 
 from __future__ import annotations
 
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QMessageBox, QTextEdit, QSizePolicy,
-)
+from core.module_base import MaintenanceModule, ScanResult, Severity
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+)
 
-from core.module_base import MaintenanceModule, Severity, ScanResult
 from gui.workers import FunctionWorker
 
 _SEVERITY_COLORS = {
@@ -186,7 +190,7 @@ class ModuleCard(QFrame):
     def _on_preview_clicked(self) -> None:
         try:
             steps = self.module.preview()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             QMessageBox.critical(self, "خطأ في المعاينة", str(exc))
             return
 

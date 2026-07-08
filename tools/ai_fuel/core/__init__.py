@@ -7,40 +7,40 @@ PHI protection, and metrics collection.
 """
 
 from core.config import AIFuelConfig
-from core.schemas import (
-    ChunkType,
-    ClassificationMethod,
-    ExportFormat,
-    Language,
-    TextChunk,
-    ClassificationResult,
-    ClassifiedChunk,
-    DedupResult,
-    ProcessingStats,
-    DocumentResult,
-    ReviewSample,
-    PHIDetection,
-)
-from core.utils import (
-    count_tokens,
-    detect_language,
-    normalize_arabic,
-    clean_ocr_artifacts,
-    compute_hash,
-    calculate_similarity,
-    format_processing_time,
-    setup_logging,
-    safe_filename,
-    chunk_overlap_text,
-)
-from core.phi_protection import PHIMasker
 from core.metrics import (
-    documents_processed,
     chunks_created,
     classification_accuracy,
     dedup_rate,
-    processing_duration,
+    documents_processed,
     phi_detections,
+    processing_duration,
+)
+from core.phi_protection import PHIMasker
+from core.schemas import (
+    ChunkType,
+    ClassificationMethod,
+    ClassificationResult,
+    ClassifiedChunk,
+    DedupResult,
+    DocumentResult,
+    ExportFormat,
+    Language,
+    PHIDetection,
+    ProcessingStats,
+    ReviewSample,
+    TextChunk,
+)
+from core.utils import (
+    calculate_similarity,
+    chunk_overlap_text,
+    clean_ocr_artifacts,
+    compute_hash,
+    count_tokens,
+    detect_language,
+    format_processing_time,
+    normalize_arabic,
+    safe_filename,
+    setup_logging,
 )
 
 __all__ = [
@@ -49,35 +49,35 @@ __all__ = [
     # Enums
     "ChunkType",
     "ClassificationMethod",
-    "ExportFormat",
-    "Language",
-    # Schemas
-    "TextChunk",
     "ClassificationResult",
     "ClassifiedChunk",
     "DedupResult",
-    "ProcessingStats",
     "DocumentResult",
-    "ReviewSample",
+    "ExportFormat",
+    "Language",
     "PHIDetection",
-    # Utilities
-    "count_tokens",
-    "detect_language",
-    "normalize_arabic",
-    "clean_ocr_artifacts",
-    "compute_hash",
-    "calculate_similarity",
-    "format_processing_time",
-    "setup_logging",
-    "safe_filename",
-    "chunk_overlap_text",
     # PHI Protection
     "PHIMasker",
-    # Metrics
-    "documents_processed",
+    "ProcessingStats",
+    "ReviewSample",
+    # Schemas
+    "TextChunk",
+    "calculate_similarity",
+    "chunk_overlap_text",
     "chunks_created",
     "classification_accuracy",
+    "clean_ocr_artifacts",
+    "compute_hash",
+    # Utilities
+    "count_tokens",
     "dedup_rate",
-    "processing_duration",
+    "detect_language",
+    # Metrics
+    "documents_processed",
+    "format_processing_time",
+    "normalize_arabic",
     "phi_detections",
+    "processing_duration",
+    "safe_filename",
+    "setup_logging",
 ]

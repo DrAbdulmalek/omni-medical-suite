@@ -16,10 +16,9 @@ License: MIT
 import json
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.postprocessing.text_normalizer import ArabicTextNormalizer
-
 
 # Patterns for detecting and removing OCR artifacts
 PAGE_NUMBER_PATTERNS = [
@@ -79,7 +78,7 @@ class MedicalTextCleaner:
 
     def __init__(
         self,
-        dict_path: Optional[str] = None,
+        dict_path: str | None = None,
         remove_page_numbers: bool = True,
         remove_headers_footers: bool = True,
         normalize: bool = True,
@@ -129,7 +128,7 @@ class MedicalTextCleaner:
             path: Path to the dictionary JSON file.
         """
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             self._corrections = data.get("corrections", {})
             self._phrases = data.get("phrases", {})

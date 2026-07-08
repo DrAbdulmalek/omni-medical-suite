@@ -5,9 +5,10 @@
 يخلط تلقائياً عينات من الدورات السابقة بنسبة تتكيف مع انزياح التوزيع
 """
 
-import json, random, math
+import json
+import random
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict
 from collections import Counter
 from datetime import datetime
 

@@ -77,12 +77,12 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8081))
     host = os.getenv("HOST", "0.0.0.0")
 
-    print(f"🌤️  Starting Weather MCP Server...")
-    print(f"📡 Transport: HTTP")
+    print("🌤️  Starting Weather MCP Server...")
+    print("📡 Transport: HTTP")
     print(f"🌐 Host: {host}")
     print(f"🔌 Port: {port}")
     print(f"🔗 Endpoint: http://{host}:{port}/mcp")
-    print(f"✨ Ready to serve weather data!")
+    print("✨ Ready to serve weather data!")
 
     # Run with HTTP transport (required by Smithery)
     weather_server.run(transport="http", host=host, port=port)

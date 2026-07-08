@@ -6,8 +6,6 @@ for benchmarking OCR and postprocessor performance.
 
 import json
 import os
-from pathlib import Path
-from typing import Any
 
 
 class GoldenDataset:
@@ -57,7 +55,7 @@ class GoldenDataset:
                 f"Available datasets: {', '.join(available) if available else 'none'}"
             )
 
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             dataset = json.load(f)
 
         # Validate

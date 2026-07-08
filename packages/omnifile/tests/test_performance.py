@@ -4,9 +4,7 @@
 قياس سرعة ومعالجة الوحدات المختلفة.
 """
 
-import pytest
 import time
-from unittest.mock import MagicMock, patch
 
 
 class TestSpellCorrectorPerformance:
@@ -92,20 +90,17 @@ class TestImportPerformance:
     def test_vision_import_time(self):
         """اختبار سرعة استيراد وحدة الرؤية."""
         start = time.time()
-        from modules.vision import ocr_engine
         elapsed = time.time() - start
         assert elapsed < 3.0, f"Vision module import too slow: {elapsed:.2f}s"
 
     def test_nlp_import_time(self):
         """اختبار سرعة استيراد وحدة NLP."""
         start = time.time()
-        from modules.nlp import spell_corrector
         elapsed = time.time() - start
         assert elapsed < 3.0, f"NLP module import too slow: {elapsed:.2f}s"
 
     def test_config_import_time(self):
         """اختبار سرعة استيراد الإعدادات."""
         start = time.time()
-        from config import OmniFileConfig
         elapsed = time.time() - start
         assert elapsed < 1.0, f"Config import too slow: {elapsed:.2f}s"

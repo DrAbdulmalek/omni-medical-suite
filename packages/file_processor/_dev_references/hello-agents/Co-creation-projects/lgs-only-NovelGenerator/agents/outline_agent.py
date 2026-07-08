@@ -113,7 +113,7 @@ def main():
     user_idea = "一位能与城市记忆对话的年轻人，在拆迁浪潮中发现一段被刻意抹去的历史。"
 
     # 1. 生成大纲
-    print(f"\n正在生成大纲...")
+    print("\n正在生成大纲...")
     response, note_id = agent.run(
         user_input=user_idea,
         novel_id=novel_id,
@@ -135,7 +135,7 @@ def main():
     print(stored_outline[:200] + "...")
 
     # 3. 更新大纲
-    print(f"\n正在更新大纲...")
+    print("\n正在更新大纲...")
     # 简单模拟：在原有内容后追加一些信息
     # 注意：update_outline 会覆盖 content，所以需要先读取再追加，或者直接传入完整的新内容
     # 这里我们演示读取后追加
@@ -144,7 +144,7 @@ def main():
     print("大纲已更新。")
 
     # 4. 再次读取验证更新
-    print(f"\n正在验证更新后的内容...")
+    print("\n正在验证更新后的内容...")
     updated_outline = agent.get_outline(novel_id, note_id)
     if "主角的能力在雨天会增强" in updated_outline:
         print("验证成功：更新内容已存在。")

@@ -27,7 +27,7 @@
 
 import logging
 import re
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class LanguageCorrector:
         self._available = False
 
         # مصطلحات طبية محمية — لا يتم تصحيحها أبداً
-        self._protected_terms: List[str] = [
+        self._protected_terms: list[str] = [
             # مصطلحات جراحة العظام العربية
             "عظم الفخذ", "عظم العضد", "الظنبوب", "عظم الساعد",
             "عظم القص", "الترقوة", "الكتف", "الكاحل", "الرسغ",
@@ -93,7 +93,7 @@ class LanguageCorrector:
         """هل المدقق اللغوي متاح؟"""
         return self._available
 
-    def check(self, text: str) -> Dict[str, Any]:
+    def check(self, text: str) -> dict[str, Any]:
         """
         فحص النص وتقديم التصحيحات المقترحة.
 
@@ -153,7 +153,7 @@ class LanguageCorrector:
             logger.error("خطأ في فحص LanguageTool: %s — السقوط إلى الفحص الأساسي", e)
             return self._basic_check(text)
 
-    def _basic_check(self, text: str) -> Dict[str, Any]:
+    def _basic_check(self, text: str) -> dict[str, Any]:
         """
         فحص أساسي بدون LanguageTool.
 
@@ -168,7 +168,7 @@ class LanguageCorrector:
         # 1. إصلاح المسافات المفقودة بعد علامات الترقيم العربية
         punctuation_pattern = re.compile(r'([.،؛:!؟])\s*([^\s\d])')
         fixes = punctuation_pattern.findall(corrected)
-        for i, (punct, char) in enumerate(fixes):
+        for _i, (punct, char) in enumerate(fixes):
             errors.append({
                 "message": f"مسافة مفقودة بعد '{punct}'",
                 "rule": "MISSING_SPACE",
@@ -242,8 +242,8 @@ class LanguageCorrector:
     def check_and_protect(
         self,
         text: str,
-        protected_terms: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        protected_terms: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         فحص النص مع حماية مصطلحات محددة.
 
@@ -264,7 +264,7 @@ class LanguageCorrector:
             if protected_terms:
                 self._protected_terms = old_protected
 
-    def get_error_summary(self, check_result: Dict[str, Any]) -> str:
+    def get_error_summary(self, check_result: dict[str, Any]) -> str:
         """
         إنشاء ملخص نصي لنتائج الفحص.
 

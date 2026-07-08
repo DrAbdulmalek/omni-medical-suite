@@ -8,7 +8,6 @@ interactive_learning/learning/online_learner.py
 """
 
 import torch
-import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from typing import List, Dict, Optional, Callable

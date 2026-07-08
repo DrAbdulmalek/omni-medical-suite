@@ -8,16 +8,15 @@ HandwrittenOCR - نظام المزامنة v5.0
 - دعم العمل المتزامن من جهازين (جوال + حاسوب)
 """
 
-import os
 import json
-import time
 import logging
+import os
 import platform
 import socket
+import time
+from contextlib import contextmanager, suppress
 from datetime import datetime
 from pathlib import Path
-from contextlib import contextmanager
-from typing import Optional
 
 logger = logging.getLogger("HandwrittenOCR.Sync")
 
@@ -100,18 +99,16 @@ class FileLock:
         except Exception as e:
             logger.debug(f"خطأ في تحرير القفل: {e}")
         finally:
-            try:
+            with suppress(Exception):
                 self._lock_file.close()
-            except Exception:
-                pass
             self._lock_file = None
 
-    def get_lock_info(self) -> Optional[dict]:
+    def get_lock_info(self) -> dict | None:
         """قراءة معلومات القفل الحالي (من جهاز آخر)"""
         if not self.lock_path.exists():
             return None
         try:
-            with open(self.lock_path, "r") as f:
+            with open(self.lock_path) as f:
                 return json.load(f)
         except Exception:
             return None
@@ -132,10 +129,8 @@ class FileLock:
             return True
         except (ProcessLookupError, PermissionError):
             # العملية غير موجودة - القفل قديم
-            try:
+            with suppress(Exception):
                 self.lock_path.unlink()
-            except Exception:
-                pass
             return False
 
     def __enter__(self):
@@ -216,7 +211,7 @@ class SyncManager:
             }
 
         try:
-            with open(self.status_path, "r", encoding="utf-8") as f:
+            with open(self.status_path, encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, KeyError):
             return {
@@ -226,7 +221,7 @@ class SyncManager:
                 "conflicts": [],
             }
 
-    def update_device_status(self, action: str = "process", details: dict = None) -> None:
+    def update_device_status(self, action: str = "process", details: dict | None = None) -> None:
         """
         تحديث حالة الجهاز الحالي بعد كل عملية مهمة.
         يُكتب تلقائياً عند: معالجة PDF، مراجعة كلمات، تصحيح، تصدير.
@@ -400,7 +395,7 @@ class SyncManager:
 # =========================================================================
 
 @contextmanager
-def sync_lock(config, action: str = "process", details: dict = None):
+def sync_lock(config, action: str = "process", details: dict | None = None):
     """
     Context Manager يجمع بين القفل وتحديث حالة المزامنة.
 

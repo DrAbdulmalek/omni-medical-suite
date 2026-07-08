@@ -17,14 +17,13 @@ Changelog (v1.1 → v2.0):
   - Added huggingface_hub integration with fallback mock data
 """
 
-import os
-import json
 import csv
-import re
 import hashlib
-from typing import Dict, Any, List, Optional
+import json
+import os
+import re
 from datetime import datetime
-
+from typing import Any
 
 # ══════════════════════════════════════════════════════════════════
 # Configuration
@@ -58,7 +57,7 @@ class DataIngestionPipeline:
         self.seen_hashes: set = set()
 
         # ── PII Detection Patterns (Arabic + English + Regional) ──
-        self.pii_patterns: List[tuple] = [
+        self.pii_patterns: list[tuple] = [
             # Syrian / Levantine mobile: +963 9xx xxx xxx  or  09xx xxx xxx
             (
                 re.compile(r'(?:\+?963|0)?9\d{8}'),
@@ -104,7 +103,7 @@ class DataIngestionPipeline:
     # ────────────────────────────────────────────────────────
     # Data Fetching
     # ────────────────────────────────────────────────────────
-    def fetch_corrections_from_hf(self) -> List[Dict[str, Any]]:
+    def fetch_corrections_from_hf(self) -> list[dict[str, Any]]:
         """Fetch corrected data from Hugging Face dataset or Space API."""
         print(f"[INFO] Connecting to HF Repo: {self.repo_id} ...")
 
@@ -117,7 +116,7 @@ class DataIngestionPipeline:
                 repo_type="dataset",
                 token=self.hf_token,
             )
-            with open(local_file, "r", encoding="utf-8") as f:
+            with open(local_file, encoding="utf-8") as f:
                 data = json.load(f)
             print(f"[INFO] Fetched {len(data)} records from HF Dataset.")
             return data
@@ -145,7 +144,7 @@ class DataIngestionPipeline:
         return self._mock_data()
 
     @staticmethod
-    def _mock_data() -> List[Dict[str, Any]]:
+    def _mock_data() -> list[dict[str, Any]]:
         """Generate mock data for pipeline testing (includes Arabic + PII)."""
         return [
             {
@@ -214,13 +213,13 @@ class DataIngestionPipeline:
     # ────────────────────────────────────────────────────────
     # Validation & Saving
     # ────────────────────────────────────────────────────────
-    def validate_and_save(self, packet: Dict[str, Any]) -> bool:
+    def validate_and_save(self, packet: dict[str, Any]) -> bool:
         """Quality gate: validate, deduplicate, scrub PII, and save as JSON + TSV."""
         required = ["image_id", "predicted_text", "corrected_text"]
 
         # Validate required fields
         if not all(k in packet and packet[k] for k in required):
-            print(f"[WARN] Packet rejected: missing or empty required field.")
+            print("[WARN] Packet rejected: missing or empty required field.")
             self.stats["failed"] += 1
             return False
 
@@ -313,7 +312,7 @@ class DataIngestionPipeline:
         self.generate_report()
 
         print("\n" + "=" * 60)
-        print(f"  Pipeline Complete")
+        print("  Pipeline Complete")
         print(f"  Passed: {self.stats['passed']} | Duplicates: {self.stats['duplicates']} | Failed: {self.stats['failed']}")
         print(f"  PII Scrubbed: {self.stats['pii_scrubbed']} instances")
         print("=" * 60)

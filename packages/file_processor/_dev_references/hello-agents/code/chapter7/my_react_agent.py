@@ -26,8 +26,7 @@ Action: 你决定采取的行动，必须是以下格式之一：
 现在开始你的推理和行动：
 """
 
-import re
-from typing import Optional, List, Tuple
+from typing import Optional, List
 from hello_agents import ReActAgent, HelloAgentsLLM, Config, Message, ToolRegistry
 
 class MyReActAgent(ReActAgent):

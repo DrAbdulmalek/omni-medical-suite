@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 training/cloud/azure_ml.py
 ==========================
@@ -18,12 +17,15 @@ training/cloud/azure_ml.py
 import os
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
-from azure.ai.ml import MLClient, command, Input, Output
+from azure.ai.ml import Input, MLClient, Output, command
 from azure.ai.ml.entities import (
-    AmlCompute, Environment, Data, Model, Endpoint, ManagedOnlineEndpoint,
-    ManagedOnlineDeployment
+    AmlCompute,
+    Data,
+    Environment,
+    ManagedOnlineDeployment,
+    ManagedOnlineEndpoint,
+    Model,
 )
 from azure.identity import DefaultAzureCredential
 
@@ -33,9 +35,9 @@ class AzureMLTrainer:
 
     def __init__(
         self,
-        subscription_id: str = None,
-        resource_group: str = None,
-        workspace_name: str = None
+        subscription_id: str | None = None,
+        resource_group: str | None = None,
+        workspace_name: str | None = None
     ):
         self.subscription_id = subscription_id or os.getenv('AZURE_SUBSCRIPTION_ID')
         self.resource_group = resource_group or os.getenv('AZURE_RESOURCE_GROUP')
@@ -99,7 +101,7 @@ class AzureMLTrainer:
         self,
         name: str = "omnifile-env",
         base_image: str = "mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.8-cudnn8-ubuntu22.04:latest",
-        conda_file: Path = None
+        conda_file: Path | None = None
     ) -> Environment:
         """
         إنشاء بيئة تدريب.
@@ -155,7 +157,7 @@ dependencies:
     def upload_dataset(
         self,
         local_path: Path,
-        dataset_name: str = None,
+        dataset_name: str | None = None,
         description: str = "OmniFile training data"
     ) -> Data:
         """
@@ -189,8 +191,8 @@ dependencies:
         compute_name: str,
         environment_name: str,
         dataset_name: str,
-        output_model_name: str = None,
-        hyperparameters: Dict = None
+        output_model_name: str | None = None,
+        hyperparameters: dict | None = None
     ):
         """
         إنشاء مهمة تدريب.
@@ -271,10 +273,10 @@ dependencies:
             time.sleep(poll_interval)
 
         if status == 'Completed':
-            print(f"✅ اكتملت المهمة!")
+            print("✅ اكتملت المهمة!")
             return {'status': 'success', 'job': job}
         elif status == 'Failed':
-            print(f"❌ فشلت المهمة!")
+            print("❌ فشلت المهمة!")
             return {'status': 'failed', 'job': job}
         else:
             return {'status': 'canceled', 'job': job}
@@ -284,7 +286,7 @@ dependencies:
         model_name: str,
         model_path: str,
         description: str = "OmniFile HTR Model",
-        tags: Dict = None
+        tags: dict | None = None
     ) -> Model:
         """
         تسجيل نموذج.
@@ -365,13 +367,13 @@ dependencies:
 
 def train_on_azure(
     dataset_path: Path,
-    subscription_id: str = None,
-    resource_group: str = None,
-    workspace_name: str = None,
+    subscription_id: str | None = None,
+    resource_group: str | None = None,
+    workspace_name: str | None = None,
     display_name: str = "omnifile-htr",
     compute_size: str = "Standard_NC6s_v3",
     **hyperparameters
-) -> Dict:
+) -> dict:
     """
     تدريب سهل على Azure ML.
 

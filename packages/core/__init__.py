@@ -42,6 +42,7 @@ OmniFile AI Processor - وحدة معالجة الملفات الذكية
 import logging
 import sys
 
+
 # Configure root logger for the core package
 def _setup_logging():
     formatter = logging.Formatter(
@@ -64,82 +65,91 @@ def _setup_logging():
 logger = _setup_logging()
 
 # Re-export main processing functions for convenience
+from .base_db import BaseDB
+from .corrections_manager import CorrectionsDictManager
+from .engine_router import EngineRouter
 from .image_processor import (
-    find_page_bounds,
-    auto_detect_skew,
-    smart_auto_crop,
-    remove_shadow,
-    detect_blur_laplacian,
-    sharpen_image,
-    extract_page_number,
-    assess_image_quality,
     apply_processing,
+    assess_image_quality,
+    auto_detect_skew,
+    detect_blur_laplacian,
+    extract_page_number,
+    find_page_bounds,
     image_segmentation,
+    remove_shadow,
+    sharpen_image,
+    smart_auto_crop,
 )
-
+from .log_manager import AppLogger, get_app_logger
+from .model_manager import ModelCache
+from .parallel_processor import ParallelProcessor
+from .progress_tracker import (
+    GradioProgressAdapter,
+    PipelineStep,
+    ProcessingPipeline,
+    ProgressCallback,
+    ProgressRenderer,
+    ProgressTracker,
+    StepProgress,
+    StreamlitProgressAdapter,
+    create_progress_callback,
+    progress_to_logger,
+)
+from .spell_checker import HybridSpellChecker
 from .structure import (
     BBox,
     BlockType,
-    OCRToken,
-    DocumentBlock,
-    DocumentPage,
-    DocumentMetadata,
     Document,
+    DocumentBlock,
+    DocumentMetadata,
+    DocumentPage,
+    OCRToken,
 )
-from .engine_router import EngineRouter
-from .corrections_manager import CorrectionsDictManager
-from .word_trainer import WordCorrectionDB
-from .spell_checker import HybridSpellChecker
-from .log_manager import AppLogger, get_app_logger
-from .base_db import BaseDB
 from .user_manager import UserManager
-from .parallel_processor import ParallelProcessor
-from .model_manager import ModelCache
-from .progress_tracker import (
-    ProgressCallback,
-    ProgressTracker,
-    ProgressRenderer,
-    PipelineStep,
-    ProcessingPipeline,
-    StepProgress,
-    create_progress_callback,
-    progress_to_logger,
-    GradioProgressAdapter,
-    StreamlitProgressAdapter,
-)
+from .word_trainer import WordCorrectionDB
 
 __all__ = [
-    # Logger
-    "logger",
-    # Image processor
-    "find_page_bounds",
-    "auto_detect_skew",
-    "smart_auto_crop",
-    "remove_shadow",
-    "detect_blur_laplacian",
-    "sharpen_image",
-    "extract_page_number",
-    "assess_image_quality",
-    "apply_processing",
-    "image_segmentation",
+    "AppLogger",
     # Structure types
-    "BBox", "BlockType", "OCRToken", "DocumentBlock",
-    "DocumentPage", "DocumentMetadata", "Document",
+    "BBox",
+    "BaseDB",
+    "BlockType",
+    "CorrectionsDictManager",
+    "Document",
+    "DocumentBlock",
+    "DocumentMetadata",
+    "DocumentPage",
     # Core modules
-    "EngineRouter", "CorrectionsDictManager",
-    "WordCorrectionDB", "HybridSpellChecker",
-    "AppLogger", "get_app_logger",
-    "BaseDB", "UserManager",
-    "ParallelProcessor", "ModelCache",
-    # Progress tracker
-    "ProgressCallback",
-    "ProgressTracker",
-    "ProgressRenderer",
+    "EngineRouter",
+    "GradioProgressAdapter",
+    "HybridSpellChecker",
+    "ModelCache",
+    "OCRToken",
+    "ParallelProcessor",
     "PipelineStep",
     "ProcessingPipeline",
+    # Progress tracker
+    "ProgressCallback",
+    "ProgressRenderer",
+    "ProgressTracker",
     "StepProgress",
-    "create_progress_callback",
-    "progress_to_logger",
-    "GradioProgressAdapter",
     "StreamlitProgressAdapter",
+    "UserManager",
+    "WordCorrectionDB",
+    "apply_processing",
+    "assess_image_quality",
+    "auto_detect_skew",
+    "create_progress_callback",
+    "detect_blur_laplacian",
+    "extract_page_number",
+    # Image processor
+    "find_page_bounds",
+    "get_app_logger",
+    "image_segmentation",
+    # Logger
+    "logger",
+    "progress_to_logger",
+    "remove_shadow",
+    "sharpen_image",
+    "smart_auto_crop",
 ]

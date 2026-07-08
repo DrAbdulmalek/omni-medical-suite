@@ -11,7 +11,6 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -46,8 +45,8 @@ class BaselineComparison:
 class CIResult:
     """Complete CI check result."""
     passed: bool = True
-    violations: List[ThresholdViolation] = field(default_factory=list)
-    baseline_comparisons: List[BaselineComparison] = field(default_factory=list)
+    violations: list[ThresholdViolation] = field(default_factory=list)
+    baseline_comparisons: list[BaselineComparison] = field(default_factory=list)
     summary: str = ""
 
 
@@ -56,8 +55,8 @@ class ThresholdChecker:
 
     def __init__(
         self,
-        thresholds_path: Optional[str] = None,
-        baselines_path: Optional[str] = None,
+        thresholds_path: str | None = None,
+        baselines_path: str | None = None,
     ):
         """
         Initialize threshold checker.
@@ -71,15 +70,15 @@ class ThresholdChecker:
         self.thresholds_path = Path(thresholds_path or base_config / "thresholds.yaml")
         self.baselines_path = Path(baselines_path or base_config / "baselines.yaml")
 
-        self.thresholds: Dict = {}
-        self.baselines: Dict = {}
+        self.thresholds: dict = {}
+        self.baselines: dict = {}
 
         if self.thresholds_path.exists():
-            with open(self.thresholds_path, "r", encoding="utf-8") as f:
+            with open(self.thresholds_path, encoding="utf-8") as f:
                 self.thresholds = yaml.safe_load(f) or {}
 
         if self.baselines_path.exists():
-            with open(self.baselines_path, "r", encoding="utf-8") as f:
+            with open(self.baselines_path, encoding="utf-8") as f:
                 self.baselines = yaml.safe_load(f) or {}
 
     def get_threshold(
@@ -88,7 +87,7 @@ class ThresholdChecker:
         metric: str,
         category: str = "global",
         subcategory: str = "",
-    ) -> Optional[float]:
+    ) -> float | None:
         """Get threshold value for a specific engine/metric/category."""
         # Try engine-specific first
         engine_config = self.thresholds.get("engines", {}).get(engine, {})
@@ -112,8 +111,8 @@ class ThresholdChecker:
 
     def check_thresholds(
         self,
-        engine_results: Dict[str, EngineResult],
-    ) -> List[ThresholdViolation]:
+        engine_results: dict[str, EngineResult],
+    ) -> list[ThresholdViolation]:
         """Check all engine results against thresholds."""
         violations = []
 
@@ -160,7 +159,7 @@ class ThresholdChecker:
 
     def _check_metric(
         self,
-        violations: List[ThresholdViolation],
+        violations: list[ThresholdViolation],
         engine: str,
         metric: str,
         value: float,
@@ -184,7 +183,7 @@ class ThresholdChecker:
 
     def _check_metric_lower(
         self,
-        violations: List[ThresholdViolation],
+        violations: list[ThresholdViolation],
         engine: str,
         metric: str,
         value: float,
@@ -208,9 +207,9 @@ class ThresholdChecker:
 
     def compare_against_baselines(
         self,
-        engine_results: Dict[str, EngineResult],
+        engine_results: dict[str, EngineResult],
         max_regression: float = 0.05,
-    ) -> List[BaselineComparison]:
+    ) -> list[BaselineComparison]:
         """Compare current results against baseline snapshots."""
         comparisons = []
         baselines_engines = self.baselines.get("engines", {})
@@ -266,7 +265,7 @@ class ThresholdChecker:
 
     def check(
         self,
-        engine_results: Dict[str, EngineResult],
+        engine_results: dict[str, EngineResult],
         max_regression: float = 0.05,
         fail_on_warning: bool = False,
     ) -> CIResult:

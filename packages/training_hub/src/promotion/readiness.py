@@ -13,9 +13,9 @@ Computes a 0-100 readiness score based on configurable criteria:
 
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +43,9 @@ class ReadinessReport:
     total_score: int
     max_score: int
     percentage: float
-    criteria: List[CriterionResult]
-    recommendations: List[str]
-    ready_for_stage: Optional[str] = None
+    criteria: list[CriterionResult]
+    recommendations: list[str]
+    ready_for_stage: str | None = None
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -88,7 +88,7 @@ class ReadinessScorer:
     def __init__(
         self,
         base_dir: Path,
-        thresholds: Optional[Dict[str, Any]] = None,
+        thresholds: dict[str, Any] | None = None,
     ):
         self.base_dir = Path(base_dir)
         self.thresholds = {**self.DEFAULT_THRESHOLDS, **(thresholds or {})}
@@ -116,7 +116,7 @@ class ReadinessScorer:
             actionable recommendations.
         """
         dataset_dir = self.base_dir / dataset_id
-        criteria: List[CriterionResult] = []
+        criteria: list[CriterionResult] = []
 
         criteria.append(self._check_schema_valid(dataset_id, dataset_dir))
         criteria.append(self._check_min_samples(dataset_id, dataset_dir))
@@ -192,7 +192,7 @@ class ReadinessScorer:
         for fpath in data_files:
             try:
                 if fpath.suffix == ".jsonl":
-                    with open(fpath, "r", encoding="utf-8") as f:
+                    with open(fpath, encoding="utf-8") as f:
                         for line in f:
                             line = line.strip()
                             if not line:
@@ -200,7 +200,7 @@ class ReadinessScorer:
                             json.loads(line)
                             total_entries += 1
                 else:
-                    with open(fpath, "r", encoding="utf-8") as f:
+                    with open(fpath, encoding="utf-8") as f:
                         data = json.load(f)
                         if isinstance(data, list):
                             total_entries += len(data)
@@ -289,7 +289,7 @@ class ReadinessScorer:
             )
 
         try:
-            with open(eval_report, "r", encoding="utf-8") as f:
+            with open(eval_report, encoding="utf-8") as f:
                 eval_data = json.load(f)
         except (json.JSONDecodeError, OSError) as exc:
             return CriterionResult(
@@ -435,7 +435,7 @@ class ReadinessScorer:
 
         if meta_file.exists():
             try:
-                with open(meta_file, "r", encoding="utf-8") as f:
+                with open(meta_file, encoding="utf-8") as f:
                     meta = json.load(f)
                 if meta.get("reviewed", False) or meta.get("human_reviewed", False):
                     reviewer = meta.get("reviewer", meta.get("reviewed_by", "unknown"))
@@ -473,12 +473,12 @@ class ReadinessScorer:
         for fpath in list(dataset_dir.glob("*.jsonl")) + list(dataset_dir.glob("*.json")):
             try:
                 if fpath.suffix == ".jsonl":
-                    with open(fpath, "r", encoding="utf-8") as f:
+                    with open(fpath, encoding="utf-8") as f:
                         for line in f:
                             if line.strip():
                                 count += 1
                 else:
-                    with open(fpath, "r", encoding="utf-8") as f:
+                    with open(fpath, encoding="utf-8") as f:
                         data = json.load(f)
                         if isinstance(data, list):
                             count += len(data)
@@ -489,8 +489,8 @@ class ReadinessScorer:
         return count
 
     def _generate_recommendations(
-        self, criteria: List[CriterionResult], percentage: float
-    ) -> List[str]:
+        self, criteria: list[CriterionResult], percentage: float
+    ) -> list[str]:
         """Generate actionable recommendations based on failed criteria."""
         recommendations = []
 
@@ -536,8 +536,8 @@ class ReadinessScorer:
         return recommendations
 
     def _determine_ready_stage(
-        self, percentage: float, criteria: List[CriterionResult]
-    ) -> Optional[str]:
+        self, percentage: float, criteria: list[CriterionResult]
+    ) -> str | None:
         """
         Determine which promotion stage the dataset is ready for.
 

@@ -204,7 +204,7 @@ async def analyze_paper(request: PaperAnalysisRequest):
         if not paper_id:
             raise HTTPException(
                 status_code=400, 
-                detail=f"无效的输入。支持的格式：\n" +
+                detail="无效的输入。支持的格式：\n" +
                        "- ArXiv URL: https://arxiv.org/abs/2511.16672\n" +
                        "- ArXiv ID: 2511.16672\n" +
                        "- 本地 PDF: 上传后自动填充"

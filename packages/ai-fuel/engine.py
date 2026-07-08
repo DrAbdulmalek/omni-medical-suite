@@ -26,36 +26,10 @@ Typical usage::
 from __future__ import annotations
 
 import logging
-import os
 import time
 from pathlib import Path
-from typing import Dict, FrozenSet, List, Optional
 
 from core.config import AIFuelConfig
-from core.schemas import (
-    ChunkType,
-    ClassificationMethod,
-    ClassifiedChunk,
-    ClassificationResult,
-    DedupResult,
-    DocumentResult,
-    Language,
-    ProcessingStats,
-    TextChunk,
-)
-from core.utils import (
-    calculate_similarity,
-    chunk_overlap_text,
-    clean_ocr_artifacts,
-    compute_hash,
-    count_tokens,
-    detect_language,
-    format_processing_time,
-    normalize_arabic,
-    safe_filename,
-    setup_logging,
-)
-from core.phi_protection import PHIMasker
 from core.metrics import (
     avg_confidence_score,
     chunks_created,
@@ -66,6 +40,26 @@ from core.metrics import (
     export_operations,
     phi_detections,
     processing_duration,
+)
+from core.phi_protection import PHIMasker
+from core.schemas import (
+    ChunkType,
+    ClassificationMethod,
+    ClassificationResult,
+    ClassifiedChunk,
+    DocumentResult,
+    Language,
+    ProcessingStats,
+    TextChunk,
+)
+from core.utils import (
+    chunk_overlap_text,
+    clean_ocr_artifacts,
+    compute_hash,
+    count_tokens,
+    detect_language,
+    format_processing_time,
+    normalize_arabic,
 )
 
 logger = logging.getLogger("ai_fuel_engine")
@@ -103,7 +97,7 @@ class ClassificationError(ProcessingError):
 # Default File Extensions
 # ======================================================================
 
-DEFAULT_EXTENSIONS: FrozenSet[str] = frozenset({
+DEFAULT_EXTENSIONS: frozenset[str] = frozenset({
     ".txt", ".md", ".csv", ".json", ".jsonl",
     ".pdf", ".docx", ".doc", ".rtf", ".html", ".htm",
 })
@@ -132,15 +126,15 @@ class AIFuelEngine:
         engine.export([doc_result], format="rag")
     """
 
-    def __init__(self, config: Optional[AIFuelConfig] = None) -> None:
+    def __init__(self, config: AIFuelConfig | None = None) -> None:
         self.config = config or AIFuelConfig()
         self._validate_config()
 
         # Lazy-initialized components
-        self._phi_protector: Optional[PHIMasker] = None
+        self._phi_protector: PHIMasker | None = None
 
         # Internal state
-        self._seen_hashes: Dict[str, str] = {}  # hash → chunk_id (for dedup)
+        self._seen_hashes: dict[str, str] = {}  # hash → chunk_id (for dedup)
         self._aggregate_stats = ProcessingStats()
         self._initialized = False
 
@@ -165,7 +159,7 @@ class AIFuelEngine:
     def process_text(
         self,
         text: str,
-        source_file: Optional[str] = None,
+        source_file: str | None = None,
     ) -> DocumentResult:
         """Process raw text through the full pipeline.
 
@@ -282,8 +276,8 @@ class AIFuelEngine:
     def process_directory(
         self,
         dir_path: str,
-        extensions: Optional[List[str]] = None,
-    ) -> List[DocumentResult]:
+        extensions: list[str] | None = None,
+    ) -> list[DocumentResult]:
         """Process all supported files in a directory.
 
         Files are processed sequentially.  Processing continues even if
@@ -306,7 +300,7 @@ class AIFuelEngine:
             raise FileNotFoundError(f"Directory not found: {dir_path}")
 
         ext_set = frozenset(e.lower() for e in (extensions or list(DEFAULT_EXTENSIONS)))
-        results: List[DocumentResult] = []
+        results: list[DocumentResult] = []
 
         files = sorted(
             p for p in dir_path_obj.rglob("*")
@@ -342,9 +336,9 @@ class AIFuelEngine:
 
     def export(
         self,
-        results: List[DocumentResult],
-        format: Optional[str] = None,
-        output_path: Optional[str] = None,
+        results: list[DocumentResult],
+        format: str | None = None,
+        output_path: str | None = None,
     ) -> str:
         """Export processed results to a file.
 
@@ -462,8 +456,8 @@ class AIFuelEngine:
     def _segment(
         self,
         text: str,
-        source_file: Optional[str] = None,
-    ) -> List[TextChunk]:
+        source_file: str | None = None,
+    ) -> list[TextChunk]:
         """Segment text into token-bounded chunks with overlap.
 
         Uses a simple sliding-window approach based on the configuration's
@@ -476,7 +470,7 @@ class AIFuelEngine:
         Returns:
             A list of :class:`TextChunk` objects.
         """
-        chunks: List[TextChunk] = []
+        chunks: list[TextChunk] = []
         total_tokens = count_tokens(text)
         max_tok = self.config.max_tokens
         overlap_tok = self.config.overlap_tokens
@@ -533,7 +527,7 @@ class AIFuelEngine:
         text: str,
         start_token: int,
         end_token: int,
-        source_file: Optional[str] = None,
+        source_file: str | None = None,
     ) -> TextChunk:
         """Create a :class:`TextChunk` with computed metadata."""
         language_str = detect_language(text)
@@ -552,7 +546,7 @@ class AIFuelEngine:
         )
 
     @staticmethod
-    def _split_sentences(text: str) -> List[str]:
+    def _split_sentences(text: str) -> list[str]:
         """Split text into sentences using common delimiters.
 
         Handles Arabic (٫), English (.), and mixed punctuation.
@@ -574,7 +568,7 @@ class AIFuelEngine:
 
         return parts
 
-    def _classify(self, chunks: List[TextChunk]) -> List[ClassifiedChunk]:
+    def _classify(self, chunks: list[TextChunk]) -> list[ClassifiedChunk]:
         """Classify each chunk using keyword-based matching.
 
         In this Phase 1 implementation, classification is keyword-based.
@@ -587,7 +581,7 @@ class AIFuelEngine:
         Returns:
             A list of :class:`ClassifiedChunk` objects.
         """
-        classified: List[ClassifiedChunk] = []
+        classified: list[ClassifiedChunk] = []
         keyword_rules = self._get_keyword_rules()
 
         for chunk in chunks:
@@ -597,7 +591,7 @@ class AIFuelEngine:
             best_category = "general"
             best_subcategory = None
             best_confidence = 0.3  # baseline confidence
-            alternatives: List[Dict[str, str | float]] = []
+            alternatives: list[dict[str, str | float]] = []
 
             for category, sub_rules in keyword_rules.items():
                 for subcategory, keywords in sub_rules.items():
@@ -642,8 +636,8 @@ class AIFuelEngine:
         return classified
 
     def _deduplicate(
-        self, classified_chunks: List[ClassifiedChunk]
-    ) -> List[ClassifiedChunk]:
+        self, classified_chunks: list[ClassifiedChunk]
+    ) -> list[ClassifiedChunk]:
         """Remove duplicate chunks based on exact hashing.
 
         Semantic deduplication is planned for a future phase.
@@ -657,8 +651,8 @@ class AIFuelEngine:
         if not self.config.dedup_enabled:
             return classified_chunks
 
-        seen: Dict[str, str] = {}  # hash → chunk_id
-        unique: List[ClassifiedChunk] = []
+        seen: dict[str, str] = {}  # hash → chunk_id
+        unique: list[ClassifiedChunk] = []
         duplicates_found = 0
 
         for cc in classified_chunks:
@@ -692,14 +686,14 @@ class AIFuelEngine:
     def _build_stats(
         self,
         source_file: str,
-        chunks: List[TextChunk],
-        deduped_chunks: List[ClassifiedChunk],
+        chunks: list[TextChunk],
+        deduped_chunks: list[ClassifiedChunk],
         elapsed: float,
         phi_count: int,
     ) -> ProcessingStats:
         """Build a :class:`ProcessingStats` object for a single document."""
         # Classification distribution
-        dist: Dict[str, int] = {}
+        dist: dict[str, int] = {}
         total_confidence = 0.0
 
         for cc in deduped_chunks:
@@ -747,7 +741,7 @@ class AIFuelEngine:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _get_keyword_rules() -> Dict[str, Dict[str, List[str]]]:
+    def _get_keyword_rules() -> dict[str, dict[str, list[str]]]:
         """Return keyword-based classification rules.
 
         Each top-level key is a **category**.  Nested keys are
@@ -881,7 +875,7 @@ class AIFuelEngine:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _export_jsonl(results: List[DocumentResult], output_path: str) -> None:
+    def _export_jsonl(results: list[DocumentResult], output_path: str) -> None:
         """Export results as JSONL (one JSON object per line).
 
         Each line contains the classified chunks from one document.
@@ -912,7 +906,7 @@ class AIFuelEngine:
                     fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     @staticmethod
-    def _export_csv(results: List[DocumentResult], output_path: str) -> None:
+    def _export_csv(results: list[DocumentResult], output_path: str) -> None:
         """Export results as a CSV file.
 
         Columns: chunk_id, text, category, subcategory, confidence,

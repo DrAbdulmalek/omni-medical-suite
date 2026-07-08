@@ -14,15 +14,13 @@ support for improving future predictions.
 import base64
 import logging
 import time
-from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
 from PIL import Image as PILImage
 
 from app.arabic_utils import fix_arabic_text
-from app.database import get_stats, lookup_correction, save_correction
+from app.database import get_stats, lookup_correction
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +30,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _paddle_ocr = None
-_tesseract_available: Optional[bool] = None
+_tesseract_available: bool | None = None
 _easyocr_reader = None
 _trocr_processor = None
 _trocr_model = None
@@ -94,14 +92,14 @@ def _init_trocr():
 # ---------------------------------------------------------------------------
 
 
-def _run_paddle_full(image_path: str) -> List[Dict]:
+def _run_paddle_full(image_path: str) -> list[dict]:
     """Run PaddleOCR on the full image and return raw regions."""
     paddle = _init_paddle()
     result = paddle.ocr(image_path, cls=True)
 
-    regions: List[Dict] = []
+    regions: list[dict] = []
     if result and result[0]:
-        for idx, line in enumerate(result[0]):
+        for _idx, line in enumerate(result[0]):
             if not line:
                 continue
             bbox_pts = line[0]
@@ -124,7 +122,7 @@ def _run_paddle_full(image_path: str) -> List[Dict]:
     return regions
 
 
-def _run_tesseract_crop(crop_bgr: np.ndarray) -> Tuple[str, float]:
+def _run_tesseract_crop(crop_bgr: np.ndarray) -> tuple[str, float]:
     """Run Tesseract on a crop. Returns (text, confidence 0-1)."""
     try:
         import pytesseract
@@ -148,7 +146,7 @@ def _run_tesseract_crop(crop_bgr: np.ndarray) -> Tuple[str, float]:
         return "", 0.0
 
 
-def _run_easyocr_crop(crop_bgr: np.ndarray) -> Tuple[str, float]:
+def _run_easyocr_crop(crop_bgr: np.ndarray) -> tuple[str, float]:
     """Run EasyOCR on a crop. Returns (text, confidence 0-1)."""
     reader = _init_easyocr()
     if reader is None:
@@ -165,7 +163,7 @@ def _run_easyocr_crop(crop_bgr: np.ndarray) -> Tuple[str, float]:
     return "", 0.0
 
 
-def _run_trocr_crop(crop_bgr: np.ndarray) -> Tuple[str, float]:
+def _run_trocr_crop(crop_bgr: np.ndarray) -> tuple[str, float]:
     """Run TrOCR on a crop. Returns (text, confidence 0-1)."""
     proc, model = _init_trocr()
     if proc is None or model is None:
@@ -187,7 +185,7 @@ def _run_trocr_crop(crop_bgr: np.ndarray) -> Tuple[str, float]:
 # ---------------------------------------------------------------------------
 
 
-def _select_best(all_texts: Dict[str, Tuple[str, float]]) -> Tuple[str, float, str]:
+def _select_best(all_texts: dict[str, tuple[str, float]]) -> tuple[str, float, str]:
     """Select the best text from multiple engines using fuzzy voting.
 
     Returns (best_text, best_confidence, best_engine).
@@ -203,7 +201,7 @@ def _select_best(all_texts: Dict[str, Tuple[str, float]]) -> Tuple[str, float, s
         from rapidfuzz import fuzz
 
         # Group similar texts
-        groups: List[Dict] = []
+        groups: list[dict] = []
         for engine, (text, conf) in non_empty.items():
             matched = False
             for g in groups:
@@ -233,7 +231,7 @@ def _select_best(all_texts: Dict[str, Tuple[str, float]]) -> Tuple[str, float, s
 # ---------------------------------------------------------------------------
 
 
-def detect_regions_multi(image_path: str, padding: int = 10) -> List[Dict]:
+def detect_regions_multi(image_path: str, padding: int = 10) -> list[dict]:
     """Run all available OCR engines and return merged results with crops.
 
     Workflow:
@@ -260,7 +258,7 @@ def detect_regions_multi(image_path: str, padding: int = 10) -> List[Dict]:
     _init_tesseract()
     _init_easyocr()
 
-    results: List[Dict] = []
+    results: list[dict] = []
 
     for idx, preg in enumerate(paddle_regions):
         bbox = preg["bbox"]
@@ -275,7 +273,7 @@ def detect_regions_multi(image_path: str, padding: int = 10) -> List[Dict]:
         crop_b64 = base64.b64encode(buf).decode("utf-8")
 
         # Collect texts from all engines
-        all_texts: Dict[str, Tuple[str, float]] = {
+        all_texts: dict[str, tuple[str, float]] = {
             "paddle": (preg["raw_text"], preg["confidence"]),
         }
 
@@ -330,9 +328,9 @@ def detect_regions_multi(image_path: str, padding: int = 10) -> List[Dict]:
     return results
 
 
-def get_engine_status() -> Dict:
+def get_engine_status() -> dict:
     """Return availability status of each OCR engine."""
-    status: Dict = {}
+    status: dict = {}
 
     try:
         _init_paddle()
@@ -359,7 +357,7 @@ def get_engine_status() -> Dict:
 class OCREngine:
     """Thin wrapper for backward compatibility with single-engine usage."""
 
-    def detect_regions(self, image_path: str) -> List[Dict]:
+    def detect_regions(self, image_path: str) -> list[dict]:
         regions = detect_regions_multi(image_path)
         return [
             {
@@ -371,7 +369,7 @@ class OCREngine:
             for r in regions
         ]
 
-    def detect_regions_with_crops(self, image_path: str, padding: int = 10) -> List[Dict]:
+    def detect_regions_with_crops(self, image_path: str, padding: int = 10) -> list[dict]:
         return detect_regions_multi(image_path, padding=padding)
 
     @staticmethod

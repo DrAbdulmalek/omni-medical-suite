@@ -58,8 +58,8 @@ def check_bfcl_data(bfcl_data_dir: Path) -> bool:
     """检查BFCL数据是否存在"""
     if not bfcl_data_dir.exists():
         print(f"\n❌ BFCL数据目录不存在: {bfcl_data_dir}")
-        print(f"\n请先克隆BFCL仓库：")
-        print(f"   git clone --depth 1 https://github.com/ShishirPatil/gorilla.git temp_gorilla")
+        print("\n请先克隆BFCL仓库：")
+        print("   git clone --depth 1 https://github.com/ShishirPatil/gorilla.git temp_gorilla")
         return False
     return True
 
@@ -78,11 +78,11 @@ def run_evaluation(category: str, max_samples: int, model_name: str) -> dict:
         return None
     
     # 加载数据集
-    print(f"\n📚 加载BFCL数据集...")
+    print("\n📚 加载BFCL数据集...")
     dataset = BFCLDataset(bfcl_data_dir=str(bfcl_data_dir), category=category)
 
     # 创建智能体
-    print(f"\n🤖 创建智能体...")
+    print("\n🤖 创建智能体...")
     llm = HelloAgentsLLM()
     agent = SimpleAgent(
         name=model_name,
@@ -97,16 +97,16 @@ def run_evaluation(category: str, max_samples: int, model_name: str) -> dict:
     evaluator = BFCLEvaluator(dataset=dataset, category=category)
 
     # 运行评估（传递max_samples参数）
-    print(f"\n🔄 开始评估...")
+    print("\n🔄 开始评估...")
     if max_samples > 0:
         print(f"   样本数量: {max_samples}")
         results = evaluator.evaluate(agent, max_samples=max_samples)
     else:
-        print(f"   样本数量: 全部")
+        print("   样本数量: 全部")
         results = evaluator.evaluate(agent, max_samples=None)
     
     # 显示结果
-    print(f"\n📊 评估结果:")
+    print("\n📊 评估结果:")
     print(f"   准确率: {results['overall_accuracy']:.2%}")
     print(f"   正确数: {results['correct_samples']}/{results['total_samples']}")
     
@@ -156,7 +156,7 @@ def copy_to_bfcl_result_dir(source_file: Path, model_name: str, category: str) -
     import shutil
     shutil.copy(source_file, target_file)
     
-    print(f"\n✅ 结果文件已复制到:")
+    print("\n✅ 结果文件已复制到:")
     print(f"   {target_file}")
     
     return target_file
@@ -196,7 +196,7 @@ def run_bfcl_official_eval(model_name: str, category: str) -> bool:
             print(result.stdout)
         
         if result.returncode != 0:
-            print(f"\n❌ BFCL评估失败:")
+            print("\n❌ BFCL评估失败:")
             if result.stderr:
                 print(result.stderr)
             return False
@@ -222,7 +222,7 @@ def show_results(model_name: str, category: str):
     csv_file = project_root / "score" / "data_non_live.csv"
     
     if csv_file.exists():
-        print(f"\n📊 评估结果汇总:")
+        print("\n📊 评估结果汇总:")
         with open(csv_file, 'r', encoding='utf-8') as f:
             content = f.read()
             print(content)
@@ -234,14 +234,14 @@ def show_results(model_name: str, category: str):
     score_file = project_root / "score" / safe_model_name / "non_live" / f"BFCL_v4_{category}_score.json"
     
     if score_file.exists():
-        print(f"\n📝 详细评分文件:")
+        print("\n📝 详细评分文件:")
         print(f"   {score_file}")
         
         # 读取并显示准确率
         with open(score_file, 'r', encoding='utf-8') as f:
             first_line = f.readline()
             summary = json.loads(first_line)
-            print(f"\n🎯 最终结果:")
+            print("\n🎯 最终结果:")
             print(f"   准确率: {summary['accuracy']:.2%}")
             print(f"   正确数: {summary['correct_count']}/{summary['total_count']}")
 
@@ -259,7 +259,7 @@ def main():
     print("="*60)
     print("BFCL一键评估脚本")
     print("="*60)
-    print(f"\n配置:")
+    print("\n配置:")
     print(f"   评估类别: {args.category}")
     print(f"   样本数量: {args.samples if args.samples > 0 else '全部'}")
     print(f"   模型名称: {args.model_name}")

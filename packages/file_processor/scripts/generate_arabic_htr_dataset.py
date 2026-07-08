@@ -24,7 +24,8 @@ from PIL import Image, ImageDraw, ImageFont
 try:
     from tqdm import tqdm
 except ImportError:
-    tqdm = lambda x, **kw: x
+    def tqdm(x, **kw):
+        return x
 
 
 # ============================================================================

@@ -2,11 +2,10 @@
 Tests for the OCR Engine module.
 """
 
-import pytest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from PIL import Image
-from unittest.mock import MagicMock, patch, PropertyMock
-import io
+import pytest
 
 
 class TestOCREngine:

@@ -12,8 +12,8 @@ License: Apache 2.0 License
 URL: https://github.com/unclecode/crawl4ai/blob/main/LICENSE
 """
 
+
 from pydantic import BaseModel, HttpUrl
-from typing import List, Dict, Optional
 
 
 class UrlModel(BaseModel):
@@ -25,11 +25,11 @@ class CrawlResult(BaseModel):
     url: str
     html: str
     success: bool
-    cleaned_html: Optional[str] = None
-    media: Dict[str, List[Dict]] = {}
-    links: Dict[str, List[Dict]] = {}
-    screenshot: Optional[str] = None
-    markdown: Optional[str] = None
-    extracted_content: Optional[str] = None
-    metadata: Optional[dict] = None
-    error_message: Optional[str] = None
+    cleaned_html: str | None = None
+    media: dict[str, list[dict]] = {}
+    links: dict[str, list[dict]] = {}
+    screenshot: str | None = None
+    markdown: str | None = None
+    extracted_content: str | None = None
+    metadata: dict | None = None
+    error_message: str | None = None

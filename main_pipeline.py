@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 main_pipeline.py — Unified entry point for OmniMedical Suite.
 
@@ -76,14 +75,14 @@ def run_colab_mode() -> None:
 
     try:
         from app.vision.ocr_fusion_system import OCRFusionV2
-        fusion = OCRFusionV2()
+        OCRFusionV2()
         logger.info("[fusion] Fusion V2 engine ready.")
     except Exception as exc:
         logger.warning("[fusion] Not available: %s", exc)
 
     try:
         from app.evaluation.benchmark_suite import BenchmarkSuite
-        bench = BenchmarkSuite()
+        BenchmarkSuite()
         logger.info("[benchmark] BenchmarkSuite ready.")
     except Exception as exc:
         logger.warning("[benchmark] Not available: %s", exc)

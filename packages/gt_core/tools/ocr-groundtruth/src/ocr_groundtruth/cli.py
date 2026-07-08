@@ -8,12 +8,13 @@ Usage:
     ocr-groundtruth evaluate --ground-truth gt/0001.json --engine-output tesseract/0001.txt
 """
 
-import click
 import json
 from pathlib import Path
 
-from .groundtruth_builder import build_ground_truth_record, build_dataset_from_folder
-from .evaluate import evaluate_engine_output, compare_engines
+import click
+
+from .evaluate import evaluate_engine_output
+from .groundtruth_builder import build_dataset_from_folder, build_ground_truth_record
 
 
 @click.group()

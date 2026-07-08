@@ -6,7 +6,6 @@
 import gradio as gr
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 
 def mount_pwa(app: FastAPI, assets_dir: str = "pwa_static"):
     """تسجيل الملفات الساكنة و manifest/service-worker"""
@@ -40,5 +39,5 @@ def launch_pwa_dashboard(dashboard_builder_func, port: int = 7860, share: bool =
     gr.mount_gradio_app(app, dashboard, path="/")
 
     import uvicorn
-    print(f"🚀 PWA جاهزة. افتح الرابط في متصفح الهاتف واختر 'إضافة إلى الشاشة الرئيسية'")
+    print("🚀 PWA جاهزة. افتح الرابط في متصفح الهاتف واختر 'إضافة إلى الشاشة الرئيسية'")
     uvicorn.run(app, host="0.0.0.0", port=port)

@@ -12,13 +12,10 @@ Version: 1.0.0
 Date: 2026-06-04
 """
 
-import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox, filedialog
-import json
-import os
-from pathlib import Path
-from typing import Optional, Callable
 import threading
+import tkinter as tk
+from pathlib import Path
+from tkinter import filedialog, messagebox, scrolledtext, ttk
 
 try:
     from PIL import Image, ImageTk
@@ -76,7 +73,7 @@ class SnippetReviewUI:
     - Arabic RTL support
     """
 
-    def __init__(self, trainer: Optional[OCRSnippetTrainer] = None):
+    def __init__(self, trainer: OCRSnippetTrainer | None = None):
         self.trainer = trainer or OCRSnippetTrainer()
         self.current_snippets = []
         self.current_index = 0
@@ -220,7 +217,7 @@ class SnippetReviewUI:
             threading.Thread(target=process, daemon=True).start()
 
         except Exception as e:
-            messagebox.showerror("خطأ", f"فشل في معالجة الصورة:\n{str(e)}")
+            messagebox.showerror("خطأ", f"فشل في معالجة الصورة:\n{e!s}")
             self.progress_label.config(text="جاهز")
 
     def _on_image_loaded(self):
@@ -297,7 +294,7 @@ class SnippetReviewUI:
             self.image_label.config(image=photo, text="")
 
         except Exception as e:
-            self.image_label.config(text=f"[لا يمكن عرض الصورة]\n{str(e)}")
+            self.image_label.config(text=f"[لا يمكن عرض الصورة]\n{e!s}")
 
     def _update_suggestions(self, snippet: TextSnippet):
         """Update suggestion label based on learned patterns."""
@@ -346,7 +343,7 @@ class SnippetReviewUI:
                 messagebox.showerror("خطأ", result.get("error", "Unknown error"))
 
         except Exception as e:
-            messagebox.showerror("خطأ", f"فشل في حفظ التصحيح:\n{str(e)}")
+            messagebox.showerror("خطأ", f"فشل في حفظ التصحيح:\n{e!s}")
 
     def _mark_correct(self):
         """Mark current snippet as correct (no changes needed)."""

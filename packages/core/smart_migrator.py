@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Smart Migrator — Import data from legacy OCR projects
 =====================================================
@@ -21,13 +20,9 @@ License: MIT
 import csv
 import json
 import logging
-import os
-import shutil
 import sqlite3
-from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +41,7 @@ LEGACY_PROJECT_NAMES = [
 class SmartMigrator:
     """
     Scans for and migrates data from legacy OCR project directories.
-    
+
     Supported sources:
     - SQLite databases (handwriting_data table)
     - Feedback CSVs (user_corrections_feedback.csv)
@@ -56,7 +51,7 @@ class SmartMigrator:
     def __init__(
         self,
         target_db: str = "database.db",
-        scan_dirs: Optional[List[str]] = None,
+        scan_dirs: list[str] | None = None,
         overwrite: bool = False,
     ):
         self.target_db = target_db
@@ -75,30 +70,30 @@ class SmartMigrator:
             "skipped": [],
         }
 
-    def scan(self, base_dir: str = ".") -> Dict:
+    def scan(self, base_dir: str = ".") -> dict:
         """
         Scan for legacy project directories and report what can be migrated.
         Does NOT make any changes.
         """
         self.report["sources_scanned"] = []
-        
+
         for search_dir in self.scan_dirs:
             search_path = Path(base_dir) / search_dir if not Path(search_dir).is_absolute() else Path(search_dir)
-            
+
             # Check if the search dir itself is a legacy project
             if self._is_legacy_project(search_path):
                 self._scan_directory(search_path)
-            
+
             # Also scan subdirectories
             if search_path.is_dir():
                 for subdir in search_path.iterdir():
                     if subdir.is_dir() and not subdir.name.startswith('.'):
                         if self._is_legacy_project(subdir):
                             self._scan_directory(subdir)
-        
+
         return self.report
 
-    def migrate(self, base_dir: str = ".", dry_run: bool = False) -> Dict:
+    def migrate(self, base_dir: str = ".", dry_run: bool = False) -> dict:
         """
         Execute migration: scan, then import found data.
         If dry_run=True, only scan and report (no changes).
@@ -116,26 +111,26 @@ class SmartMigrator:
             "errors": [],
             "skipped": [],
         }
-        
+
         self.scan(base_dir)
-        
+
         if dry_run:
             logger.info("Dry run complete. No changes made.")
             return self.report
-        
+
         # Import from found sources
         for db_info in self.report["databases_found"]:
             if db_info.get("importable"):
                 self._import_database(db_info["path"])
-        
+
         for csv_info in self.report["csvs_found"]:
             if csv_info.get("importable"):
                 self._import_feedback_csv(csv_info["path"])
-        
+
         for dict_info in self.report["dicts_found"]:
             if dict_info.get("importable"):
                 self._import_correction_dict(dict_info["path"])
-        
+
         logger.info("Migration complete: %d words, %d corrections, %d dict entries",
                      self.report["total_words_imported"],
                      self.report["total_corrections_imported"],
@@ -162,7 +157,7 @@ class SmartMigrator:
         """Scan a single project directory for importable data."""
         logger.info("Scanning: %s", project_dir)
         self.report["sources_scanned"].append(str(project_dir))
-        
+
         # Look for SQLite databases
         for db_name in ["handwriting_data.db", "database.db", "ocr.db"]:
             db_path = project_dir / db_name
@@ -175,15 +170,15 @@ class SmartMigrator:
                         "SELECT name FROM sqlite_master WHERE type='table'"
                     ).fetchall()
                     table_names = [t[0] for t in tables]
-                    
+
                     word_count = 0
                     if "handwriting_data" in table_names:
                         word_count = cursor.execute(
                             "SELECT COUNT(*) FROM handwriting_data"
                         ).fetchone()[0]
-                    
+
                     conn.close()
-                    
+
                     self.report["databases_found"].append({
                         "path": str(db_path),
                         "tables": table_names,
@@ -192,13 +187,13 @@ class SmartMigrator:
                     })
                 except Exception as e:
                     self.report["errors"].append(f"DB scan error {db_path}: {e}")
-        
+
         # Look for feedback CSVs
         for csv_name in ["user_corrections_feedback.csv", "feedback.csv", "corrections.csv"]:
             csv_path = project_dir / csv_name
             if csv_path.exists():
                 try:
-                    with open(csv_path, 'r', encoding='utf-8-sig') as f:
+                    with open(csv_path, encoding='utf-8-sig') as f:
                         reader = csv.reader(f)
                         rows = list(reader)
                     self.report["csvs_found"].append({
@@ -209,13 +204,13 @@ class SmartMigrator:
                     })
                 except Exception as e:
                     self.report["errors"].append(f"CSV scan error {csv_path}: {e}")
-        
+
         # Look for correction dictionaries
         for dict_name in ["correction_dict.json", "corrections.json"]:
             dict_path = project_dir / dict_name
             if dict_path.exists():
                 try:
-                    with open(dict_path, 'r', encoding='utf-8') as f:
+                    with open(dict_path, encoding='utf-8') as f:
                         data = json.load(f)
                     entry_count = len(data) if isinstance(data, dict) else len(data) if isinstance(data, list) else 0
                     self.report["dicts_found"].append({
@@ -231,20 +226,20 @@ class SmartMigrator:
         try:
             source_conn = sqlite3.connect(source_db_path)
             source_cursor = source_conn.cursor()
-            
+
             # Get columns
             source_cursor.execute("SELECT * FROM handwriting_data LIMIT 1")
             source_cols = [desc[0] for desc in source_cursor.description] if source_cursor.description else []
-            
+
             rows = source_cursor.execute("SELECT * FROM handwriting_data").fetchall()
             source_conn.close()
-            
+
             imported = 0
             skipped = 0
-            
+
             target_conn = sqlite3.connect(self.target_db)
             target_cursor = target_conn.cursor()
-            
+
             # Ensure target table exists
             target_cursor.execute("""
                 CREATE TABLE IF NOT EXISTS handwriting_data (
@@ -264,27 +259,27 @@ class SmartMigrator:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
+
             for row in rows:
-                row_dict = dict(zip(source_cols, row))
-                
+                row_dict = dict(zip(source_cols, row, strict=False))
+
                 # Deduplication check
                 predicted = row_dict.get("predicted_text", "")
                 page = row_dict.get("page_num", 1)
                 x = row_dict.get("x", 0)
                 y = row_dict.get("y", 0)
-                
+
                 existing = target_cursor.execute(
                     "SELECT id FROM handwriting_data WHERE predicted_text=? AND page_num=? AND x=? AND y=?",
                     (predicted, page, x, y)
                 ).fetchone()
-                
+
                 if existing and not self.overwrite:
                     skipped += 1
                     continue
-                
+
                 image_data = row_dict.get("image_data")
-                
+
                 if existing and self.overwrite:
                     target_cursor.execute(
                         "UPDATE handwriting_data SET predicted_text=?, raw_text=?, status=?, confidence=?, model_source=? WHERE id=?",
@@ -299,16 +294,16 @@ class SmartMigrator:
                          x, y, row_dict.get("w", 0), row_dict.get("h", 0),
                          page, row_dict.get("run_id", "migrated"))
                     )
-                
+
                 imported += 1
-            
+
             target_conn.commit()
             target_conn.close()
-            
+
             self.report["total_words_imported"] += imported
             if skipped > 0:
                 self.report["skipped"].append(f"{source_db_path}: {skipped} duplicate words skipped")
-                
+
             logger.info("Imported %d words from %s (skipped %d duplicates)", imported, source_db_path, skipped)
         except Exception as e:
             self.report["errors"].append(f"DB import error {source_db_path}: {e}")
@@ -316,17 +311,17 @@ class SmartMigrator:
     def _import_feedback_csv(self, csv_path: str):
         """Import correction feedback from a CSV file."""
         try:
-            with open(csv_path, 'r', encoding='utf-8-sig') as f:
+            with open(csv_path, encoding='utf-8-sig') as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
-            
+
             imported = 0
             for row in rows:
                 original = row.get("original_text", row.get("original", row.get("before", "")))
                 corrected = row.get("corrected_text", row.get("corrected", row.get("after", "")))
                 if original and corrected and original != corrected:
                     imported += 1
-            
+
             self.report["total_corrections_imported"] += imported
             logger.info("Found %d corrections in %s", imported, csv_path)
         except Exception as e:
@@ -335,16 +330,14 @@ class SmartMigrator:
     def _import_correction_dict(self, dict_path: str):
         """Import correction dictionary entries."""
         try:
-            with open(dict_path, 'r', encoding='utf-8') as f:
+            with open(dict_path, encoding='utf-8') as f:
                 data = json.load(f)
-            
-            if isinstance(data, dict):
-                entry_count = len(data)
-            elif isinstance(data, list):
+
+            if isinstance(data, (dict, list)):
                 entry_count = len(data)
             else:
                 entry_count = 0
-            
+
             self.report["total_dict_entries_imported"] += entry_count
             logger.info("Found %d dict entries in %s", entry_count, dict_path)
         except Exception as e:

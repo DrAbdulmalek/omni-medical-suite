@@ -116,7 +116,6 @@ class ToolRegistry:
                 # 1e 正则兜底：提取首个完整 JSON 对象
                 if obj is None and "{" in raw and "}" in raw:
                     try:
-                        import re
                         # 使用括号匹配而非简单正则
                         def extract_first_json_object(text: str):
                             """从文本中提取第一个完整的 JSON 对象"""

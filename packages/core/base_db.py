@@ -30,9 +30,9 @@ import logging
 import re
 import sqlite3
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Generator, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class BaseDB:
             with db.connection() as conn:
                 conn.execute(\"INSERT ...\")
         """
-        conn: Optional[sqlite3.Connection] = None
+        conn: sqlite3.Connection | None = None
         try:
             conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
             conn.row_factory = sqlite3.Row
@@ -141,7 +141,7 @@ class BaseDB:
             cur = conn.execute(sql, params)
             return [dict(row) for row in cur.fetchall()]
 
-    def execute_one(self, sql: str, params: tuple = ()) -> Optional[dict]:
+    def execute_one(self, sql: str, params: tuple = ()) -> dict | None:
         """تنفيذ SQL وإرجاع صف واحد أو None."""
         with self.connection() as conn:
             cur = conn.execute(sql, params)

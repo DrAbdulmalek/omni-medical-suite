@@ -14,19 +14,18 @@ Medical OCR Trainer — مُدرّب التعرف على الملاحظات ال
   streamlit run app.py
 """
 
-import os
-import sys
 import json
+import os
 import sqlite3
 import uuid
-import time
-import streamlit as st
-import pandas as pd
-from PIL import Image, ImageEnhance, ImageFilter
 from datetime import datetime
 
+import pandas as pd
+import streamlit as st
+
 # استيراد نظام التجمع
-from ensemble_ocr import EnsembleOCR, EnsembleResult
+from ensemble_ocr import EnsembleOCR
+from PIL import Image, ImageEnhance, ImageFilter
 
 # ============================================================
 # إعدادات المسارات — دعم Hugging Face Spaces
@@ -591,7 +590,7 @@ def main():
             else:
                 # عرض تقدم المعالجة
                 progress_placeholder = st.empty()
-                log_placeholder = st.empty()
+                st.empty()
 
                 progress_placeholder.progress(0, text="جاري تهيئة المحركات...")
 
@@ -855,8 +854,8 @@ def main():
             if rows:
                 import matplotlib
                 matplotlib.use('Agg')
-                import matplotlib.pyplot as plt
                 import matplotlib.font_manager as fm
+                import matplotlib.pyplot as plt
 
                 try:
                     fm.fontManager.addfont('/usr/share/fonts/truetype/chinese/NotoSansSC[wght].ttf')
@@ -1030,7 +1029,7 @@ def export_training_data():
 
     st.success(f"تم تصدير {len(rows)} سجل إلى `{export_path}`")
 
-    with open(export_path, "r", encoding="utf-8") as f:
+    with open(export_path, encoding="utf-8") as f:
         lines = f.readlines()
         for line in lines[:3]:
             st.code(json.dumps(json.loads(line), indent=2, ensure_ascii=False), language="json")

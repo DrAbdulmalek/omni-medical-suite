@@ -1,5 +1,4 @@
 """Tests for API endpoints."""
-import pytest
 
 
 class TestHealthEndpoints:

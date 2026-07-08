@@ -8,11 +8,8 @@ interactive_learning/rendering/html_renderer.py
 """
 
 import base64
-import json
-from dataclasses import asdict
 from pathlib import Path
-from typing import Dict, List, Optional, Union
-import uuid
+from typing import Dict, List, Optional
 
 import cv2
 import numpy as np
@@ -362,7 +359,6 @@ class HTMLRenderer:
     ) -> str:
         """تصيير سهم."""
         # تحديد الاتجاه
-        render_data = graphic.render_data
         
         return f'''
         <div class="graphic arrow" style="
@@ -720,7 +716,7 @@ class HTMLRenderer:
         - pdf: PDF عالي الجودة
         """
         if format == 'html':
-            html = self.render(layout, output_path=output_path)
+            self.render(layout, output_path=output_path)
             return output_path
         
         elif format == 'docx':

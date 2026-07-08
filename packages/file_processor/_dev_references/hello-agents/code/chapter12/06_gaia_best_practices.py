@@ -9,7 +9,6 @@
 3. 结果解读
 """
 
-import os
 from hello_agents import SimpleAgent, HelloAgentsLLM
 from hello_agents.tools import GAIAEvaluationTool
 

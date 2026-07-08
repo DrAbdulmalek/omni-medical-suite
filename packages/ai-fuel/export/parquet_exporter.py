@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from core.schemas import ClassifiedChunk
 
@@ -81,9 +81,9 @@ class ParquetExporter:
 
     def export(
         self,
-        chunks: List[ClassifiedChunk],
+        chunks: list[ClassifiedChunk],
         output_path: str,
-        compression: Optional[str] = None,
+        compression: str | None = None,
     ) -> str:
         """Export classified chunks to Parquet.
 
@@ -127,7 +127,7 @@ class ParquetExporter:
         )
         return output_path
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Return exporter statistics.
 
         Returns:
@@ -146,7 +146,7 @@ class ParquetExporter:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _chunk_to_dict(chunk: ClassifiedChunk) -> Dict[str, Any]:
+    def _chunk_to_dict(chunk: ClassifiedChunk) -> dict[str, Any]:
         """Convert a :class:`ClassifiedChunk` to a flat dictionary."""
         return {
             "chunk_id": chunk.chunk.id,
@@ -169,7 +169,7 @@ class ParquetExporter:
 
     @staticmethod
     def _export_via_pandas(
-        records: List[Dict[str, Any]],
+        records: list[dict[str, Any]],
         output_path: str,
         compression: str,
     ) -> None:
@@ -184,7 +184,7 @@ class ParquetExporter:
 
     @staticmethod
     def _export_via_pyarrow(
-        records: List[Dict[str, Any]],
+        records: list[dict[str, Any]],
         output_path: str,
         compression: str,
     ) -> None:

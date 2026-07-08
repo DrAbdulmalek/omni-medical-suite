@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 PDF to Training Data Generator — for Handwriting Model Training
 ================================================================
@@ -21,19 +20,17 @@ Author:  Dr Abdulmalek Tamer Al-husseini
 License: MIT
 """
 
-import cv2
-import io
+import contextlib
 import json
 import logging
 import os
 import random
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-import glob
 
+import cv2
 import numpy as np
 from PIL import Image
 
@@ -103,7 +100,7 @@ class PDFPageLoader:
         elif backend == "pymupdf":
             self._use_fitz = True
 
-    def load_page(self, pdf_path: str, page_num: int) -> Optional[np.ndarray]:
+    def load_page(self, pdf_path: str, page_num: int) -> np.ndarray | None:
         """Load a single PDF page as BGR numpy array."""
         if self._use_fitz:
             img = self._load_fitz(pdf_path, page_num)
@@ -114,7 +111,7 @@ class PDFPageLoader:
 
         return self._load_pdf2image(pdf_path, page_num)
 
-    def load_page_pil(self, pdf_path: str, page_num: int) -> Optional[Image.Image]:
+    def load_page_pil(self, pdf_path: str, page_num: int) -> Image.Image | None:
         """Load a single PDF page as PIL Image (RGB)."""
         img_bgr = self.load_page(pdf_path, page_num)
         if img_bgr is None:
@@ -134,12 +131,12 @@ class PDFPageLoader:
         try:
             from pdf2image import convert_from_path
             # pdf2image doesn't have a direct count, use PyMuPDF approach
-            images = convert_from_path(pdf_path, first_page=1, last_page=1, dpi=72)
+            convert_from_path(pdf_path, first_page=1, last_page=1, dpi=72)
             return -1  # Unknown
         except Exception:
             return -1
 
-    def _load_fitz(self, pdf_path: str, page_num: int) -> Optional[np.ndarray]:
+    def _load_fitz(self, pdf_path: str, page_num: int) -> np.ndarray | None:
         """Load page via PyMuPDF (10x lighter than pdf2image)."""
         try:
             import fitz
@@ -166,7 +163,7 @@ class PDFPageLoader:
             logger.error("PyMuPDF failed for page %d: %s", page_num, e)
             return None
 
-    def _load_pdf2image(self, pdf_path: str, page_num: int) -> Optional[np.ndarray]:
+    def _load_pdf2image(self, pdf_path: str, page_num: int) -> np.ndarray | None:
         """Load page via pdf2image (fallback)."""
         try:
             from pdf2image import convert_from_path
@@ -199,7 +196,7 @@ class ImagePreprocessor:
     def __init__(self, config: TrainingDataConfig = None):
         self.config = config or TrainingDataConfig()
 
-    def preprocess(self, img_bgr: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def preprocess(self, img_bgr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Full preprocessing pipeline. Returns (binary, enhanced_gray)."""
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY) if img_bgr.ndim == 3 else img_bgr.copy()
 
@@ -247,7 +244,7 @@ class WordSegmenter:
         self.config = config or TrainingDataConfig()
 
     def segment(self, img_bgr: np.ndarray, binary: np.ndarray,
-                detections: list = None) -> List[Tuple[int, int, int, int]]:
+                detections: list | None = None) -> list[tuple[int, int, int, int]]:
         """
         Segment image into word bounding boxes.
 
@@ -282,8 +279,8 @@ class WordSegmenter:
         ]
         return self._column_aware_sort(boxes, img_bgr.shape[1])
 
-    def crop_words(self, img_bgr: np.ndarray, boxes: List[Tuple[int, int, int, int]]
-                   ) -> List[np.ndarray]:
+    def crop_words(self, img_bgr: np.ndarray, boxes: list[tuple[int, int, int, int]]
+                   ) -> list[np.ndarray]:
         """Crop word images from original BGR image."""
         crops = []
         H, W = img_bgr.shape[:2]
@@ -293,7 +290,7 @@ class WordSegmenter:
                 crops.append(crop)
         return crops
 
-    def _column_aware_sort(self, boxes, img_width: int) -> List[Tuple[int, int, int, int]]:
+    def _column_aware_sort(self, boxes, img_width: int) -> list[tuple[int, int, int, int]]:
         """Sort boxes with column detection for multi-column layouts."""
         if len(boxes) < 6:
             return sorted(boxes, key=lambda b: (b[1], b[0]))
@@ -331,7 +328,7 @@ class CharacterSegmenter:
     def __init__(self, config: TrainingDataConfig = None):
         self.config = config or TrainingDataConfig()
 
-    def segment_word(self, word_crop: np.ndarray) -> List[Tuple[np.ndarray, int, int, int, int]]:
+    def segment_word(self, word_crop: np.ndarray) -> list[tuple[np.ndarray, int, int, int, int]]:
         """
         Segment a word image into individual characters.
 
@@ -355,7 +352,7 @@ class CharacterSegmenter:
         binary = cv2.dilate(binary, kernel, iterations=1)
 
         # Find connected components
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary, connectivity=8)
+        num_labels, _labels, stats, _centroids = cv2.connectedComponentsWithStats(binary, connectivity=8)
 
         chars = []
         pad = self.config.char_padding
@@ -393,7 +390,7 @@ class CharacterSegmenter:
         self,
         word_crop: np.ndarray,
         word_text: str,
-    ) -> List[Tuple[np.ndarray, str]]:
+    ) -> list[tuple[np.ndarray, str]]:
         """
         Segment word into characters and match with text labels.
 
@@ -412,7 +409,7 @@ class CharacterSegmenter:
         # If character count matches text length, assign directly
         clean_text = word_text.strip()
         if len(chars) == len(clean_text):
-            return [(img, ch) for (img, _, _, _, _), ch in zip(chars, clean_text)]
+            return [(img, ch) for (img, _, _, _, _), ch in zip(chars, clean_text, strict=False)]
 
         # If not matching, distribute based on character widths
         total_w = sum(w for _, _, _, w, _ in chars)
@@ -423,7 +420,7 @@ class CharacterSegmenter:
         char_idx = 0
         accumulated_w = 0
 
-        for i, (img, x, y, w, h) in enumerate(chars):
+        for _i, (img, _x, _y, w, _h) in enumerate(chars):
             proportion = w / total_w
             expected_chars = max(1, round(proportion * len(clean_text)))
 
@@ -472,7 +469,7 @@ class TrainingDataExporter:
 
     def export_jsonl(
         self,
-        records: List[Dict],
+        records: list[dict],
         output_path: str,
     ) -> str:
         """Export records as JSONL file."""
@@ -484,9 +481,9 @@ class TrainingDataExporter:
 
     def split_train_val(
         self,
-        records: List[Dict],
-        val_ratio: float = None,
-    ) -> Tuple[List[Dict], List[Dict]]:
+        records: list[dict],
+        val_ratio: float | None = None,
+    ) -> tuple[list[dict], list[dict]]:
         """Split records into train and validation sets."""
         ratio = val_ratio or self.config.val_ratio
         shuffled = list(records)
@@ -525,7 +522,7 @@ class TrainingDataGenerator:
         )
     """
 
-    def __init__(self, config: TrainingDataConfig = None, output_dir: str = None):
+    def __init__(self, config: TrainingDataConfig = None, output_dir: str | None = None):
         self.config = config or TrainingDataConfig()
         if output_dir:
             self.config.output_dir = output_dir
@@ -535,7 +532,7 @@ class TrainingDataGenerator:
         self._char_segmenter = CharacterSegmenter(self.config)
         self._exporter = TrainingDataExporter(self.config)
 
-    def _save_checkpoint(self, pdf_path: str, page_nums: List[int], current_index: int, stats: Dict):
+    def _save_checkpoint(self, pdf_path: str, page_nums: list[int], current_index: int, stats: dict):
         """Save a checkpoint file for resume capability."""
         checkpoint_dir = os.path.join(self.config.output_dir, ".checkpoint")
         os.makedirs(checkpoint_dir, exist_ok=True)
@@ -555,7 +552,7 @@ class TrainingDataGenerator:
         except Exception as e:
             logger.warning("Failed to save checkpoint: %s", e)
 
-    def _load_checkpoint(self, pdf_path: str) -> Optional[Dict]:
+    def _load_checkpoint(self, pdf_path: str) -> dict | None:
         """Load a checkpoint file if it exists."""
         checkpoint_dir = os.path.join(self.config.output_dir, ".checkpoint")
         pdf_stem = Path(pdf_path).stem
@@ -563,7 +560,7 @@ class TrainingDataGenerator:
         if not os.path.isfile(checkpoint_path):
             return None
         try:
-            with open(checkpoint_path, "r", encoding="utf-8") as f:
+            with open(checkpoint_path, encoding="utf-8") as f:
                 checkpoint = json.load(f)
             logger.info("Checkpoint loaded: %s (resuming from page index %d)", checkpoint_path, checkpoint["current_index"])
             return checkpoint
@@ -586,11 +583,11 @@ class TrainingDataGenerator:
     def process_pdf(
         self,
         pdf_path: str,
-        pages: str = None,
+        pages: str | None = None,
         level: str = "word",
         ocr_engine=None,
         resume: bool = True,
-    ) -> Dict:
+    ) -> dict:
         """
         Process a PDF file and generate training data.
 
@@ -628,14 +625,12 @@ class TrainingDataGenerator:
                     for jsonl_name in ["train.jsonl", "val.jsonl"]:
                         jsonl_path = os.path.join(base_dir, jsonl_name)
                         if os.path.isfile(jsonl_path):
-                            with open(jsonl_path, "r", encoding="utf-8") as f:
+                            with open(jsonl_path, encoding="utf-8") as f:
                                 for line in f:
                                     line = line.strip()
                                     if line:
-                                        try:
+                                        with contextlib.suppress(json.JSONDecodeError):
                                             all_records.append(json.loads(line))
-                                        except json.JSONDecodeError:
-                                            pass
                     logger.info("Resuming from page index %d/%d", start_index, len(page_nums))
                 else:
                     logger.info("Checkpoint page list differs from current request, starting fresh")
@@ -706,7 +701,7 @@ class TrainingDataGenerator:
 
             if level == "word" or level == "character":
                 word_dir = os.path.join(base_dir, "word_crops")
-                for j, (box, crop) in enumerate(zip(boxes, word_crops)):
+                for j, (box, crop) in enumerate(zip(boxes, word_crops, strict=False)):
                     word_path = os.path.join(word_dir, f"page{pg:04d}_word{j:04d}.{self.config.image_format}")
                     self._exporter.save_image(crop, word_path)
 
@@ -730,7 +725,7 @@ class TrainingDataGenerator:
                 char_dir = os.path.join(base_dir, "char_crops")
                 char_count = 0
 
-                for j, (box, crop) in enumerate(zip(boxes, word_crops)):
+                for j, (box, crop) in enumerate(zip(boxes, word_crops, strict=False)):
                     # Get word text for character labeling
                     word_text = ""
                     if detections:
@@ -798,7 +793,7 @@ class TrainingDataGenerator:
     # Helpers
     # ----------------------------------------------------------------
 
-    def _parse_pages(self, pages_str: str, pdf_path: str) -> List[int]:
+    def _parse_pages(self, pages_str: str, pdf_path: str) -> list[int]:
         """Parse page specification string."""
         if pages_str == "all" or pages_str == "*":
             count = self._loader.get_page_count(pdf_path)
@@ -816,18 +811,16 @@ class TrainingDataGenerator:
                 except ValueError:
                     pass
             else:
-                try:
+                with contextlib.suppress(ValueError):
                     nums.add(int(part))
-                except ValueError:
-                    pass
         return sorted(nums)
 
-    def _match_detection_text(self, detections: list, box: Tuple[int, int, int, int]) -> str:
+    def _match_detection_text(self, detections: list, box: tuple[int, int, int, int]) -> str:
         """Find the text from OCR detections that best matches a bounding box."""
         if not detections:
             return ""
 
-        bx, by, bw, bh = box
+        _bx, _by, _bw, _bh = box
         best_text = ""
         best_iou = 0.0
 

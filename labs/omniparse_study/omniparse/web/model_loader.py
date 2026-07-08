@@ -12,20 +12,18 @@ License: Apache 2.0 License
 URL: https://github.com/unclecode/crawl4ai/blob/main/LICENSE
 """
 
+import argparse
 import os
-from functools import lru_cache
-from pathlib import Path
-import subprocess
 import shutil
 import tarfile
-from .config import MODEL_REPO_BRANCH
-import argparse
 import urllib.request
+from functools import lru_cache
+from pathlib import Path
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
-@lru_cache()
+@lru_cache
 def get_available_memory(device):
     import torch
 
@@ -37,7 +35,7 @@ def get_available_memory(device):
         return 0
 
 
-@lru_cache()
+@lru_cache
 def calculate_batch_size(device):
     available_memory = get_available_memory(device)
 
@@ -57,7 +55,7 @@ def calculate_batch_size(device):
         return 16  # Default batch size
 
 
-@lru_cache()
+@lru_cache
 def get_device():
     import torch
 
@@ -76,7 +74,7 @@ def set_model_device(model):
     return model, device
 
 
-@lru_cache()
+@lru_cache
 def get_home_folder():
     home_folder = os.path.join(Path.home(), ".omniparse")
     os.makedirs(home_folder, exist_ok=True)
@@ -85,31 +83,31 @@ def get_home_folder():
     return home_folder
 
 
-@lru_cache()
+@lru_cache
 def load_bert_base_uncased():
-    from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel
+    from transformers import BertModel, BertTokenizer
 
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", resume_download=None)
     model = BertModel.from_pretrained("bert-base-uncased", resume_download=None)
     model.eval()
-    model, device = set_model_device(model)
+    model, _device = set_model_device(model)
     return tokenizer, model
 
 
-@lru_cache()
+@lru_cache
 def load_bge_small_en_v1_5():
-    from transformers import BertTokenizer, BertModel, AutoTokenizer, AutoModel
+    from transformers import AutoModel, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(
         "BAAI/bge-small-en-v1.5", resume_download=None
     )
     model = AutoModel.from_pretrained("BAAI/bge-small-en-v1.5", resume_download=None)
     model.eval()
-    model, device = set_model_device(model)
+    model, _device = set_model_device(model)
     return tokenizer, model
 
 
-@lru_cache()
+@lru_cache
 def load_onnx_all_MiniLM_l6_v2():
     from omniparse.web.onnx_embedding import DefaultEmbeddingModel
 
@@ -155,11 +153,9 @@ def load_onnx_all_MiniLM_l6_v2():
     return model
 
 
-@lru_cache()
+@lru_cache
 def load_text_classifier():
-    from transformers import AutoTokenizer, AutoModelForSequenceClassification
-    from transformers import pipeline
-    import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
     tokenizer = AutoTokenizer.from_pretrained(
         "dstefa/roberta-base_topic_classification_nyt_news"
@@ -168,17 +164,16 @@ def load_text_classifier():
         "dstefa/roberta-base_topic_classification_nyt_news"
     )
     model.eval()
-    model, device = set_model_device(model)
+    model, _device = set_model_device(model)
     pipe = pipeline("text-classification", model=model, tokenizer=tokenizer)
     return pipe
 
 
-@lru_cache()
+@lru_cache
 def load_text_multilabel_classifier():
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
-    import numpy as np
-    from scipy.special import expit
     import torch
+    from scipy.special import expit
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     # Check for available device: CUDA, MPS (for Apple Silicon), or CPU
     if torch.cuda.is_available():
@@ -228,7 +223,7 @@ def load_text_multilabel_classifier():
     return _classifier, device
 
 
-@lru_cache()
+@lru_cache
 def load_nltk_punkt():
     import nltk
 

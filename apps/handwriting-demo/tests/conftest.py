@@ -4,10 +4,9 @@ Test configuration and fixtures for pytest.
 
 import io
 import os
+from unittest.mock import MagicMock
+
 import pytest
-import json
-from unittest.mock import MagicMock, patch
-from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -37,7 +36,7 @@ def db_session(test_engine):
     """Create a fresh database session for each test."""
     from app.database import Base
 
-    tables = Base.metadata.tables.values()
+    Base.metadata.tables.values()
     Base.metadata.create_all(test_engine)
 
     connection = test_engine.connect()

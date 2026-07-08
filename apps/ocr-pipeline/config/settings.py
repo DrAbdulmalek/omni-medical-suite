@@ -9,26 +9,25 @@ and sensible defaults for Arabic medical OCR workflows.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
-from enum import Enum
+from dataclasses import asdict, dataclass, field
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
-
 
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
 
-class Device(str, Enum):
+class Device(StrEnum):
     """Compute device selection."""
     CPU = "cpu"
     CUDA = "cuda"
     MPS = "mps"
 
 
-class EngineName(str, Enum):
+class EngineName(StrEnum):
     """Supported OCR engine identifiers."""
     TESSERACT = "tesseract"
     EASYOCR = "easyocr"
@@ -36,7 +35,7 @@ class EngineName(str, Enum):
     TROCR = "trocr"
 
 
-class SpellCheckStrategy(str, Enum):
+class SpellCheckStrategy(StrEnum):
     """Spell checking strategy to apply."""
     NONE = "none"
     HYBRID = "hybrid"          # Dictionary + edit-distance
@@ -76,7 +75,7 @@ class PreprocessingConfig:
     # Grayscale conversion
     to_grayscale: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialise to a plain dictionary (JSON/YAML-safe)."""
         return asdict(self)
 
@@ -93,20 +92,20 @@ class ModelConfig:
     device: str = Device.CPU.value  # default safe; override in load_config
 
     # Tesseract
-    tesseract_cmd: Optional[str] = None   # path to tesseract binary
+    tesseract_cmd: str | None = None   # path to tesseract binary
     tesseract_lang: str = "ara+eng"
 
     # EasyOCR
-    easyocr_lang: List[str] = field(default_factory=lambda: ["ar", "en"])
+    easyocr_lang: list[str] = field(default_factory=lambda: ["ar", "en"])
     easyocr_gpu: bool = False
     easyocr_model_storage: str = "~/.EasyOCR/model"
 
     # PaddleOCR
     paddleocr_lang: str = "ar"
     paddleocr_use_gpu: bool = False
-    paddleocr_det_model_dir: Optional[str] = None
-    paddleocr_rec_model_dir: Optional[str] = None
-    paddleocr_cls_model_dir: Optional[str] = None
+    paddleocr_det_model_dir: str | None = None
+    paddleocr_rec_model_dir: str | None = None
+    paddleocr_cls_model_dir: str | None = None
 
     # TrOCR (HuggingFace)
     trocr_model_name: str = "microsoft/trocr-base-handwritten"
@@ -114,12 +113,12 @@ class ModelConfig:
     trocr_use_fp16: bool = False
 
     # Spell checker / LLM
-    medical_dictionary_path: Optional[str] = None
-    arabic_dictionary_path: Optional[str] = None
-    llm_model_name: Optional[str] = None  # e.g. "instructlab/merlinite-7b-lab"
-    llm_device: Optional[str] = None
+    medical_dictionary_path: str | None = None
+    arabic_dictionary_path: str | None = None
+    llm_model_name: str | None = None  # e.g. "instructlab/merlinite-7b-lab"
+    llm_device: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -137,7 +136,7 @@ class PipelineConfig:
     """
 
     # --- Engine selection & weights ---
-    enabled_engines: List[str] = field(
+    enabled_engines: list[str] = field(
         default_factory=lambda: [
             EngineName.TESSERACT.value,
             EngineName.EASYOCR.value,
@@ -145,7 +144,7 @@ class PipelineConfig:
             # EngineName.TROCR.value,  # heavy — opt-in
         ]
     )
-    engine_weights: Dict[str, float] = field(
+    engine_weights: dict[str, float] = field(
         default_factory=lambda: {
             EngineName.TESSERACT.value: 0.2,
             EngineName.EASYOCR.value: 0.3,
@@ -174,8 +173,8 @@ class PipelineConfig:
 
     # --- PDF handling ---
     pdf_dpi: int = 300
-    pdf_first_page: Optional[int] = None
-    pdf_last_page: Optional[int] = None
+    pdf_first_page: int | None = None
+    pdf_last_page: int | None = None
 
     # --- Nested configs (composed) ---
     preprocessing: PreprocessingConfig = field(default_factory=PreprocessingConfig)
@@ -185,7 +184,7 @@ class PipelineConfig:
     # Serialisation helpers
     # ------------------------------------------------------------------
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Recursively serialise to a plain dictionary."""
         d = asdict(self)
         # Ensure nested dataclasses are plain dicts too (asdict handles it)
@@ -210,7 +209,7 @@ class PipelineConfig:
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PipelineConfig":
+    def from_dict(cls, data: dict[str, Any]) -> PipelineConfig:
         """Instantiate from a plain dictionary, ignoring unknown keys."""
         # Build nested configs first
         prep_data = data.pop("preprocessing", {})
@@ -226,13 +225,13 @@ class PipelineConfig:
         return cls(preprocessing=prep, model=model, **valid)
 
     @classmethod
-    def from_json(cls, path: str | Path) -> "PipelineConfig":
+    def from_json(cls, path: str | Path) -> PipelineConfig:
         """Load configuration from a JSON file."""
         raw = json.loads(Path(path).read_text(encoding="utf-8"))
         return cls.from_dict(raw)
 
     @classmethod
-    def from_yaml(cls, path: str | Path) -> "PipelineConfig":
+    def from_yaml(cls, path: str | Path) -> PipelineConfig:
         """Load configuration from a YAML file."""
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
@@ -240,7 +239,7 @@ class PipelineConfig:
         return cls.from_dict(raw)
 
     @classmethod
-    def load(cls, path: str | Path) -> "PipelineConfig":
+    def load(cls, path: str | Path) -> PipelineConfig:
         """Auto-detect format (YAML or JSON) and load configuration."""
         p = Path(path)
         suffix = p.suffix.lower()

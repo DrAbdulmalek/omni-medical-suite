@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Arabic Translation Corrector — Post-MT Correction Engine
 ==========================================================
@@ -35,8 +34,6 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +83,8 @@ class ArabicTranslationProcessor:
     # Default rules file path (relative to OmniFile_Processor root)
     DEFAULT_RULES_FILE = "data/translation_rules.json"
 
-    def __init__(self, rules_file: Optional[str] = None):
-        self.rules: List[TranslationRule] = []
+    def __init__(self, rules_file: str | None = None):
+        self.rules: list[TranslationRule] = []
         self._stats = {
             "total_processed": 0,
             "total_corrected": 0,
@@ -108,7 +105,7 @@ class ArabicTranslationProcessor:
     # ----------------------------------------------------------------
 
     @staticmethod
-    def _compile_regex_patterns() -> Dict[str, re.Pattern]:
+    def _compile_regex_patterns() -> dict[str, re.Pattern]:
         """Pre-compile all regex patterns used in corrections."""
         return {
             "comma_spacing": re.compile(r"\s*,\s*"),
@@ -222,7 +219,7 @@ class ArabicTranslationProcessor:
     def load_rules_from_file(self, filepath: str):
         """Load correction rules from a JSON file."""
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
 
             if isinstance(data, list):
@@ -244,7 +241,7 @@ class ArabicTranslationProcessor:
                 logger.warning("Rules file %s has unexpected format (expected list)", filepath)
                 self._initialize_default_rules()
 
-        except (json.JSONDecodeError, IOError, KeyError) as e:
+        except (OSError, json.JSONDecodeError, KeyError) as e:
             logger.error("Failed to load rules from %s: %s — using defaults", filepath, e)
             self._initialize_default_rules()
 
@@ -252,7 +249,7 @@ class ArabicTranslationProcessor:
     # Regex Corrections
     # ----------------------------------------------------------------
 
-    def apply_regex_corrections(self, text: str) -> Tuple[str, List[str]]:
+    def apply_regex_corrections(self, text: str) -> tuple[str, list[str]]:
         """
         Apply regex-based corrections to Arabic text.
 
@@ -320,7 +317,7 @@ class ArabicTranslationProcessor:
         arabic_text: str,
         apply_rules: bool = True,
         apply_regex: bool = True,
-    ) -> Dict:
+    ) -> dict:
         """
         Process a single English→Arabic translation pair.
 
@@ -397,10 +394,10 @@ class ArabicTranslationProcessor:
 
     def process_batch(
         self,
-        pairs: List[Tuple[str, str]],
+        pairs: list[tuple[str, str]],
         apply_rules: bool = True,
         apply_regex: bool = True,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Process multiple translation pairs at once."""
         return [
             self.process_translation(en, ar, apply_rules, apply_regex)
@@ -411,7 +408,7 @@ class ArabicTranslationProcessor:
     # Statistics
     # ----------------------------------------------------------------
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> dict:
         """Return a copy of processing statistics."""
         stats = dict(self._stats)
         if stats["total_processed"] > 0:
@@ -447,7 +444,7 @@ class ArabicTranslationProcessor:
             logger.info("Removed rule %s", rule_id)
         return removed
 
-    def get_rules_table(self) -> List[Dict]:
+    def get_rules_table(self) -> list[dict]:
         """Get all rules as a list of dicts (for display in Gradio/DataFrame)."""
         return [
             {

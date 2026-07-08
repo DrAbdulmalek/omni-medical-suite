@@ -31,7 +31,7 @@ def test_table_detection():
         segmenter = SmartSegmenter(device="cpu")
         layout = segmenter.segment_page(img_path)
 
-        print(f"  [OK] Page segmented")
+        print("  [OK] Page segmented")
         print(f"     Tables found: {len(layout.tables)}")
 
         for i, table in enumerate(layout.tables):
@@ -73,7 +73,7 @@ def test_diagram_detection():
         segmenter = SmartSegmenter(device="cpu")
         layout = segmenter.segment_page(img_path)
 
-        print(f"  [OK] Page segmented")
+        print("  [OK] Page segmented")
         print(f"     Graphics found: {len(layout.graphics)}")
 
         for i, graphic in enumerate(layout.graphics):

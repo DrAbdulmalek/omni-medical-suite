@@ -1,7 +1,6 @@
 # modules/export/format_parser.py
 import re
 from typing import List, Dict, Tuple
-from bs4 import BeautifulSoup
 
 class FormatParser:
     """محلل للتنسيق في النصوص."""

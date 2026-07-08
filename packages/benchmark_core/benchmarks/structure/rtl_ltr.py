@@ -9,9 +9,8 @@ Version: 1.0.0
 """
 
 import re
-import time
-from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -21,7 +20,7 @@ class RTLLTREntry:
     original: str
     language_ratio: str  # e.g. "70ar/30en"
     difficulty: str
-    expected_segments: List[Dict[str, str]] = field(default_factory=list)
+    expected_segments: list[dict[str, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -162,7 +161,7 @@ MIXED_RTL_LTR_CASES = [
 class MixedRTLLTRBenchmark:
     """
     Benchmark for mixed Arabic (RTL) / English (LTR) text in medical documents.
-    
+
     Tests:
     - Character Error Rate on mixed-direction text
     - Direction segment preservation
@@ -173,26 +172,26 @@ class MixedRTLLTRBenchmark:
     def __init__(self):
         self.cases = MIXED_RTL_LTR_CASES
 
-    def evaluate_single(self, case: Dict, predicted: str) -> RTL_LTRResult:
+    def evaluate_single(self, case: dict, predicted: str) -> RTL_LTRResult:
         """Evaluate a single mixed RTL/LTR case."""
         original = case["original"]
-        
+
         # CER calculation
         cer = self._compute_cer(original, predicted)
-        
+
         # Direction error detection
         expected_segments = case.get("expected_segments", [])
         direction_errors = self._check_direction_errors(predicted, expected_segments)
-        
+
         # Segment accuracy
         segment_accuracy = self._compute_segment_accuracy(predicted, expected_segments)
-        
+
         # Numeric preservation
         numeric_preservation = self._compute_numeric_preservation(original, predicted)
-        
+
         # Mixed word errors (Arabic words with English parts or vice versa)
         mixed_word_errors = self._count_mixed_word_errors(original, predicted)
-        
+
         return RTL_LTRResult(
             entry_id=case["id"],
             category=case["category"],
@@ -205,7 +204,7 @@ class MixedRTLLTRBenchmark:
             mixed_word_errors=mixed_word_errors,
         )
 
-    def run_all_with_predictions(self, predictions: Dict[str, str]) -> Dict[str, Any]:
+    def run_all_with_predictions(self, predictions: dict[str, str]) -> dict[str, Any]:
         """Run benchmark with provided predictions."""
         results = []
         for case in self.cases:
@@ -214,11 +213,11 @@ class MixedRTLLTRBenchmark:
             results.append(result)
         return self._aggregate(results)
 
-    def run_all_simulated(self) -> Dict[str, Any]:
+    def run_all_simulated(self) -> dict[str, Any]:
         """Run benchmark with simulated realistic predictions."""
         import random
         random.seed(42)
-        
+
         results = []
         for case in self.cases:
             # Simulate realistic noise: 92-97% accuracy on mixed text
@@ -231,14 +230,14 @@ class MixedRTLLTRBenchmark:
         """Compute Character Error Rate."""
         ref = reference.replace(" ", "")
         hyp = hypothesis.replace(" ", "")
-        
+
         if not ref:
             return 0.0 if not hyp else 1.0
-        
+
         # Simple Levenshtein
         m, n = len(ref), len(hyp)
         dp = list(range(n + 1))
-        
+
         for i in range(1, m + 1):
             prev = dp[0]
             dp[0] = i
@@ -249,60 +248,60 @@ class MixedRTLLTRBenchmark:
                 else:
                     dp[j] = 1 + min(prev, dp[j], dp[j-1])
                 prev = temp
-        
+
         return dp[n] / m
 
-    def _check_direction_errors(self, predicted: str, expected_segments: List[Dict]) -> int:
+    def _check_direction_errors(self, predicted: str, expected_segments: list[dict]) -> int:
         """Count direction segmentation errors."""
         errors = 0
-        
+
         # Check that RTL text (Arabic) appears in correct relative order
         rtl_segments = [s["text"] for s in expected_segments if s["dir"] == "rtl"]
         ltr_segments = [s["text"] for s in expected_segments if s["dir"] == "ltr"]
-        
+
         for seg in rtl_segments:
             # Arabic segment should be findable in predicted text
             core = re.sub(r'[^\u0600-\u06FF]', '', seg)
             pred_core = re.sub(r'[^\u0600-\u06FF]', '', predicted)
             if core and core not in pred_core:
                 errors += 1
-        
+
         for seg in ltr_segments:
             # English segment should be findable
             core = re.sub(r'[^a-zA-Z0-9]', '', seg)
             pred_core = re.sub(r'[^a-zA-Z0-9]', '', predicted)
             if core and core not in pred_core:
                 errors += 1
-        
+
         return errors
 
-    def _compute_segment_accuracy(self, predicted: str, expected_segments: List[Dict]) -> float:
+    def _compute_segment_accuracy(self, predicted: str, expected_segments: list[dict]) -> float:
         """Compute how many expected segments are preserved."""
         if not expected_segments:
             return 1.0
-        
+
         found = 0
         for seg in expected_segments:
             # Check if segment text appears in prediction
             clean = re.sub(r'\s+', ' ', seg["text"].strip())
             if clean and clean in predicted:
                 found += 1
-        
+
         return found / len(expected_segments)
 
     def _compute_numeric_preservation(self, original: str, predicted: str) -> float:
         """Check if numeric values are preserved correctly."""
         original_numbers = re.findall(r'\d+\.?\d*', original)
         predicted_numbers = re.findall(r'\d+\.?\d*', predicted)
-        
+
         if not original_numbers:
             return 1.0
-        
+
         correct = 0
         for num in original_numbers:
             if num in predicted_numbers:
                 correct += 1
-        
+
         return correct / len(original_numbers)
 
     def _count_mixed_word_errors(self, original: str, predicted: str) -> int:
@@ -311,25 +310,25 @@ class MixedRTLLTRBenchmark:
         mixed_pattern = re.compile(r'[\u0600-\u06FF]+[a-zA-Z]+|[a-zA-Z]+[\u0600-\u06FF]+')
         original_mixed = mixed_pattern.findall(original)
         predicted_mixed = mixed_pattern.findall(predicted)
-        
+
         # If original had mixed words but predicted doesn't (or different), count as error
         errors = 0
         for mw in original_mixed:
             if mw not in predicted_mixed:
                 errors += 1
-        
+
         # If predicted has NEW mixed words not in original, that's also an error
         for mw in predicted_mixed:
             if mw not in original_mixed:
                 errors += 1
-        
+
         return errors
 
     def _simulate_noise(self, text: str, error_rate: float = 0.05) -> str:
         """Simulate realistic OCR noise on mixed text."""
         import random
         result = list(text)
-        
+
         for i, char in enumerate(result):
             if random.random() < error_rate:
                 if '\u0600' <= char <= '\u06FF':
@@ -339,10 +338,10 @@ class MixedRTLLTRBenchmark:
                 elif char.isdigit():
                     # Digit noise
                     result[i] = str((int(char) + 1) % 10)
-        
+
         return ''.join(result)
 
-    def _aggregate(self, results: List[RTL_LTRResult]) -> Dict[str, Any]:
+    def _aggregate(self, results: list[RTL_LTRResult]) -> dict[str, Any]:
         """Aggregate benchmark results."""
         if not results:
             return {"cases": [], "summary": {}}

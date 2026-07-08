@@ -37,12 +37,12 @@ def main():
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     
     if world_size > 1:
-        print(f"\n🚀 分布式训练模式")
+        print("\n🚀 分布式训练模式")
         print(f"   - 总进程数: {world_size}")
         print(f"   - 当前进程: {local_rank}")
         print(f"   - 分布式后端: {os.environ.get('ACCELERATE_DISTRIBUTED_TYPE', 'MULTI_GPU')}")
     else:
-        print(f"\n💻 单GPU训练模式")
+        print("\n💻 单GPU训练模式")
     
     print("="*80)
     
@@ -94,10 +94,10 @@ def main():
         
         # 打印性能提示
         if world_size > 1:
-            print(f"\n💡 性能提示:")
+            print("\n💡 性能提示:")
             print(f"   使用了 {world_size} 个GPU进行训练")
             print(f"   理论加速比: ~{world_size * 0.85:.1f}x")
-            print(f"   (实际加速比取决于通信开销和数据加载)")
+            print("   (实际加速比取决于通信开销和数据加载)")
 
 if __name__ == "__main__":
     main()

@@ -18,13 +18,14 @@ All credits for the original implementation go to VikParuchuri.
 """
 
 import os
-import tempfile
 import subprocess
+import tempfile
 
 # from omniparse.documents.parse import parse_single_pdf
 from marker.convert import convert_single_pdf
-from omniparse.utils import encode_images
+
 from omniparse.models import responseDocument
+from omniparse.utils import encode_images
 
 
 # Function to handle PDF parsing
@@ -62,7 +63,7 @@ def parse_pdf(input_data, model_state) -> responseDocument:
         return parse_pdf_result
 
     except Exception as e:
-        raise RuntimeError(f"Error parsing PPT: {str(e)}")
+        raise RuntimeError(f"Error parsing PPT: {e!s}")
 
 
 # Function to handle PPT and DOC parsing
@@ -119,7 +120,7 @@ def parse_ppt(input_data, model_state) -> responseDocument:
         return parse_ppt_result
 
     except Exception as e:
-        raise RuntimeError(f"Error parsing PPT: {str(e)}")
+        raise RuntimeError(f"Error parsing PPT: {e!s}")
 
 
 def parse_doc(input_data, model_state) -> responseDocument:
@@ -174,4 +175,4 @@ def parse_doc(input_data, model_state) -> responseDocument:
         return parse_doc_result
 
     except Exception as e:
-        raise RuntimeError(f"Error parsing PPT: {str(e)}")
+        raise RuntimeError(f"Error parsing PPT: {e!s}")

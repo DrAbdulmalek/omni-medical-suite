@@ -20,12 +20,10 @@ import argparse
 import json
 import logging
 import shutil
-import subprocess
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import List, Optional
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,7 +38,7 @@ class PipelineConfig:
     input_dir: str = ""
     output_dir: str = ""
     current_stage: str = ""
-    stages_completed: List[str] = field(default_factory=list)
+    stages_completed: list[str] = field(default_factory=list)
     metadata: dict = field(default_factory=dict)
 
     def save(self, path: Path):
@@ -172,7 +170,7 @@ def stage_benchmark(args, config: PipelineConfig):
     """Run benchmarking."""
     log.info("═══ Stage: BENCHMARK ═══")
 
-    model_path = Path(args.model) if args.model else None
+    Path(args.model) if args.model else None
     images_path = Path(args.images) if args.images else None
 
     if images_path and images_path.exists():
@@ -282,7 +280,6 @@ def run_full_pipeline(args):
 
 def _fallback_copy(src: Path, dst: Path):
     """Fallback: copy images without processing when scanner-fixer is unavailable."""
-    from pathlib import Path
     extensions = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".webp"}
     count = 0
     for f in src.rglob("*"):

@@ -11,7 +11,6 @@ HandwrittenOCR - إعدادات المشروع v5.0
 """
 
 import os
-import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -199,7 +198,6 @@ class Config:
     def is_colab(self) -> bool:
         """كشف بيئة Google Colab تلقائياً"""
         try:
-            import google.colab
             return True
         except Exception:
             return False

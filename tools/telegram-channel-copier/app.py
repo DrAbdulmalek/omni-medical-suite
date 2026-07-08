@@ -1,13 +1,8 @@
-import streamlit as st
 import asyncio
+
+import streamlit as st
 from telethon import TelegramClient
 from telethon.errors import FloodWaitError
-from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
-import time
-import threading
-import queue
-import json
-import os
 
 st.set_page_config(
     page_title="Telegram Channel Copier",
@@ -203,9 +198,7 @@ async def run_copier(api_id, api_hash, source, target, delay, limit, copy_text, 
                 has_text = bool(msg.message)
 
                 should_copy = False
-                if has_media and copy_media:
-                    should_copy = True
-                elif has_text and copy_text and not has_media:
+                if (has_media and copy_media) or (has_text and copy_text and not has_media):
                     should_copy = True
 
                 if not should_copy:

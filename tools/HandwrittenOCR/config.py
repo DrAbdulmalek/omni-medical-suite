@@ -10,8 +10,8 @@ HandwrittenOCR - إعدادات المشروع v5.0
 - قفل الملفات لمنع التعارضات بين الأجهزة
 """
 
+import contextlib
 import os
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -195,7 +195,6 @@ class Config:
     def is_colab(self) -> bool:
         """كشف بيئة Google Colab تلقائياً"""
         try:
-            import google.colab
             return True
         except Exception:
             return False
@@ -262,10 +261,8 @@ class Config:
         if os.path.exists(local_path) and not os.path.islink(local_path) and not os.path.exists(drive_path):
             shutil.move(local_path, drive_path)
         if not os.path.exists(local_path):
-            try:
+            with contextlib.suppress(Exception):
                 os.symlink(drive_path, local_path)
-            except Exception:
-                pass
 
     @classmethod
     def from_colab_drive(

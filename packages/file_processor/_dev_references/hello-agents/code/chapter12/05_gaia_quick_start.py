@@ -11,7 +11,6 @@
 3. 必须使用GAIA官方系统提示词
 """
 
-import os
 from hello_agents import SimpleAgent, HelloAgentsLLM
 from hello_agents.tools import GAIAEvaluationTool
 
@@ -46,7 +45,7 @@ results = gaia_tool.run(
 )
 
 # 5. 查看结果
-print(f"\n评估结果:")
+print("\n评估结果:")
 print(f"精确匹配率: {results['exact_match_rate']:.2%}")
 print(f"部分匹配率: {results['partial_match_rate']:.2%}")
 print(f"正确数: {results['correct_samples']}/{results['total_samples']}")

@@ -5,12 +5,11 @@
 يدعم تشفير الملفات الفردية والمجلدات بالكامل.
 """
 
-import os
 import base64
 import hashlib
 import logging
+import os
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class FileEncryptor:
     """مشفر الملفات باستخدام Fernet (AES-128-CBC)."""
 
-    def __init__(self, key: Optional[str] = None, key_file: Optional[str] = None):
+    def __init__(self, key: str | None = None, key_file: str | None = None):
         """
         تهيئة مشفر الملفات.
 
@@ -67,7 +66,7 @@ class FileEncryptor:
     def _load_key_from_file(self, path: str) -> None:
         """تحميل المفتاح من ملف."""
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 key = f.read().strip()
             self._init_from_key(key)
             logger.info("تم تحميل مفتاح التشفير من %s", path)
@@ -92,11 +91,11 @@ class FileEncryptor:
         return self._cipher is not None
 
     @property
-    def key(self) -> Optional[str]:
+    def key(self) -> str | None:
         """المفتاح الحالي (Base64)."""
         return self._key.decode() if isinstance(self._key, bytes) else self._key
 
-    def encrypt_file(self, input_path: str, output_path: Optional[str] = None) -> str:
+    def encrypt_file(self, input_path: str, output_path: str | None = None) -> str:
         """
         تشفير ملف.
 
@@ -124,7 +123,7 @@ class FileEncryptor:
         logger.info("تم تشفير %s (%d bytes -> %d bytes)", input_path, len(data), len(encrypted))
         return output_path
 
-    def decrypt_file(self, input_path: str, output_path: Optional[str] = None) -> str:
+    def decrypt_file(self, input_path: str, output_path: str | None = None) -> str:
         """
         فك تشفير ملف.
 
@@ -165,7 +164,7 @@ class FileEncryptor:
             raise RuntimeError("التشفير غير متاح")
         return self._cipher.decrypt(data)
 
-    def encrypt_directory(self, input_dir: str, output_dir: Optional[str] = None, pattern: str = "*") -> list[str]:
+    def encrypt_directory(self, input_dir: str, output_dir: str | None = None, pattern: str = "*") -> list[str]:
         """
         تشفير جميع الملفات في مجلد.
 
@@ -177,7 +176,6 @@ class FileEncryptor:
         Returns:
             قائمة مسارات الملفات المشفرة
         """
-        import glob
 
         input_dir = Path(input_dir)
         output_dir = Path(output_dir) if output_dir else input_dir.parent / (input_dir.name + "_encrypted")
@@ -193,7 +191,7 @@ class FileEncryptor:
         logger.info("تم تشفير %d ملف من %s", len(encrypted_files), input_dir)
         return encrypted_files
 
-    def decrypt_directory(self, input_dir: str, output_dir: Optional[str] = None) -> list[str]:
+    def decrypt_directory(self, input_dir: str, output_dir: str | None = None) -> list[str]:
         """
         فك تشفير جميع الملفات .enc في مجلد.
 
@@ -204,7 +202,6 @@ class FileEncryptor:
         Returns:
             قائمة مسارات الملفات المفكوكة
         """
-        import glob
 
         input_dir = Path(input_dir)
         output_dir = Path(output_dir) if output_dir else input_dir.parent / (input_dir.name + "_decrypted")
@@ -223,10 +220,10 @@ class FileEncryptor:
 # === Module-level convenience functions for OmniFile_v500_Colab ===
 _default_encryptor = FileEncryptor()
 
-def encrypt_file(input_path: str, output_path: str = None) -> str:
+def encrypt_file(input_path: str, output_path: str | None = None) -> str:
     """تشفير ملف — واجهة مستوى الوحدة."""
     return _default_encryptor.encrypt_file(input_path, output_path)
 
-def decrypt_file(input_path: str, output_path: str = None) -> str:
+def decrypt_file(input_path: str, output_path: str | None = None) -> str:
     """فك تشفير ملف — واجهة مستوى الوحدة."""
     return _default_encryptor.decrypt_file(input_path, output_path)

@@ -2,8 +2,9 @@
 Test suite for telegram-forwarder utility functions and validation
 """
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from forwarder import (
     ForwardConfig,
     ForwardResult,
@@ -12,18 +13,18 @@ from forwarder import (
 
 class TestForwardConfig:
     """Tests for ForwardConfig dataclass"""
-    
+
     def test_default_values(self):
         """Test default configuration values"""
         config = ForwardConfig()
         assert config.limit == 100
         assert config.delay == 2.0
-        assert config.media_only == False
-        assert config.text_only == False
-        assert config.skip_forwards == True
-        assert config.send_caption == True
-        assert config.reverse_order == False
-    
+        assert not config.media_only
+        assert not config.text_only
+        assert config.skip_forwards
+        assert config.send_caption
+        assert not config.reverse_order
+
     def test_custom_values(self):
         """Test custom configuration values"""
         config = ForwardConfig(
@@ -44,19 +45,19 @@ class TestForwardConfig:
         assert config.dest_channel == "dest"
         assert config.limit == 50
         assert config.delay == 5.0
-        assert config.media_only == True
-        assert config.text_only == False
-        assert config.skip_forwards == False
+        assert config.media_only
+        assert not config.text_only
+        assert not config.skip_forwards
         assert config.filter_text == "test"
         assert config.start_id == 10
         assert config.end_id == 20
-        assert config.send_caption == False
-        assert config.reverse_order == True
+        assert not config.send_caption
+        assert config.reverse_order
 
 
 class TestForwardResult:
     """Tests for ForwardResult dataclass"""
-    
+
     def test_default_values(self):
         """Test default result values"""
         result = ForwardResult()
@@ -66,7 +67,7 @@ class TestForwardResult:
         assert result.total == 0
         assert result.elapsed == "0s"
         assert result.messages == []
-    
+
     def test_custom_values(self):
         """Test custom result values"""
         result = ForwardResult(
@@ -83,7 +84,7 @@ class TestForwardResult:
         assert result.total == 13
         assert result.elapsed == "1m 30s"
         assert result.messages == ["msg1", "msg2"]
-    
+
     def test_to_dict(self):
         """Test conversion to dictionary"""
         result = ForwardResult(
@@ -105,27 +106,27 @@ class TestForwardResult:
 
 class TestValidation:
     """Tests for input validation"""
-    
+
     def test_validate_phone_number(self):
         """Test phone number validation"""
         # Valid phone numbers
         assert "+963123456789".startswith("+")
         assert "+1234567890".startswith("+")
-        
+
         # Invalid phone numbers
         assert not "1234567890".startswith("+")
         assert not "963123456789".startswith("+")
-    
+
     def test_validate_api_id(self):
         """Test API ID validation"""
         # Valid API IDs are positive integers
         assert isinstance(12345, int)
         assert isinstance(1, int)
-        
+
         # Invalid API IDs
         with pytest.raises(ValueError):
             int("not_a_number")
-    
+
     def test_validate_channel_id(self):
         """Test channel ID validation"""
         # Valid channel IDs (can be negative for supergroups)
@@ -135,7 +136,7 @@ class TestValidation:
 
 class TestUtilityFunctions:
     """Tests for utility functions"""
-    
+
     def test_format_duration(self):
         """Test duration formatting"""
         # This would test a utility function if it existed
@@ -145,7 +146,7 @@ class TestUtilityFunctions:
         remaining_seconds = seconds % 60
         formatted = f"{minutes}m {remaining_seconds}s"
         assert formatted == "1m 30s"
-    
+
     def test_calculate_progress(self):
         """Test progress calculation"""
         current = 50
@@ -156,7 +157,7 @@ class TestUtilityFunctions:
 
 class TestConfigValidation:
     """Tests for configuration validation"""
-    
+
     def test_valid_config(self):
         """Test valid configuration"""
         config = ForwardConfig(
@@ -169,14 +170,14 @@ class TestConfigValidation:
         assert config.dest_channel == "dest"
         assert config.limit > 0
         assert config.delay >= 0
-    
+
     def test_invalid_limit(self):
         """Test invalid limit (negative)"""
         # Limit should be positive
         with pytest.raises(ValueError):
             # This would require validation in the class
-            config = ForwardConfig(limit=-10)
-    
+            ForwardConfig(limit=-10)
+
     def test_invalid_delay(self):
         """Test invalid delay (negative)"""
         # Delay should be non-negative
@@ -186,7 +187,7 @@ class TestConfigValidation:
 
 class TestMessageFiltering:
     """Tests for message filtering logic"""
-    
+
     def test_filter_by_text(self):
         """Test text filtering"""
         filter_text = "important"
@@ -195,11 +196,11 @@ class TestMessageFiltering:
             {"text": "This is not important"},
             {"text": "Important notice"},
         ]
-        
-        filtered = [msg for msg in messages 
+
+        filtered = [msg for msg in messages
                    if filter_text.lower() in msg.get("text", "").lower()]
         assert len(filtered) == 2
-    
+
     def test_filter_media_only(self):
         """Test media filtering"""
         messages = [
@@ -207,10 +208,10 @@ class TestMessageFiltering:
             {"text": "Image", "media": "photo"},
             {"text": "Video", "media": "video"},
         ]
-        
+
         media_only = [msg for msg in messages if msg.get("media")]
         assert len(media_only) == 2
-    
+
     def test_filter_text_only(self):
         """Test text-only filtering"""
         messages = [
@@ -218,14 +219,14 @@ class TestMessageFiltering:
             {"text": "Image", "media": "photo"},
             {"text": "Video", "media": "video"},
         ]
-        
+
         text_only = [msg for msg in messages if not msg.get("media")]
         assert len(text_only) == 1
 
 
 class TestMockTelegramClient:
     """Mock tests for Telegram client functionality"""
-    
+
     @pytest.mark.asyncio
     async def test_mock_forwarder(self):
         """Test with mocked Telegram forwarder"""
@@ -233,8 +234,8 @@ class TestMockTelegramClient:
         # For now, just test that we can create a mock
         mock_client = MagicMock()
         mock_client.is_connected.return_value = True
-        
-        assert mock_client.is_connected() == True
+
+        assert mock_client.is_connected()
 
 
 if __name__ == '__main__':

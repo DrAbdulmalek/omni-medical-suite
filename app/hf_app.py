@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 OmniFile AI Processor — HF Spaces Deployment
 ==============================================
@@ -29,27 +28,25 @@ License: MIT
 # Standard Library Imports
 # ====================================================================
 
-import os
-import io
-import re
+import contextlib
 import gc
-import json
+import io
+import logging
+import os
+import re
 import shutil
 import tempfile
 import traceback
-import logging
-from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, List, Tuple, Any
-
-import numpy as np
-from PIL import Image
+from pathlib import Path
+from typing import Any
 
 # ====================================================================
 # Gradio — imported here (lightweight; ML models are lazy-loaded)
 # ====================================================================
-
 import gradio as gr
+import numpy as np
+from PIL import Image
 
 # ====================================================================
 # Logging Setup / إعداد التسجيل
@@ -80,11 +77,10 @@ except Exception as _log_err:
     LOG_OK   = False
     logger.warning("AppLogger unavailable: %s", _log_err)
 
-def _log(event: str, data: dict = None):
+def _log(event: str, data: dict | None = None):
     """تسجيل حدث بشكل آمن."""
     if _APP_LOG:
-        try: _APP_LOG.log(event, data or {})
-        except Exception: pass
+        with contextlib.suppress(Exception): _APP_LOG.log(event, data or {})
 
 _log("hf_app_loaded", {"version": "5.0"})
 
@@ -92,7 +88,8 @@ _log("hf_app_loaded", {"version": "5.0"})
 # Engine Router — Lazy import (اقتراح QWEN + Claude)
 # ====================================================================
 try:
-    import sys, os as _os
+    import os as _os
+    import sys
     _sys_root = _os.path.dirname(_os.path.abspath(__file__))
     if _sys_root not in sys.path:
         sys.path.insert(0, _sys_root)
@@ -146,7 +143,7 @@ except ImportError:
 # This ensures fast app startup on HF Spaces.
 # / النماذج تُحمّل عند أول استخدام فقط
 
-_model_cache: Dict[str, Any] = {}
+_model_cache: dict[str, Any] = {}
 
 
 def _get_model(key: str) -> Any:
@@ -159,10 +156,8 @@ def _set_model(key: str, obj: Any) -> None:
     _model_cache[key] = obj
     gc.collect()
     if USE_GPU:
-        try:
+        with contextlib.suppress(Exception):
             torch.cuda.empty_cache()
-        except Exception:
-            pass
 
 # ====================================================================
 # Translation Corrector — Post-MT Arabic Correction
@@ -315,7 +310,7 @@ def detect_language(text: str) -> str:
         return "other"
 
     try:
-        from langdetect import detect, LangDetectException
+        from langdetect import LangDetectException, detect
         lang = detect(text[:500])
         return lang if lang in ("ar", "en", "de") else "other"
     except LangDetectException:
@@ -346,7 +341,7 @@ def _char_based_lang_detect(text: str) -> str:
 # / معالجة OCR باستخدام EasyOCR + TrOCR
 # ====================================================================
 
-def _load_easyocr(languages: Optional[List[str]] = None):
+def _load_easyocr(languages: list[str] | None = None):
     """Lazy-load EasyOCR reader."""
     langs = sorted(languages or ["en"])
     cache_key = "easyocr_" + "_".join(langs)
@@ -393,7 +388,7 @@ def _load_trocr():
         return None, None
 
 
-def _run_easyocr(image: Image.Image, languages: List[str]) -> Tuple[str, float]:
+def _run_easyocr(image: Image.Image, languages: list[str]) -> tuple[str, float]:
     """Run EasyOCR on an image. Returns (text, avg_confidence)."""
     reader = _load_easyocr(languages)
     if reader is None:
@@ -410,7 +405,7 @@ def _run_easyocr(image: Image.Image, languages: List[str]) -> Tuple[str, float]:
     return "\n".join(texts), (total_conf / len(results) if results else 0.0)
 
 
-def _run_trocr(image: Image.Image) -> Tuple[str, float]:
+def _run_trocr(image: Image.Image) -> tuple[str, float]:
     """Run TrOCR on a single image. Returns (text, confidence)."""
     processor, model = _load_trocr()
     if processor is None or model is None:
@@ -430,10 +425,10 @@ def _run_trocr(image: Image.Image) -> Tuple[str, float]:
 
 def _ocr_ensemble(
     image: Image.Image,
-    languages: List[str],
+    languages: list[str],
     engine: str,
     progress=None,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """
     Run selected OCR engine(s). Returns (text, info).
     v5.0: Engine Router integration — smart engine selection.
@@ -492,10 +487,10 @@ def _ocr_ensemble(
 
 def _process_pdf_ocr(
     pdf_path: str,
-    languages: List[str],
+    languages: list[str],
     engine: str,
     progress=None,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """Process every page of a PDF through OCR."""
     try:
         import fitz
@@ -600,7 +595,7 @@ def _load_en_spellchecker(lang: str = "en"):
 
 # --- Gradio handler for Tab 2 ---
 
-def correct_text(text: str, language: str, method: str) -> Tuple[str, str]:
+def correct_text(text: str, language: str, method: str) -> tuple[str, str]:
     """
     Tab 2 handler — spell-checking & correction.
     / تصحيح إملائي للنصوص
@@ -793,7 +788,7 @@ def translate_text(text: str, direction: str, correct_output: bool = True, progr
         import torch
 
         # Chunk long text at paragraph boundaries
-        chunks: List[str] = []
+        chunks: list[str] = []
         cur = ""
         for para in re.split(r"\n\s*\n", text.strip()):
             if len(cur) + len(para) + 2 <= 400:
@@ -805,7 +800,7 @@ def translate_text(text: str, direction: str, correct_output: bool = True, progr
         if cur:
             chunks.append(cur)
 
-        parts: List[str] = []
+        parts: list[str] = []
         for i, chunk in enumerate(chunks):
             progress(0.3 + 0.7 * ((i + 1) / len(chunks)), desc=f"Translating chunk {i+1}/{len(chunks)}…")
             inputs = tok(chunk, return_tensors="pt", truncation=True, max_length=512, padding=True)
@@ -851,7 +846,7 @@ def generate_training_data(
     val_split: float = 0.1,
     enable_ocr: bool = True,
     progress=gr.Progress(),
-) -> Tuple[str, Optional[str]]:
+) -> tuple[str, str | None]:
     """
     Tab 7 handler — Generate training data from uploaded PDF.
     / إنشاء بيانات تدريب من ملف PDF مرفوع
@@ -863,12 +858,12 @@ def generate_training_data(
     # Save uploaded file to temp location
     tmp_dir = tempfile.mkdtemp(prefix="omnifile_train_")
     pdf_path = os.path.join(tmp_dir, "input.pdf")
-    with open(pdf_path, "wb") as f:
+    with open(pdf_path, "wb"):
         shutil.copy2(pdf_file.name, pdf_path)
 
     progress(0.2, desc="Initializing training data generator…")
     try:
-        from packages.vision.pdf_to_training_data import TrainingDataGenerator, TrainingDataConfig
+        from packages.vision.pdf_to_training_data import TrainingDataConfig, TrainingDataGenerator
 
         config = TrainingDataConfig(
             output_dir=os.path.join(tmp_dir, "output"),
@@ -909,7 +904,7 @@ def generate_training_data(
         zip_path = os.path.join(tmp_dir, "training_data.zip")
         output_base = stats.get("output_dir", tmp_dir)
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            for root, dirs, files in os.walk(output_base):
+            for root, _dirs, files in os.walk(output_base):
                 for fname in files:
                     fpath = os.path.join(root, fname)
                     arcname = os.path.relpath(fpath, output_base)
@@ -992,7 +987,7 @@ def classify_text(text: str) -> str:
     if not text or not text.strip():
         return "⚠️ Please enter text to classify."
 
-    scores: Dict[str, Dict] = {}
+    scores: dict[str, dict] = {}
     for cat, keywords in CATEGORY_KEYWORDS.items():
         cnt, matched = 0, []
         for kw in keywords:
@@ -1128,7 +1123,7 @@ def calculate_metrics(reference: str, hypothesis: str) -> str:
     try:
         import jiwer
         out += "\n### jiwer Cross-Check\n"
-        out += f"| Metric | Value |\n|---|---|\n"
+        out += "| Metric | Value |\n|---|---|\n"
         out += f"| CER | {jiwer.cer(reference, hypothesis):.2%} |\n"
         out += f"| WER | {jiwer.wer(reference, hypothesis):.2%} |\n"
     except ImportError:
@@ -1253,7 +1248,7 @@ def process_video_ocr(
 
         # Build output
         out = "## 🎬 Video OCR Results\n\n"
-        out += f"| Metric | Value |\n|--------|-------|\n"
+        out += "| Metric | Value |\n|--------|-------|\n"
         out += f"| **Total Frames Processed** | {timeline.total_frames} |\n"
         out += f"| **Frames with Text** | {timeline.frames_with_text} |\n"
         out += f"| **Average Confidence** | {timeline.avg_confidence:.1%} |\n"
@@ -1299,7 +1294,7 @@ def augment_training_data(
     blur: bool = True,
     brightness: float = 0.2,
     progress=gr.Progress(),
-) -> Tuple[str, Optional[str]]:
+) -> tuple[str, str | None]:
     """
     Tab 9 handler — Augment training images for better model training.
     / توسيع صور التدريب لتحسين أداء النموذج
@@ -1349,7 +1344,7 @@ def augment_training_data(
         aug_dir = os.path.join(tmp_dir, "augmented")
         if os.path.exists(aug_dir):
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-                for root, dirs, files in os.walk(aug_dir):
+                for root, _dirs, files in os.walk(aug_dir):
                     for fname in files:
                         fpath = os.path.join(root, fname)
                         zf.write(fpath, os.path.relpath(fpath, aug_dir))
@@ -1357,7 +1352,7 @@ def augment_training_data(
         progress(1.0, desc="Done!")
 
         out = "## 🔄 Data Augmentation Complete!\n\n"
-        out += f"| Metric | Value |\n|--------|-------|\n"
+        out += "| Metric | Value |\n|--------|-------|\n"
         out += f"| **Original Images** | {len(image_paths)} |\n"
         out += f"| **Augmented Images** | {len(results)} |\n"
         out += f"| **Multiplication Factor** | {num_augmented}x |\n"
@@ -1714,7 +1709,7 @@ def build_app() -> gr.Blocks:
 
                 with gr.Column(scale=2):
                     train_output = gr.Markdown("")
-                    train_gallery = gr.Gallery(
+                    gr.Gallery(
                         label="🖼️ Sample Crops Preview / معاينة العينات",
                         columns=4,
                         height=300,
@@ -1940,8 +1935,8 @@ def build_app() -> gr.Blocks:
         # نظام التعلم من تصحيحات المستخدم (v5.0 — الميزة الرئيسية الجديدة)
         # ================================================================
         try:
-            import sys as _sys
             import os as _os
+            import sys as _sys
             _src_dir = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "src")
             if _src_dir not in _sys.path:
                 _sys.path.insert(0, _src_dir)

@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from core.config import AIFuelConfig
 from core.schemas import ChunkType, Language, TextChunk
@@ -54,7 +54,7 @@ _BULLET_LIST_RE = re.compile(
 )
 
 
-def _split_sentences(text: str) -> List[str]:
+def _split_sentences(text: str) -> list[str]:
     """Split *text* into a list of sentences.
 
     Handles both Arabic and English sentence-ending punctuation.  Empty
@@ -73,12 +73,12 @@ def _split_sentences(text: str) -> List[str]:
     raw_parts = _SENTENCE_END_RE.split(text)
 
     # Also split on newlines that likely indicate sentence breaks
-    expanded: List[str] = []
+    expanded: list[str] = []
     for part in raw_parts:
         sub_parts = re.split(r"\n{2,}", part)
         expanded.extend(sub_parts)
 
-    sentences: List[str] = []
+    sentences: list[str] = []
     for s in expanded:
         s = s.strip()
         if s:
@@ -124,8 +124,8 @@ def _build_chunk(
     start_token: int,
     end_token: int,
     token_count: int,
-    source_file: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    source_file: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> TextChunk:
     """Factory for building a fully-populated :class:`TextChunk`.
 
@@ -185,7 +185,7 @@ class DocumentSegmenter:
         chunks = seg.segment(document_text, method="hybrid")
     """
 
-    def __init__(self, config: Optional[AIFuelConfig] = None) -> None:
+    def __init__(self, config: AIFuelConfig | None = None) -> None:
         self.config = config or AIFuelConfig()
         self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
@@ -197,8 +197,8 @@ class DocumentSegmenter:
         self,
         text: str,
         method: str = "size",
-        source_file: Optional[str] = None,
-    ) -> List[TextChunk]:
+        source_file: str | None = None,
+    ) -> list[TextChunk]:
         """Main entry point — route to the appropriate segmentation method.
 
         Args:
@@ -251,10 +251,10 @@ class DocumentSegmenter:
     def segment_by_size(
         self,
         text: str,
-        max_tokens: Optional[int] = None,
-        overlap: Optional[int] = None,
-        source_file: Optional[str] = None,
-    ) -> List[TextChunk]:
+        max_tokens: int | None = None,
+        overlap: int | None = None,
+        source_file: str | None = None,
+    ) -> list[TextChunk]:
         """Token-based segmentation with configurable overlap.
 
         Splits *text* into windows of at most *max_tokens* tokens, keeping
@@ -299,7 +299,7 @@ class DocumentSegmenter:
                 )
             ]
 
-        chunks: List[TextChunk] = []
+        chunks: list[TextChunk] = []
         # We operate on a word-level approximation for splitting, then measure
         # token counts precisely.  This is because tiktoken encodes
         # unpredictably at sub-word boundaries.
@@ -369,8 +369,8 @@ class DocumentSegmenter:
         self,
         text: str,
         similarity_threshold: float = 0.75,
-        source_file: Optional[str] = None,
-    ) -> List[TextChunk]:
+        source_file: str | None = None,
+    ) -> list[TextChunk]:
         """Semantic segmentation — split at natural topic boundaries.
 
         The algorithm works in three phases:
@@ -416,7 +416,7 @@ class DocumentSegmenter:
             ]
 
         # Phase 1: Compute consecutive similarities and detect topic breaks.
-        breaks: List[int] = [0]  # always break at the start
+        breaks: list[int] = [0]  # always break at the start
         for i in range(1, len(sentences)):
             sim = calculate_similarity(sentences[i - 1], sentences[i])
             if sim < similarity_threshold:
@@ -425,7 +425,7 @@ class DocumentSegmenter:
         breaks.append(len(sentences))  # always break at the end
 
         # Phase 2: Build preliminary groups.
-        groups: List[List[str]] = []
+        groups: list[list[str]] = []
         for i in range(len(breaks) - 1):
             group = sentences[breaks[i] : breaks[i + 1]]
             if group:
@@ -436,7 +436,7 @@ class DocumentSegmenter:
         merged_groups = self._merge_small_groups(groups, min_tokens)
 
         # Phase 4: Build TextChunk objects.
-        chunks: List[TextChunk] = []
+        chunks: list[TextChunk] = []
         global_token_offset = 0
 
         for idx, group in enumerate(merged_groups):
@@ -465,9 +465,9 @@ class DocumentSegmenter:
 
     def _merge_small_groups(
         self,
-        groups: List[List[str]],
+        groups: list[list[str]],
         min_tokens: int,
-    ) -> List[List[str]]:
+    ) -> list[list[str]]:
         """Merge groups whose token count is below *min_tokens*.
 
         Small groups are merged with the *next* group when possible to keep
@@ -487,7 +487,7 @@ class DocumentSegmenter:
         # Compute token counts for each group.
         group_tokens = [count_tokens(" ".join(g)) for g in groups]
 
-        merged: List[List[str]] = []
+        merged: list[list[str]] = []
         i = 0
         while i < len(groups):
             if group_tokens[i] >= min_tokens or i == len(groups) - 1:
@@ -510,7 +510,7 @@ class DocumentSegmenter:
                     # Update token count for the combined group if we need
                     # to check further merges.
                     if i + 2 < len(groups):
-                        group_tokens[i + 2]  # noqa: B018 — just bounds check
+                        group_tokens[i + 2]
                     i += 2
                 else:
                     # No next group — merge with previous.
@@ -529,8 +529,8 @@ class DocumentSegmenter:
     def segment_by_structure(
         self,
         text: str,
-        source_file: Optional[str] = None,
-    ) -> List[TextChunk]:
+        source_file: str | None = None,
+    ) -> list[TextChunk]:
         """Structure-aware segmentation using headers, paragraphs, and lists.
 
         The algorithm detects:
@@ -554,9 +554,9 @@ class DocumentSegmenter:
             List of :class:`TextChunk` instances with ``chunk_type=STRUCTURAL``.
         """
         lines = text.split("\n")
-        sections: List[Dict[str, Any]] = []
-        current_heading: Optional[str] = None
-        current_lines: List[str] = []
+        sections: list[dict[str, Any]] = []
+        current_heading: str | None = None
+        current_lines: list[str] = []
         max_tokens = self.config.max_tokens
 
         def _flush() -> None:
@@ -589,7 +589,7 @@ class DocumentSegmenter:
         _flush()
 
         # Build chunks — sub-divide large sections.
-        chunks: List[TextChunk] = []
+        chunks: list[TextChunk] = []
         global_token_offset = 0
 
         for idx, section in enumerate(sections):
@@ -630,9 +630,9 @@ class DocumentSegmenter:
         max_tokens: int,
         base_token_offset: int,
         base_index: int,
-        source_file: Optional[str],
-        heading: Optional[str],
-    ) -> List[TextChunk]:
+        source_file: str | None,
+        heading: str | None,
+    ) -> list[TextChunk]:
         """Split a large section into paragraph-based sub-chunks.
 
         Paragraphs (double-newline separated blocks) are grouped until
@@ -650,8 +650,8 @@ class DocumentSegmenter:
             List of sub-chunks.
         """
         paragraphs = re.split(r"\n{2,}", text)
-        chunks: List[TextChunk] = []
-        current_paras: List[str] = []
+        chunks: list[TextChunk] = []
+        current_paras: list[str] = []
         current_tokens = 0
         sub_idx = 0
         offset = base_token_offset
@@ -720,8 +720,8 @@ class DocumentSegmenter:
     def segment_hybrid(
         self,
         text: str,
-        source_file: Optional[str] = None,
-    ) -> List[TextChunk]:
+        source_file: str | None = None,
+    ) -> list[TextChunk]:
         """Combine structural, size, and semantic segmentation for optimal results.
 
         The hybrid pipeline proceeds in three stages:
@@ -751,7 +751,7 @@ class DocumentSegmenter:
 
         # Stage 2: Size enforcement — split oversized chunks.
         max_tokens = self.config.max_tokens
-        final_chunks: List[TextChunk] = []
+        final_chunks: list[TextChunk] = []
 
         for chunk in chunks:
             if chunk.token_count > max_tokens:
@@ -768,7 +768,7 @@ class DocumentSegmenter:
 
         # Stage 3: Semantic refinement on larger chunks.
         similarity_threshold = 0.75
-        refined: List[TextChunk] = []
+        refined: list[TextChunk] = []
 
         for chunk in final_chunks:
             # Only apply semantic splitting to chunks that are large enough
@@ -798,7 +798,7 @@ class DocumentSegmenter:
         self,
         chunk: TextChunk,
         max_tokens: int,
-    ) -> List[TextChunk]:
+    ) -> list[TextChunk]:
         """Sub-split an oversized chunk into size-based sub-chunks.
 
         Uses paragraph boundaries where possible, falling back to
@@ -815,8 +815,8 @@ class DocumentSegmenter:
 
         # Try paragraph-level splitting first.
         paragraphs = re.split(r"\n{2,}", text)
-        sub_chunks: List[TextChunk] = []
-        current_paras: List[str] = []
+        sub_chunks: list[TextChunk] = []
+        current_paras: list[str] = []
         current_tokens = 0
         base_offset = chunk.start_token
 
@@ -850,7 +850,7 @@ class DocumentSegmenter:
             # If a single paragraph exceeds max_tokens, split by sentences.
             if para_tokens > max_tokens:
                 sentences = _split_sentences(para)
-                sent_buffer: List[str] = []
+                sent_buffer: list[str] = []
                 sent_tokens = 0
 
                 for sent in sentences:
@@ -916,7 +916,7 @@ class DocumentSegmenter:
         self,
         chunk: TextChunk,
         similarity_threshold: float,
-    ) -> List[TextChunk]:
+    ) -> list[TextChunk]:
         """Apply semantic boundary detection within a single chunk.
 
         Splits the chunk at points where consecutive sentences have low
@@ -936,7 +936,7 @@ class DocumentSegmenter:
             return [chunk]
 
         # Find break points.
-        breaks: List[int] = [0]
+        breaks: list[int] = [0]
         for i in range(1, len(sentences)):
             sim = calculate_similarity(sentences[i - 1], sentences[i])
             if sim < similarity_threshold:
@@ -944,7 +944,7 @@ class DocumentSegmenter:
         breaks.append(len(sentences))
 
         # Build candidate groups.
-        groups: List[List[str]] = []
+        groups: list[list[str]] = []
         for i in range(len(breaks) - 1):
             group = sentences[breaks[i] : breaks[i + 1]]
             if group:
@@ -958,7 +958,7 @@ class DocumentSegmenter:
             return [chunk]
 
         # Build sub-chunks.
-        result: List[TextChunk] = []
+        result: list[TextChunk] = []
         offset = chunk.start_token
 
         for group in valid_groups:

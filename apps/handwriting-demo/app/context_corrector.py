@@ -14,14 +14,11 @@ Layers:
 All corrections are gated by the ENABLE_CONTEXT_CORRECTION env-var (default: 1).
 """
 
-import json
 import logging
 import os
 import re
-import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -152,10 +149,10 @@ class ContextCorrector:
     ensemble voting step and corrects individual region texts.
     """
 
-    def __init__(self, dictionary_terms: Optional[Set[str]] = None):
+    def __init__(self, dictionary_terms: set[str] | None = None):
         """Initialise with optional pre-loaded dictionary terms."""
-        self.dictionary: Set[str] = set()
-        self.normalized_dict: Dict[str, str] = {}  # normalized → original
+        self.dictionary: set[str] = set()
+        self.normalized_dict: dict[str, str] = {}  # normalized → original
         if dictionary_terms:
             self.load_dictionary(dictionary_terms)
 
@@ -174,7 +171,7 @@ class ContextCorrector:
                     self.normalized_dict[norm] = term
         logger.info("ContextCorrector: loaded %d terms", len(self.normalized_dict))
 
-    def fuzzy_match(self, word: str, threshold: float = 0.75) -> Optional[str]:
+    def fuzzy_match(self, word: str, threshold: float = 0.75) -> str | None:
         """Find the closest match in the medical dictionary.
 
         Uses SequenceMatcher (stdlib) — no external dependency needed.
@@ -220,7 +217,7 @@ class ContextCorrector:
             return best_match
         return None
 
-    def merge_fragmented_words(self, words: List[str]) -> List[str]:
+    def merge_fragmented_words(self, words: list[str]) -> list[str]:
         """Merge short fragmented Arabic words (common PaddleOCR issue).
 
         Strategies:
@@ -234,7 +231,7 @@ class ContextCorrector:
         if not words:
             return words
 
-        merged: List[str] = []
+        merged: list[str] = []
         i = 0
 
         while i < len(words):
@@ -339,7 +336,7 @@ class ContextCorrector:
         # Fall back to word-level merging
         return ' '.join(self.merge_fragmented_words(words))
 
-    def correct_text(self, text: str) -> Tuple[str, bool]:
+    def correct_text(self, text: str) -> tuple[str, bool]:
         """Correct a single OCR text line.
 
         Pipeline:
@@ -403,10 +400,10 @@ class ContextCorrector:
 # Singleton + public API
 # ---------------------------------------------------------------------------
 
-_corrector: Optional[ContextCorrector] = None
+_corrector: ContextCorrector | None = None
 
 
-def _ensure_corrector() -> Optional[ContextCorrector]:
+def _ensure_corrector() -> ContextCorrector | None:
     """Lazy-initialize the corrector, loading terms from the existing dictionary + orthopedic terms."""
     global _corrector
     if _corrector is not None:
@@ -426,7 +423,7 @@ def _ensure_corrector() -> Optional[ContextCorrector]:
             if ortho_path.exists():
                 try:
                     import json as _json
-                    with open(ortho_path, 'r', encoding='utf-8') as f:
+                    with open(ortho_path, encoding='utf-8') as f:
                         data = _json.load(f)
                     ortho_terms = set()
                     for term, variants in data.get("orthopedic_terms", {}).items():
@@ -447,7 +444,7 @@ def _ensure_corrector() -> Optional[ContextCorrector]:
     if ortho_path.exists():
         try:
             import json as _json
-            with open(ortho_path, 'r', encoding='utf-8') as f:
+            with open(ortho_path, encoding='utf-8') as f:
                 data = _json.load(f)
             ortho_terms = set()
             for term, variants in data.get("orthopedic_terms", {}).items():
@@ -465,7 +462,7 @@ def _ensure_corrector() -> Optional[ContextCorrector]:
     return _corrector
 
 
-def context_correct(text: str) -> Tuple[str, bool]:
+def context_correct(text: str) -> tuple[str, bool]:
     """Correct OCR text using context-aware dictionary matching.
 
     Safe to call on every region — returns original text if no correction found

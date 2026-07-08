@@ -138,7 +138,6 @@ class AppLogger:
             return {"status": "skipped", "reason": "no_token"}
 
         try:
-            import urllib.request
             content  = self._build_log_content()
             gist_id  = self._load_gist_id()
             filename = f"omnifile_log_{datetime.now():%Y%m}.txt"
@@ -173,7 +172,8 @@ class AppLogger:
 
     def _api_call(self, method: str, url: str, data: dict) -> dict:
         """استدعاء GitHub API."""
-        import urllib.request, urllib.error
+        import urllib.request
+        import urllib.error
         body = json.dumps(data).encode("utf-8")
         req  = urllib.request.Request(
             url, data=body, method=method,

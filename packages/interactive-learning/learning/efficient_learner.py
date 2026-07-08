@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 interactive_learning/learning/efficient_learner.py
 ===================================================
@@ -19,18 +18,15 @@ Usage:
     metrics = learner.learn_from_corrections(epochs=3)
 """
 
+import contextlib
 import io
-import json
 import logging
-import math
-import os
 import pickle
-import struct
 import time
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -97,8 +93,8 @@ class MemoryEfficientLearner:
 
         # EWC (Elastic Weight Consolidation)
         self.ewc_lambda = ewc_lambda
-        self._fisher_information: Dict[str, torch.Tensor] = {}
-        self._optimal_params: Dict[str, torch.Tensor] = {}
+        self._fisher_information: dict[str, torch.Tensor] = {}
+        self._optimal_params: dict[str, torch.Tensor] = {}
         self._ewc_initialized = False
 
         # Statistics
@@ -166,6 +162,7 @@ class MemoryEfficientLearner:
     def _decompress_image(self, compressed: bytes) -> np.ndarray:
         """Decompress image from zlib + JPEG."""
         import zlib
+
         from PIL import Image as PILImage
 
         jpeg_bytes = zlib.decompress(compressed)
@@ -205,7 +202,7 @@ class MemoryEfficientLearner:
         except Exception as e:
             logger.error(f"Failed to offload correction to disk: {e}")
 
-    def _load_from_disk(self) -> List[CorrectionItem]:
+    def _load_from_disk(self) -> list[CorrectionItem]:
         """Load all corrections from disk."""
         items = []
 
@@ -233,14 +230,13 @@ class MemoryEfficientLearner:
         epochs: int = 1,
         batch_size: int = 4,
         learning_rate: float = 5e-5,
-    ) -> Dict:
+    ) -> dict:
         """
         Train on accumulated corrections.
 
         Uses mixed precision, gradient accumulation, and EWC regularization.
         """
         import torch
-        from torch.nn import functional as F
 
         # Gather all corrections
         all_corrections = list(self.hot_memory)
@@ -377,8 +373,8 @@ class MemoryEfficientLearner:
         }
 
     def _create_batches(
-        self, corrections: List[CorrectionItem], batch_size: int
-    ) -> List[List[CorrectionItem]]:
+        self, corrections: list[CorrectionItem], batch_size: int
+    ) -> list[list[CorrectionItem]]:
         """Create batches of corrections."""
         batches = []
         for i in range(0, len(corrections), batch_size):
@@ -415,7 +411,7 @@ class MemoryEfficientLearner:
             logger.warning(f"EWC loss computation failed: {e}")
             return 0.0
 
-    def _update_ewc(self, corrections: List[CorrectionItem], sample_size: int = 10):
+    def _update_ewc(self, corrections: list[CorrectionItem], sample_size: int = 10):
         """
         Compute Fisher Information Matrix on a sample of corrections.
 
@@ -505,7 +501,7 @@ class MemoryEfficientLearner:
 
         logger.info(f"Fisher Information computed for {len(fisher)} parameters")
 
-    def predict_with_confidence(self, image: np.ndarray) -> Tuple[str, float]:
+    def predict_with_confidence(self, image: np.ndarray) -> tuple[str, float]:
         """
         Predict text with per-token confidence.
 
@@ -565,10 +561,8 @@ class MemoryEfficientLearner:
 
         # Clear disk cache
         for filepath in self.cache_dir.glob("correction_*.pkl.zst"):
-            try:
+            with contextlib.suppress(Exception):
                 filepath.unlink()
-            except Exception:
-                pass
 
         self._disk_count = 0
         self._cache_size_bytes = 0

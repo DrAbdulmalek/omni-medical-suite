@@ -15,7 +15,6 @@ import io
 import json
 import logging
 import os
-import traceback
 from datetime import datetime
 
 import pandas as pd
@@ -40,7 +39,8 @@ except ImportError:
 # OmniFile v5.0 — EngineRouter + HybridSpellChecker + WordCorrectionDB
 # ====================================================================
 try:
-    import sys as _sys, os as _os
+    import sys as _sys
+    import os as _os
     _root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
     if _root not in _sys.path:
         _sys.path.insert(0, _root)
@@ -110,7 +110,7 @@ def _normalize_text(x) -> str:
 
 def _word_row(config):
     """جلب صف الكلمة الحالي للعرض."""
-    db = _get_db(config)
+    _get_db(config)
     df, idx = _review_state["df"], _review_state["idx"]
     if df.empty:
         return None, "", "", "لا توجد كلمات للمراجعة", 0.0, "0/0"
@@ -162,7 +162,7 @@ def word_confirm(config, corrected_text: str):
         except ImportError:
             from src.correction import append_feedback
         append_feedback(config.feedback_csv, rid, orig, corr, "verified")
-        logger.info(f"  تم تسجيل تصحيح في feedback CSV")
+        logger.info("  تم تسجيل تصحيح في feedback CSV")
     _review_state["df"] = df.drop(df.index[idx]).reset_index(drop=True)
     _review_state["idx"] = min(idx, max(0, len(_review_state["df"]) - 1))
     return _word_row(config)
@@ -263,7 +263,7 @@ def sent_save(config, corrected: str):
     row = sentences[idx]
     orig = _normalize_text(row["text"])
     corr = _normalize_text(corrected)
-    ts = datetime.now().isoformat()
+    datetime.now().isoformat()
     for wid in row["word_ids"]:
         db.update_word(
             int(wid),
@@ -401,7 +401,6 @@ def _do_process(config, inp, sp, ep, resume, adaptive, progress=None):
         "adaptive": str(adaptive),
     })
 
-    from src.recognition import OCREngine
     from src.pdf_processor import PDFProcessor
     from src.correction import init_correctors
 
@@ -504,7 +503,6 @@ def _do_finetune(config, min_s, ep, bs, lr, progress=None):
         "learning_rate": lr,
     })
     from src.finetuning import finetune_trocr_lora
-    from src.recognition import OCREngine
 
     ocr = _get_ocr_engine(config)
     db = _get_db(config)

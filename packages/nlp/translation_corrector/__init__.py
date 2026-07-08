@@ -7,11 +7,11 @@ Bilingual Arabic Translation Correction System
 """
 
 from .arabic_translation_processor import (
-    TranslationRule,
     ArabicTranslationProcessor,
+    TranslationRule,
 )
 
 __all__ = [
-    "TranslationRule",
     "ArabicTranslationProcessor",
+    "TranslationRule",
 ]

@@ -7,7 +7,6 @@
 - similarity_report(): تقرير تشابه مفصّل مع توصيات
 """
 
-import pytest
 from modules.nlp.arabic_nlp_utils import (
     normalize_for_comparison,
     arabic_normalized_similarity,

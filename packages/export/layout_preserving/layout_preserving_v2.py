@@ -5,11 +5,12 @@
 يعتمد على ملف JSON يحتوي على بيانات التخطيط المستخرجة.
 """
 import os
+
 from docx import Document
-from docx.shared import Inches, Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
-from PIL import Image
+from docx.shared import Cm, Inches, Pt
+
 
 def export_to_docx(layout_data, output_path):
     """

@@ -15,7 +15,7 @@
 """
 
 import logging
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 
@@ -59,7 +59,7 @@ class ImagePreprocessor:
         dilate_kernel_size: tuple[int, int] = (2, 2),
         dilate_iterations: int = 1,
         # إعدادات عامة
-        target_size: Optional[tuple[int, int]] = None,
+        target_size: tuple[int, int] | None = None,
         convert_to_grayscale: bool = True,
     ) -> None:
         """
@@ -326,7 +326,7 @@ class ImagePreprocessor:
             )
 
             boxes: list[dict] = []
-            img_h, img_w = gray.shape
+            _img_h, _img_w = gray.shape
 
             for contour in contours:
                 x, y, w, h = cv2.boundingRect(contour)

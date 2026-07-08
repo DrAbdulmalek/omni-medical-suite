@@ -16,7 +16,6 @@ OmniFile AI Processor v5.0 — Dr. Abdulmalek Tamer Al-husseini
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

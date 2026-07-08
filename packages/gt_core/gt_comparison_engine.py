@@ -16,16 +16,13 @@ Version: 1.0.0
 Date: 2026-06-04
 """
 
+import argparse
 import json
 import re
-import sys
-import argparse
-from pathlib import Path
-from typing import List, Dict, Tuple, Optional, Any
-from dataclasses import dataclass, asdict
-from collections import defaultdict
-import difflib
 import unicodedata
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -39,9 +36,9 @@ class ComparisonResult:
     char_total: int
     word_errors: int
     word_total: int
-    aligned_pairs: List[Tuple[str, str]]
-    error_details: List[Dict]
-    medical_terms: Dict[str, Any]
+    aligned_pairs: list[tuple[str, str]]
+    error_details: list[dict]
+    medical_terms: dict[str, Any]
 
 
 def normalize_arabic(text: str) -> str:
@@ -57,7 +54,7 @@ def normalize_arabic(text: str) -> str:
     return text.strip()
 
 
-def levenshtein_matrix(s1: str, s2: str) -> Tuple[int, List[List[int]]]:
+def levenshtein_matrix(s1: str, s2: str) -> tuple[int, list[list[int]]]:
     """Compute full Levenshtein matrix for alignment."""
     m, n = len(s1), len(s2)
     dp = [[0] * (n + 1) for _ in range(m + 1)]
@@ -79,7 +76,7 @@ def levenshtein_matrix(s1: str, s2: str) -> Tuple[int, List[List[int]]]:
     return dp[m][n], dp
 
 
-def align_sequences(s1: str, s2: str) -> List[Tuple[Optional[str], Optional[str]]]:
+def align_sequences(s1: str, s2: str) -> list[tuple[str | None, str | None]]:
     """
     Align two sequences using backtracking through Levenshtein matrix.
     Returns list of (char_from_s1, char_from_s2) pairs.
@@ -163,7 +160,7 @@ def compare_line(gt_line: str, ocr_line: str) -> ComparisonResult:
     )
 
 
-def analyze_medical_terms(gt_text: str, ocr_text: str) -> Dict:
+def analyze_medical_terms(gt_text: str, ocr_text: str) -> dict:
     """Analyze medical term accuracy."""
     # Common medical patterns
     patterns = [
@@ -195,7 +192,7 @@ def analyze_medical_terms(gt_text: str, ocr_text: str) -> Dict:
     }
 
 
-def generate_visual_diff(alignment: List[Tuple[Optional[str], Optional[str]]]) -> str:
+def generate_visual_diff(alignment: list[tuple[str | None, str | None]]) -> str:
     """Generate visual diff showing aligned characters."""
     gt_line = []
     ocr_line = []
@@ -222,7 +219,7 @@ def generate_visual_diff(alignment: List[Tuple[Optional[str], Optional[str]]]) -
     ])
 
 
-def generate_training_data(results: List[ComparisonResult]) -> List[Dict]:
+def generate_training_data(results: list[ComparisonResult]) -> list[dict]:
     """Generate training pairs from comparison results."""
     training_data = []
 
@@ -232,15 +229,15 @@ def generate_training_data(results: List[ComparisonResult]) -> List[Dict]:
                 "input": result.ocr_text,
                 "target": result.gt_text,
                 "cer": result.cer,
-                "error_types": list(set(e["type"] for e in result.error_details)),
+                "error_types": list({e["type"] for e in result.error_details}),
                 "medical_terms": result.medical_terms
             })
 
     return training_data
 
 
-def generate_correction_dictionary(results: List[ComparisonResult],
-                                    min_frequency: int = 2) -> Dict[str, str]:
+def generate_correction_dictionary(results: list[ComparisonResult],
+                                    min_frequency: int = 2) -> dict[str, str]:
     """Generate auto-correction dictionary from frequent errors."""
     error_counts = defaultdict(lambda: {"count": 0, "correction": ""})
 
@@ -287,10 +284,10 @@ Examples:
     args = parser.parse_args()
 
     # Load files
-    with open(args.gt, 'r', encoding='utf-8') as f:
+    with open(args.gt, encoding='utf-8') as f:
         gt_lines = [line.strip() for line in f if line.strip()]
 
-    with open(args.ocr, 'r', encoding='utf-8') as f:
+    with open(args.ocr, encoding='utf-8') as f:
         ocr_lines = [line.strip() for line in f if line.strip()]
 
     # Compare line by line

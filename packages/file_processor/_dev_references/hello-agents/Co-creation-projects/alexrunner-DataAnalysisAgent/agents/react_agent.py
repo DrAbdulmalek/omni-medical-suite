@@ -1,6 +1,6 @@
 import json
 from typing import Optional, List
-from hello_agents import ReActAgent, HelloAgentsLLM, Config, Message, ToolRegistry
+from hello_agents import ReActAgent, HelloAgentsLLM, Config, ToolRegistry
 from dotenv import load_dotenv
 
 MY_REACT_PROMPT = """

@@ -3,13 +3,11 @@ InnoCore AI 向量存储管理模块
 """
 
 import asyncio
-from typing import List, Dict, Optional, Any, Tuple
-import numpy as np
+from typing import List, Dict
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
 from qdrant_client.http.models import CollectionInfo
 import hashlib
-import json
 
 from .config import get_config
 from .exceptions import VectorStoreException

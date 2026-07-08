@@ -15,13 +15,12 @@ OmniFile AI Processor - وحدة معالجة الملفات الذكية
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class BlockType(str, Enum):
+class BlockType(StrEnum):
     """أنواع كتل محتوى المستند / Types of document content blocks."""
     TEXT = "text"
     HEADING = "heading"
@@ -67,7 +66,7 @@ class BBox(BaseModel):
         """نقطة المركز / Center point."""
         return (self.x + self.width // 2, self.y + self.height // 2)
 
-    def intersection(self, other: BBox) -> Optional[BBox]:
+    def intersection(self, other: BBox) -> BBox | None:
         """حساب تقاطع مربعين / Compute intersection of two bounding boxes."""
         x1 = max(self.x, other.x)
         y1 = max(self.y, other.y)
@@ -140,9 +139,9 @@ class DocumentBlock(BaseModel):
 
     block_type: BlockType = Field(default=BlockType.TEXT, description="Type of content block")
     tokens: list[OCRToken] = Field(default_factory=list, description="OCR tokens in this block")
-    bbox: Optional[BBox] = Field(default=None, description="Bounding box of the entire block")
+    bbox: BBox | None = Field(default=None, description="Bounding box of the entire block")
     confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Average confidence score")
-    table_data: Optional[list[list[str]]] = Field(
+    table_data: list[list[str]] | None = Field(
         default=None,
         description="Structured table data (rows x cols) if this is a table block",
     )
@@ -174,7 +173,7 @@ class DocumentPage(BaseModel):
     width: int = Field(ge=0, description="Page width in pixels")
     height: int = Field(ge=0, description="Page height in pixels")
     blocks: list[DocumentBlock] = Field(default_factory=list, description="Detected content blocks")
-    image_path: Optional[str] = Field(default=None, description="Path to the rendered page image")
+    image_path: str | None = Field(default=None, description="Path to the rendered page image")
 
     def get_full_text(self) -> str:
         """الحصول على كل النصوص من الصفحة / Get all text from the page."""

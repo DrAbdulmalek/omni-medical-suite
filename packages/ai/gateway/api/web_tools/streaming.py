@@ -7,7 +7,6 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 
-from ..models.anthropic import MessagesRequest
 from ...core.anthropic.server_tool_sse import (
     SERVER_TOOL_USE,
     WEB_FETCH_TOOL_ERROR,
@@ -16,7 +15,7 @@ from ...core.anthropic.server_tool_sse import (
     WEB_SEARCH_TOOL_RESULT_ERROR,
 )
 from ...core.anthropic.sse import format_sse_event
-
+from ..models.anthropic import MessagesRequest
 from . import outbound
 from .constants import _MAX_FETCH_CHARS
 from .egress import WebFetchEgressPolicy

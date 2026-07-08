@@ -10,16 +10,16 @@ deduplicated text chunks.  Supported formats:
 - **CSV** – spreadsheet-compatible export (BOM-marked for Excel).
 """
 
+from export.csv_exporter import CSVExporter
 from export.jsonl_exporter import JSONLExporter
 from export.parquet_exporter import ParquetExporter
-from export.rag_exporter import RAGExporter
-from export.csv_exporter import CSVExporter
 from export.pipeline import ExportPipeline
+from export.rag_exporter import RAGExporter
 
 __all__ = [
+    "CSVExporter",
+    "ExportPipeline",
     "JSONLExporter",
     "ParquetExporter",
     "RAGExporter",
-    "CSVExporter",
-    "ExportPipeline",
 ]

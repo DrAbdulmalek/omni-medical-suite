@@ -8,9 +8,8 @@ ContextBuilder 与 Agent 集成示例
 """
 from dotenv import load_dotenv
 load_dotenv()
-from hello_agents import SimpleAgent, HelloAgentsLLM, ToolRegistry
+from hello_agents import SimpleAgent, HelloAgentsLLM
 from hello_agents.context import ContextBuilder, ContextConfig
-from hello_agents.tools import MemoryTool, RAGTool
 from hello_agents.core.message import Message
 from datetime import datetime
 

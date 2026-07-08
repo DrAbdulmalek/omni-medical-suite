@@ -5,7 +5,7 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Float, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Text, Float, JSON
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()

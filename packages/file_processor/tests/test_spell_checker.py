@@ -1,5 +1,4 @@
 """Tests for modules.core.spell_checker.HybridSpellChecker"""
-import pytest
 import json
 
 class TestHybridSpellChecker:

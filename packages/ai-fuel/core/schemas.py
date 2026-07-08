@@ -9,20 +9,18 @@ produces or consumes one of these models.
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
-
 
 # ======================================================================
 # Enumerations
 # ======================================================================
 
 
-class ChunkType(str, Enum):
+class ChunkType(StrEnum):
     """Strategy used to create a text chunk."""
 
     SIZE_BASED = "size_based"
@@ -30,7 +28,7 @@ class ChunkType(str, Enum):
     STRUCTURAL = "structural"
 
 
-class ClassificationMethod(str, Enum):
+class ClassificationMethod(StrEnum):
     """Method used to assign a category to a text chunk."""
 
     KEYWORD = "keyword"
@@ -39,7 +37,7 @@ class ClassificationMethod(str, Enum):
     MANUAL = "manual"
 
 
-class ExportFormat(str, Enum):
+class ExportFormat(StrEnum):
     """Supported export file formats."""
 
     JSONL = "jsonl"
@@ -48,7 +46,7 @@ class ExportFormat(str, Enum):
     CSV = "csv"
 
 
-class Language(str, Enum):
+class Language(StrEnum):
     """Detected language of a text chunk."""
 
     ARABIC = "ar"
@@ -78,9 +76,9 @@ class TextChunk(BaseModel):
     char_count: int = Field(default=0, ge=0, description="Number of characters in the chunk.")
     word_count: int = Field(default=0, ge=0, description="Number of whitespace-delimited words in the chunk.")
     language: Language = Field(default=Language.UNKNOWN, description="Detected primary language.")
-    source_file: Optional[str] = Field(default=None, description="Path or name of the originating file.")
-    source_page: Optional[int] = Field(default=None, ge=0, description="Page number within the source document (if applicable).")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary key-value metadata.")
+    source_file: str | None = Field(default=None, description="Path or name of the originating file.")
+    source_page: int | None = Field(default=None, ge=0, description="Page number within the source document (if applicable).")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Arbitrary key-value metadata.")
 
     @field_validator("end_token")
     @classmethod
@@ -102,10 +100,10 @@ class ClassificationResult(BaseModel):
 
     chunk_id: str = Field(..., description="ID of the chunk that was classified.")
     category: str = Field(..., min_length=1, description="Primary category label assigned to the chunk.")
-    subcategory: Optional[str] = Field(default=None, description="Optional finer-grained sub-category.")
+    subcategory: str | None = Field(default=None, description="Optional finer-grained sub-category.")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Classification confidence score in [0, 1].")
     method: ClassificationMethod = Field(..., description="The classification method that produced this result.")
-    alternatives: List[Dict[str, Any]] = Field(
+    alternatives: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Ordered list of runner-up categories with their scores.",
     )
@@ -113,7 +111,7 @@ class ClassificationResult(BaseModel):
 
     @field_validator("alternatives")
     @classmethod
-    def validate_alternatives(cls, v: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def validate_alternatives(cls, v: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Ensure each alternative has at least 'category' and 'confidence' keys."""
         for idx, alt in enumerate(v):
             if "category" not in alt:
@@ -147,7 +145,7 @@ class DedupResult(BaseModel):
     """Result of deduplication analysis for a single chunk."""
 
     is_duplicate: bool = Field(default=False, description="Whether the chunk is a duplicate of an earlier one.")
-    duplicate_of: Optional[str] = Field(default=None, description="ID of the canonical chunk this is a duplicate of.")
+    duplicate_of: str | None = Field(default=None, description="ID of the canonical chunk this is a duplicate of.")
     method: str = Field(default="exact", description="Deduplication method used ('exact' or 'semantic').")
     similarity_score: float = Field(default=0.0, ge=0.0, le=1.0, description="Cosine similarity to the canonical chunk.")
 
@@ -164,22 +162,22 @@ class ProcessingStats(BaseModel):
     total_pages: int = Field(default=0, ge=0, description="Total pages across all documents.")
     total_chunks: int = Field(default=0, ge=0, description="Total chunks created before deduplication.")
     chunks_after_dedup: int = Field(default=0, ge=0, description="Chunks remaining after deduplication.")
-    classification_distribution: Dict[str, int] = Field(
+    classification_distribution: dict[str, int] = Field(
         default_factory=dict,
         description="Map of category name → chunk count.",
     )
     processing_time_seconds: float = Field(default=0.0, ge=0.0, description="Total wall-clock processing time.")
     avg_confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Mean classification confidence across all chunks.")
     phi_detections: int = Field(default=0, ge=0, description="Number of PHI detections during processing.")
-    export_format: Optional[str] = Field(default=None, description="Format used for export (if exported).")
-    output_path: Optional[str] = Field(default=None, description="File system path to the exported output.")
+    export_format: str | None = Field(default=None, description="Format used for export (if exported).")
+    output_path: str | None = Field(default=None, description="File system path to the exported output.")
 
 
 class DocumentResult(BaseModel):
     """Complete result of processing a single document through the full pipeline."""
 
     source_file: str = Field(..., description="Path or name of the processed document.")
-    chunks: List[ClassifiedChunk] = Field(default_factory=list, description="All classified (and optionally deduplicated) chunks.")
+    chunks: list[ClassifiedChunk] = Field(default_factory=list, description="All classified (and optionally deduplicated) chunks.")
     stats: ProcessingStats = Field(default_factory=ProcessingStats, description="Processing statistics for this document.")
     created_at: datetime = Field(default_factory=datetime.now, description="Timestamp when the result was created.")
 
@@ -192,17 +190,17 @@ class DocumentResult(BaseModel):
 class ReviewSample(BaseModel):
     """A chunk flagged for human review as part of the active-learning loop."""
 
-    id: Optional[int] = Field(default=None, description="Auto-incremented database primary key (set on persist).")
+    id: int | None = Field(default=None, description="Auto-incremented database primary key (set on persist).")
     text: str = Field(..., min_length=1, description="The chunk text under review.")
-    predictions: List[Dict[str, Any]] = Field(
+    predictions: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Model predictions [{'category': ..., 'confidence': ...}, ...].",
     )
     confidence: float = Field(..., ge=0.0, le=1.0, description="Highest prediction confidence (used to flag low-confidence samples).")
     status: str = Field(default="pending", description="Review status: pending, approved, rejected, skipped.")
-    correct_category: Optional[str] = Field(default=None, description="Human-annotated correct category.")
+    correct_category: str | None = Field(default=None, description="Human-annotated correct category.")
     created_at: datetime = Field(default_factory=datetime.now, description="Timestamp when the sample was created.")
-    reviewed_at: Optional[datetime] = Field(default=None, description="Timestamp when the sample was reviewed.")
+    reviewed_at: datetime | None = Field(default=None, description="Timestamp when the sample was reviewed.")
 
     @field_validator("status")
     @classmethod

@@ -216,7 +216,6 @@ class OmniFileConfig:
     def is_colab(self) -> bool:
         """كشف بيئة Google Colab تلقائياً"""
         try:
-            import google.colab
             return True
         except Exception:
             return False

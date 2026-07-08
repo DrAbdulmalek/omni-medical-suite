@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 modules/registry.py
 ====================
@@ -16,13 +15,13 @@ from __future__ import annotations
 
 from core.module_base import MaintenanceModule
 
-from modules.network_reset import NetworkResetModule
-from modules.pkg_cleanup import PackageCleanupModule
+from modules.disk_analyzer import DiskAnalyzerModule
 from modules.failed_services import FailedServicesModule
 from modules.journal_vacuum import JournalVacuumModule
-from modules.mirror_rank import MirrorRankModule
 from modules.kernel_cleanup import KernelCleanupModule
-from modules.disk_analyzer import DiskAnalyzerModule
+from modules.mirror_rank import MirrorRankModule
+from modules.network_reset import NetworkResetModule
+from modules.pkg_cleanup import PackageCleanupModule
 from modules.startup_manager import StartupManagerModule
 
 

@@ -21,13 +21,12 @@
     gen.export("jsonl")
 """
 
-import json
 import csv
+import json
 import logging
 import os
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ class DatasetGenerator:
         self.max_entries = max_entries
 
         # قاعدة البيانات في الذاكرة
-        self._entries: List[Dict[str, Any]] = []
+        self._entries: list[dict[str, Any]] = []
         self._stats = {
             "total_entries": 0,
             "by_specialty": {},
@@ -84,13 +83,13 @@ class DatasetGenerator:
 
     def add_entry(
         self,
-        instruction: Optional[str] = None,
+        instruction: str | None = None,
         input_text: str = "",
         output_text: str = "",
-        specialty: Optional[str] = None,
+        specialty: str | None = None,
         quality: str = "auto",
         source_file: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """
         إضافة إدخال جديد إلى قاعدة بيانات التدريب.
@@ -224,9 +223,9 @@ class DatasetGenerator:
     def export(
         self,
         format_type: str = "jsonl",
-        filename: Optional[str] = None,
-        split_ratios: Optional[Dict[str, float]] = None,
-    ) -> Dict[str, str]:
+        filename: str | None = None,
+        split_ratios: dict[str, float] | None = None,
+    ) -> dict[str, str]:
         """
         تصدير بيانات التدريب إلى ملف.
 
@@ -274,7 +273,7 @@ class DatasetGenerator:
 
         return output_files
 
-    def _write_file(self, entries: List[Dict], filepath: str, format_type: str):
+    def _write_file(self, entries: list[dict], filepath: str, format_type: str):
         """كتابة البيانات إلى ملف بالتنسيق المحدد."""
         if format_type == "jsonl":
             with open(filepath, "w", encoding="utf-8") as f:
@@ -314,7 +313,7 @@ class DatasetGenerator:
                         entry.get("quality", ""),
                     ])
 
-    def _split_data(self, ratios: Dict[str, float]) -> Dict[str, List[Dict]]:
+    def _split_data(self, ratios: dict[str, float]) -> dict[str, list[dict]]:
         """تقسيم البيانات حسب النسب المحددة."""
         total = len(self._entries)
         splits = {}
@@ -343,7 +342,7 @@ class DatasetGenerator:
         extensions = {"jsonl": ".jsonl", "json": ".json", "csv": ".csv"}
         return extensions.get(format_type, ".jsonl")
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """الحصول على إحصائيات بيانات التدريب."""
         stats = dict(self._stats)
         stats["output_dir"] = self.output_dir
@@ -369,7 +368,7 @@ class DatasetGenerator:
 
         count = 0
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line:

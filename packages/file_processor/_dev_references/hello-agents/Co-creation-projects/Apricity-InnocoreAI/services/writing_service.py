@@ -4,7 +4,6 @@
 
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
-from ..core.database import get_db
 from ..models.writing import WritingDB, Writing, WritingCreate, WritingUpdate
 from ..core.exceptions import WritingNotFoundError
 from ..services.paper_service import PaperService

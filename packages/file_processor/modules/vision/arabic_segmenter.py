@@ -19,7 +19,7 @@ Author: Dr. Abdulmalek Al-husseini
 
 import cv2
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import List, Tuple
 from dataclasses import dataclass
 from enum import Enum
 

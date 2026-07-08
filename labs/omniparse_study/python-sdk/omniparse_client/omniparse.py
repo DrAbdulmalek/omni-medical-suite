@@ -1,10 +1,10 @@
 import os
-import httpx
-import base64
-import requests
+
 import aiofiles
-from typing import Optional
-from .utils import save_images_and_markdown, ParsedDocument
+import httpx
+import requests
+
+from .utils import ParsedDocument, save_images_and_markdown
 
 
 class OmniParse:
@@ -132,7 +132,7 @@ class AsyncOmniParse:
         }
 
     async def __request__(
-        self, endpoint: str, files: dict = None, json: dict = None
+        self, endpoint: str, files: dict | None = None, json: dict | None = None
     ) -> dict:
         """
         Internal method to make API requests.
@@ -155,7 +155,7 @@ class AsyncOmniParse:
             return response.json()
 
     async def parse_document(
-        self, file_path: str, output_folder: Optional[str]
+        self, file_path: str, output_folder: str | None
     ) -> ParsedDocument:
         """
         Parse a document file (PDF, PPT, or DOCX) and convert it to structured markdown.
@@ -198,7 +198,7 @@ class AsyncOmniParse:
             data.save_data(echo=True)
 
     async def parse_pdf(
-        self, file_path: str, output_folder: Optional[str]
+        self, file_path: str, output_folder: str | None
     ) -> ParsedDocument:
         """
         Parse a PDF file and convert it to structured markdown.
@@ -237,7 +237,7 @@ class AsyncOmniParse:
             data.save_data(echo=True)
 
     async def parse_ppt(
-        self, file_path: str, output_folder: Optional[str]
+        self, file_path: str, output_folder: str | None
     ) -> ParsedDocument:
         """
         Parse a PowerPoint file and convert it to structured markdown.
@@ -276,7 +276,7 @@ class AsyncOmniParse:
             data.save_data(echo=True)
 
     async def parse_docs(
-        self, file_path: str, output_folder: Optional[str]
+        self, file_path: str, output_folder: str | None
     ) -> ParsedDocument:
         """
         Parse a Word document file and convert it to structured markdown.
@@ -399,7 +399,7 @@ class AsyncOmniParse:
         )
 
     async def process_image(
-        self, file_path: str, task: str, prompt: Optional[str] = None
+        self, file_path: str, task: str, prompt: str | None = None
     ) -> dict:
         """
         Process an image with a specific task such as OCR, captioning, or object detection.

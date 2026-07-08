@@ -7,7 +7,6 @@
 
 import logging
 import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +95,7 @@ class TextClassifier:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         device: str = "cpu",
     ) -> None:
         """
@@ -255,7 +254,7 @@ class TextClassifier:
 
             # تحويل التسميات إلى الفئات الداخلية
             mapped_scores: dict[str, float] = {}
-            for label, score in zip(labels, scores):
+            for label, score in zip(labels, scores, strict=False):
                 mapped = label_map.get(label, "general")
                 mapped_scores[mapped] = max(
                     mapped_scores.get(mapped, 0.0), score
@@ -384,4 +383,4 @@ class TextClassifier:
         العائد:
             قائمة بأسماء الفئات.
         """
-        return list(self._CATEGORY_KEYWORDS.keys()) + ["general"]
+        return [*list(self._CATEGORY_KEYWORDS.keys()), "general"]

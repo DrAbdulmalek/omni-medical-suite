@@ -1,7 +1,6 @@
 """
 Security Configuration - Pydantic-based (compatible with v1 and v2)
 """
-from typing import List, Optional
 from functools import lru_cache
 
 try:
@@ -29,10 +28,10 @@ class SecurityConfig(BaseSettings):
     POSTGRES_PORT: int = 5432
 
     # CORS (used by main.py middleware)
-    CORS_ALLOW_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8080"]
     CORS_ALLOW_CREDENTIALS: bool = True
-    CORS_ALLOW_METHODS: List[str] = ["*"]
-    CORS_ALLOW_HEADERS: List[str] = ["*"]
+    CORS_ALLOW_METHODS: list[str] = ["*"]
+    CORS_ALLOW_HEADERS: list[str] = ["*"]
 
     # Security Headers
     ENABLE_SECURITY_HEADERS: bool = True
@@ -93,7 +92,7 @@ class SecurityConfig(BaseSettings):
         return True
 
 
-@lru_cache()
+@lru_cache
 def get_security_config() -> SecurityConfig:
     """Get security configuration - cached for performance"""
     return SecurityConfig()

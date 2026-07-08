@@ -14,9 +14,8 @@
 الترخيص: MIT
 """
 
-import re
 import logging
-from typing import Optional
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +52,7 @@ class MixedLanguageHandler:
         >>> corrected = handler.correct_text_mixed(text)
     """
 
-    def __init__(self, languages: Optional[list[str]] = None):
+    def __init__(self, languages: list[str] | None = None):
         """
         تهيئة المعالج.
 
@@ -111,7 +110,7 @@ class MixedLanguageHandler:
         """
         tokens = re.findall(r"\S+|\s+", text)
         segments: list[tuple[str, str]] = []
-        current_lang: Optional[str] = None
+        current_lang: str | None = None
         current_segment = ""
 
         for token in tokens:

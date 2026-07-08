@@ -26,9 +26,9 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable, List, Optional, Dict, Any, Set
-from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +50,11 @@ class FolderWatchdog:
         self,
         watch_dir: str,
         callback: Callable[[str], Any],
-        extensions: Optional[List[str]] = None,
+        extensions: list[str] | None = None,
         recursive: bool = False,
         poll_interval: float = 2.0,
         debounce_seconds: float = 1.0,
-        log_file: Optional[str] = None,
+        log_file: str | None = None,
     ):
         """
         تهيئة مراقب المجلدات.
@@ -71,19 +71,19 @@ class FolderWatchdog:
         """
         self.watch_dir = os.path.abspath(watch_dir)
         self.callback = callback
-        self.extensions = set(
+        self.extensions = {
             ext.lower() for ext in (extensions or self.SUPPORTED_EXTENSIONS)
-        )
+        }
         self.recursive = recursive
         self.poll_interval = poll_interval
         self.debounce_seconds = debounce_seconds
 
         # حالة المراقب
         self._running = False
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
-        self._seen_files: Set[str] = set()
-        self._pending_files: Dict[str, float] = {}
+        self._seen_files: set[str] = set()
+        self._pending_files: dict[str, float] = {}
 
         # إحصائيات
         self._stats = {
@@ -95,7 +95,7 @@ class FolderWatchdog:
         }
 
         # سجل العمليات
-        self._operation_log: List[Dict[str, Any]] = []
+        self._operation_log: list[dict[str, Any]] = []
         self.log_file = log_file
 
         # محاولة استخدام watchdog
@@ -117,8 +117,8 @@ class FolderWatchdog:
     def _try_import_watchdog(self):
         """محاولة استيراد مكتبة watchdog."""
         try:
-            from watchdog.observers import Observer  # type: ignore
             from watchdog.events import FileSystemEventHandler  # type: ignore
+            from watchdog.observers import Observer  # type: ignore
             self._watchdog_observer_cls = Observer
             self._watchdog_handler_cls = FileSystemEventHandler
             self._use_watchdog = True
@@ -146,9 +146,7 @@ class FolderWatchdog:
     def _is_valid_file(self, filepath: str) -> bool:
         """التحقق من أن الملف يطابق فلاتر الامتدادات."""
         ext = os.path.splitext(filepath)[1].lower()
-        if self.extensions and ext not in self.extensions:
-            return False
-        return True
+        return not (self.extensions and ext not in self.extensions)
 
     def _is_file_ready(self, filepath: str) -> bool:
         """
@@ -171,9 +169,9 @@ class FolderWatchdog:
                 with open(filepath, 'rb') as f:
                     f.seek(0, 2)  # الذهاب للنهاية
                 return True
-            except (IOError, OSError):
+            except OSError:
                 return False
-        except (OSError, IOError):
+        except OSError:
             return False
 
     def _process_file(self, filepath: str):
@@ -240,7 +238,6 @@ class FolderWatchdog:
 
     def _start_watchdog(self):
         """بدء المراقبة باستخدام مكتبة watchdog."""
-        from watchdog.observers import Observer  # type: ignore
         from watchdog.events import FileSystemEventHandler  # type: ignore
 
         class Handler(FileSystemEventHandler):
@@ -339,7 +336,7 @@ class FolderWatchdog:
 
         logger.info("تم إيقاف مراقب المجلدات")
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """الحصول على إحصائيات المراقب."""
         stats = dict(self._stats)
         stats["watch_dir"] = self.watch_dir
@@ -371,7 +368,7 @@ class FolderWatchdog:
             except Exception as e:
                 logger.error("خطأ في كتابة سجل العمليات: %s", e)
 
-    def get_operation_log(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_operation_log(self, limit: int = 100) -> list[dict[str, Any]]:
         """الحصول على سجل العمليات."""
         return self._operation_log[-limit:]
 

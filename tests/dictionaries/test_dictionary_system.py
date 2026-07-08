@@ -4,24 +4,19 @@
 يغطي: BGL Converter, StarDict Reader, TMX Processor, Dictionary Pipeline
 """
 
+import json
 import os
 import sys
-import json
 import tempfile
 import unittest
 
 # إضافة المسار
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from packages.medical.bgl_converter import (
-    BGLConverter, TextFilter, OutputFormat, DictionaryEntry, BGLReader
-)
-from packages.medical.tmx_processor import (
-    TMXParser, TMXProcessor, TMXMedicalExtractor,
-    TMXEntry, TMXHeader, EntryStatus, MedicalTermEntry
-)
+from packages.medical.bgl_converter import BGLConverter, TextFilter
 from packages.medical.dictionary_manager import MedicalDictionaryManager
 from packages.medical.dictionary_pipeline import DictionaryPipeline
+from packages.medical.tmx_processor import MedicalTermEntry, TMXEntry, TMXHeader, TMXMedicalExtractor, TMXParser
 
 
 class TestTextFilter(unittest.TestCase):
@@ -89,7 +84,7 @@ class TestBGLConverter(unittest.TestCase):
         self.assertTrue(result["total_entries"] >= 1)
         self.assertTrue(os.path.exists(output_path))
 
-        with open(output_path, "r", encoding="utf-8") as f:
+        with open(output_path, encoding="utf-8") as f:
             data = json.load(f)
         self.assertIn("_metadata", data)
         self.assertIn("entries", data)
@@ -151,7 +146,7 @@ class TestTMXParser(unittest.TestCase):
         with open(tmx_path, "w", encoding="utf-8") as f:
             f.write(tmx_content)
 
-        header, entries = self.parser.parse(tmx_path)
+        _header, entries = self.parser.parse(tmx_path)
         self.assertEqual(len(entries), 2)
         self.assertEqual(entries[0].source_text, "fracture")
         self.assertEqual(entries[0].target_text, "كسر")
@@ -175,7 +170,7 @@ class TestTMXParser(unittest.TestCase):
         with open(tmx_path, "w", encoding="utf-8") as f:
             f.write(tmx_content)
 
-        header, entries = self.parser.parse(tmx_path)
+        _header, entries = self.parser.parse(tmx_path)
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0].notes, "medical term")
 

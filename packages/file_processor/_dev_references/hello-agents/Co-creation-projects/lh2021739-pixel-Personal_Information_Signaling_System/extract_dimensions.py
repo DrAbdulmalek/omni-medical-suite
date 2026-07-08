@@ -309,7 +309,7 @@ def batch_extract_dimensions(base_dir: Path, report_type: str = None, llm=None, 
                 if result.get("reasoning"):
                     print(f"       推理: {result['reasoning'][:100]}...")
             else:
-                print(f"    ⚠️  未提取到维度")
+                print("    ⚠️  未提取到维度")
     
     return results
 

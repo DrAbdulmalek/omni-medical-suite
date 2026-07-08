@@ -1,29 +1,41 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 معالج الوثائق الطبية - الإصدار النهائي الموحد v16-Final
 يجمع أفضل الميزات من v13 إلى v16 مع إصلاحات خوارزميات القص والميلان.
 """
 
-import sys
-import os
 import json
-import time
+import os
+import sys
 import tempfile
-import shutil
-import numpy as np
+import time
+
 import cv2
-from PIL import Image
+import numpy as np
 import pytesseract
 from pdf2image import convert_from_path
+from PyQt5.QtCore import QSize, Qt, QTimer
+from PyQt5.QtGui import QFont, QIcon, QImage, QKeySequence, QPixmap
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QSlider, QFileDialog, QMessageBox, QProgressBar,
-    QGroupBox, QCheckBox, QSpinBox, QTextEdit, QListWidget, QSplitter,
-    QShortcut, QListWidgetItem, QGridLayout, QFrame, QComboBox, QToolTip
+    QApplication,
+    QCheckBox,
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QShortcut,
+    QSlider,
+    QSplitter,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize
-from PyQt5.QtGui import QPixmap, QImage, QKeySequence, QFont, QIcon, QColor
 
 # ============================================================================
 # 1. Core Algorithms (محسّنة بالكامل)
@@ -213,7 +225,7 @@ def calc_blur(img: np.ndarray) -> float:
     return float(laplacian.var())
 
 
-def extract_page_number(img: np.ndarray, region: tuple = None) -> int:
+def extract_page_number(img: np.ndarray, region: tuple | None = None) -> int:
     """استخراج رقم الصفحة من منطقة محددة (أو من الركن السفلي) باستخدام OCR."""
     h, w = img.shape[:2]
     if region:
@@ -277,7 +289,7 @@ class TrainingDataCollector:
             return None
         best_match = None
         best_dist = float('inf')
-        with open(self.data_file, "r", encoding="utf-8") as f:
+        with open(self.data_file, encoding="utf-8") as f:
             for line in f:
                 try:
                     sample = json.loads(line.strip())
@@ -543,7 +555,7 @@ class MedicalDocApp(QMainWindow):
     def _load_pdf(self, pdf_path):
         try:
             images = convert_from_path(pdf_path)
-            for i, img in enumerate(images):
+            for _i, img in enumerate(images):
                 temp_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
                 img.save(temp_path, "PNG")
                 self.image_list.append(LazyImage(temp_path))
@@ -566,7 +578,7 @@ class MedicalDocApp(QMainWindow):
             img = lazy.array
             if img is None:
                 continue
-            h, w = img.shape[:2]
+            _h, _w = img.shape[:2]
             pixmap = self._cv2_to_pixmap(cv2.resize(img, (80, 100)))
             item = QListWidgetItem()
             item.setIcon(QIcon(pixmap))

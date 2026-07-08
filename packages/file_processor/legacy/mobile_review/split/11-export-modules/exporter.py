@@ -1,13 +1,12 @@
 # exporter.py - Updated export module
 
 from pathlib import Path
-from typing import Optional, Dict, Union, List
+from typing import Optional, Dict, Union
 from .html_exporter import HTMLExporter
 from .pdf_exporter import PDFExporter
 from .docx_exporter import DOCXExporter
 from .excel_exporter import ExcelExporter
 import logging
-import os
 
 logger = logging.getLogger(__name__)
 

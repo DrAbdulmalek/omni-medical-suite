@@ -13,12 +13,11 @@ Exports OCR results to multiple formats with RTL support:
 
 from __future__ import annotations
 
-import io
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 

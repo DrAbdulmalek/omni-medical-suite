@@ -15,8 +15,9 @@ from __future__ import annotations
 import logging
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, Union
 
 import numpy as np
 from PIL import Image
@@ -142,10 +143,10 @@ class OCRResult:
 
     text: str
     confidence: float
-    bbox: Optional[BBox] = None
+    bbox: BBox | None = None
     engine_name: str = ""
     processing_time: float = 0.0
-    word_level: Optional[List[tuple[str, float, BBox]]] = None
+    word_level: list[tuple[str, float, BBox]] | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -178,7 +179,7 @@ class OCREngine(ABC):
         self._logger = logging.getLogger(
             f"{self.__class__.__module__}.{self.__class__.__name__}"
         )
-        self._available: Optional[bool] = None
+        self._available: bool | None = None
 
     # ------------------------------------------------------------------
     # Abstract interface
@@ -202,7 +203,7 @@ class OCREngine(ABC):
         ...
 
     @abstractmethod
-    def ocr_batch(self, images: Sequence[ImageInput]) -> List[OCRResult]:
+    def ocr_batch(self, images: Sequence[ImageInput]) -> list[OCRResult]:
         """Run OCR on a batch of images.
 
         Parameters
@@ -301,7 +302,7 @@ class OCREngine(ABC):
 
         arr = cv2.imread(path, cv2.IMREAD_COLOR)
         if arr is None:
-            raise IOError(f"OpenCV could not read image: {path}")
+            raise OSError(f"OpenCV could not read image: {path}")
         return arr
 
     # ------------------------------------------------------------------
@@ -352,7 +353,7 @@ class OCREngine(ABC):
     def safe_ocr_batch(
         self,
         images: Sequence[ImageInput],
-    ) -> List[OCRResult]:
+    ) -> list[OCRResult]:
         """Run :func:`ocr_batch` with per-image error isolation.
 
         Each image is processed independently; if one fails, its slot
@@ -369,7 +370,7 @@ class OCREngine(ABC):
         list[OCRResult]
             One result per image (fallback on error).
         """
-        results: List[OCRResult] = []
+        results: list[OCRResult] = []
         for idx, img in enumerate(images):
             self._logger.debug(
                 "Processing batch image %d/%d with '%s'.",
@@ -418,7 +419,7 @@ class OCREngine(ABC):
             If the engine binary / model is not found.
         """
         raise NotImplementedError(
-            f"Subclasses must implement _check_availability()."
+            "Subclasses must implement _check_availability()."
         )
 
     # ------------------------------------------------------------------

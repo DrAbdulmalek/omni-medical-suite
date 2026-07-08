@@ -2,12 +2,11 @@
 论文相关API路由
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
-from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, HTTPException, UploadFile, File
+from typing import List, Dict, Any
 from pydantic import BaseModel
 import logging
 import arxiv
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

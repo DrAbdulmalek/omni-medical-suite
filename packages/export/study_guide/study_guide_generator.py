@@ -18,14 +18,12 @@ HandwrittenOCR - مولّد المرجع الدراسي v5.3 (محسّن)
     )
 """
 
-import os
-import json
 import csv
 import logging
+import os
 import random
-from datetime import datetime
-from typing import Optional
 from collections import defaultdict
+from datetime import datetime
 
 import pandas as pd
 
@@ -34,7 +32,7 @@ logger = logging.getLogger("HandwrittenOCR")
 
 # ===================== تحويل الجداول إلى Markdown =====================
 
-def table_to_markdown(cells_data: list[dict], columns: list[str] = None) -> str:
+def table_to_markdown(cells_data: list[dict], columns: list[str] | None = None) -> str:
     """
     تحويل البيانات المقطوعة من الجداول إلى تنسيق Markdown.
 
@@ -69,7 +67,7 @@ def table_to_markdown(cells_data: list[dict], columns: list[str] = None) -> str:
         cells = [str(row.get(col, "")) for col in columns]
         rows.append("| " + " | ".join(cells) + " |")
 
-    return "\n".join([header, separator] + rows)
+    return "\n".join([header, separator, *rows])
 
 
 # ===================== تلوين المصطلحات البرمجية =====================
@@ -132,7 +130,7 @@ def highlight_python_terms(text: str) -> str:
 
 def generate_study_guide(
     db,
-    output_path: Optional[str] = None,
+    output_path: str | None = None,
     title: str = "مرجع دراسة — مستخرج من الملاحظات اليدوية",
     y_tolerance: int = 25,
     highlight_terms: bool = True,
@@ -213,7 +211,7 @@ def generate_study_guide(
 
 def generate_study_guide_full(
     db,
-    output_dir: Optional[str] = None,
+    output_dir: str | None = None,
     title: str = "مرجع دراسة شامل — مستخرج من الملاحظات اليدوية",
     y_tolerance: int = 25,
     highlight_terms: bool = True,

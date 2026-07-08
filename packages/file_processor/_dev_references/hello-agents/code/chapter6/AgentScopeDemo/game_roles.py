@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """三国狼人杀角色定义"""
-from typing import Dict, List
+from typing import List
 
 
 class GameRoles:

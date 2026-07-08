@@ -9,7 +9,6 @@ import uuid
 from loguru import logger
 
 from ..config.settings import Settings
-
 from .command_utils import extract_command_prefix, extract_filepaths_from_command
 from .detection import (
     is_filepath_extraction_request,

@@ -15,16 +15,13 @@ train_trocr_lora.py
 
 import argparse
 import json
-import os
-import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import numpy as np
 import torch
 import yaml
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 # Transformers & PEFT
 from transformers import (
@@ -366,7 +363,6 @@ def train(config_path: Optional[Path] = None, **kwargs):
 def _export_onnx(model, processor, output_dir: Path, config: dict):
     """تصدير النموذج لـ ONNX."""
     try:
-        import onnx
         from onnxruntime.quantization import quantize_dynamic, QuantType
         
         dummy_input = torch.randn(1, 3, 384, 384)

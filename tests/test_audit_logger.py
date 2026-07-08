@@ -1,15 +1,13 @@
 """Tests for modules.audit.audit_logger.AuditLogger"""
-import pytest
-import json
 
 class TestAuditLogger:
     """Test AuditLogger with temp directory."""
-    
+
     def _make_logger(self, tmp_path):
         from packages.audit.audit_logger import AuditLogger
         log_dir = str(tmp_path / "audit_logs")
         return AuditLogger(log_dir=log_dir, reviewer_id="TestUser")
-    
+
     def test_log_decision(self, tmp_path):
         logger = self._make_logger(tmp_path)
         logger.log_decision(
@@ -26,7 +24,7 @@ class TestAuditLogger:
         logs = logger.read_logs()
         assert len(logs) == 1
         assert logs[0]["page_id"] == "p1"
-    
+
     def test_read_logs_limit(self, tmp_path):
         logger = self._make_logger(tmp_path)
         for i in range(5):
@@ -40,7 +38,7 @@ class TestAuditLogger:
             )
         logs = logger.read_logs(limit=3)
         assert len(logs) == 3
-    
+
     def test_get_stats(self, tmp_path):
         logger = self._make_logger(tmp_path)
         logger.log_decision(

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Telegram Content Forwarder — Gradio UI v2
 ==========================================
@@ -14,20 +13,22 @@ Telegram Content Forwarder — Gradio UI v2
   8. تحذير عند اختيار تأخير < 1 ثانية
 """
 
+import asyncio
 import os
 import sys
-import asyncio
 import threading
+
 import gradio as gr
-from typing import Optional, Generator
 
 sys.path.insert(0, os.path.dirname(__file__))
-from forwarder import TelegramForwarder, ForwardConfig, ForwardResult, create_forwarder
+import contextlib
+
+from forwarder import ForwardConfig, ForwardResult, TelegramForwarder, create_forwarder
 
 # ─── Global State ─────────────────────────────────────────────
 
-forwarder: Optional[TelegramForwarder] = None
-last_result: Optional[ForwardResult]   = None
+forwarder: TelegramForwarder | None = None
+last_result: ForwardResult | None   = None
 
 # ─── Persistent Event Loop ────────────────────────────────────
 # مشكلة جذرية أصلية: كل نداء _run() كان يُنشئ event loop جديداً عبر
@@ -130,10 +131,8 @@ def do_send_code(api_id_val, api_hash_val, phone_val, session_str_val):
 
     # قطع الاتصال القديم
     if forwarder:
-        try:
+        with contextlib.suppress(Exception):
             _run(forwarder.disconnect())
-        except Exception:
-            pass
 
     forwarder = create_forwarder(
         api_id, api_hash_val,
@@ -263,7 +262,7 @@ def do_channel_info(channel_id):
     except RuntimeError as e:
         if "⏳" in str(e):
             # FloodWait — ليس خطأ حرج، فقط أخبر المستخدم بهدوء دون تعطيل الواجهة
-            return f"_⏳ تعذّر عرض تفاصيل القناة مؤقتاً (حد Telegram) — يمكنك المتابعة للنقل مباشرة._"
+            return "_⏳ تعذّر عرض تفاصيل القناة مؤقتاً (حد Telegram) — يمكنك المتابعة للنقل مباشرة._"
         return f"⚠️ {e}"
     except Exception:
         return ""
@@ -318,7 +317,7 @@ def do_forward(
     # Progress tracking — Queue عادية (thread-safe) بدل asyncio.Queue
     # لأن المُستهلك يعمل في الـ thread الرئيسي لـ Gradio وليس داخل _loop
     import queue as _queue_mod
-    progress_queue: "_queue_mod.Queue" = _queue_mod.Queue()
+    progress_queue: _queue_mod.Queue = _queue_mod.Queue()
 
     def progress_cb_sync(result: ForwardResult, pct: int):
         progress_queue.put((result, pct))

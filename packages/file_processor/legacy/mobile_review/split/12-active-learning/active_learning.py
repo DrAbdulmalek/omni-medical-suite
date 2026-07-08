@@ -3,7 +3,6 @@
 from typing import Dict, List, Optional, Union
 from pathlib import Path
 import sqlite3
-import json
 import logging
 from datetime import datetime
 from .finetuning import TrOCRFineTuner

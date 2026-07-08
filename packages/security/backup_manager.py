@@ -18,11 +18,9 @@ import hashlib
 import json
 import logging
 import shutil
-import tarfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +45,8 @@ class BackupManager:
         self,
         compress: bool = True,
         incremental: bool = False,
-        exclude_patterns: Optional[list[str]] = None,
-        log_file: Optional[str] = None,
+        exclude_patterns: list[str] | None = None,
+        log_file: str | None = None,
     ) -> None:
         """
         تهيئة مدير النسخ الاحتياطية.
@@ -96,7 +94,7 @@ class BackupManager:
         self,
         source_dir: str | Path,
         backup_dir: str | Path,
-        label: Optional[str] = None,
+        label: str | None = None,
     ) -> str:
         """
         ينشئ نسخة احتياطية كاملة لمجلد المصدر.
@@ -631,7 +629,7 @@ class BackupManager:
                 btype = "directory"
             else:
                 return {"path": str(path), "size_bytes": 0, "size_formatted": "0 B", "type": "unknown"}
-        except PermissionError as exc:
+        except PermissionError:
             logger.error("لا صلاحية لقراءة: %s", path)
             raise
 
@@ -688,10 +686,7 @@ class BackupManager:
             return True  # في حالة الخطأ، نأخذ الاحتياط
 
         stored_hash = self._file_hashes.get(rel)
-        if stored_hash is None or stored_hash != current_hash:
-            return True
-
-        return False
+        return bool(stored_hash is None or stored_hash != current_hash)
 
     def load_hashes(self, backup_dir: str | Path) -> None:
         """
@@ -780,7 +775,7 @@ class BackupManager:
         except Exception as exc:
             logger.warning("تعذر حفظ البيانات الوصفية: %s", exc)
 
-    def _read_manifest_from_zip(self, zip_path: Path) -> Optional[dict]:
+    def _read_manifest_from_zip(self, zip_path: Path) -> dict | None:
         """يقرأ البيانات الوصفية من أرشيف ZIP."""
         try:
             with zipfile.ZipFile(zip_path, "r") as zf:

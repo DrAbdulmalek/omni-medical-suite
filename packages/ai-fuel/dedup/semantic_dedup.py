@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import List, Optional, Tuple
 
 from core.schemas import TextChunk
 
@@ -73,8 +72,8 @@ class SemanticDeduplicator:
         self.threshold = threshold
         self.model_name = model_name
         self.model = None
-        self.embeddings_cache: List = []  # type: ignore[type-arg]
-        self.chunk_ids: List[str] = []
+        self.embeddings_cache: list = []  # type: ignore[type-arg]
+        self.chunk_ids: list[str] = []
         self._total_checks: int = 0
         self._duplicate_count: int = 0
         self._model_loaded: bool = False
@@ -130,7 +129,7 @@ class SemanticDeduplicator:
 
     def is_duplicate(
         self, text: str
-    ) -> Tuple[bool, Optional[str], float]:
+    ) -> tuple[bool, str | None, float]:
         """Check whether *text* is semantically similar to any indexed chunk.
 
         Args:
@@ -214,7 +213,7 @@ class SemanticDeduplicator:
         except Exception as exc:  # pragma: no cover
             logger.error("Error encoding chunk %s: %s", chunk_id, exc)
 
-    def batch_dedup(self, chunks: List[TextChunk]) -> List[TextChunk]:
+    def batch_dedup(self, chunks: list[TextChunk]) -> list[TextChunk]:
         """Remove semantic duplicates from a batch of chunks.
 
         Iterates over *chunks* in order.  The first occurrence of any
@@ -227,7 +226,7 @@ class SemanticDeduplicator:
         Returns:
             Deduplicated list preserving original order.
         """
-        unique: List[TextChunk] = []
+        unique: list[TextChunk] = []
 
         for chunk in chunks:
             is_dup, _dup_id, similarity = self.is_duplicate(chunk.text)
@@ -291,6 +290,6 @@ class SemanticDeduplicator:
 
 # Re-export for external type-checking when dependencies are available
 if _np_available:
-    import numpy as np  # noqa: F811
+    import numpy as np
 else:
     np = None  # type: ignore

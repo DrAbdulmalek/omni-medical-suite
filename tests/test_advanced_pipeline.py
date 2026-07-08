@@ -4,8 +4,9 @@ Unit Tests for Advanced OCR Pipeline
 Run with: python -m pytest tests/ -v
 """
 
-import sys
 import os
+import sys
+
 import numpy as np
 from PIL import Image, ImageDraw
 
@@ -14,7 +15,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from packages.vision.ocr_engine import OCREngine
 from packages.vision.text_reconstructor import TextReconstructor
-
 
 # ─── Test Helpers ─────────────────────────────────────────────────────
 

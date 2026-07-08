@@ -2,14 +2,14 @@
 Safe Condition Parser - Replaces eval() with fail-closed behavior
 """
 import ast
-import operator
-from typing import Any, Dict, List, Optional, Set, Union
 import logging
+import operator
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # Allowed operators
-ALLOWED_OPERATORS: Dict[type, Any] = {
+ALLOWED_OPERATORS: dict[type, Any] = {
     # Arithmetic
     ast.Add: operator.add,
     ast.Sub: operator.sub,
@@ -39,7 +39,7 @@ ALLOWED_OPERATORS: Dict[type, Any] = {
 }
 
 # Allowed built-in functions
-ALLOWED_FUNCTIONS: Dict[str, Any] = {
+ALLOWED_FUNCTIONS: dict[str, Any] = {
     # Type conversion
     'int': int,
     'float': float,
@@ -69,19 +69,16 @@ ALLOWED_FUNCTIONS: Dict[str, Any] = {
 }
 
 # Allowed attributes
-ALLOWED_ATTRIBUTES: Set[str] = {
+ALLOWED_ATTRIBUTES: set[str] = {
     # String
     'lower', 'upper', 'strip', 'replace', 'split', 'join', 'startswith', 'endswith',
     'contains', 'find', 'index', 'count', 'isalpha', 'isdigit', 'isalnum',
 
     # List
-    'append', 'extend', 'insert', 'remove', 'pop', 'clear', 'index', 'count',
-    'reverse', 'sort', 'copy',
+    'append', 'extend', 'insert', 'remove', 'pop', 'clear', 'reverse', 'sort', 'copy',
 
     # Dict
-    'keys', 'values', 'items', 'get', 'pop', 'update', 'copy',
-
-    # Common
+    'keys', 'values', 'items', 'get', 'update', # Common
     'length', 'size', 'empty'
 }
 
@@ -93,9 +90,9 @@ class ConditionParser:
 
     def __init__(
         self,
-        allowed_operators: Optional[Dict[type, Any]] = None,
-        allowed_functions: Optional[Dict[str, Any]] = None,
-        allowed_attributes: Optional[Set[str]] = None,
+        allowed_operators: dict[type, Any] | None = None,
+        allowed_functions: dict[str, Any] | None = None,
+        allowed_attributes: set[str] | None = None,
         max_depth: int = 10
     ):
         """
@@ -115,7 +112,7 @@ class ConditionParser:
     def evaluate(
         self,
         condition: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
         fail_closed: bool = True
     ) -> bool:
         """
@@ -143,8 +140,8 @@ class ConditionParser:
             code = compile(tree, '<string>', 'eval')
 
             # Create safe globals
-            safe_globals: Dict[str, Any] = {
-                '__builtins__': {k: v for k, v in self.allowed_functions.items()},
+            safe_globals: dict[str, Any] = {
+                '__builtins__': dict(self.allowed_functions.items()),
                 **self.allowed_functions
             }
 
@@ -229,7 +226,7 @@ class ConditionParser:
             for elt in node.elts:
                 self._validate_ast(elt, depth + 1)
         elif isinstance(node, ast.Dict):
-            for key, value in zip(node.keys, node.values):
+            for key, value in zip(node.keys, node.values, strict=False):
                 self._validate_ast(key, depth + 1)
                 self._validate_ast(value, depth + 1)
         elif isinstance(node, ast.Tuple):
@@ -260,13 +257,7 @@ class ConditionParser:
             # Check operator is allowed
             if type(node) not in self.allowed_operators:
                 raise ValueError(f"Operator '{type(node).__name__}' is not allowed")
-        elif isinstance(node, ast.NameConstant):
-            # Python 3.7 compatibility
-            pass
-        elif isinstance(node, ast.Num):
-            # Python 3.7 compatibility
-            pass
-        elif isinstance(node, ast.Str):
+        elif isinstance(node, (ast.NameConstant, ast.Num, ast.Str)):
             # Python 3.7 compatibility
             pass
         else:
@@ -289,7 +280,7 @@ class ConditionParser:
         except (SyntaxError, ValueError):
             return False
 
-    def extract_variables(self, condition: str) -> Set[str]:
+    def extract_variables(self, condition: str) -> set[str]:
         """
         Extract variable names from a condition string.
 
@@ -305,7 +296,7 @@ class ConditionParser:
         except SyntaxError:
             return set()
 
-    def _extract_variables_from_ast(self, node: ast.AST) -> Set[str]:
+    def _extract_variables_from_ast(self, node: ast.AST) -> set[str]:
         """Recursively extract variable names from AST"""
         variables = set()
 
@@ -328,7 +319,7 @@ class ConditionParser:
                 variables.update(self._extract_variables_from_ast(keyword.value))
 
         # Recursively process child nodes
-        for field, value in ast.iter_fields(node):
+        for _field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
                     if isinstance(item, ast.AST):
@@ -343,7 +334,7 @@ condition_parser = ConditionParser()
 
 def evaluate_condition(
     condition: str,
-    context: Optional[Dict[str, Any]] = None
+    context: dict[str, Any] | None = None
 ) -> bool:
     """
     Safely evaluate a condition string with fail-closed behavior.
@@ -379,7 +370,7 @@ def validate_condition_syntax(condition: str) -> bool:
     """
     return condition_parser.validate_condition(condition)
 
-def get_condition_variables(condition: str) -> Set[str]:
+def get_condition_variables(condition: str) -> set[str]:
     """
     Extract variable names from a condition string.
 

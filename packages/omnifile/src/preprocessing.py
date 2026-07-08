@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 import logging
 import time
-from typing import Tuple, Optional, List
+from typing import Tuple
 from config import Config
 
 logger = logging.getLogger("HandwrittenOCR")

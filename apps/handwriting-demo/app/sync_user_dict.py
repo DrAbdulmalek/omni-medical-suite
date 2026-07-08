@@ -14,12 +14,10 @@ Usage
 import json
 import logging
 import os
-import shutil
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +31,7 @@ class UserDictSync:
         repo_id: str = "DrAbdulmalek/medical-ocr-user-corrections",
         filename: str = "user_corrections.json",
         local_path: str = "/data/user_corrections.json",
-        token: Optional[str] = None,
+        token: str | None = None,
         auto_sync: bool = True,
         sync_interval_minutes: int = 5,
     ):
@@ -90,7 +88,7 @@ class UserDictSync:
             )
 
             # Read and extract corrections (handle both formats)
-            with open(downloaded_path, "r", encoding="utf-8") as f:
+            with open(downloaded_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             if isinstance(data, dict) and "corrections" in data:
@@ -138,7 +136,7 @@ class UserDictSync:
         with self._sync_lock:
             try:
                 # Read local corrections
-                with open(self.local_path, "r", encoding="utf-8") as f:
+                with open(self.local_path, encoding="utf-8") as f:
                     corrections = json.load(f)
 
                 count = len(corrections) if isinstance(corrections, dict) else 0
@@ -185,14 +183,14 @@ class UserDictSync:
     # ------------------------------------------------------------------
     # Sync (download then upload)
     # ------------------------------------------------------------------
-    def sync(self) -> Dict:
+    def sync(self) -> dict:
         result = {"downloaded": False, "uploaded": False, "total": 0}
 
         result["downloaded"] = self.download()
 
         if self.local_path.exists():
             try:
-                with open(self.local_path, "r", encoding="utf-8") as f:
+                with open(self.local_path, encoding="utf-8") as f:
                     data = json.load(f)
                     result["total"] = len(data) if isinstance(data, dict) else 0
             except Exception:
@@ -240,7 +238,7 @@ class UserDictSync:
 # Module-level singleton & public API
 # ============================================================================
 
-_instance: Optional[UserDictSync] = None
+_instance: UserDictSync | None = None
 
 
 def get_sync() -> UserDictSync:
@@ -255,7 +253,7 @@ def get_sync() -> UserDictSync:
     return _instance
 
 
-def sync_on_startup() -> Dict:
+def sync_on_startup() -> dict:
     """Call once at app boot: downloads dict + starts background sync."""
     sync = get_sync()
     result = sync.sync()

@@ -23,7 +23,6 @@ import logging
 import os
 import re
 import sqlite3
-from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 
 logger = logging.getLogger(__name__)
@@ -406,7 +405,7 @@ class SearchEngine:
         - "قلب OR عظام" → [("OR", "قلب"), ("OR", "عظام")]
         - "جراحة NOT قلب" → [("AND", "جراحة"), ("NOT", "قلب")]
         """
-        operators = re.findall(r'\b(AND|OR|NOT)\b', query.upper())
+        re.findall(r'\b(AND|OR|NOT)\b', query.upper())
         parts = re.split(r'\b(AND|OR|NOT)\b', query, flags=re.IGNORECASE)
 
         result = []

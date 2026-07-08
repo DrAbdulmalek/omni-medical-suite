@@ -5,7 +5,6 @@ CER, WER, medical term accuracy, and processing latency.
 """
 
 import statistics
-from typing import Optional
 
 from benchmarks.core.metrics import EditDistance, LatencyProfiler, MedicalTermEvaluator
 
@@ -27,7 +26,7 @@ class PaddleOCRBenchmark:
         self.lang = lang
         self.use_gpu = use_gpu
         self._ocr = None
-        self._available: Optional[bool] = None
+        self._available: bool | None = None
 
     def _is_available(self) -> bool:
         """Check if PaddleOCR is installed.

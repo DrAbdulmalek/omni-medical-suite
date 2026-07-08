@@ -1,8 +1,8 @@
 """
 Pipeline Engine - Updated to use Safe Condition Parser
 """
-from typing import Any, Dict, List, Optional, Union
 import logging
+from typing import Any
 
 from app.core.condition_parser import evaluate_condition, validate_condition_syntax
 
@@ -29,7 +29,7 @@ class PipelineEngine:
     def evaluate_condition(
         self,
         condition: str,
-        context: Optional[Dict[str, Any]] = None
+        context: dict[str, Any] | None = None
     ) -> bool:
         """
         Evaluate a pipeline condition safely.
@@ -69,9 +69,9 @@ class PipelineEngine:
     def run_step(
         self,
         step_name: str,
-        data: Dict[str, Any],
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        data: dict[str, Any],
+        context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Run a pipeline step with condition evaluation.
 
@@ -91,10 +91,10 @@ class PipelineEngine:
 
     def run_pipeline(
         self,
-        pipeline_definition: List[Dict[str, Any]],
-        initial_data: Dict[str, Any],
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        pipeline_definition: list[dict[str, Any]],
+        initial_data: dict[str, Any],
+        context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Run a complete pipeline with conditional steps.
 

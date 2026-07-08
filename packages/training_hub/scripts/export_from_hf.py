@@ -11,16 +11,13 @@ Usage:
     python export_to_training_hub.py [--output-dir /data/training_hub] [--min-confidence 0.0]
 """
 
-import hashlib
+import contextlib
 import json
 import logging
-import os
 import shutil
 import sqlite3
-import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -61,7 +58,7 @@ def export_corrections(
     db_path: Path = DEFAULT_DB_PATH,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     min_confidence: float = 0.0,
-) -> Dict:
+) -> dict:
     """Export all corrections from SQLite to training-hub JSONL format."""
     conn = get_db(db_path)
 
@@ -96,7 +93,7 @@ def export_corrections(
     crops_dir = output_dir / "training_data" / "word_crops"
     crops_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     output_file = crops_dir / f"corrections_{timestamp}.jsonl"
 
     stats = {
@@ -112,7 +109,7 @@ def export_corrections(
     }
 
     conf_sum = 0.0
-    entries: List[Dict] = []
+    entries: list[dict] = []
 
     for row in rows:
         raw = row["raw_text"] or ""
@@ -136,10 +133,8 @@ def export_corrections(
         # Parse engine texts
         all_engine_texts = {}
         if row["all_engine_texts"]:
-            try:
+            with contextlib.suppress(json.JSONDecodeError, TypeError):
                 all_engine_texts = json.loads(row["all_engine_texts"])
-            except (json.JSONDecodeError, TypeError):
-                pass
 
         entry = {
             "id": f"hf_{row['id']:06d}",
@@ -182,7 +177,7 @@ def export_corrections(
 
     # Write summary
     summary = {
-        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "source_db": str(db_path),
         "output_file": str(output_file.relative_to(output_dir)),
         "stats": stats,

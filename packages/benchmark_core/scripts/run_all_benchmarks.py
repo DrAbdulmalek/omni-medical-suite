@@ -4,9 +4,9 @@ CLI entry point for executing the complete medical OCR benchmark suite
 against all available golden datasets.
 """
 
+import json
 import os
 import sys
-import json
 from datetime import datetime, timezone
 
 import click
@@ -107,8 +107,8 @@ def main(output_dir, fmt, golden_dir, benchmarks, datasets, warmup_runs, benchma
     click.echo("")
 
     # Initialize benchmark runner
-    from benchmarks.core.runner import BenchmarkRunner
     from benchmarks.core.reporter import BenchmarkReporter
+    from benchmarks.core.runner import BenchmarkRunner
 
     config = {
         "golden_dir": golden_dir,

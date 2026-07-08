@@ -9,13 +9,14 @@ HandwrittenOCR - محرك التصحيح الإملائي وقاموس التص�
 """
 
 import json
-import os
 import logging
-import pandas as pd
-from datetime import datetime
+import os
 from collections import Counter, defaultdict
+from datetime import datetime
+
+import pandas as pd
+from langdetect import DetectorFactory, detect
 from spellchecker import SpellChecker
-from langdetect import detect, DetectorFactory
 
 logger = logging.getLogger("HandwrittenOCR")
 
@@ -157,7 +158,7 @@ def load_correction_dict(correction_dict_path: str) -> dict:
     if not os.path.exists(correction_dict_path):
         return {}
     try:
-        with open(correction_dict_path, "r", encoding="utf-8") as f:
+        with open(correction_dict_path, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         logger.debug(f"خطأ في تحميل القاموس: {e}")

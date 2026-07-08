@@ -7,7 +7,6 @@ tests/test_ocr.py
 اختبارات التعرف الضوئي على الحروف.
 """
 
-import pytest
 from fastapi import status
 
 

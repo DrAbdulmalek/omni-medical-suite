@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Callable, Optional, ClassVar
+from typing import Any, Dict, List, Callable
 from datetime import datetime
 
 from core.config import get_config
@@ -140,7 +140,7 @@ class BaseAgent(ABC):
             return response_text
             
         except asyncio.TimeoutError:
-            raise TimeoutException(f"LLM思考超时")
+            raise TimeoutException("LLM思考超时")
         except Exception as e:
             raise AgentException(f"LLM思考失败: {str(e)}")
     # ========== Tool 机制 ==========

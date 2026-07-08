@@ -105,7 +105,6 @@ class TechnicalTranslator:
         "client": "عميل",
         "endpoint": "نقطة نهاية",
         "payload": "حمولة البيانات",
-        "middleware": "برمجية وسيطة",
         "dependency": "تبعية",
         "package": "حزمة",
         "module": "وحدة",

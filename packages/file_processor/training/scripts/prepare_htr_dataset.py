@@ -17,11 +17,10 @@ prepare_htr_dataset.py
 import argparse
 import json
 import lmdb
-import os
 import pickle
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
@@ -341,7 +340,7 @@ class SyntheticDataGenerator(BaseDatasetLoader):
             
             return img
             
-        except Exception as e:
+        except Exception:
             # fallback بسيط
             img = Image.new('RGB', (400, 100), 'white')
             draw = ImageDraw.Draw(img)

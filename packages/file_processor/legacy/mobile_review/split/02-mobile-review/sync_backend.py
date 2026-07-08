@@ -5,9 +5,10 @@
 تدعم: جوجل درايف، مجلد محلي، أو خادم WebDAV
 """
 
-import os, json, time, hashlib
+import json
+import hashlib
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Dict, List
 from datetime import datetime
 import logging
 
@@ -190,7 +191,7 @@ class MobileSyncBackend:
         pending = self.get_pending_corrections()
 
         for corr in pending:
-            block_id = corr["block_id"]
+            corr["block_id"]
             # تحديث قاموس التصحيحات في مساحة العمل
             correction_dict_path = colab_workspace / "correction_dict.json"
 

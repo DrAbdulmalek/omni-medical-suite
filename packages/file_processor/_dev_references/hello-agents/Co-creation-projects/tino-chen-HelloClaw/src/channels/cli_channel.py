@@ -7,15 +7,11 @@
 - 丰富的终端输出
 """
 
-import asyncio
-import sys
 from typing import Optional, TYPE_CHECKING
 
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
-from rich.live import Live
 from rich.text import Text
 
 if TYPE_CHECKING:

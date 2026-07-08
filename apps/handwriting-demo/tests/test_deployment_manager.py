@@ -2,10 +2,8 @@
 Tests for the Deployment Manager module.
 """
 
+
 import pytest
-import json
-import shutil
-from pathlib import Path
 from training.deployment_manager import DeploymentManager
 
 
@@ -46,7 +44,7 @@ class TestDeploymentManager:
             training_duration=3600,
             notes="Weekly training with EWC",
         )
-        
+
         assert version["version_id"].startswith("v001_")
         assert version["cer_score"] == 0.08
         assert version["is_active"] is False
@@ -61,7 +59,7 @@ class TestDeploymentManager:
             cer_score=0.1,
             wer_score=0.15,
         )
-        
+
         staged = list(manager.staging_dir.iterdir())
         assert len(staged) == 1
         assert (staged[0] / "config.json").exists()
@@ -76,7 +74,7 @@ class TestDeploymentManager:
             cer_score=0.07,
             wer_score=0.10,
         )
-        
+
         result = manager.promote_to_production(version["version_id"])
         assert result["success"] is True
 
@@ -92,7 +90,7 @@ class TestDeploymentManager:
             wer_score=0.08,
         )
         manager.promote_to_production(v1["version_id"])
-        
+
         # Register worse version
         v2 = manager.register_version(
             model_path=sample_model_dir,
@@ -102,7 +100,7 @@ class TestDeploymentManager:
             cer_score=0.15,  # Much worse
             wer_score=0.20,
         )
-        
+
         result = manager.promote_to_production(v2["version_id"], max_cer_regression=0.02)
         assert result["success"] is False
         assert "regression" in result["error"].lower()
@@ -110,7 +108,7 @@ class TestDeploymentManager:
     def test_get_active_version(self, manager, sample_model_dir):
         """Test getting the active version."""
         assert manager.get_active_version() is None
-        
+
         v1 = manager.register_version(
             model_path=sample_model_dir,
             version_name="v1.0",
@@ -120,7 +118,7 @@ class TestDeploymentManager:
             wer_score=0.15,
         )
         manager.promote_to_production(v1["version_id"])
-        
+
         active = manager.get_active_version()
         assert active is not None
         assert active["is_active"] is True
@@ -136,7 +134,7 @@ class TestDeploymentManager:
                 cer_score=0.1 - (i * 0.01),
                 wer_score=0.15 - (i * 0.01),
             )
-        
+
         history = manager.get_version_history()
         assert len(history) == 3
 
@@ -145,7 +143,7 @@ class TestDeploymentManager:
         summary = manager.get_deployment_summary()
         assert summary["total_versions"] == 0
         assert summary["active_version"] is None
-        
+
         v1 = manager.register_version(
             model_path=sample_model_dir,
             version_name="v1.0",
@@ -155,7 +153,7 @@ class TestDeploymentManager:
             wer_score=0.12,
         )
         manager.promote_to_production(v1["version_id"])
-        
+
         summary = manager.get_deployment_summary()
         assert summary["total_versions"] == 1
         assert summary["active_version"] is not None

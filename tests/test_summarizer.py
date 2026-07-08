@@ -2,7 +2,6 @@
 اختبارات ملخص النصوص
 """
 
-import pytest
 import sys
 from pathlib import Path
 

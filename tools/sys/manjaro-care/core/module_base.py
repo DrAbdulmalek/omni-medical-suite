@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 core/module_base.py
 ====================
@@ -16,18 +15,19 @@ SystemCare، ويحافظ على شفافية reset-net نفسها (لوغ + ت�
 """
 
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     SAFE = "safe"               # لا خطر، قابل للتراجع أو بلا أثر يُذكر
     MODERATE = "moderate"       # يغيّر حالة النظام لكن قابل للتصحيح
     DESTRUCTIVE = "destructive"  # لا يمكن التراجع عنه بسهولة (حذف نهائي مثلاً)
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     OK = "ok"           # كل شيء طبيعي
     INFO = "info"        # ملاحظة بسيطة، لا تستدعي القلق
     WARNING = "warning"  # يستحق الانتباه

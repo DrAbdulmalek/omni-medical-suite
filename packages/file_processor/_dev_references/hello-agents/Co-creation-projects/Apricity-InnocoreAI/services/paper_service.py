@@ -5,7 +5,6 @@
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc
-from ..core.database import get_db
 from ..core.vector_store import VectorStore
 from ..models.paper import PaperDB, Paper, PaperCreate, PaperUpdate, PaperSearch
 from ..core.exceptions import PaperNotFoundError, PaperAlreadyExistsError
@@ -224,7 +223,7 @@ class PaperService:
         """获取论文统计信息"""
         total_papers = self.db.query(PaperDB).filter(PaperDB.user_id == user_id).count()
         processed_papers = self.db.query(PaperDB).filter(
-            and_(PaperDB.user_id == user_id, PaperDB.is_processed == True)
+            and_(PaperDB.user_id == user_id, PaperDB.is_processed)
         ).count()
         
         # 按年份统计

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 training/cloud/google_vertex.py
 ================================
@@ -18,10 +17,8 @@ training/cloud/google_vertex.py
 import os
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from google.cloud import aiplatform, storage
-from google.cloud.aiplatform.gapic.schema import trainingjob
 
 
 class VertexTrainer:
@@ -29,9 +26,9 @@ class VertexTrainer:
 
     def __init__(
         self,
-        project_id: str = None,
+        project_id: str | None = None,
         location: str = 'us-central1',
-        staging_bucket: str = None
+        staging_bucket: str | None = None
     ):
         self.project_id = project_id or os.getenv('GOOGLE_CLOUD_PROJECT')
         self.location = location
@@ -52,7 +49,7 @@ class VertexTrainer:
     def upload_dataset(
         self,
         local_path: Path,
-        gcs_path: str = None
+        gcs_path: str | None = None
     ) -> str:
         """
         رفع بيانات لـ Google Cloud Storage.
@@ -91,12 +88,12 @@ class VertexTrainer:
         display_name: str,
         script_path: Path,
         dataset_gcs_uri: str,
-        output_gcs_uri: str = None,
+        output_gcs_uri: str | None = None,
         machine_type: str = 'n1-standard-8',
         accelerator_type: str = 'NVIDIA_TESLA_V100',
         accelerator_count: int = 1,
         replica_count: int = 1,
-        hyperparameters: Dict = None
+        hyperparameters: dict | None = None
     ) -> aiplatform.CustomJob:
         """
         إنشاء مهمة تدريب مخصصة على Vertex AI.
@@ -164,9 +161,9 @@ class VertexTrainer:
         self,
         display_name: str,
         dataset_gcs_uri: str,
-        model_display_name: str = None,
+        model_display_name: str | None = None,
         **hyperparameters
-    ) -> Dict:
+    ) -> dict:
         """
         تشغيل pipeline تدريب كامل.
 
@@ -203,7 +200,7 @@ class VertexTrainer:
         }
 
         if job.state.name == 'JOB_STATE_SUCCEEDED':
-            print(f"✅ اكتمل التدريب!")
+            print("✅ اكتمل التدريب!")
             print(f"   Output: {job.base_output_dir}")
 
             # تسجيل النموذج
@@ -221,7 +218,7 @@ class VertexTrainer:
         self,
         model_name: str,
         machine_type: str = 'n1-standard-4',
-        accelerator_type: str = None,
+        accelerator_type: str | None = None,
         accelerator_count: int = 0
     ) -> aiplatform.Endpoint:
         """
@@ -347,14 +344,14 @@ if __name__ == '__main__':
 
 def train_on_vertex(
     dataset_path: Path,
-    project_id: str = None,
+    project_id: str | None = None,
     location: str = 'us-central1',
     display_name: str = "omnifile-htr",
     machine_type: str = 'n1-standard-8',
     accelerator_type: str = 'NVIDIA_TESLA_V100',
     accelerator_count: int = 1,
     **hyperparameters
-) -> Dict:
+) -> dict:
     """
     تدريب سهل على Google Cloud Vertex AI.
 

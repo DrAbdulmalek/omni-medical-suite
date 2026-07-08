@@ -13,7 +13,7 @@ from .interviewer import get_interviewer
 from .evaluator import get_evaluator
 from .polisher import get_polisher
 from config import get_llm, tool_listener
-from models.entities import SessionState, RoundRecord, AgentResponse, Stage
+from models.entities import SessionState, RoundRecord, AgentResponse
 
 class OrchestratorAgent:
     """流程调度 Agent - 阶段调度、更新 SessionState、决定 next stage"""
@@ -60,7 +60,7 @@ class OrchestratorAgent:
         try:
             result = json.loads(response)
             return result
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             # 如果解析失败，使用规则判断
             return self._decide_next_action_rule_based(session_state)
     

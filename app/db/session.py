@@ -1,11 +1,11 @@
 """
 Database Session Management - Production Ready with Alembic
 """
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import text
 from contextlib import asynccontextmanager
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 from app.config import get_app_config, get_security_config
 
@@ -89,7 +89,7 @@ async def health_check():
     async with AsyncSessionLocal() as session:
         try:
             # Use text() for SQLAlchemy 2.0 compatibility
-            result = await session.execute(text("SELECT 1"))
+            await session.execute(text("SELECT 1"))
             await session.commit()
             return True
         except Exception as e:

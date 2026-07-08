@@ -3,11 +3,11 @@
 #  Build dataset -> Fine-tune -> Export to HF Hub
 # ══════════════════════════════════════════════════════════╝
 
+import contextlib
 import json
-import cv2
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
+import cv2
 import numpy as np
 import torch
 from PIL import Image
@@ -28,7 +28,7 @@ class HuggingFaceExporter:
         self,
         models_dir: str,
         dataset_dir: str,
-        hf_token: Optional[str] = None,
+        hf_token: str | None = None,
         hf_repo_name: str = "medical-ocr-arabic-custom",
     ):
         self.models_dir = Path(models_dir)
@@ -72,7 +72,7 @@ class HuggingFaceExporter:
     def build_dataset_from_json(
         self,
         corrected_json: str,
-    ) -> Tuple[str, int]:
+    ) -> tuple[str, int]:
         """
         Build training dataset from corrected JSON file.
 
@@ -138,14 +138,14 @@ class HuggingFaceExporter:
         Returns:
             Path to the saved model directory.
         """
+        from torch.utils.data import Dataset
         from transformers import (
-            TrOCRProcessor,
-            VisionEncoderDecoderModel,
             Trainer,
             TrainingArguments,
+            TrOCRProcessor,
+            VisionEncoderDecoderModel,
             default_data_collator,
         )
-        from torch.utils.data import Dataset
 
         model_src = self.get_latest_model_path()
         print(f"Loading base model: {model_src}")
@@ -243,8 +243,8 @@ class HuggingFaceExporter:
 
     def export_to_huggingface(
         self,
-        model_path: Optional[str] = None,
-        repo_id: Optional[str] = None,
+        model_path: str | None = None,
+        repo_id: str | None = None,
     ) -> str:
         """
         Upload model to HuggingFace Hub.
@@ -259,7 +259,7 @@ class HuggingFaceExporter:
         if not self.hf_token:
             raise ValueError("HuggingFace token is required for export.")
 
-        from huggingface_hub import login, create_repo, HfApi
+        from huggingface_hub import HfApi, create_repo, login
 
         login(self.hf_token)
 
@@ -269,10 +269,8 @@ class HuggingFaceExporter:
         if repo_id is None:
             repo_id = self.hf_repo_name
 
-        try:
+        with contextlib.suppress(Exception):
             create_repo(repo_id, exist_ok=True)
-        except Exception:
-            pass
 
         api = HfApi()
         version = Path(model_path).name
@@ -295,7 +293,7 @@ class HuggingFaceExporter:
         corrected_json: str,
         epochs: int = 15,
         export: bool = False,
-    ) -> Dict:
+    ) -> dict:
         """
         Execute full pipeline: build dataset -> train -> export.
 

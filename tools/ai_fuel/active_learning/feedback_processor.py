@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter, defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from active_learning.review_queue import HumanReviewQueue
 
@@ -37,14 +37,14 @@ class FeedbackProcessor:
             review_queue: Source of human corrections.
         """
         self.queue = review_queue
-        self.corrections: List[Dict[str, Any]] = []
+        self.corrections: list[dict[str, Any]] = []
         self._loaded: bool = False
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
-    def load_corrections(self) -> List[Dict[str, Any]]:
+    def load_corrections(self) -> list[dict[str, Any]]:
         """Load all approved corrections from the review queue.
 
         Returns:
@@ -91,7 +91,7 @@ class FeedbackProcessor:
             logger.error("Failed to load corrections: %s", exc)
             return []
 
-    def process_feedback(self) -> Dict[str, Any]:
+    def process_feedback(self) -> dict[str, Any]:
         """Process all available feedback and generate training updates.
 
         Analyses correction patterns to produce:
@@ -116,7 +116,7 @@ class FeedbackProcessor:
             return self._empty_result()
 
         # ── Build error matrix ────────────────────────────────────────
-        error_matrix: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        error_matrix: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
         for c in self.corrections:
             predicted = c["predicted_category"]
             correct = c["correct_category"]
@@ -158,7 +158,7 @@ class FeedbackProcessor:
         )
         return result
 
-    def generate_training_report(self) -> Dict[str, Any]:
+    def generate_training_report(self) -> dict[str, Any]:
         """Generate report of classifier performance improvements.
 
         Returns:
@@ -197,13 +197,13 @@ class FeedbackProcessor:
             if c["predicted_category"] != c["correct_category"]:
                 cat_corrections[c["predicted_category"]] += 1
 
-        category_accuracy: Dict[str, float] = {}
+        category_accuracy: dict[str, float] = {}
         for cat, total in cat_predictions.items():
             errors = cat_corrections.get(cat, 0)
             category_accuracy[cat] = round(1.0 - errors / total, 4) if total > 0 else 0.0
 
         # ── Recommended actions ────────────────────────────────────
-        recommended_actions: List[Dict[str, Any]] = []
+        recommended_actions: list[dict[str, Any]] = []
 
         # 1. Suggest new keywords for frequently confused categories
         for pair_info in top_misclassifications[:5]:
@@ -272,7 +272,7 @@ class FeedbackProcessor:
         logger.info("Training report generated.")
         return report
 
-    def suggest_taxonomy_updates(self) -> Dict[str, Any]:
+    def suggest_taxonomy_updates(self) -> dict[str, Any]:
         """Suggest taxonomy updates based on feedback patterns.
 
         Analyses correction text to extract keywords that could improve
@@ -306,7 +306,7 @@ class FeedbackProcessor:
             "هذه", "التي", "الذي", "كان", "كانت", "هو", "هي",
         }
 
-        category_words: Dict[str, Counter] = defaultdict(Counter)
+        category_words: dict[str, Counter] = defaultdict(Counter)
 
         for c in self.corrections:
             correct_cat = c["correct_category"]
@@ -315,19 +315,19 @@ class FeedbackProcessor:
             category_words[correct_cat].update(filtered)
 
         # ── Suggest new keywords (top 20 per category) ───────────────
-        new_keywords: Dict[str, List[str]] = {}
+        new_keywords: dict[str, list[str]] = {}
         for cat, counter in category_words.items():
             top_words = [word for word, _count in counter.most_common(20)]
             new_keywords[cat] = top_words
 
         # ── Detect keyword conflicts ────────────────────────────────
-        all_words: Dict[str, List[str]] = defaultdict(list)
+        all_words: dict[str, list[str]] = defaultdict(list)
         for cat, counter in category_words.items():
             for word, count in counter.most_common(20):
                 if count >= 2:
                     all_words[word].append(cat)
 
-        keyword_conflicts: List[Dict[str, Any]] = []
+        keyword_conflicts: list[dict[str, Any]] = []
         for word, categories in sorted(all_words.items()):
             if len(categories) > 1:
                 keyword_conflicts.append(
@@ -343,7 +343,7 @@ class FeedbackProcessor:
                 )
 
         # ── Suggest category renames ─────────────────────────────────
-        category_renames: List[Dict[str, str]] = []
+        category_renames: list[dict[str, str]] = []
         error_matrix = self.process_feedback().get("error_matrix", {})
         for predicted, actual_map in error_matrix.items():
             # If a category is consistently redirected to a single other
@@ -378,7 +378,7 @@ class FeedbackProcessor:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _empty_result() -> Dict[str, Any]:
+    def _empty_result() -> dict[str, Any]:
         """Return an empty feedback processing result."""
         return {
             "total_corrections": 0,
@@ -390,7 +390,7 @@ class FeedbackProcessor:
         }
 
     @staticmethod
-    def _empty_report() -> Dict[str, Any]:
+    def _empty_report() -> dict[str, Any]:
         """Return an empty training report."""
         import datetime
 
@@ -400,7 +400,7 @@ class FeedbackProcessor:
                 "reviewed_samples": 0,
                 "accuracy_improvement_pp": 0.0,
                 "generated_at": datetime.datetime.now(
-                    datetime.timezone.utc
+                    datetime.UTC
                 ).isoformat(),
             },
             "top_misclassifications": [],

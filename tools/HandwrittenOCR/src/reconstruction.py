@@ -7,6 +7,7 @@ HandwrittenOCR - إعادة تجميع الجمل v4.0
 """
 
 import logging
+
 import pandas as pd
 from langdetect import detect
 
@@ -33,7 +34,7 @@ def reconstruct_sentences(
 
     all_sentences = []
 
-    for page in set(w["page_num"] for w in words if w["page_num"]):
+    for page in {w["page_num"] for w in words if w["page_num"]}:
         p_words = [w for w in words if w["page_num"] == page]
         p_words.sort(key=lambda k: (k["y"], k["x"]))
 
@@ -87,7 +88,8 @@ def reconstruct_sentences_direct(df: pd.DataFrame, y_tolerance: int = 25) -> lis
     try:
         from langdetect import detect
     except ImportError:
-        detect = lambda _: "en"
+        def detect(_):
+            return "en"
 
     lines_out = []
     for pg in sorted(df["page_num"].dropna().unique()):
@@ -151,7 +153,7 @@ def extract_bilingual_vocab(
 
     vocab_pairs = []
 
-    for page in set(w["page_num"] for w in words if w["page_num"]):
+    for page in {w["page_num"] for w in words if w["page_num"]}:
         p_words = [w for w in words if w["page_num"] == page]
         p_words.sort(key=lambda k: (k["y"], k["x"]))
 
@@ -221,6 +223,6 @@ def derive_word_corrections(original: str, corrected: str) -> list[dict]:
 
     return [
         {"original": o, "corrected": c}
-        for o, c in zip(orig_words, corr_words)
+        for o, c in zip(orig_words, corr_words, strict=False)
         if o != c
     ]

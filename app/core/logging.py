@@ -4,16 +4,16 @@ Structured logging configuration for omni-medical-suite.
 Provides JSON-formatted structured logging with request ID tracking,
 console/file handlers, and audit/error log separation.
 """
-import logging
-import sys
-import json
-import os
-from datetime import datetime, timezone
-from typing import Any, Dict
-from pathlib import Path
-
 # Request ID context for request tracing across async boundaries
 import contextvars
+import json
+import logging
+import os
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
 _request_id_ctx = contextvars.ContextVar('request_id', default='unknown')
 
 
@@ -36,12 +36,12 @@ class StructuredFormatter(logging.Formatter):
 
     def add_fields(
         self,
-        log_record: Dict[str, Any],
+        log_record: dict[str, Any],
         record: logging.LogRecord,
-        message_dict: Dict[str, Any],
+        message_dict: dict[str, Any],
     ) -> None:
         super().add_fields(log_record, record, message_dict)
-        log_record['timestamp'] = datetime.now(timezone.utc).isoformat()
+        log_record['timestamp'] = datetime.now(UTC).isoformat()
         log_record['request_id'] = get_request_id()
         log_record['level'] = record.levelname
         log_record['logger'] = record.name
@@ -56,8 +56,8 @@ class JsonFormatter(StructuredFormatter):
     """
 
     def format(self, record: logging.LogRecord) -> str:
-        log_entry: Dict[str, Any] = {
-            'timestamp': datetime.now(timezone.utc).isoformat(),
+        log_entry: dict[str, Any] = {
+            'timestamp': datetime.now(UTC).isoformat(),
             'level': record.levelname,
             'logger': record.name,
             'request_id': get_request_id(),

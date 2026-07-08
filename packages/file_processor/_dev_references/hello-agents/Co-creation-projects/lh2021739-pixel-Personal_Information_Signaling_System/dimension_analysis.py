@@ -4,11 +4,10 @@
 """
 
 import json
-import os
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Any
+from datetime import datetime
+from typing import List, Dict, Optional
 from collections import defaultdict
 
 # 设置控制台编码为UTF-8（Windows）
@@ -261,7 +260,7 @@ def suggest_remove_dimensions(records: List[Dict], active_dimensions: List[str],
 def suggest_priority_adjustment(records: List[Dict], dimension_config: Dict) -> List[Dict]:
     """建议调整频繁出现维度的优先级"""
     stats = count_dimension_frequency(records)
-    priorities = calculate_dimension_priority(records)
+    calculate_dimension_priority(records)
     suggestions = []
     
     active_dimensions = dimension_config.get('active_dimensions', [])
@@ -353,7 +352,7 @@ def analyze_theme_dimension_match(themes: List[str], extraction_results: List[Di
     now = datetime.now()
     
     # 统计维度频率
-    dim_stats = count_dimension_frequency_from_extractions(extraction_results)
+    count_dimension_frequency_from_extractions(extraction_results)
     
     # 过滤最近N天的提取结果
     recent_results = []
@@ -366,7 +365,7 @@ def analyze_theme_dimension_match(themes: List[str], extraction_results: List[Di
                 recent_results.append(result)
     
     # 统计最近N天内的维度
-    recent_dim_stats = count_dimension_frequency_from_extractions(recent_results)
+    count_dimension_frequency_from_extractions(recent_results)
     
     theme_match = {}
     
@@ -615,9 +614,9 @@ def format_history_text(history: List[Dict]) -> str:
         dimension = event.get('dimension', '')
         
         if event_type == "ADD":
-            info = f"新增维度"
+            info = "新增维度"
         elif event_type == "REMOVE":
-            info = f"删除维度"
+            info = "删除维度"
         elif event_type == "PRIORITY_CHANGE":
             old_priority = event.get('old_priority', '')
             new_priority = event.get('new_priority', '')

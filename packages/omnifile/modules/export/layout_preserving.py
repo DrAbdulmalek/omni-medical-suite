@@ -11,7 +11,6 @@ layout_preserving.py — تصدير DOCX/HTML مع الحفاظ على التخ�
 """
 import json
 import os
-from pathlib import Path
 from docx import Document
 from docx.shared import Inches, Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -128,8 +127,8 @@ def layout_to_docx(layout_json_path: str, output_docx: str) -> str:
     rPr.set(qn('w:rtl'), '1')
 
     for page in data.get("pages", []):
-        page_w = page.get("width", 2480)
-        page_h = page.get("height", 3508)
+        page.get("width", 2480)
+        page.get("height", 3508)
 
         for block in page.get("blocks", []):
             b_type = block.get("type", "paragraph")

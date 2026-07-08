@@ -6,10 +6,10 @@ import json
 
 from hello_agents import ToolAwareSimpleAgent
 
-from models import SummaryState
 from config import Configuration
-from utils import strip_thinking_tokens
+from models import SummaryState
 from services.text_processing import strip_tool_calls
+from utils import strip_thinking_tokens
 
 
 class ReportingService:
@@ -21,7 +21,6 @@ class ReportingService:
 
     def generate_report(self, state: SummaryState) -> str:
         """Generate a structured report based on completed tasks."""
-
         tasks_block = []
         for task in state.todo_items:
             summary_block = task.summary or "暂无可用信息"

@@ -9,14 +9,12 @@ Usage:
     python build_training_datasets.py [--all] [--trocr] [--paddleocr] [--postprocessor]
 """
 
+import contextlib
 import json
 import logging
-import os
-import shutil
 from base64 import b64decode
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -27,39 +25,35 @@ GROUND_TRUTH_DIR = HUB_ROOT / "training_data" / "ground_truth"
 EXPORTS_DIR = HUB_ROOT / "training_data" / "exports"
 
 
-def load_all_word_corrections() -> List[Dict]:
+def load_all_word_corrections() -> list[dict]:
     """Load all correction entries from word_crops JSONL files."""
     entries = []
     for f in sorted(WORD_CROPS_DIR.glob("corrections_*.jsonl")):
-        with open(f, "r", encoding="utf-8") as fh:
+        with open(f, encoding="utf-8") as fh:
             for line in fh:
                 line = line.strip()
                 if line:
-                    try:
+                    with contextlib.suppress(json.JSONDecodeError):
                         entries.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        pass
     logger.info("Loaded %d word corrections from %s", len(entries), WORD_CROPS_DIR)
     return entries
 
 
-def load_all_ground_truth() -> List[Dict]:
+def load_all_ground_truth() -> list[dict]:
     """Load all ground truth entries."""
     entries = []
     for f in sorted(GROUND_TRUTH_DIR.glob("*.jsonl")):
-        with open(f, "r", encoding="utf-8") as fh:
+        with open(f, encoding="utf-8") as fh:
             for line in fh:
                 line = line.strip()
                 if line:
-                    try:
+                    with contextlib.suppress(json.JSONDecodeError):
                         entries.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        pass
     logger.info("Loaded %d ground truth entries from %s", len(entries), GROUND_TRUTH_DIR)
     return entries
 
 
-def build_trocr_dataset(corrections: List[Dict], ground_truth: List[Dict]):
+def build_trocr_dataset(corrections: list[dict], ground_truth: list[dict]):
     """
     Build TrOCR fine-tuning dataset.
     Format: images/ + metadata.jsonl with {file_name, text}
@@ -113,7 +107,7 @@ def build_trocr_dataset(corrections: List[Dict], ground_truth: List[Dict]):
     return len(metadata)
 
 
-def build_paddleocr_dataset(corrections: List[Dict]):
+def build_paddleocr_dataset(corrections: list[dict]):
     """
     Build PaddleOCR custom dictionary and LM training data.
     Extracts unique characters and word patterns from corrections.
@@ -174,7 +168,7 @@ def build_paddleocr_dataset(corrections: List[Dict]):
     return {"chars": len(all_chars), "words": len(word_freq), "patterns": len(patterns)}
 
 
-def build_postprocessor_dataset(corrections: List[Dict]):
+def build_postprocessor_dataset(corrections: list[dict]):
     """
     Build correction pairs for the postprocessor.
     Format: one JSONL with {raw, corrected, frequency, language}
@@ -234,12 +228,12 @@ def main():
 
     # Write build summary
     summary = {
-        "built_at": datetime.now(timezone.utc).isoformat(),
+        "built_at": datetime.now(UTC).isoformat(),
         "source_corrections": len(corrections),
         "source_ground_truth": len(ground_truth),
         "results": results,
     }
-    summary_path = EXPORTS_DIR / f"build_summary_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+    summary_path = EXPORTS_DIR / f"build_summary_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 

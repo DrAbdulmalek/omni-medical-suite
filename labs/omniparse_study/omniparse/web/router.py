@@ -1,8 +1,10 @@
-from fastapi import HTTPException, APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
+
 from omniparse import get_shared_state
-from omniparse.web import parse_url
 from omniparse.models import responseDocument
+from omniparse.web import parse_url
+
 # from omniparse.models import Document
 
 model_state = get_shared_state()

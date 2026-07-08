@@ -16,13 +16,13 @@ Rules:
 
 import json
 import logging
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from .readiness import ReadinessScorer, ReadinessReport
 from .changelog import AutoChangelog
+from .readiness import ReadinessReport, ReadinessScorer
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +64,10 @@ class PromotionHistoryEntry:
 
     timestamp: str
     action: str  # "promoted", "demoted", "registered", "readiness_checked"
-    from_stage: Optional[str]
-    to_stage: Optional[str]
-    score: Optional[int]
-    reason: Optional[str] = None
+    from_stage: str | None
+    to_stage: str | None
+    score: int | None
+    reason: str | None = None
 
 
 @dataclass
@@ -76,26 +76,26 @@ class DatasetState:
 
     dataset_id: str
     stage: str = "draft"
-    last_score: Optional[int] = None
-    last_scored_at: Optional[str] = None
+    last_score: int | None = None
+    last_scored_at: str | None = None
     registered_at: str = ""
-    history: List[Dict[str, Any]] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    history: list[dict[str, Any]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DatasetState":
+    def from_dict(cls, data: dict[str, Any]) -> "DatasetState":
         return cls(**data)
 
     def add_history_entry(
         self,
         action: str,
-        from_stage: Optional[str] = None,
-        to_stage: Optional[str] = None,
-        score: Optional[int] = None,
-        reason: Optional[str] = None,
+        from_stage: str | None = None,
+        to_stage: str | None = None,
+        score: int | None = None,
+        reason: str | None = None,
     ):
         entry = PromotionHistoryEntry(
             timestamp=datetime.now().isoformat(),
@@ -134,20 +134,20 @@ class PromotionPipeline:
 
     def __init__(
         self,
-        state_file: Optional[Path] = None,
-        datasets_dir: Optional[Path] = None,
-        scorer_thresholds: Optional[Dict[str, Any]] = None,
+        state_file: Path | None = None,
+        datasets_dir: Path | None = None,
+        scorer_thresholds: dict[str, Any] | None = None,
     ):
         self.state_file = Path(state_file) if state_file else Path(DEFAULT_STATE_FILENAME)
         self.datasets_dir = Path(datasets_dir) if datasets_dir else Path.cwd() / "training_data"
 
         # Lazy-loaded components
-        self._scorer: Optional[ReadinessScorer] = None
-        self._changelog: Optional[AutoChangelog] = None
+        self._scorer: ReadinessScorer | None = None
+        self._changelog: AutoChangelog | None = None
         self._scorer_thresholds = scorer_thresholds or {}
 
         # Load existing state
-        self._state: Dict[str, DatasetState] = {}
+        self._state: dict[str, DatasetState] = {}
         self._load_state()
 
         logger.info(
@@ -415,7 +415,7 @@ class PromotionPipeline:
 
         return report
 
-    def get_status(self, dataset_id: str) -> Optional[Dict[str, Any]]:
+    def get_status(self, dataset_id: str) -> dict[str, Any] | None:
         """
         Get the current promotion status of a dataset.
 
@@ -456,7 +456,7 @@ class PromotionPipeline:
             ),
         }
 
-    def list_by_stage(self, stage: str) -> List[Dict[str, Any]]:
+    def list_by_stage(self, stage: str) -> list[dict[str, Any]]:
         """
         List all datasets at a given stage.
 
@@ -486,7 +486,7 @@ class PromotionPipeline:
 
         return sorted(results, key=lambda x: x.get("dataset_id", ""))
 
-    def list_all(self) -> Dict[str, List[Dict[str, Any]]]:
+    def list_all(self) -> dict[str, list[dict[str, Any]]]:
         """
         List all registered datasets grouped by stage.
 
@@ -525,7 +525,7 @@ class PromotionPipeline:
         from_ref: str = "HEAD~20",
         to_ref: str = "HEAD",
         version: str = "Unreleased",
-        output_path: Optional[Path] = None,
+        output_path: Path | None = None,
     ) -> str:
         """
         Generate a changelog for a dataset.
@@ -567,7 +567,7 @@ class PromotionPipeline:
             return
 
         try:
-            with open(self.state_file, "r", encoding="utf-8") as f:
+            with open(self.state_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             raw_datasets = data.get("datasets", {})

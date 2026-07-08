@@ -13,7 +13,9 @@ v6.0 changes:
 - إضافة _is_protected_word() مع دعم الكلمات المخصصة
 - get_suggestions/auto_correct/check_text تتجاوز الكلمات المحمية
 """
-import json, logging, re
+import json
+import logging
+import re
 from difflib import get_close_matches
 from pathlib import Path
 from typing import Optional

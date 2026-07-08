@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 core/privilege.py
 ==================
@@ -14,6 +13,7 @@ polkit يعطي مصادقة رسومية واحدة والمستخدم يبقى
 """
 
 from __future__ import annotations
+
 import shutil
 import subprocess
 from dataclasses import dataclass

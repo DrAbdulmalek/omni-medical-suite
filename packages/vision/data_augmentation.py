@@ -27,12 +27,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import random
-import re
 from collections import Counter
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +59,8 @@ class DataAugmentor:
 
     def __init__(
         self,
-        seed: Optional[int] = 42,
-        techniques: Optional[list[str]] = None,
+        seed: int | None = 42,
+        techniques: list[str] | None = None,
         # إعدادات التقنيات
         rotation_range: tuple[float, float] = (-5.0, 5.0),
         noise_std_range: tuple[float, float] = (5.0, 25.0),
@@ -165,7 +163,6 @@ class DataAugmentor:
         except ImportError:
             raise RuntimeError("Pillow غير متاح")
 
-        import numpy as np
 
         if img_array.ndim == 2:
             return Image.fromarray(img_array, mode="L").convert("RGB")
@@ -193,7 +190,6 @@ class DataAugmentor:
             return img
 
         import cv2
-        import numpy as np
 
         h, w = img.shape[:2]
         angle = random.uniform(*self.rotation_range)
@@ -383,7 +379,7 @@ class DataAugmentor:
         self,
         image: Any,
         num_augmented: int = 5,
-        techniques: Optional[list[str]] = None,
+        techniques: list[str] | None = None,
         return_numpy: bool = False,
     ) -> list[Any]:
         """تعزيز صورة واحدة بعدة تقنيات عشوائية.
@@ -403,7 +399,6 @@ class DataAugmentor:
         if num_augmented <= 0:
             return []
 
-        import numpy as np
 
         img_array = self._to_numpy(image)
         active_techniques = set(techniques) if techniques else self.techniques
@@ -499,7 +494,7 @@ class DataAugmentor:
     def augment_dataset(
         self,
         images: list[Any],
-        labels: Optional[list[str]] = None,
+        labels: list[str] | None = None,
         num_augmented: int = 3,
         return_numpy: bool = False,
     ) -> list[dict[str, Any]]:
@@ -557,10 +552,10 @@ class DataAugmentor:
     def create_augmented_dataset(
         self,
         image_dir: str | Path,
-        label_file: Optional[str | Path] = None,
-        output_dir: Optional[str | Path] = None,
+        label_file: str | Path | None = None,
+        output_dir: str | Path | None = None,
         num_augmented: int = 5,
-        target_per_class: Optional[int] = None,
+        target_per_class: int | None = None,
         return_numpy: bool = False,
     ) -> dict[str, Any]:
         """إنشاء مجموعة بيانات مُعزَّزة من مجلد صور مع تسميات.
@@ -699,7 +694,7 @@ class DataAugmentor:
         labels: dict[str, str] = {}
 
         try:
-            with open(label_file, "r", encoding="utf-8") as f:
+            with open(label_file, encoding="utf-8") as f:
                 if label_file.suffix.lower() == ".jsonl":
                     for line in f:
                         line = line.strip()
@@ -766,7 +761,7 @@ class DataAugmentor:
 
                 counter += 1
                 # اسم ملف: رقم + مصدر_أصلي
-                stem = Path(source).stem if source else f"img"
+                stem = Path(source).stem if source else "img"
                 img_filename = f"{counter:06d}_{stem}.png"
                 img_path = images_dir / img_filename
 

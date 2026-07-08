@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     settings.validate()
     
     # 初始化NPC管理器
-    npc_manager = get_npc_manager()
+    get_npc_manager()
     
     # 初始化并启动状态管理器
     state_manager = get_state_manager(settings.NPC_UPDATE_INTERVAL)

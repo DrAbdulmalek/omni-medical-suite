@@ -12,14 +12,13 @@
 - كشف الحماية بكلمة مرور
 """
 
+import contextlib
 import logging
-import os
-import shutil
 import subprocess
 import tarfile
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ class ArchiveHandler:
 
     def __init__(
         self,
-        progress_callback: Optional[Callable[[str, int, int], None]] = None,
+        progress_callback: Callable[[str, int, int], None] | None = None,
         max_nested_depth: int = 5,
     ) -> None:
         """
@@ -62,7 +61,7 @@ class ArchiveHandler:
             progress_callback: دالة تُستدعى أثناء التقدم (اسم_الملف، الحالي، الإجمالي)
             max_nested_depth: أقصى عمق للأرشيفات المتداخلة
         """
-        self.progress_callback: Optional[Callable[[str, int, int], None]] = progress_callback
+        self.progress_callback: Callable[[str, int, int], None] | None = progress_callback
         self.max_nested_depth: int = max_nested_depth
         logger.info("تم تهيئة معالج الأرشيفات (أقصى عمق تداخل: %d)", max_nested_depth)
 
@@ -373,7 +372,7 @@ class ArchiveHandler:
         self,
         archive_path: str | Path,
         dest_dir: str | Path,
-        password: Optional[str] = None,
+        password: str | None = None,
         extract_nested: bool = False,
     ) -> list[str]:
         """
@@ -435,7 +434,7 @@ class ArchiveHandler:
         self,
         path: Path,
         dest: Path,
-        password: Optional[str],
+        password: str | None,
     ) -> list[str]:
         """يستخرج أرشيف ZIP."""
         extracted: list[str] = []
@@ -524,7 +523,7 @@ class ArchiveHandler:
         self,
         path: Path,
         dest: Path,
-        password: Optional[str],
+        password: str | None,
     ) -> list[str]:
         """يستخرج أرشيف 7Z."""
         cmd = ["7z", "x", f"-o{dest}", "-aoa", str(path)]
@@ -561,7 +560,7 @@ class ArchiveHandler:
         self,
         path: Path,
         dest: Path,
-        password: Optional[str],
+        password: str | None,
     ) -> list[str]:
         """يستخرج أرشيف RAR."""
         cmd = ["unrar", "x", "-o+", f"{dest}/", str(path)]
@@ -662,8 +661,8 @@ class ArchiveHandler:
         self,
         files: list[str | Path],
         output_path: str | Path,
-        password: Optional[str] = None,
-        archive_type: Optional[str] = None,
+        password: str | None = None,
+        archive_type: str | None = None,
     ) -> str:
         """
         ينشئ أرشيفاً من قائمة ملفات.
@@ -682,7 +681,7 @@ class ArchiveHandler:
 
         # كشف النوع
         if archive_type is None:
-            suffix = output.suffix.lower()
+            output.suffix.lower()
             type_by_ext = {
                 ".zip": "zip",
                 ".tar.gz": "tar.gz",
@@ -722,10 +721,8 @@ class ArchiveHandler:
             logger.error("فشل إنشاء الأرشيف: %s", exc)
             # حذف الملف الجزئي
             if output.exists():
-                try:
+                with contextlib.suppress(OSError):
                     output.unlink()
-                except OSError:
-                    pass
             raise
 
         logger.info("تم إنشاء الأرشيف بنجاح: %s", output)
@@ -735,10 +732,10 @@ class ArchiveHandler:
         self,
         files: list[str | Path],
         output: Path,
-        password: Optional[str],
+        password: str | None,
     ) -> None:
         """ينشئ أرشيف ZIP."""
-        pwd_bytes = password.encode("utf-8") if password else None
+        password.encode("utf-8") if password else None
 
         with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
             for i, file_path in enumerate(files, 1):
@@ -781,12 +778,7 @@ class ArchiveHandler:
                 if self.progress_callback:
                     self.progress_callback(str(path), i, len(files))
 
-                if path.is_file():
-                    try:
-                        tf.add(path, arcname=path.name)
-                    except PermissionError as exc:
-                        logger.warning("تخطي %s: %s", path, exc)
-                elif path.is_dir():
+                if path.is_file() or path.is_dir():
                     try:
                         tf.add(path, arcname=path.name)
                     except PermissionError as exc:
@@ -796,7 +788,7 @@ class ArchiveHandler:
         self,
         files: list[str | Path],
         output: Path,
-        password: Optional[str],
+        password: str | None,
     ) -> None:
         """ينشئ أرشيف 7Z."""
         cmd = ["7z", "a", str(output)]

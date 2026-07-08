@@ -21,7 +21,6 @@ OmniFile AI Processor - وحدة معالجة الملفات الذكية
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -194,16 +193,16 @@ def evaluate_file(reference_path: str, hypothesis_path: str) -> EvaluationResult
     Returns:
         EvaluationResult
     """
-    with open(reference_path, "r", encoding="utf-8") as f:
+    with open(reference_path, encoding="utf-8") as f:
         reference = f.read()
 
-    with open(hypothesis_path, "r", encoding="utf-8") as f:
+    with open(hypothesis_path, encoding="utf-8") as f:
         hypothesis = f.read()
 
     return evaluate(reference, hypothesis)
 
 
-def _normalize_arabic(text: Optional[str]) -> str:
+def _normalize_arabic(text: str | None) -> str:
     """
     تطبيع النص العربي للمقارنة / Normalize Arabic text for comparison.
 

@@ -12,7 +12,6 @@ import logging
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from src.scanner_fixer.enhanced_preprocessor import DocumentPreprocessor
-import traceback
 
 logging.basicConfig(
     level=logging.INFO,

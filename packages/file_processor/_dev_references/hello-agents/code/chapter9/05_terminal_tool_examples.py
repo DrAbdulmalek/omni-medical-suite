@@ -8,7 +8,6 @@ TerminalTool 使用示例
 4. 代码库分析
 """
 
-import os
 from pathlib import Path
 from hello_agents.tools import TerminalTool
 

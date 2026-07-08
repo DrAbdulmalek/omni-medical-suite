@@ -17,7 +17,6 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from collections import Counter, defaultdict
-from typing import Optional
 
 logger = logging.getLogger("HandwrittenOCR.Migration")
 
@@ -265,11 +264,10 @@ class DataMigrator:
                 select_cols.append("updated_at")
 
             cols_str = ", ".join(select_cols)
-            placeholders = ", ".join(["?"] * len(select_cols))
+            ", ".join(["?"] * len(select_cols))
 
             # بناء شرط WHERE
             where_clause = ""
-            params = []
             if verified_only:
                 # شمل verified, sentence_corrected, yes (قديم)
                 where_clause = "WHERE status IN ('verified', 'sentence_corrected', 'yes')"
@@ -287,7 +285,7 @@ class DataMigrator:
                     "FROM handwriting_data"
                 )
                 select_cols = ["image_data", "predicted_text", "status", "confidence"]
-                placeholders = ", ".join(["?"] * 4)
+                ", ".join(["?"] * 4)
                 has_created = False
                 has_updated = False
 
@@ -417,7 +415,7 @@ class DataMigrator:
 
         # دمج وإزالة التكرارات
         merged = pd.concat(all_feedback, ignore_index=True)
-        before = len(merged)
+        len(merged)
 
         # إزالة التكرارات (نفس original + corrected)
         merged = merged.drop_duplicates(

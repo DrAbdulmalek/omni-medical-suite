@@ -6,15 +6,15 @@ HandwrittenOCR - الوحدة الرئيسية v5.0
 """
 
 import time
-import logging
+
 from config import Config
-from src.logger import setup_logging
-from src.recognition import OCREngine
 from src.correction import init_correctors
 from src.database import HandwritingDB
-from src.pdf_processor import PDFProcessor
-from src.review_ui import ReviewUI
+from src.logger import setup_logging
 from src.metrics import compute_metrics
+from src.pdf_processor import PDFProcessor
+from src.recognition import OCREngine
+from src.review_ui import ReviewUI
 
 
 def main(config: Config | None = None):
@@ -119,7 +119,7 @@ def main(config: Config | None = None):
             logger.debug(f"Metrics: {e}")
 
     # ملفات المراقبة
-    print(f"\nملفات المراقبة:")
+    print("\nملفات المراقبة:")
     print(f"  سجل الأحداث:   {config.log_file}")
     print(f"  إحصائيات:      {config.stats_json}")
     print(f"  تصحيحات:       {config.feedback_csv}")

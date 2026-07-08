@@ -7,7 +7,6 @@
 
 import logging
 import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ class LanguageDetector:
     # نطاق أحرف اليونيكود للاتينية (إنجليزية أساساً)
     _LATIN_PATTERN = re.compile(r"[A-Za-z]")
 
-    def __init__(self, model_name: Optional[str] = None, device: str = "cpu") -> None:
+    def __init__(self, model_name: str | None = None, device: str = "cpu") -> None:
         """
         تهيئة كاشف اللغة.
 
@@ -54,8 +53,10 @@ class LanguageDetector:
     def _try_import_langdetect(self) -> None:
         """محاولة استيراد مكتبة langdetect."""
         try:
-            from langdetect import detect as ld_detect  # type: ignore
-            from langdetect import detect_langs as ld_detect_langs  # type: ignore
+            from langdetect import (
+                detect as ld_detect,  # type: ignore
+                detect_langs as ld_detect_langs,  # type: ignore
+            )
             self._ld_detect = ld_detect
             self._ld_detect_langs = ld_detect_langs
             self._langdetect_available = True
@@ -105,7 +106,6 @@ class LanguageDetector:
 
         # عتبة لتحديد اللغة السائدة
         dominant_threshold = 0.70
-        mixed_threshold = 0.30  # كل لغة تمثل 30% على الأقل = مختلط
 
         if arabic_ratio >= dominant_threshold:
             language = "ar"

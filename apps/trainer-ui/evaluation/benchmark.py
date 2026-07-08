@@ -15,7 +15,6 @@ CLI usage:
 
 import json
 import csv
-import io
 import sys
 from pathlib import Path
 from typing import Optional
@@ -70,12 +69,12 @@ class BenchmarkResult:
             Complete markdown string with per-case table and summary.
         """
         lines = []
-        lines.append(f"# OCR Benchmark Report")
-        lines.append(f"")
+        lines.append("# OCR Benchmark Report")
+        lines.append("")
         lines.append(f"**Dataset:** {self.dataset_name}")
         lines.append(f"**Engine:** {self.engine_name}")
         lines.append(f"**Test Cases:** {len(self.results)}")
-        lines.append(f"")
+        lines.append("")
 
         # Aggregate summary
         agg = self._aggregate()

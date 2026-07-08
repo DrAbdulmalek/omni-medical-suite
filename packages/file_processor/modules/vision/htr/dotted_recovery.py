@@ -12,9 +12,7 @@
 """
 
 import logging
-import re
 from typing import Dict, List, Optional, Tuple
-from unicodedata import normalize
 
 logger = logging.getLogger(__name__)
 

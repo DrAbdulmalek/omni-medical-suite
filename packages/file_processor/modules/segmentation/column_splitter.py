@@ -4,7 +4,7 @@ Vocabulary Column Splitter — تقسيم صفحات المفردات ثنائي
 """
 import cv2
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Optional
 
 
 class VocabularyColumnSplitter:

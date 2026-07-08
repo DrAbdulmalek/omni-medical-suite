@@ -1,6 +1,4 @@
 """Tests for modules.core.user_manager.UserManager"""
-import pytest
-import json
 
 class TestUserManager:
     """Test UserManager with temp files."""

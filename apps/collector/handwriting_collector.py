@@ -16,24 +16,34 @@ import json
 import logging
 import os
 import sys
-from dataclasses import dataclass, field, asdict
-from io import BytesIO
-from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Any
+from dataclasses import dataclass
+from typing import Any
 
 import cv2
 import numpy as np
-from PIL import Image, ImageQt
-from PyQt5.QtCore import (
-    Qt, QSize, QThread, pyqtSignal, QAbstractTableModel, QModelIndex
-)
-from PyQt5.QtGui import QImage, QPixmap, QIcon, QFont
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QSize, Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QFont, QImage, QPixmap
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QGridLayout, QPushButton, QLabel, QLineEdit, QFileDialog,
-    QScrollArea, QProgressBar, QStatusBar, QGroupBox, QCheckBox,
-    QComboBox, QSpinBox, QDoubleSpinBox, QSplitter, QMessageBox,
-    QTableView, QHeaderView, QAction, QToolBar, QMenu, QSizePolicy
+    QAction,
+    QApplication,
+    QDoubleSpinBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSplitter,
+    QStatusBar,
+    QTableView,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
 )
 
 # ---------------------------------------------------------------------------
@@ -69,7 +79,7 @@ class WordCrop:
     """
 
     image: np.ndarray
-    bbox: Tuple[int, int, int, int] = (0, 0, 0, 0)
+    bbox: tuple[int, int, int, int] = (0, 0, 0, 0)
     quality_score: float = 0.0
     blur_score: float = 0.0
     contrast_score: float = 0.0
@@ -100,7 +110,7 @@ class WordCrop:
         return QImage(rgb.data.tobytes(), w, h, ch * w, QImage.Format_RGB888)
 
     # ------------------------------------------------------------------
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialise the crop to a JSON-serialisable dictionary.
 
         Returns:
@@ -142,7 +152,7 @@ class WordSegmenter:
         self.padding = padding
 
     # ------------------------------------------------------------------
-    def segment(self, image: np.ndarray) -> List[Tuple[np.ndarray, Tuple[int, int, int, int]]]:
+    def segment(self, image: np.ndarray) -> list[tuple[np.ndarray, tuple[int, int, int, int]]]:
         """Segment a document image into word crops.
 
         Args:
@@ -162,7 +172,7 @@ class WordSegmenter:
         )
 
         h_img, w_img = image.shape[:2]
-        crops: List[Tuple[np.ndarray, Tuple[int, int, int, int]]] = []
+        crops: list[tuple[np.ndarray, tuple[int, int, int, int]]] = []
         for cnt in contours:
             area = cv2.contourArea(cnt)
             if area < self.min_area:
@@ -266,7 +276,7 @@ class TrainingDataExporter:
 
     # ------------------------------------------------------------------
     @staticmethod
-    def to_jsonl(crops: List[WordCrop], path: str) -> int:
+    def to_jsonl(crops: list[WordCrop], path: str) -> int:
         """Write crops to a JSONL file.
 
         Args:
@@ -289,7 +299,7 @@ class TrainingDataExporter:
 
     # ------------------------------------------------------------------
     @staticmethod
-    def to_csv(crops: List[WordCrop], path: str) -> int:
+    def to_csv(crops: list[WordCrop], path: str) -> int:
         """Write crops to a CSV file.
 
         Args:
@@ -319,8 +329,8 @@ class TrainingDataExporter:
     # ------------------------------------------------------------------
     @staticmethod
     def to_huggingface(
-        crops: List[WordCrop], output_dir: str
-    ) -> Dict[str, int]:
+        crops: list[WordCrop], output_dir: str
+    ) -> dict[str, int]:
         """Export crops to HuggingFace datasets compatible format.
 
         Creates ``<output_dir>/images/<idx>.png`` for each crop and a
@@ -382,10 +392,10 @@ class SegmentationWorker(QThread):
 
     def __init__(
         self,
-        images: List[np.ndarray],
+        images: list[np.ndarray],
         source: str = "",
         start_page: int = 0,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
     ) -> None:
         """Initialise the worker.
 
@@ -405,7 +415,7 @@ class SegmentationWorker(QThread):
         """Execute segmentation on all images."""
         try:
             segmenter = WordSegmenter()
-            all_crops: List[WordCrop] = []
+            all_crops: list[WordCrop] = []
             total = len(self.images)
 
             for i, img in enumerate(self.images):
@@ -454,9 +464,9 @@ class WordCropTableModel(QAbstractTableModel):
     ]
     EDITABLE_COLS = {2}  # only transcription column is editable
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._crops: List[WordCrop] = []
+        self._crops: list[WordCrop] = []
 
     # ------------------------------------------------------------------
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -528,13 +538,13 @@ class WordCropTableModel(QAbstractTableModel):
     # ------------------------------------------------------------------
     # Convenience helpers
     # ------------------------------------------------------------------
-    def set_crops(self, crops: List[WordCrop]) -> None:
+    def set_crops(self, crops: list[WordCrop]) -> None:
         """Replace all crops and reset the model."""
         self.beginResetModel()
         self._crops = crops
         self.endResetModel()
 
-    def add_crops(self, crops: List[WordCrop]) -> None:
+    def add_crops(self, crops: list[WordCrop]) -> None:
         """Append new crops to the end of the list."""
         self.beginInsertRows(
             QModelIndex(), len(self._crops), len(self._crops) + len(crops) - 1
@@ -542,7 +552,7 @@ class WordCropTableModel(QAbstractTableModel):
         self._crops.extend(crops)
         self.endInsertRows()
 
-    def get_crops(self) -> List[WordCrop]:
+    def get_crops(self) -> list[WordCrop]:
         """Return the full list of crops."""
         return self._crops
 
@@ -576,8 +586,8 @@ class HandwritingCollectorApp(QMainWindow):
         self._apply_rtl_style()
 
         # State
-        self._all_crops: List[WordCrop] = []
-        self._worker: Optional[SegmentationWorker] = None
+        self._all_crops: list[WordCrop] = []
+        self._worker: SegmentationWorker | None = None
         self._batch_mode = False
 
         # Build UI
@@ -863,7 +873,7 @@ class HandwritingCollectorApp(QMainWindow):
     # ==================================================================
     # File Loading
     # ==================================================================
-    def _load_image_file(self, path: str) -> Optional[np.ndarray]:
+    def _load_image_file(self, path: str) -> np.ndarray | None:
         """Read an image file into a BGR NumPy array.
 
         Args:
@@ -902,7 +912,7 @@ class HandwritingCollectorApp(QMainWindow):
         )
         if not paths:
             return
-        images: List[np.ndarray] = []
+        images: list[np.ndarray] = []
         source_name = os.path.basename(os.path.dirname(paths[0]))
         for p in paths:
             img = self._load_image_file(p)
@@ -924,7 +934,7 @@ class HandwritingCollectorApp(QMainWindow):
             self._start_segmentation(images, source=path)
 
     # ------------------------------------------------------------------
-    def _pdf_to_images(self, path: str, dpi: int = 200) -> List[np.ndarray]:
+    def _pdf_to_images(self, path: str, dpi: int = 200) -> list[np.ndarray]:
         """Convert a PDF file to a list of page images.
 
         Falls back gracefully if ``pdf2image`` is not installed.
@@ -959,7 +969,7 @@ class HandwritingCollectorApp(QMainWindow):
     # Segmentation Pipeline
     # ==================================================================
     def _start_segmentation(
-        self, images: List[np.ndarray], source: str = ""
+        self, images: list[np.ndarray], source: str = ""
     ) -> None:
         """Kick off background segmentation.
 
@@ -987,7 +997,7 @@ class HandwritingCollectorApp(QMainWindow):
         self._worker.start()
 
     # ------------------------------------------------------------------
-    def _on_segmentation_done(self, crops: List[WordCrop]) -> None:
+    def _on_segmentation_done(self, crops: list[WordCrop]) -> None:
         """Handle completed segmentation.
 
         Args:

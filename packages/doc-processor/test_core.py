@@ -4,9 +4,9 @@ Tests image processing, skew detection, smart cropping, and segmentation.
 """
 
 import unittest
+
 import numpy as np
 from PIL import Image
-
 
 # ──────────────────────────────────────────────
 # Helper utilities
@@ -48,7 +48,7 @@ def auto_detect_skew(image_array: np.ndarray) -> float:
     else:
         img = gray
 
-    img_h, img_w = img.shape
+    _img_h, _img_w = img.shape
 
     # Try angles from -15 to 15 degrees
     best_angle = 0.0
@@ -101,7 +101,7 @@ def image_segmentation(image_array: np.ndarray, min_word_area: int = 50) -> dict
     threshold = np.mean(gray) * 0.8
     binary = (gray < threshold).astype(np.uint8) * 255
 
-    h, w = binary.shape
+    h, _w = binary.shape
 
     # Find lines using horizontal projection
     row_sum = np.sum(binary, axis=1)
@@ -110,7 +110,7 @@ def image_segmentation(image_array: np.ndarray, min_word_area: int = 50) -> dict
 
     for top, bottom in line_regions:
         line_img = binary[top:bottom, :]
-        line_h, line_w = line_img.shape
+        _line_h, line_w = line_img.shape
 
         # Find words using vertical projection
         col_sum = np.sum(line_img, axis=0)

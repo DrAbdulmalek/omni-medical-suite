@@ -21,16 +21,14 @@ Version: 1.0.0
 Date: 2026-06-04
 """
 
-import json
-import os
-import sys
 import argparse
-import subprocess
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
-from dataclasses import dataclass, asdict
-from datetime import datetime
+import json
 import logging
+import subprocess
+import sys
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -41,7 +39,7 @@ class PipelineConfig:
     """Configuration for the training pipeline."""
     gt_source: str = ""           # Path to ground truth file
     image_path: str = ""         # Path to scanned image
-    ocr_engines: List[str] = None
+    ocr_engines: list[str] = None
     output_dir: str = "training_output"
     fusion_strategy: str = "hybrid"
     medical_dict: str = "arabic_medical_dict.json"
@@ -101,7 +99,7 @@ class TrainingPipeline:
             return
 
         gt_path = Path(self.config.gt_source)
-        output_txt = self.output_dir / "ground_truth.txt"
+        self.output_dir / "ground_truth.txt"
         output_json = self.output_dir / "ground_truth.json"
 
         # Use import_ground_truth.py
@@ -194,7 +192,7 @@ class TrainingPipeline:
         for engine in self.config.ocr_engines:
             train_file = self.output_dir / f"report_{engine}_training.json"
             if train_file.exists():
-                with open(train_file, 'r', encoding='utf-8') as f:
+                with open(train_file, encoding='utf-8') as f:
                     data = json.load(f)
                     training_pairs.extend(data)
 
@@ -227,7 +225,7 @@ class TrainingPipeline:
             logger.warning("No training data to export.")
             return
 
-        with open(train_file, 'r', encoding='utf-8') as f:
+        with open(train_file, encoding='utf-8') as f:
             data = json.load(f)
 
         if self.config.export_format == "csv":
@@ -284,7 +282,7 @@ Examples:
 
     # Load config
     if args.config:
-        with open(args.config, 'r', encoding='utf-8') as f:
+        with open(args.config, encoding='utf-8') as f:
             config_data = json.load(f)
         config = PipelineConfig(**config_data)
     else:

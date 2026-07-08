@@ -4,19 +4,17 @@ InnoCore AI 智能体控制器
 """
 
 import asyncio
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, Optional, Any, Callable
 from datetime import datetime
-import json
 import logging
 from enum import Enum
 
-from agents.base import BaseAgent
 from agents.hunter import HunterAgent
 from agents.miner import MinerAgent
 from agents.coach import CoachAgent
 from agents.validator import ValidatorAgent
 from core.config import get_config
-from core.exceptions import AgentException, TimeoutException
+from core.exceptions import AgentException
 
 logger = logging.getLogger(__name__)
 

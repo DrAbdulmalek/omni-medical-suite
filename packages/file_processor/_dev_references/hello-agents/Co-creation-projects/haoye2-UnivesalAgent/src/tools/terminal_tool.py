@@ -121,7 +121,7 @@ class TerminalTool:
             error_msg += f"\n\n✅ 允许的命令: {allowed_list}"
             if similar_commands:
                 error_msg += f"\n💡 您是否想使用: {', '.join(similar_commands)}?"
-            error_msg += f"\n\n📖 输入 'help' 或 '?' 查看命令帮助"
+            error_msg += "\n\n📖 输入 'help' 或 '?' 查看命令帮助"
             return error_msg
         
         # 检查参数

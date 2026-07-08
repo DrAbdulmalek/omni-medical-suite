@@ -17,8 +17,6 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from pathlib import Path
-from typing import Dict, List, Tuple
 
 # ---------------------------------------------------------------------------
 # 1. Character-level substitution rules
@@ -26,7 +24,7 @@ from typing import Dict, List, Tuple
 
 # Each entry maps an incorrect character (or tuple of context chars) to the
 # correct one.  Applied left-to-right across the text.
-CHARACTER_SUBSTITUTIONS: Dict[str, str] = {
+CHARACTER_SUBSTITUTIONS: dict[str, str] = {
     # Ta marbuta / Ha / Ya final-form confusion
     "\u0647\u064a": "\u0629\u064a",  # ه ي → ة ي  (e.g. "المستشفية" → "المستشفية" correct)
     # Dot confusion – letters sharing the same base form
@@ -50,7 +48,7 @@ CHARACTER_SUBSTITUTIONS: Dict[str, str] = {
 
 # Regex patterns for contextual corrections.
 # Each tuple: (compiled regex, replacement string, description)
-CONTEXT_RULES: List[Tuple[re.Pattern, str, str]] = [
+CONTEXT_RULES: list[tuple[re.Pattern, str, str]] = [
     # Ta marbuta in feminine nouns ending with ة
     (
         re.compile(r"(\u0629)\s*$", re.MULTILINE),
@@ -89,7 +87,7 @@ CONTEXT_RULES: List[Tuple[re.Pattern, str, str]] = [
 
 # Maps frequently OCR-misread medical terms (wrong → correct).
 # Covers drug names, anatomical terms, lab values, and clinical abbreviations.
-MEDICAL_TERM_CORRECTIONS: Dict[str, str] = {
+MEDICAL_TERM_CORRECTIONS: dict[str, str] = {
     # Anatomy
     "القلبية": "القلبية",
     "الرئتين": "الرئتين",
@@ -99,11 +97,8 @@ MEDICAL_TERM_CORRECTIONS: Dict[str, str] = {
     "الدماغ": "الدماغ",
     "العظام": "العظام",
     "الاعصاب": "الأعصاب",
-    "الاعصاب": "الأعصاب",
     "العضلات": "العضلات",
     "الانسجة": "الأنسجة",
-    "الانسجة": "الأنسجة",
-    "الاورام": "الأورام",
     "الاورام": "الأورام",
     # Clinical terms
     "ضغط الدم": "ضغط الدم",
@@ -122,9 +117,7 @@ MEDICAL_TERM_CORRECTIONS: Dict[str, str] = {
     "باراسيتامول": "باراسيتامول",
     "ايبوبروفين": "إيبوبروفين",
     "اموكسيسيلين": "أموكسيسيلين",
-    "اموكسيسيلين": "أموكسيسيلين",
     "ميتفورمين": "ميتفورمين",
-    "انسولين": "أنسولين",
     "انسولين": "أنسولين",
     "اتورفاستاتين": "أتورفاستاتين",
     "اوميبرازول": "أوميبرازول",
@@ -139,10 +132,8 @@ MEDICAL_TERM_CORRECTIONS: Dict[str, str] = {
     "مم زئبق": "مم زئبق",
     # Common OCR artefacts in medical context
     "المرضع": "المرضع",
-    "المرضع": "المرضع",
     "الحامل": "الحامل",
     "حساسية": "حساسية",
-    "اورام": "أورام",
     "اورام": "أورام",
     "نزيف": "نزيف",
     "جلطة": "جلطة",
@@ -159,7 +150,7 @@ MEDICAL_TERM_CORRECTIONS: Dict[str, str] = {
 
 # Groups of Arabic letters that share the same base skeleton and differ only
 # in the number or position of dots.  Used for fuzzy matching.
-DOT_CONFUSION_GROUPS: List[List[str]] = [
+DOT_CONFUSION_GROUPS: list[list[str]] = [
     # Base: U+0628 (ba) skeleton
     ["\u0628", "\u062a", "\u062b", "\u0646", "\u064a"],  # ب ت ث ن ي
     # Base: U+062C (jeem) skeleton
@@ -206,15 +197,15 @@ class ArabicOCRRules:
 
     def __init__(
         self,
-        custom_rules: Dict[str, str] | None = None,
-        extra_char_subs: Dict[str, str] | None = None,
+        custom_rules: dict[str, str] | None = None,
+        extra_char_subs: dict[str, str] | None = None,
     ) -> None:
         # Merge any user-supplied rules
-        self._medical_terms: Dict[str, str] = {**MEDICAL_TERM_CORRECTIONS}
+        self._medical_terms: dict[str, str] = {**MEDICAL_TERM_CORRECTIONS}
         if custom_rules:
             self._medical_terms.update(custom_rules)
 
-        self._char_subs: Dict[str, str] = {**CHARACTER_SUBSTITUTIONS}
+        self._char_subs: dict[str, str] = {**CHARACTER_SUBSTITUTIONS}
         if extra_char_subs:
             self._char_subs.update(extra_char_subs)
 
@@ -291,16 +282,16 @@ class ArabicOCRRules:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def get_dot_confusion_groups() -> List[List[str]]:
+    def get_dot_confusion_groups() -> list[list[str]]:
         """Return the dot-confusion character groups."""
         return DOT_CONFUSION_GROUPS
 
     @staticmethod
-    def get_medical_term_corrections() -> Dict[str, str]:
+    def get_medical_term_corrections() -> dict[str, str]:
         """Return the built-in medical term correction table (read-only copy)."""
         return dict(MEDICAL_TERM_CORRECTIONS)
 
     @staticmethod
-    def get_character_substitutions() -> Dict[str, str]:
+    def get_character_substitutions() -> dict[str, str]:
         """Return the built-in character substitution table (read-only copy)."""
         return dict(CHARACTER_SUBSTITUTIONS)

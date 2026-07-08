@@ -3,12 +3,12 @@
 #  Intelligent rejection storage | Classification by reason | Review log
 # ══════════════════════════════════════════════════════════╝
 
-import json
 import datetime
+import json
+from pathlib import Path
+
 import cv2
 import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class RejectedLinesManager:
@@ -27,7 +27,7 @@ class RejectedLinesManager:
 
     VALID_REASONS = ('crossed_out', 'low_confidence', 'rotation_error')
 
-    def __init__(self, base_dir: Optional[str] = None):
+    def __init__(self, base_dir: str | None = None):
         if base_dir is None:
             base_dir = str(Path(__file__).parent.parent.parent / 'data')
 
@@ -40,19 +40,19 @@ class RejectedLinesManager:
             (self.rejected_dir / category).mkdir(exist_ok=True)
 
         self.log_file = self.rejected_dir / 'rejected_log.json'
-        self.logs: List[Dict] = self._load_log()
+        self.logs: list[dict] = self._load_log()
 
     # ────────────────────────────────────────────────────────
     # Log Persistence
     # ────────────────────────────────────────────────────────
 
-    def _load_log(self) -> List[Dict]:
+    def _load_log(self) -> list[dict]:
         """تحميل سجل الرفض من الملف."""
         if self.log_file.exists():
             try:
-                with open(self.log_file, 'r', encoding='utf-8') as f:
+                with open(self.log_file, encoding='utf-8') as f:
                     return json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 return []
         return []
 
@@ -120,9 +120,9 @@ class RejectedLinesManager:
 
     def save_batch_rejected(
         self,
-        rejected_lines: List[Dict],
+        rejected_lines: list[dict],
         page_id: str,
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         """
         حفظ دفعة من الأسطر المرفوضة.
 
@@ -134,7 +134,7 @@ class RejectedLinesManager:
         Returns:
             Dict with count per reason: {'crossed_out': N, 'low_confidence': M, ...}
         """
-        counts: Dict[str, int] = {}
+        counts: dict[str, int] = {}
         for rl in rejected_lines:
             reason = rl.get('reason', 'low_confidence')
             image = rl.get('image')
@@ -157,9 +157,9 @@ class RejectedLinesManager:
     # Query & Statistics
     # ────────────────────────────────────────────────────────
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """إحصائيات الأسطر المرفوضة حسب السبب."""
-        stats = {r: 0 for r in self.VALID_REASONS}
+        stats = dict.fromkeys(self.VALID_REASONS, 0)
         for entry in self.logs:
             reason = entry.get('reason', 'unknown')
             if reason in stats:
@@ -168,7 +168,7 @@ class RejectedLinesManager:
         stats['total'] = sum(stats.values())
         return stats
 
-    def get_rejected_by_reason(self, reason: str) -> List[Dict]:
+    def get_rejected_by_reason(self, reason: str) -> list[dict]:
         """استرجاع جميع الأسطر المرفوضة بسبب معين."""
         return [e for e in self.logs if e.get('reason') == reason]
 
@@ -178,10 +178,10 @@ class RejectedLinesManager:
 
     def recover_for_training(
         self,
-        reason: Optional[str] = None,
-        target_dir: Optional[str] = None,
-        labels_file: Optional[str] = None,
-        corrections: Optional[Dict[str, str]] = None,
+        reason: str | None = None,
+        target_dir: str | None = None,
+        labels_file: str | None = None,
+        corrections: dict[str, str] | None = None,
     ) -> int:
         """
         استرداد أسطر مرفوضة لتصحيحها يدوياً وإضافتها لبيانات التدريب.

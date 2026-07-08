@@ -4,7 +4,7 @@ PDF 解析工具
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import re
 
 logger = logging.getLogger(__name__)
@@ -214,7 +214,7 @@ class PDFParser:
                     }
                 }
                 
-                logger.info(f"PDF 字节流解析成功")
+                logger.info("PDF 字节流解析成功")
                 return result
                 
         except Exception as e:

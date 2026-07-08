@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 modules/startup_manager.py
 =============================
@@ -25,16 +24,22 @@ Desktop Application Autostart Specification:
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, replace
-from pathlib import Path
+
 import configparser
 import shutil
+from dataclasses import dataclass, replace
+from pathlib import Path
 
-from core.module_base import (
-    MaintenanceModule, ScanResult, ScanFinding, Severity,
-    PreviewStep, ApplyResult, RiskLevel,
-)
 from core.logger import get_logger
+from core.module_base import (
+    ApplyResult,
+    MaintenanceModule,
+    PreviewStep,
+    RiskLevel,
+    ScanFinding,
+    ScanResult,
+    Severity,
+)
 
 log = get_logger("startup_manager")
 

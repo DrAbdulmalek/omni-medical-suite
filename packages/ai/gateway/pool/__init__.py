@@ -27,11 +27,11 @@ __all__ = [
     # Conversation pool
     "ConversationContext",
     "ConversationPool",
-    # Health scoring
-    "HealthStats",
-    "ProviderHealthScorer",
     # Rate-limit fallback
     "EffortTier",
+    # Health scoring
+    "HealthStats",
     "ModelTierConfig",
+    "ProviderHealthScorer",
     "RateLimitFallbackManager",
 ]

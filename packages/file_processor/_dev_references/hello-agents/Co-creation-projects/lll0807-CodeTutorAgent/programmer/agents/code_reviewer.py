@@ -1,5 +1,4 @@
 from hello_agents import SimpleAgent, HelloAgentsLLM
-from hello_agents.tools.builtin.note_tool import NoteTool
 
 class CodeReviewAgent(SimpleAgent):
     """

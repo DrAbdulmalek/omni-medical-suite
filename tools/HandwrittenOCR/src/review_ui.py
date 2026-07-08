@@ -9,18 +9,19 @@ HandwrittenOCR - الواجهات التفاعلية للمراجعة
 تدعم Jupyter (ipywidgets) ووضع CLI.
 """
 
-import logging
-import json
-import os
-import pandas as pd
 import io as _io
+import json
+import logging
+import os
 from datetime import datetime
+
+import pandas as pd
 
 logger = logging.getLogger("HandwrittenOCR")
 
 try:
     import ipywidgets as widgets
-    from IPython.display import display, clear_output
+    from IPython.display import clear_output, display
     from PIL import Image as PILImage
     HAS_IPYWIDGETS = True
 except ImportError:
@@ -286,7 +287,7 @@ class SentenceReviewUI:
                 corr_words = corrected.split()
                 if len(orig_words) == len(corr_words):
                     derived = []
-                    for o, c in zip(orig_words, corr_words):
+                    for o, c in zip(orig_words, corr_words, strict=False):
                         if o != c:
                             derived.append({
                                 'timestamp': datetime.now().isoformat(),
@@ -343,7 +344,7 @@ class CorrectionDictUI:
     def _launch_jupyter_ui(self) -> None:
         data = {}
         if os.path.exists(self.dict_path):
-            with open(self.dict_path, 'r', encoding='utf-8') as f:
+            with open(self.dict_path, encoding='utf-8') as f:
                 data = json.load(f)
 
         out = widgets.Output()

@@ -267,7 +267,7 @@ class MCPTool(Tool):
 
             # 运行异步发现
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # 如果已有循环，在新线程中运行
                 import concurrent.futures
                 def run_in_thread():
@@ -285,7 +285,7 @@ class MCPTool(Tool):
                 # 没有运行中的循环
                 self._available_tools = asyncio.run(discover())
 
-        except Exception as e:
+        except Exception:
             # 工具发现失败不影响初始化
             self._available_tools = []
 
@@ -456,10 +456,9 @@ class MCPTool(Tool):
             try:
                 # 检查是否已有运行中的事件循环
                 try:
-                    loop = asyncio.get_running_loop()
+                    asyncio.get_running_loop()
                     # 如果有运行中的循环，在新线程中运行新的事件循环
                     import concurrent.futures
-                    import threading
 
                     def run_in_thread():
                         # 在新线程中创建新的事件循环

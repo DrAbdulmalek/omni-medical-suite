@@ -20,7 +20,7 @@ import logging
 import re
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +71,9 @@ class FHIRExporter:
 
     def __init__(self) -> None:
         """Initialize the FHIR exporter."""
-        self.resource_type_counter: Dict[str, int] = {}
+        self.resource_type_counter: dict[str, int] = {}
 
-    def export_to_fhir(self, extracted_data: Dict) -> Dict:
+    def export_to_fhir(self, extracted_data: dict) -> dict:
         """
         Convert OCR+NER extracted data into a FHIR Bundle.
 
@@ -95,7 +95,7 @@ class FHIRExporter:
         bundle_id = str(uuid.uuid4())
         timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        bundle: Dict[str, Any] = {
+        bundle: dict[str, Any] = {
             "resourceType": "Bundle",
             "id": bundle_id,
             "type": "collection",
@@ -173,10 +173,10 @@ class FHIRExporter:
 
     def _build_patient_resource(
         self,
-        patient_info: Dict,
-        entities: List[Dict],
-        metadata: Dict,
-    ) -> Optional[Dict]:
+        patient_info: dict,
+        entities: list[dict],
+        metadata: dict,
+    ) -> dict | None:
         """
         Build a FHIR Patient resource.
 
@@ -224,7 +224,7 @@ class FHIRExporter:
             "id": patient_id,
             "text": {
                 "status": "generated",
-                "div": f"<div>بيانات المريض المستخرجة من OCR</div>",
+                "div": "<div>بيانات المريض المستخرجة من OCR</div>",
             },
         }
 
@@ -264,9 +264,9 @@ class FHIRExporter:
 
     def _build_observation_resources(
         self,
-        entities: List[Dict],
+        entities: list[dict],
         text: str,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Build FHIR Observation resources from lab test entities.
 
@@ -279,7 +279,7 @@ class FHIRExporter:
         Returns:
             List of FHIR Observation resource dictionaries.
         """
-        observations: List[Dict] = []
+        observations: list[dict] = []
 
         lab_entities = [e for e in entities if e.get("type") == "LAB_TEST"]
 
@@ -325,9 +325,9 @@ class FHIRExporter:
 
     def _build_medication_requests(
         self,
-        entities: List[Dict],
+        entities: list[dict],
         text: str,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Build FHIR MedicationRequest resources from drug entities.
 
@@ -340,14 +340,14 @@ class FHIRExporter:
         Returns:
             List of FHIR MedicationRequest resource dictionaries.
         """
-        medications: List[Dict] = []
+        medications: list[dict] = []
 
         drug_entities = [e for e in entities if e.get("type") == "DRUG"]
         dosage_entities = [e for e in entities if e.get("type") == "DOSAGE"]
         freq_entities = [e for e in entities if e.get("type") == "FREQUENCY"]
         dur_entities = [e for e in entities if e.get("type") == "DURATION"]
 
-        for idx, drug in enumerate(drug_entities):
+        for _idx, drug in enumerate(drug_entities):
             med_id = str(uuid.uuid4())
             drug_name = drug.get("value", "")
 
@@ -411,9 +411,9 @@ class FHIRExporter:
 
     def _build_condition_resources(
         self,
-        entities: List[Dict],
-        metadata: Dict,
-    ) -> List[Dict]:
+        entities: list[dict],
+        metadata: dict,
+    ) -> list[dict]:
         """
         Build FHIR Condition resources from diagnosis entities.
 
@@ -426,7 +426,7 @@ class FHIRExporter:
         Returns:
             List of FHIR Condition resource dictionaries.
         """
-        conditions: List[Dict] = []
+        conditions: list[dict] = []
 
         diag_entities = [e for e in entities if e.get("type") == "DIAGNOSIS"]
 
@@ -434,7 +434,7 @@ class FHIRExporter:
             cond_id = str(uuid.uuid4())
             diagnosis_text = diag.get("value", "")
 
-            condition: Dict[str, Any] = {
+            condition: dict[str, Any] = {
                 "resourceType": "Condition",
                 "id": cond_id,
                 "clinicalStatus": {
@@ -473,10 +473,10 @@ class FHIRExporter:
 
     def _build_diagnostic_report(
         self,
-        entities: List[Dict],
-        metadata: Dict,
+        entities: list[dict],
+        metadata: dict,
         text: str,
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """
         Build a FHIR DiagnosticReport resource.
 
@@ -536,7 +536,7 @@ class FHIRExporter:
 
         return report
 
-    def _to_fhir_datetime(self, arabic_date: str) -> Optional[str]:
+    def _to_fhir_datetime(self, arabic_date: str) -> str | None:
         """
         Convert Arabic date string to ISO 8601 format.
 
@@ -611,7 +611,7 @@ class FHIRExporter:
             return None
 
     @staticmethod
-    def _find_lab_value(text: str, lab_name: str) -> Optional[Dict]:
+    def _find_lab_value(text: str, lab_name: str) -> dict | None:
         """
         Try to find a numeric lab value associated with a test name.
 
@@ -655,8 +655,8 @@ class FHIRExporter:
 
     @staticmethod
     def _find_closest_entity(
-        target: Dict,
-        candidates: List[Dict],
+        target: dict,
+        candidates: list[dict],
         text: str,
         max_distance: int = 100,
     ) -> str:

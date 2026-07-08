@@ -5,7 +5,6 @@
 
 import sys
 import json
-import yaml
 import argparse
 from pathlib import Path
 from datetime import datetime

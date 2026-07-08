@@ -23,13 +23,11 @@ Author: OmniFile AI Processor v5.0
 """
 
 import argparse
-import json
 import logging
-import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 # ── إعداد التسجيل / Logging Setup ──────────────────────────────────────
 logging.basicConfig(
@@ -42,8 +40,6 @@ logger = logging.getLogger("nlp_medical_pipeline")
 # ── الاستيرادات من المشروع / Project Imports ────────────────────────────
 # وحدات NLP / NLP modules
 from modules.nlp.arabic_nlp_utils import (
-    normalize_for_comparison,
-    arabic_normalized_similarity,
     similarity_report,
 )
 from modules.nlp.language_corrector import LanguageCorrector
@@ -51,7 +47,6 @@ from modules.nlp.arabic_rtl import (
     RTLFixer,
     is_rtl_text,
     get_text_direction,
-    fix_rtl_display,
     normalize_arabic_ocr,
 )
 from modules.nlp.language_detector import LanguageDetector
@@ -66,7 +61,6 @@ from modules.security.sensitive_data_scanner import SensitiveDataScanner
 # وحدة الرؤية الحاسوبية (تحليل التخطيط + استخراج الجداول) / Vision
 from modules.vision.layout_analyzer import LayoutAnalyzer
 from modules.vision.table_extractor import TableExtractor
-from modules.core.structure import BBox, BlockType, DocumentBlock
 
 # وحدة الطب / Medical module
 from modules.medical.medical_ocr_reviewer import AdvancedMedicalOCR
@@ -779,7 +773,7 @@ def print_medical_report(result: MedicalPipelineResult) -> None:
 
     # النص المصحح (مقتطف)
     if result.corrected_text:
-        print(f"\n📝 النص المصحح (مقتطف):")
+        print("\n📝 النص المصحح (مقتطف):")
         print("-" * 50)
         lines = result.corrected_text.split("\n")[:15]
         for line in lines:
@@ -790,7 +784,7 @@ def print_medical_report(result: MedicalPipelineResult) -> None:
 
     # النص بعد إزالة البيانات الحساسة
     if result.enable_redaction and result.redacted_text:
-        print(f"\n🔒 النص بعد إزالة البيانات الحساسة (مقتطف):")
+        print("\n🔒 النص بعد إزالة البيانات الحساسة (مقتطف):")
         print("-" * 50)
         lines = result.redacted_text.split("\n")[:10]
         for line in lines:
@@ -865,7 +859,7 @@ def main() -> None:
     scanner = SensitiveDataScanner(use_presidio=True)
     status = scanner.is_available()
     print(f"  presidio:  {'✅ متاح' if status['presidio'] else '❌ غير متاح'}")
-    print(f"  regex:     ✅ متاح دائماً")
+    print("  regex:     ✅ متاح دائماً")
     print(f"  أنماط مخصصة: {status['custom_patterns']}")
 
     # ── فحص البيانات الحساسة — مثال مباشر ────────────────

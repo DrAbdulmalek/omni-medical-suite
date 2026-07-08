@@ -44,8 +44,8 @@ def load_sft_dataset():
 
     print(f"✅ 数据集大小: {result_dict['dataset_size']}")
     print(f"📋 数据集列: {result_dict['sample_keys']}")
-    print(f"\n💡 提示: 数据集已加载,可以用于训练")
-    print(f"   使用 action='train' 开始训练")
+    print("\n💡 提示: 数据集已加载,可以用于训练")
+    print("   使用 action='train' 开始训练")
 
     return result_dict
 
@@ -82,8 +82,8 @@ def load_rl_dataset():
 
     print(f"✅ 数据集大小: {result_dict['dataset_size']}")
     print(f"📋 数据集列: {result_dict['sample_keys']}")
-    print(f"\n💡 提示: RL数据集已加载,包含prompt和ground_truth")
-    print(f"   可用于GRPO训练")
+    print("\n💡 提示: RL数据集已加载,包含prompt和ground_truth")
+    print("   可用于GRPO训练")
 
     return result_dict
 
@@ -139,7 +139,7 @@ def load_full_dataset():
     - 训练集: ~7500 样本
     - 测试集: ~1300 样本
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     config = {
         "action": "load_dataset",
@@ -188,8 +188,8 @@ def compare_sft_rl_formats():
     sft_result = tool.run(sft_config)
     sft_data = json.loads(sft_result)
     print(f"   列: {sft_data['sample_keys']}")
-    print(f"   用途: 监督微调 (Supervised Fine-Tuning)")
-    print(f"   特点: 包含完整的prompt和completion")
+    print("   用途: 监督微调 (Supervised Fine-Tuning)")
+    print("   特点: 包含完整的prompt和completion")
 
     # RL格式
     rl_config = {
@@ -204,8 +204,8 @@ def compare_sft_rl_formats():
     rl_result = tool.run(rl_config)
     rl_data = json.loads(rl_result)
     print(f"   列: {rl_data['sample_keys']}")
-    print(f"   用途: 强化学习训练 (Reinforcement Learning)")
-    print(f"   特点: 包含prompt和ground_truth,用于奖励计算")
+    print("   用途: 强化学习训练 (Reinforcement Learning)")
+    print("   特点: 包含prompt和ground_truth,用于奖励计算")
 
     print("\n主要区别:")
     print("  - SFT: 直接学习正确答案")
@@ -238,10 +238,10 @@ def dataset_statistics():
     print("\n数据集统计:")
     print(f"  总样本数: {result_dict['dataset_size']}")
     print(f"  数据列: {', '.join(result_dict['sample_keys'])}")
-    print(f"  数据集: GSM8K (Grade School Math 8K)")
-    print(f"  任务类型: 数学推理")
+    print("  数据集: GSM8K (Grade School Math 8K)")
+    print("  任务类型: 数学推理")
 
-    print(f"\n💡 提示: 数据集包含以下字段:")
+    print("\n💡 提示: 数据集包含以下字段:")
     for key in result_dict['sample_keys']:
         print(f"  - {key}")
 

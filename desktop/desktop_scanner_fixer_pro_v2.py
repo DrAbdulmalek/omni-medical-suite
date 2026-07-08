@@ -4,21 +4,22 @@ Scanner Fixer Pro v2.0 - مع دمج كامل مع HF
 يتضمن: معالجة الصور + OCR + Dataset Manager
 """
 
+import json
+import tempfile
+import threading
+import time
+import tkinter as tk
+from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
+
 import cv2
 import numpy as np
-from pathlib import Path
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
-import threading
-import tempfile
-import json
-import time
 
 # استيراد المكونات
 try:
-    from hf_connector import HFConnector, DesktopHFIntegration
     from hf_auto_dataset import HFAutoDatasetManager
+    from hf_connector import DesktopHFIntegration, HFConnector
     HF_AVAILABLE = True
 except ImportError:
     HF_AVAILABLE = False
@@ -181,10 +182,10 @@ class ScannerFixerProV2App:
         # Header
         header = tk.Frame(self.root, bg="#2c3e50", height=80)
         header.pack(fill=tk.X)
-        tk.Label(header, text="Scanner Fixer Pro v2.0 + Hugging Face", 
+        tk.Label(header, text="Scanner Fixer Pro v2.0 + Hugging Face",
                 font=("Arial", 24, "bold"), fg="white", bg="#2c3e50").pack(pady=15)
 
-        self.hf_status = tk.Label(header, text="HF: Initializing...", 
+        self.hf_status = tk.Label(header, text="HF: Initializing...",
                                  font=("Arial", 11), fg="#3498db", bg="#2c3e50")
         self.hf_status.pack()
 
@@ -198,7 +199,7 @@ class ScannerFixerProV2App:
         left_panel.pack_propagate(False)
 
         # === HF Connection & Dataset ===
-        hf_frame = tk.LabelFrame(left_panel, text=" Hugging Face", 
+        hf_frame = tk.LabelFrame(left_panel, text=" Hugging Face",
                                 font=("Arial", 12, "bold"), bg="#ecf0f1", fg="#2c3e50")
         hf_frame.pack(fill=tk.X, padx=10, pady=5)
 
@@ -215,7 +216,7 @@ class ScannerFixerProV2App:
                  bg="#3498db", fg="white", font=("Arial", 10, "bold"), width=20).pack(pady=5)
 
         # Dataset Management
-        ds_frame = tk.LabelFrame(hf_frame, text=" Dataset Manager", 
+        ds_frame = tk.LabelFrame(hf_frame, text=" Dataset Manager",
                                 font=("Arial", 10, "bold"), bg="#ecf0f1")
         ds_frame.pack(fill=tk.X, padx=5, pady=5)
 
@@ -227,12 +228,12 @@ class ScannerFixerProV2App:
                  bg="#e67e22", fg="white", font=("Arial", 9), width=18).pack(pady=2)
 
         # === Processing Options ===
-        options_frame = tk.LabelFrame(left_panel, text=" Processing Options", 
+        options_frame = tk.LabelFrame(left_panel, text=" Processing Options",
                                      font=("Arial", 12, "bold"), bg="#ecf0f1", fg="#2c3e50")
         options_frame.pack(fill=tk.X, padx=10, pady=5)
 
         self.options = {}
-        opts = [('shadow_removal', 'Remove Shadows', True), 
+        opts = [('shadow_removal', 'Remove Shadows', True),
                 ('deskew', 'Deskew', True),
                 ('perspective', 'Perspective Correction', True),
                 ('denoise', 'Denoise', True),
@@ -241,24 +242,24 @@ class ScannerFixerProV2App:
         for key, text, default in opts:
             var = tk.BooleanVar(value=default)
             self.options[key] = var
-            tk.Checkbutton(options_frame, text=text, variable=var, 
+            tk.Checkbutton(options_frame, text=text, variable=var,
                           bg="#ecf0f1", font=("Arial", 10)).pack(anchor=tk.W, padx=5)
 
         # === Mode Selection ===
-        mode_frame = tk.LabelFrame(left_panel, text=" Processing Mode", 
+        mode_frame = tk.LabelFrame(left_panel, text=" Processing Mode",
                                   font=("Arial", 12, "bold"), bg="#ecf0f1", fg="#2c3e50")
         mode_frame.pack(fill=tk.X, padx=10, pady=5)
 
         self.process_mode = tk.StringVar(value="local")
-        tk.Radiobutton(mode_frame, text="Local Only", variable=self.process_mode, 
+        tk.Radiobutton(mode_frame, text="Local Only", variable=self.process_mode,
                       value="local", bg="#ecf0f1", font=("Arial", 10)).pack(anchor=tk.W, padx=5)
-        tk.Radiobutton(mode_frame, text="Local + HF OCR", variable=self.process_mode, 
+        tk.Radiobutton(mode_frame, text="Local + HF OCR", variable=self.process_mode,
                       value="hybrid", bg="#ecf0f1", font=("Arial", 10)).pack(anchor=tk.W, padx=5)
-        tk.Radiobutton(mode_frame, text="HF Direct", variable=self.process_mode, 
+        tk.Radiobutton(mode_frame, text="HF Direct", variable=self.process_mode,
                       value="hf_only", bg="#ecf0f1", font=("Arial", 10)).pack(anchor=tk.W, padx=5)
 
         # === Action Buttons ===
-        btn_frame = tk.LabelFrame(left_panel, text=" Actions", 
+        btn_frame = tk.LabelFrame(left_panel, text=" Actions",
                                 font=("Arial", 12, "bold"), bg="#ecf0f1", fg="#2c3e50")
         btn_frame.pack(fill=tk.X, padx=10, pady=5)
 
@@ -276,7 +277,7 @@ class ScannerFixerProV2App:
                  bg="#1abc9c", fg="white", font=("Arial", 11, "bold"), width=25, height=2).pack(pady=3)
 
         # Status & Progress
-        self.status = tk.Label(left_panel, text="Ready", fg="#27ae60", 
+        self.status = tk.Label(left_panel, text="Ready", fg="#27ae60",
                               bg="#ecf0f1", font=("Arial", 11, "bold"))
         self.status.pack(pady=5)
         self.progress = ttk.Progressbar(left_panel, orient=tk.HORIZONTAL, length=300, mode='determinate')
@@ -289,9 +290,9 @@ class ScannerFixerProV2App:
         # Images
         img_frame = tk.Frame(right_panel, bg="#bdc3c7")
         img_frame.pack(fill=tk.X, pady=5)
-        tk.Label(img_frame, text="Original", font=("Arial", 12, "bold"), 
+        tk.Label(img_frame, text="Original", font=("Arial", 12, "bold"),
                 bg="#bdc3c7", fg="#2c3e50").pack(side=tk.LEFT, padx=200)
-        tk.Label(img_frame, text="Processed", font=("Arial", 12, "bold"), 
+        tk.Label(img_frame, text="Processed", font=("Arial", 12, "bold"),
                 bg="#bdc3c7", fg="#2c3e50").pack(side=tk.RIGHT, padx=200)
 
         canvases_frame = tk.Frame(right_panel, bg="#bdc3c7")
@@ -302,7 +303,7 @@ class ScannerFixerProV2App:
         self.canvas_after.pack(side=tk.RIGHT, padx=10, pady=5)
 
         # OCR Results
-        ocr_frame = tk.LabelFrame(right_panel, text=" OCR Results", 
+        ocr_frame = tk.LabelFrame(right_panel, text=" OCR Results",
                                  font=("Arial", 12, "bold"), bg="#ecf0f1", fg="#2c3e50")
         ocr_frame.pack(fill=tk.X, padx=10, pady=5)
 
@@ -326,7 +327,7 @@ class ScannerFixerProV2App:
                  bg="#e67e22", fg="white", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=10)
 
         # Metrics Display
-        metrics_frame = tk.LabelFrame(right_panel, text=" Processing Metrics", 
+        metrics_frame = tk.LabelFrame(right_panel, text=" Processing Metrics",
                                      font=("Arial", 11, "bold"), bg="#ecf0f1", fg="#2c3e50")
         metrics_frame.pack(fill=tk.X, padx=10, pady=5)
         self.metrics_text = tk.Text(metrics_frame, height=4, width=100, font=("Arial", 9))
@@ -381,7 +382,7 @@ class ScannerFixerProV2App:
             return
 
         try:
-            dataset_name = f"DrAbdulmalek/arabic-medical-ocr-corrections"
+            dataset_name = "DrAbdulmalek/arabic-medical-ocr-corrections"
             stats = self.dataset_manager.get_dataset_stats(dataset_name)
 
             stats_str = json.dumps(stats, indent=2, ensure_ascii=False)
@@ -402,7 +403,7 @@ class ScannerFixerProV2App:
             return
 
         try:
-            dataset_name = f"DrAbdulmalek/arabic-medical-ocr-corrections"
+            dataset_name = "DrAbdulmalek/arabic-medical-ocr-corrections"
             output_file = self.dataset_manager.export_dataset(dataset_name, folder, "json")
             messagebox.showinfo("Success", f"Exported to: {output_file}")
         except Exception as e:
@@ -508,7 +509,7 @@ class ScannerFixerProV2App:
         if self.cleaned is None:
             messagebox.showwarning("Warning", "No processed image!")
             return
-        file_path = filedialog.asksaveasfilename(defaultextension=".jpg", 
+        file_path = filedialog.asksaveasfilename(defaultextension=".jpg",
                                                 filetypes=[("JPEG", "*.jpg"), ("PNG", "*.png"), ("TIFF", "*.tiff")])
         if file_path:
             cv2.imwrite(file_path, self.cleaned)
@@ -530,7 +531,7 @@ class ScannerFixerProV2App:
             return
 
         image_path = getattr(self, 'current_image_path', 'unknown')
-        dataset_name = f"DrAbdulmalek/arabic-medical-ocr-corrections"
+        dataset_name = "DrAbdulmalek/arabic-medical-ocr-corrections"
 
         try:
             success = self.dataset_manager.add_correction_record(
@@ -565,7 +566,7 @@ class ScannerFixerProV2App:
             cv2.imwrite(str(original_temp), self.image)
             cv2.imwrite(str(processed_temp), self.cleaned)
 
-            dataset_name = f"DrAbdulmalek/scanner-fixer-logs"
+            dataset_name = "DrAbdulmalek/scanner-fixer-logs"
 
             success = self.dataset_manager.add_scanner_log(
                 dataset_name=dataset_name,
@@ -601,7 +602,7 @@ class ScannerFixerProV2App:
         self.batch_text.delete(1.0, tk.END)
 
         opts = {k: v.get() for k, v in self.options.items()}
-        mode = self.process_mode.get()
+        self.process_mode.get()
 
         def process_batch():
             for i, file in enumerate(files):

@@ -1,8 +1,7 @@
 """会话 API 路由"""
-import json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any, Union, Literal
+from typing import List, Optional, Literal
 
 router = APIRouter(prefix="/session", tags=["session"])
 

@@ -8,11 +8,10 @@ Author: Dr. Abdulmalek
 Version: 1.0.0
 """
 
-import json
 import time
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -37,13 +36,13 @@ class TableBenchmarkResult:
     header_preserved: bool
     structure_preserved: bool  # merged cells, spanning
     latency_ms: float
-    cell_errors: List[Dict] = field(default_factory=list)
+    cell_errors: list[dict] = field(default_factory=list)
 
 
 class TableExtractionBenchmark:
     """
     Benchmark for table extraction quality in medical documents.
-    
+
     Medical table types:
     - Lab reports (test name, value, unit, reference range)
     - Prescriptions (drug, dosage, frequency, duration)
@@ -114,10 +113,10 @@ class TableExtractionBenchmark:
         """
         self.ocr_func = ocr_func
 
-    def evaluate_table(self, table_id: str, predicted_rows: List[List[str]]) -> TableBenchmarkResult:
+    def evaluate_table(self, table_id: str, predicted_rows: list[list[str]]) -> TableBenchmarkResult:
         """
         Evaluate a single table extraction.
-        
+
         Args:
             table_id: Key from SAMPLE_TABLES
             predicted_rows: Extracted table rows from OCR
@@ -132,7 +131,7 @@ class TableExtractionBenchmark:
         start = time.time()
 
         # Build cell-level comparison
-        cells: List[TableCell] = []
+        cells: list[TableCell] = []
         cell_errors = []
         correct_count = 0
         total_expected = 0
@@ -208,7 +207,7 @@ class TableExtractionBenchmark:
             cell_errors=cell_errors
         )
 
-    def run_all(self) -> Dict[str, Any]:
+    def run_all(self) -> dict[str, Any]:
         """Run benchmark on all sample tables with simulated predictions."""
         results = []
         for table_id in self.SAMPLE_TABLES:
@@ -220,7 +219,7 @@ class TableExtractionBenchmark:
 
         return self._aggregate(results)
 
-    def run_with_func(self, table_images: Dict[str, Path]) -> Dict[str, Any]:
+    def run_with_func(self, table_images: dict[str, Path]) -> dict[str, Any]:
         """Run benchmark using actual OCR function on table images."""
         if not self.ocr_func:
             raise ValueError("ocr_func required for image-based benchmarking")
@@ -273,7 +272,7 @@ class TableExtractionBenchmark:
                 return "minor_typo"
         return "major_error"
 
-    def _simulate_ocr_noise(self, rows: List[List[str]]) -> List[List[str]]:
+    def _simulate_ocr_noise(self, rows: list[list[str]]) -> list[list[str]]:
         """Simulate realistic OCR noise on table data."""
         import random
         noisy = []
@@ -295,7 +294,7 @@ class TableExtractionBenchmark:
             noisy.append(noisy_row)
         return noisy
 
-    def _parse_table_text(self, text: str) -> List[List[str]]:
+    def _parse_table_text(self, text: str) -> list[list[str]]:
         """Parse tabular text output into rows of cells."""
         rows = []
         for line in text.strip().split("\n"):
@@ -310,7 +309,7 @@ class TableExtractionBenchmark:
                 rows.append(line.split())
         return rows
 
-    def _aggregate(self, results: List[TableBenchmarkResult]) -> Dict[str, Any]:
+    def _aggregate(self, results: list[TableBenchmarkResult]) -> dict[str, Any]:
         """Aggregate results across all tables."""
         if not results:
             return {"tables": [], "summary": {}}

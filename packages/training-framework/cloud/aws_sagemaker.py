@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 training/cloud/aws_sagemaker.py
 ==============================
@@ -15,11 +14,9 @@ training/cloud/aws_sagemaker.py
 المؤلف: Dr. Abdulmalek Al-husseini
 """
 
-import json
 import os
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import boto3
 
@@ -29,9 +26,9 @@ class SageMakerTrainer:
 
     def __init__(
         self,
-        role_arn: str = None,
+        role_arn: str | None = None,
         region: str = 'us-east-1',
-        bucket: str = None
+        bucket: str | None = None
     ):
         self.role_arn = role_arn or os.getenv('SAGEMAKER_ROLE')
         self.region = region
@@ -47,7 +44,7 @@ class SageMakerTrainer:
     def upload_dataset(
         self,
         local_path: Path,
-        s3_key: str = None
+        s3_key: str | None = None
     ) -> str:
         """
         رفع بيانات لـ S3.
@@ -85,11 +82,11 @@ class SageMakerTrainer:
         self,
         job_name: str,
         dataset_s3_uri: str,
-        output_s3_uri: str = None,
+        output_s3_uri: str | None = None,
         instance_type: str = 'ml.p3.2xlarge',
         use_spot: bool = True,
         max_wait: int = 86400,  # 24 ساعة
-        hyperparameters: Dict = None
+        hyperparameters: dict | None = None
     ) -> str:
         """
         إنشاء مهمة تدريب SageMaker.
@@ -118,7 +115,6 @@ class SageMakerTrainer:
         training_script = self._generate_training_script(hyperparameters)
 
         # رفع الـ script
-        script_s3_uri = f"s3://{self.bucket}/scripts/{full_job_name}/train.py"
         self.s3.put_object(
             Bucket=self.bucket,
             Key=f"scripts/{full_job_name}/train.py",
@@ -184,7 +180,7 @@ class SageMakerTrainer:
             training_params['StoppingCondition']['MaxWaitTimeInSeconds'] = max_wait * 2
 
         # إنشاء المهمة
-        response = self.sagemaker.create_training_job(**training_params)
+        self.sagemaker.create_training_job(**training_params)
 
         print(f"🚀 تم إنشاء مهمة التدريب: {full_job_name}")
         print(f"   Instance: {instance_type}")
@@ -263,7 +259,7 @@ class SageMakerTrainer:
     def create_endpoint(
         self,
         model_uri: str,
-        endpoint_name: str = None,
+        endpoint_name: str | None = None,
         instance_type: str = 'ml.g4dn.xlarge'
     ):
         """
@@ -319,7 +315,7 @@ class SageMakerTrainer:
         print(f"🌐 Endpoint: {endpoint_name}")
         return endpoint_name
 
-    def _generate_training_script(self, hyperparameters: Dict) -> str:
+    def _generate_training_script(self, hyperparameters: dict) -> str:
         """توليد script تدريب."""
         return f'''
 import os
@@ -403,7 +399,7 @@ def train_on_sagemaker(
     instance_type: str = "ml.p3.2xlarge",
     use_spot: bool = True,
     **hyperparameters
-) -> Dict:
+) -> dict:
     """
     تدريب سهل على SageMaker.
 

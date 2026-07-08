@@ -3,9 +3,9 @@ Tests for AIFuelConfig — creation, defaults, from_dict, from_env, validation.
 """
 
 import os
-import pytest
 from unittest.mock import patch
-from pydantic import ValidationError
+
+import pytest
 
 
 # ---------------------------------------------------------------------------

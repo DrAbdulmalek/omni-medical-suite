@@ -5,20 +5,19 @@ HF Auto Dataset Creator & Manager
 يدعم: arabic-medical-ocr-corrections + scanner-fixer-logs
 """
 
-import os
 import json
+import os
+import tempfile
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
 import cv2
 import numpy as np
-from pathlib import Path
-from datetime import datetime
-from typing import Optional, List, Dict, Any
-import tempfile
-import base64
-from io import BytesIO
 
 try:
-    from datasets import Dataset, DatasetDict, Features, Value, Image as HFImage
-    from huggingface_hub import HfApi, create_repo, upload_file, hf_hub_download
+    from datasets import Dataset, DatasetDict, Features, Image as HFImage, Value
+    from huggingface_hub import HfApi, create_repo, hf_hub_download, upload_file
     HF_DATASETS_AVAILABLE = True
 except ImportError:
     HF_DATASETS_AVAILABLE = False
@@ -80,7 +79,7 @@ class HFAutoDatasetManager:
         }
     }
 
-    def __init__(self, hf_token: Optional[str] = None, username: str = "DrAbdulmalek"):
+    def __init__(self, hf_token: str | None = None, username: str = "DrAbdulmalek"):
         """
         تهيئة مدير الـ Dataset
 
@@ -207,7 +206,7 @@ dataset = load_dataset("{dataset_name}")
             print(f"❌ Failed to create dataset: {e}")
             raise
 
-    def add_correction_record(self, 
+    def add_correction_record(self,
                             dataset_name: str,
                             image_path: str,
                             incorrect_text: str,
@@ -285,7 +284,7 @@ dataset = load_dataset("{dataset_name}")
                        dataset_name: str,
                        original_image_path: str,
                        processed_image_path: str,
-                       processing_options: Dict[str, Any],
+                       processing_options: dict[str, Any],
                        processing_time_ms: float,
                        deskew_angle: float = 0.0) -> bool:
         """
@@ -456,7 +455,7 @@ dataset = load_dataset("{dataset_name}")
         count = 0
         for json_file in backup_path.rglob("*.json"):
             try:
-                with open(json_file, 'r', encoding='utf-8') as f:
+                with open(json_file, encoding='utf-8') as f:
                     record = json.load(f)
 
                 # تحديد نوع السجل وإضافته
@@ -472,7 +471,7 @@ dataset = load_dataset("{dataset_name}")
         print(f"✅ Synced {count} records to {dataset_name}")
         return count
 
-    def get_dataset_stats(self, dataset_name: str) -> Dict:
+    def get_dataset_stats(self, dataset_name: str) -> dict:
         """الحصول على إحصائيات Dataset"""
         try:
             from datasets import load_dataset

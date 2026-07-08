@@ -3,19 +3,23 @@
 test_core.py — اختبارات الوحدة لـ medical_doc_gui_v10
 تشغيل: pytest test_core.py -v
 """
-import numpy as np
-import cv2
-import sys
 import os
+import sys
+
+import cv2
+import numpy as np
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # استيراد الدوال من الملف الرئيسي
 import importlib.util
+
 spec = importlib.util.spec_from_file_location(
     "app", os.path.join(os.path.dirname(__file__), "medical_doc_gui.py"))
 mod = importlib.util.module_from_spec(spec)
 # تشغيل جزئي (بدون PySide6)
 import unittest.mock as mock
+
 with mock.patch.dict('sys.modules', {
     'PySide6': mock.MagicMock(), 'PySide6.QtWidgets': mock.MagicMock(),
     'PySide6.QtCore': mock.MagicMock(), 'PySide6.QtGui': mock.MagicMock(),
@@ -58,6 +62,7 @@ def default_params(**kw):
     return p
 
 import pytest
+
 
 # ══════════════════════════════════════════════
 #  apply_processing
@@ -126,12 +131,12 @@ class TestBlurAndQuality:
 class TestFindPageBounds:
     def test_no_gray_returns_zero(self):
         img = white_img()
-        l,t,r,b = find_page_bounds(img)
+        l,_t,r,_b = find_page_bounds(img)
         assert l == 0 and r == 0   # لا رمادي
 
     def test_detects_gray_borders(self):
         img = gray_border_img(w=2550, border=300)
-        l,t,r,b = find_page_bounds(img)
+        l,_t,r,_b = find_page_bounds(img)
         assert l >= 250 and r >= 250   # يكتشف ~300px من كل جانب
 
     def test_returns_four_values(self):
@@ -139,7 +144,7 @@ class TestFindPageBounds:
 
     def test_top_bottom_zero(self):
         img = gray_border_img()
-        l,t,r,b = find_page_bounds(img)
+        _l,t,_r,b = find_page_bounds(img)
         assert t == 0 and b == 0   # الخوارزمية لا تعالج الصفوف
 
 
@@ -152,7 +157,7 @@ class TestSmartAutoCrop:
 
     def test_gray_border_removed(self):
         img = gray_border_img(h=1000, w=2550, border=300)
-        l,t,r,b = smart_auto_crop(img)
+        l,_t,_r,_b = smart_auto_crop(img)
         assert l >= 200   # الرمادي يُزال
 
     def test_margins_within_image(self):

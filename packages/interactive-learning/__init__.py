@@ -16,17 +16,17 @@ Uses lazy imports to avoid circular dependencies.
 __version__ = "3.0.0"
 
 __all__ = [
-    "InteractiveLearningSystem",
-    "SecureCorrectionStorage",
     "AuditLogger",
-    "RateLimiter",
-    "InputSanitizer",
-    "ModelManager",
     "FastSegmenter",
+    "InputSanitizer",
+    "InteractiveLearningSystem",
     "MemoryEfficientLearner",
     "MetricsCollector",
+    "ModelManager",
     "PerformanceMonitor",
     "QualityAssurance",
+    "RateLimiter",
+    "SecureCorrectionStorage",
 ]
 
 

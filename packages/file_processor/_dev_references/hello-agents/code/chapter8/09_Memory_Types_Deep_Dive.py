@@ -7,11 +7,8 @@
 
 from dotenv import load_dotenv
 load_dotenv()
-import os
 import time
-import hashlib
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from datetime import datetime
 from hello_agents.tools import MemoryTool
 
 class MemoryTypesDeepDive:
@@ -60,7 +57,7 @@ class MemoryTypesDeepDive:
         print("• 🔄 适合临时信息存储")
         
         # 演示容量限制
-        print(f"\n1. 容量限制演示:")
+        print("\n1. 容量限制演示:")
         print("添加大量临时记忆，观察容量管理...")
         
         for i in range(8):
@@ -77,10 +74,10 @@ class MemoryTypesDeepDive:
         print(f"\n当前工作记忆状态: {stats}")
         
         # 演示TTL机制
-        print(f"\n2. TTL（生存时间）机制演示:")
+        print("\n2. TTL（生存时间）机制演示:")
         
         # 添加一些带时间戳的记忆
-        current_time = datetime.now()
+        datetime.now()
         
         # 模拟不同时间的记忆
         time_memories = [
@@ -100,7 +97,7 @@ class MemoryTypesDeepDive:
             print(f"  添加记忆: {content} (模拟 {minutes_ago} 分钟前)")
         
         # 演示快速检索
-        print(f"\n3. 快速检索演示:")
+        print("\n3. 快速检索演示:")
         
         search_queries = ["任务", "想法", "提醒"]
         
@@ -115,7 +112,7 @@ class MemoryTypesDeepDive:
             print(f"    结果: {results[:100]}...")
         
         # 演示自动清理
-        print(f"\n4. 自动清理机制:")
+        print("\n4. 自动清理机制:")
         
         # 获取清理前的统计
         before_stats = self.working_memory_tool.run({"action":"stats"})
@@ -143,7 +140,7 @@ class MemoryTypesDeepDive:
         print("• 💾 持久化存储")
         
         # 演示完整事件记录
-        print(f"\n1. 完整事件记录演示:")
+        print("\n1. 完整事件记录演示:")
         
         # 模拟一个完整的学习会话
         learning_session = [
@@ -196,7 +193,7 @@ class MemoryTypesDeepDive:
             print(f"  事件 {i+1}: {result}")
         
         # 演示时间序列检索
-        print(f"\n2. 时间序列检索演示:")
+        print("\n2. 时间序列检索演示:")
         
         # 按时间顺序检索
         timeline_search = self.episodic_memory_tool.run({"action":"search",
@@ -213,7 +210,7 @@ class MemoryTypesDeepDive:
         print(f"会话内容: {session_search}")
         
         # 演示上下文丰富性
-        print(f"\n3. 上下文信息演示:")
+        print("\n3. 上下文信息演示:")
         
         # 添加带有丰富上下文的记忆
         rich_context_memory = {
@@ -240,7 +237,7 @@ class MemoryTypesDeepDive:
         print(f"丰富上下文记忆: {context_result}")
         
         # 演示记忆链条
-        print(f"\n4. 记忆链条构建:")
+        print("\n4. 记忆链条构建:")
         
         # 创建相关联的记忆序列
         memory_chain = [
@@ -287,7 +284,7 @@ class MemoryTypesDeepDive:
         print("• 🧮 支持推理和关联")
         
         # 演示概念存储
-        print(f"\n1. 概念知识存储演示:")
+        print("\n1. 概念知识存储演示:")
         
         # 添加不同类型的概念知识
         concepts = [
@@ -333,7 +330,7 @@ class MemoryTypesDeepDive:
             print(f"  概念存储: {concept['concept_type']} - {result}")
         
         # 演示关系推理
-        print(f"\n2. 关系推理演示:")
+        print("\n2. 关系推理演示:")
         
         # 添加关系知识
         relationships = [
@@ -369,7 +366,7 @@ class MemoryTypesDeepDive:
             print(f"  关系存储: {relation['relation_type']} - {result}")
         
         # 演示语义检索
-        print(f"\n3. 语义相似度检索:")
+        print("\n3. 语义相似度检索:")
         
         semantic_queries = [
             "什么是人工智能？",
@@ -389,7 +386,7 @@ class MemoryTypesDeepDive:
             print(f"    结果: {results[:150]}...")
         
         # 演示知识图谱构建
-        print(f"\n4. 知识图谱构建:")
+        print("\n4. 知识图谱构建:")
         
         # 添加实体和关系
         entities_and_relations = [
@@ -442,7 +439,7 @@ class MemoryTypesDeepDive:
         print("• 🎯 内容生成和检索")
         
         # 演示文本感知记忆
-        print(f"\n1. 文本感知记忆:")
+        print("\n1. 文本感知记忆:")
         
         text_perceptions = [
             {
@@ -472,7 +469,7 @@ class MemoryTypesDeepDive:
             print(f"  文本感知: {perception['genre']} - {result}")
         
         # 演示图像感知记忆（模拟）
-        print(f"\n2. 图像感知记忆（模拟）:")
+        print("\n2. 图像感知记忆（模拟）:")
         
         # 模拟图像数据
         image_perceptions = [
@@ -506,7 +503,7 @@ class MemoryTypesDeepDive:
             print(f"  图像感知: {perception['content']} - {result}")
         
         # 演示音频感知记忆（模拟）
-        print(f"\n3. 音频感知记忆（模拟）:")
+        print("\n3. 音频感知记忆（模拟）:")
         
         audio_perceptions = [
             {
@@ -540,7 +537,7 @@ class MemoryTypesDeepDive:
             print(f"  音频感知: {perception['content']} - {result}")
         
         # 演示跨模态检索
-        print(f"\n4. 跨模态检索演示:")
+        print("\n4. 跨模态检索演示:")
         
         cross_modal_queries = [
             ("美丽的风景", "寻找视觉美感相关内容"),
@@ -558,7 +555,7 @@ class MemoryTypesDeepDive:
             print(f"    结果: {results[:120]}...")
         
         # 演示感知特征分析
-        print(f"\n5. 感知特征分析:")
+        print("\n5. 感知特征分析:")
         
         # 获取感知记忆统计
         perceptual_stats = self.perceptual_memory_tool.run({"action":"stats"})
@@ -583,10 +580,10 @@ class MemoryTypesDeepDive:
         print("• 🧠 语义记忆 → 工作记忆（知识激活）")
         
         # 模拟一个完整的学习过程
-        print(f"\n完整学习过程模拟:")
+        print("\n完整学习过程模拟:")
         
         # 1. 感知阶段：接收多模态信息
-        print(f"\n1. 感知阶段 - 接收信息:")
+        print("\n1. 感知阶段 - 接收信息:")
         
         perceptual_input = self.perceptual_memory_tool.run({"action":"add",
                                                              "content":"观看了一个关于深度学习的视频教程",
@@ -599,7 +596,7 @@ class MemoryTypesDeepDive:
         print(f"感知记忆: {perceptual_input}")
         
         # 2. 工作记忆阶段：临时处理和思考
-        print(f"\n2. 工作记忆阶段 - 临时处理:")
+        print("\n2. 工作记忆阶段 - 临时处理:")
         
         working_thoughts = [
             "理解了卷积神经网络的基本原理",
@@ -617,7 +614,7 @@ class MemoryTypesDeepDive:
             print(f"  工作记忆: {thought[:30]}... - {result}")
         
         # 3. 情景记忆阶段：记录完整学习事件
-        print(f"\n3. 情景记忆阶段 - 事件记录:")
+        print("\n3. 情景记忆阶段 - 事件记录:")
         
         episodic_event = self.episodic_memory_tool.run({"action":"add",
                                                          "content":"完成了深度学习视频教程的学习，理解了CNN的核心概念",
@@ -631,7 +628,7 @@ class MemoryTypesDeepDive:
         print(f"情景记忆: {episodic_event}")
         
         # 4. 语义记忆阶段：抽象知识存储
-        print(f"\n4. 语义记忆阶段 - 知识抽象:")
+        print("\n4. 语义记忆阶段 - 知识抽象:")
         
         semantic_knowledge = [
             {
@@ -657,7 +654,7 @@ class MemoryTypesDeepDive:
             print(f"  语义记忆: {knowledge['concept']} - {result}")
         
         # 5. 记忆整合演示
-        print(f"\n5. 记忆整合演示:")
+        print("\n5. 记忆整合演示:")
         
         # 从工作记忆整合到情景记忆
         consolidation_result = self.working_memory_tool.run({"action":"consolidate",
@@ -667,7 +664,7 @@ class MemoryTypesDeepDive:
         print(f"工作记忆整合: {consolidation_result}")
         
         # 跨记忆类型检索
-        print(f"\n6. 跨记忆类型检索:")
+        print("\n6. 跨记忆类型检索:")
         
         query = "深度学习CNN"
         
@@ -684,7 +681,7 @@ class MemoryTypesDeepDive:
             print(f"  {memory_name}检索: {results[:80]}...")
         
         # 获取所有记忆系统的统计
-        print(f"\n7. 系统整体状态:")
+        print("\n7. 系统整体状态:")
         
         for memory_name, tool in memory_tools:
             stats = tool.run({"action":"stats"})

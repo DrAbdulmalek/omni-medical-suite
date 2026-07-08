@@ -11,10 +11,8 @@ Provides:
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set
 
 
 @dataclass
@@ -29,17 +27,17 @@ class TestCase:
     source: str  # "synthetic", "real", "contributed"
     description: str  # Human-readable description
     ground_truth: str  # The expected OCR output
-    extra_metadata: Dict = field(default_factory=dict)
+    extra_metadata: dict = field(default_factory=dict)
 
 
 @dataclass
 class DatasetStats:
     """Statistics about a dataset."""
     total_cases: int = 0
-    languages: Dict[str, int] = field(default_factory=dict)
-    specialties: Dict[str, int] = field(default_factory=dict)
-    difficulties: Dict[str, int] = field(default_factory=dict)
-    noise_levels: Dict[str, int] = field(default_factory=dict)
+    languages: dict[str, int] = field(default_factory=dict)
+    specialties: dict[str, int] = field(default_factory=dict)
+    difficulties: dict[str, int] = field(default_factory=dict)
+    noise_levels: dict[str, int] = field(default_factory=dict)
     total_characters: int = 0
     total_words: int = 0
 
@@ -47,7 +45,7 @@ class DatasetStats:
 class DatasetManager:
     """Manages benchmark test case datasets."""
 
-    def __init__(self, data_dir: Optional[str] = None):
+    def __init__(self, data_dir: str | None = None):
         """
         Initialize dataset manager.
 
@@ -57,10 +55,10 @@ class DatasetManager:
         if data_dir is None:
             data_dir = Path(__file__).parent.parent.parent / "data"
         self.data_dir = Path(data_dir)
-        self.cases: List[TestCase] = []
-        self._index: Dict[str, TestCase] = {}
+        self.cases: list[TestCase] = []
+        self._index: dict[str, TestCase] = {}
 
-    def load(self) -> "DatasetManager":
+    def load(self) -> DatasetManager:
         """Load all test cases from the data directory."""
         self.cases = []
         self._index = {}
@@ -72,7 +70,7 @@ class DatasetManager:
 
             for json_file in sorted(lang_path.glob("*.json")):
                 try:
-                    with open(json_file, "r", encoding="utf-8") as f:
+                    with open(json_file, encoding="utf-8") as f:
                         data = json.load(f)
                     case = TestCase(
                         id=data.get("id", json_file.stem),
@@ -100,7 +98,7 @@ class DatasetManager:
 
         return self
 
-    def get_case(self, case_id: str) -> Optional[TestCase]:
+    def get_case(self, case_id: str) -> TestCase | None:
         """Get a specific test case by ID."""
         return self._index.get(case_id)
 
@@ -123,12 +121,12 @@ class DatasetManager:
 
     def filter(
         self,
-        language: Optional[str] = None,
-        specialty: Optional[str] = None,
-        difficulty: Optional[str] = None,
-        noise_level: Optional[str] = None,
-        exclude_languages: Optional[Set[str]] = None,
-    ) -> List[TestCase]:
+        language: str | None = None,
+        specialty: str | None = None,
+        difficulty: str | None = None,
+        noise_level: str | None = None,
+        exclude_languages: set[str] | None = None,
+    ) -> list[TestCase]:
         """
         Filter test cases by metadata.
 
@@ -165,7 +163,7 @@ class DatasetManager:
         self,
         train_ratio: float = 0.8,
         seed: int = 42,
-        stratify_by: Optional[str] = None,
+        stratify_by: str | None = None,
     ) -> tuple:
         """
         Split dataset into train/test sets.
@@ -183,7 +181,7 @@ class DatasetManager:
         random.seed(seed)
 
         if stratify_by:
-            groups: Dict[str, List[TestCase]] = {}
+            groups: dict[str, list[TestCase]] = {}
             for case in self.cases:
                 key = getattr(case, stratify_by, "unknown")
                 groups.setdefault(key, []).append(case)
@@ -217,7 +215,7 @@ class DatasetManager:
             return True
         return False
 
-    def get_unique_values(self, field_name: str) -> List[str]:
+    def get_unique_values(self, field_name: str) -> list[str]:
         """Get unique values for a given field across all cases."""
         values = set()
         for case in self.cases:
@@ -225,7 +223,7 @@ class DatasetManager:
                 values.add(getattr(case, field_name))
         return sorted(values)
 
-    def to_dataframe(self) -> "pandas.DataFrame":
+    def to_dataframe(self) -> pandas.DataFrame:
         """Export dataset as a pandas DataFrame."""
         try:
             import pandas as pd

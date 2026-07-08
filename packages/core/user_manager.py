@@ -12,7 +12,6 @@ OmniFile AI Processor v5.0 — Dr. Abdulmalek Tamer Al-husseini
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +67,7 @@ class UserManager:
         self._save()
         return True
 
-    def get_role(self, user_id: str) -> Optional[str]:
+    def get_role(self, user_id: str) -> str | None:
         """دور المستخدم أو None إذا لم يكن موجوداً."""
         return self._users.get(user_id, {}).get("role")
 

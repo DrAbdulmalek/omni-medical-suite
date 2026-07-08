@@ -32,7 +32,7 @@ import sqlite3
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Generator, Optional
+from typing import Generator, Optional
 
 logger = logging.getLogger(__name__)
 

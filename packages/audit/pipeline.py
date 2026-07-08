@@ -4,13 +4,14 @@
 #        reference extraction, strike-through detection
 # ══════════════════════════════════════════════════════════╝
 
-import cv2
+import contextlib
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
-from packages.vision.dual_ocr_verifier import DualOCRVerifier
+import cv2
+
 from packages.audit.audit_logger import AuditLogger
 from packages.audit.rejected_lines_manager import RejectedLinesManager
+from packages.vision.dual_ocr_verifier import DualOCRVerifier
 
 
 class DualOCRVerificationPipeline:
@@ -33,9 +34,9 @@ class DualOCRVerificationPipeline:
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
-        log_dir: Optional[str] = None,
-        output_dir: Optional[str] = None,
+        model_path: str | None = None,
+        log_dir: str | None = None,
+        output_dir: str | None = None,
         auto_save_threshold: float = 0.85,
         reviewer_id: str = "DrUser",
         use_v3: bool = True,
@@ -76,7 +77,7 @@ class DualOCRVerificationPipeline:
     # Main Processing (v6.1 - Full Pipeline)
     # ────────────────────────────────────────────────────────
 
-    def process_page(self, file_path: str) -> Dict:
+    def process_page(self, file_path: str) -> dict:
         """
         معالجة صفحة كاملة مع التحقق المزدوج وتسجيل التدقيق (v6.1).
 
@@ -93,8 +94,8 @@ class DualOCRVerificationPipeline:
 
         page_id = Path(file_path).name
         auto_saved = 0
-        manual_review: List[Dict] = []
-        critical_alerts: List[Dict] = []
+        manual_review: list[dict] = []
+        critical_alerts: list[dict] = []
 
         stats = {
             "total": 0, "auto": 0, "manual": 0,
@@ -198,10 +199,8 @@ class DualOCRVerificationPipeline:
         # ─── Update counter ───
         current_count = 0
         if self.count_file.exists():
-            try:
+            with contextlib.suppress(OSError, ValueError):
                 current_count = int(self.count_file.read_text().strip())
-            except (ValueError, IOError):
-                pass
         self.count_file.write_text(str(current_count + auto_saved))
 
         return {
@@ -219,7 +218,7 @@ class DualOCRVerificationPipeline:
     # Process with Rotation Error Detection
     # ────────────────────────────────────────────────────────
 
-    def process_page_with_rotation_check(self, file_path: str) -> Dict:
+    def process_page_with_rotation_check(self, file_path: str) -> dict:
         """
         معالجة مع كشف أخطاء الدوران الإضافية.
 
@@ -266,7 +265,7 @@ class DualOCRVerificationPipeline:
     # Manual Review Actions (logged to audit)
     # ────────────────────────────────────────────────────────
 
-    def log_user_action(self, result: Dict, action_type: str, final_text: str) -> str:
+    def log_user_action(self, result: dict, action_type: str, final_text: str) -> str:
         """
         تسجيل قرار المستخدم يدوياً عند المراجعة.
 
@@ -311,8 +310,8 @@ class DualOCRVerificationPipeline:
 
     def recover_rejected_for_training(
         self,
-        corrections: Optional[Dict[str, str]] = None,
-        reason: Optional[str] = None,
+        corrections: dict[str, str] | None = None,
+        reason: str | None = None,
     ) -> int:
         """
         استرداد أسطر مرفوضة مصححة يدوياً وإضافتها لبيانات التدريب.
@@ -341,10 +340,10 @@ class DualOCRVerificationPipeline:
         if self.count_file.exists():
             try:
                 return int(self.count_file.read_text().strip())
-            except (ValueError, IOError):
+            except (OSError, ValueError):
                 pass
         return 0
 
-    def get_rejected_stats(self) -> Dict:
+    def get_rejected_stats(self) -> dict:
         """إحصائيات الأسطر المرفوضة."""
         return self.rejected_manager.get_stats()

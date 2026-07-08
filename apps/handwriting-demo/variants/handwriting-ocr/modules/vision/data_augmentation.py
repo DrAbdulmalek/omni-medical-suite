@@ -27,12 +27,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import random
-import re
 from collections import Counter
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +163,6 @@ class DataAugmentor:
         except ImportError:
             raise RuntimeError("Pillow غير متاح")
 
-        import numpy as np
 
         if img_array.ndim == 2:
             return Image.fromarray(img_array, mode="L").convert("RGB")
@@ -193,7 +190,6 @@ class DataAugmentor:
             return img
 
         import cv2
-        import numpy as np
 
         h, w = img.shape[:2]
         angle = random.uniform(*self.rotation_range)
@@ -403,7 +399,6 @@ class DataAugmentor:
         if num_augmented <= 0:
             return []
 
-        import numpy as np
 
         img_array = self._to_numpy(image)
         active_techniques = set(techniques) if techniques else self.techniques
@@ -766,7 +761,7 @@ class DataAugmentor:
 
                 counter += 1
                 # اسم ملف: رقم + مصدر_أصلي
-                stem = Path(source).stem if source else f"img"
+                stem = Path(source).stem if source else "img"
                 img_filename = f"{counter:06d}_{stem}.png"
                 img_path = images_dir / img_filename
 

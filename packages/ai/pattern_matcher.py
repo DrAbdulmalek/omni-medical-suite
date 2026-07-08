@@ -15,8 +15,8 @@ be automatically corrected.
 
 from __future__ import annotations
 
+import contextlib
 import logging
-from typing import Optional
 
 import cv2
 import numpy as np
@@ -58,7 +58,7 @@ class PatternMatch:
         pattern_id: int,
         label: str,
         confidence: float,
-        pattern_image: Optional[np.ndarray] = None,
+        pattern_image: np.ndarray | None = None,
     ) -> None:
         """Initialize a pattern match result.
 
@@ -94,7 +94,7 @@ class PatternMatcher:
 
     def __init__(
         self,
-        db: Optional["PatternDatabase"] = None,  # type: ignore[type-arg]
+        db: PatternDatabase | None = None,  # type: ignore[type-arg]
         db_path: str = "data/corrections.db",
         threshold: float = 0.85,
     ) -> None:
@@ -118,7 +118,7 @@ class PatternMatcher:
     # Loading patterns
     # ------------------------------------------------------------------
 
-    def load_patterns(self, label_filter: Optional[str] = None) -> int:
+    def load_patterns(self, label_filter: str | None = None) -> int:
         """Load patterns from the database into memory cache.
 
         Loads pattern images and their labels for fast matching.
@@ -142,8 +142,8 @@ class PatternMatcher:
     def match_word(
         self,
         word_image: np.ndarray,
-        label_filter: Optional[str] = None,
-    ) -> Optional[PatternMatch]:
+        label_filter: str | None = None,
+    ) -> PatternMatch | None:
         """Find the best matching pattern for a word image.
 
         Compares the input word image against all cached patterns
@@ -171,7 +171,7 @@ class PatternMatcher:
         if not self._patterns_cache:
             self.load_patterns(label_filter)
 
-        best_match: Optional[PatternMatch] = None
+        best_match: PatternMatch | None = None
         best_score = -1.0
 
         for pattern in self._patterns_cache:
@@ -207,10 +207,8 @@ class PatternMatcher:
 
         # Check threshold
         if best_match and best_match.confidence >= self.threshold:
-            try:
+            with contextlib.suppress(Exception):
                 self.db.increment_pattern_use(best_match.pattern_id)
-            except Exception:
-                pass
 
             logger.debug(
                 f"Pattern matched: '{best_match.label}' "
@@ -345,7 +343,7 @@ class PatternMatcher:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _decode_pattern_image(pattern: dict) -> Optional[np.ndarray]:
+    def _decode_pattern_image(pattern: dict) -> np.ndarray | None:
         """Decode a pattern image from stored bytes.
 
         Args:

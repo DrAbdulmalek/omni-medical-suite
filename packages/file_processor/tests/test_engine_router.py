@@ -1,5 +1,4 @@
 """Tests for modules.core.engine_router.EngineRouter"""
-import pytest
 
 class TestEngineRouter:
     """Test EngineRouter - pure logic, no file I/O."""

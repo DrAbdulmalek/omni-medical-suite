@@ -24,8 +24,6 @@ from typing import Dict, List, Optional
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import numpy as np
-from PIL import Image
 
 
 @dataclass
@@ -77,7 +75,7 @@ class ReportGenerator:
         # تسجيل خط عربي
         try:
             pdfmetrics.registerFont(TTFont('Arabic', 'fonts/Amiri-Regular.ttf'))
-            arabic_style = ParagraphStyle(
+            ParagraphStyle(
                 'Arabic',
                 fontName='Arabic',
                 fontSize=12,
@@ -85,7 +83,7 @@ class ReportGenerator:
                 alignment=2  # RTL
             )
         except:
-            arabic_style = getSampleStyleSheet()['Normal']
+            getSampleStyleSheet()['Normal']
 
         # إنشاء الملف
         output_path = self.output_dir / f"report_{report.job_id}.pdf"

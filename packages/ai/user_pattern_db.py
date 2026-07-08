@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 modules/ai/user_pattern_db.py
 ==================================
@@ -25,14 +24,12 @@ Usage:
 import hashlib
 import json
 import logging
-import os
-from packages.core.base_db import BaseDB
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
+
+from packages.core.base_db import BaseDB
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +138,7 @@ class UserPatternDB(BaseDB):
         confidence: float = 0.0,
         language: str = "ar",
         writer_id: str = "default",
-        context_hint: Optional[str] = None,
+        context_hint: str | None = None,
     ) -> bool:
         """
         Save a user correction as a learnable pattern.
@@ -199,7 +196,7 @@ class UserPatternDB(BaseDB):
         language: str = "ar",
         writer_id: str = "default",
         min_usage: int = 2,
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """
         Suggest a correction based on previously seen patterns.
 
@@ -246,7 +243,7 @@ class UserPatternDB(BaseDB):
         writer_id: str = "default",
         max_results: int = 5,
         threshold: float = 0.80,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Find patterns with similar (but not exact) visual appearance.
 
@@ -295,10 +292,10 @@ class UserPatternDB(BaseDB):
     def get_training_samples(
         self,
         writer_id: str = "default",
-        language: Optional[str] = None,
+        language: str | None = None,
         min_usage: int = 3,
         limit: int = 1000,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Get high-quality samples suitable for LoRA fine-tuning.
 
@@ -353,7 +350,7 @@ class UserPatternDB(BaseDB):
         logger.info(f"Retrieved {len(samples)} training samples (writer={writer_id})")
         return samples
 
-    def get_writer_stats(self, writer_id: str = "default") -> Dict:
+    def get_writer_stats(self, writer_id: str = "default") -> dict:
         """Get learning statistics for a writer."""
         with self.connection() as conn:
             cursor = conn.execute("""
@@ -376,7 +373,7 @@ class UserPatternDB(BaseDB):
 
         return stats
 
-    def get_all_stats(self) -> Dict:
+    def get_all_stats(self) -> dict:
         """Get global statistics."""
         with self.connection() as conn:
             total = conn.execute(
@@ -466,7 +463,7 @@ class UserPatternDB(BaseDB):
         import zlib
         return zlib.compress(jpeg_bytes, level=self._compression_level)
 
-    def _decompress_image(self, blob: bytes) -> Optional[np.ndarray]:
+    def _decompress_image(self, blob: bytes) -> np.ndarray | None:
         """Decompress image from stored blob."""
         try:
             import zlib
@@ -481,7 +478,7 @@ class UserPatternDB(BaseDB):
         """Compute Jaccard-like similarity between two hash prefixes."""
         if not hash1 or not hash2:
             return 0.0
-        common = sum(1 for a, b in zip(hash1, hash2) if a == b)
+        common = sum(1 for a, b in zip(hash1, hash2, strict=False) if a == b)
         total = len(hash1) + len(hash2)
         return common / total if total > 0 else 0.0
 

@@ -3,19 +3,18 @@ Medical Document Encryption (AES-256-GCM)
 PBKDF2 with 480,000 iterations for key derivation.
 """
 
-import os
 import hashlib
-import json
 import logging
-from typing import Optional, Dict, Any
+import os
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # Try to import cryptography, fall back to basic XOR for environments without it
 try:
+    from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    from cryptography.hazmat.primitives import hashes
     HAS_CRYPTO = True
 except ImportError:
     HAS_CRYPTO = False
@@ -52,7 +51,7 @@ class MedicalDocEncryption:
             )
 
     @staticmethod
-    def encrypt_file(input_path: str, output_path: str, password: str) -> Dict[str, Any]:
+    def encrypt_file(input_path: str, output_path: str, password: str) -> dict[str, Any]:
         """
         Encrypt a file using AES-256-GCM.
 
@@ -84,14 +83,14 @@ class MedicalDocEncryption:
             # Fallback: XOR with key stream
             import struct
             nonce = os.urandom(MedicalDocEncryption.NONCE_SIZE)
-            key_stream = hashlib.sha256(key + nonce).digest()
+            hashlib.sha256(key + nonce).digest()
             # Extend key stream to cover full plaintext
             blocks_needed = (len(plaintext) // 32) + 1
             extended_key = b''
             for i in range(blocks_needed):
                 extended_key += hashlib.sha256(key + struct.pack('>I', i) + nonce).digest()
 
-            ciphertext = bytes(a ^ b for a, b in zip(plaintext, extended_key[:len(plaintext)]))
+            ciphertext = bytes(a ^ b for a, b in zip(plaintext, extended_key[:len(plaintext)], strict=False))
 
             with open(output_path, 'wb') as f:
                 f.write(salt)
@@ -136,13 +135,13 @@ class MedicalDocEncryption:
                 plaintext = aesgcm.decrypt(nonce, ciphertext, None)
             else:
                 import struct
-                key_stream = hashlib.sha256(key + nonce).digest()
+                hashlib.sha256(key + nonce).digest()
                 blocks_needed = (len(ciphertext) // 32) + 1
                 extended_key = b''
                 for i in range(blocks_needed):
                     extended_key += hashlib.sha256(key + struct.pack('>I', i) + nonce).digest()
 
-                plaintext = bytes(a ^ b for a, b in zip(ciphertext, extended_key[:len(ciphertext)]))
+                plaintext = bytes(a ^ b for a, b in zip(ciphertext, extended_key[:len(ciphertext)], strict=False))
 
             with open(output_path, 'wb') as f:
                 f.write(plaintext)
@@ -166,16 +165,16 @@ class MedicalDocEncryption:
         else:
             import struct
             nonce = os.urandom(MedicalDocEncryption.NONCE_SIZE)
-            key_stream = hashlib.sha256(key + nonce).digest()
+            hashlib.sha256(key + nonce).digest()
             blocks_needed = (len(data) // 32) + 1
             extended_key = b''
             for i in range(blocks_needed):
                 extended_key += hashlib.sha256(key + struct.pack('>I', i) + nonce).digest()
-            ciphertext = bytes(a ^ b for a, b in zip(data, extended_key[:len(data)]))
+            ciphertext = bytes(a ^ b for a, b in zip(data, extended_key[:len(data)], strict=False))
             return salt + nonce + ciphertext
 
     @staticmethod
-    def decrypt_data(encrypted: bytes, password: str) -> Optional[bytes]:
+    def decrypt_data(encrypted: bytes, password: str) -> bytes | None:
         """Decrypt raw bytes in memory."""
         try:
             salt = encrypted[:MedicalDocEncryption.SALT_SIZE]
@@ -189,12 +188,12 @@ class MedicalDocEncryption:
                 return aesgcm.decrypt(nonce, ciphertext, None)
             else:
                 import struct
-                key_stream = hashlib.sha256(key + nonce).digest()
+                hashlib.sha256(key + nonce).digest()
                 blocks_needed = (len(ciphertext) // 32) + 1
                 extended_key = b''
                 for i in range(blocks_needed):
                     extended_key += hashlib.sha256(key + struct.pack('>I', i) + nonce).digest()
-                return bytes(a ^ b for a, b in zip(ciphertext, extended_key[:len(ciphertext)]))
+                return bytes(a ^ b for a, b in zip(ciphertext, extended_key[:len(ciphertext)], strict=False))
         except Exception as e:
             logger.error(f"Data decryption failed: {e}")
             return None

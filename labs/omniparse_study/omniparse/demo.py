@@ -4,13 +4,15 @@ Author: Adithya S Kolavi
 Date: 2024-07-02
 """
 
-import os
 import base64
 import mimetypes
+import os
+from io import BytesIO
+
+import gradio as gr
 import requests
 from PIL import Image
-from io import BytesIO
-import gradio as gr
+
 # from omniparse.documents import parse_pdf
 
 single_task_list = [
@@ -105,7 +107,7 @@ To use OmniParse with Docker, execute the following commands:
  👉🏼[Docker Image](https://hub.docker.com/r/savatar101/omniparse)
 ```bash
 docker pull savatar101/omniparse:0.1
-# if you are running on a gpu 
+# if you are running on a gpu
 docker run --gpus all -p 8000:8000 savatar101/omniparse:0.1
 # else
 docker run -p 8000:8000 savatar101/omniparse:0.1
@@ -132,7 +134,7 @@ Run the Server:
 ```bash
 python server.py --host 0.0.0.0 --port 8000 --documents --media --web
 ```
-&nbsp;  
+&nbsp;
 - `--documents`: Load in all the models that help you parse and ingest documents (Surya OCR series of models and Florence-2).
 - `--media`: Load in Whisper model to transcribe audio and video files.
 - `--web`: Set up selenium crawler.
@@ -341,7 +343,7 @@ def parse_image(input_file_path, parameters, request: gr.Request):
 parse_media_docs = {
     "curl": """
     curl -X POST -F "file=@/path/to/video.mp4" http://localhost:8000/parse_media/video
-    
+
     curl -X POST -F "file=@/path/to/audio.mp3" http://localhost:8000/parse_media/audio""",
     "python": """
     coming soon⌛
@@ -508,93 +510,92 @@ with demo_ui:
                     lines=1,
                     label="Javascript",
                 )
-        with gr.TabItem("Images"):
-            with gr.Tabs():
-                with gr.TabItem("Process"):
-                    with gr.Row():
-                        with gr.Column(scale=80):
-                            image_process_file = gr.File(
-                                label="Upload Image",
-                                type="filepath",
-                                file_count="single",
-                                interactive=True,
-                                file_types=[".jpg", ".jpeg", ".png"],
+        with gr.TabItem("Images"), gr.Tabs():
+            with gr.TabItem("Process"):
+                with gr.Row():
+                    with gr.Column(scale=80):
+                        image_process_file = gr.File(
+                            label="Upload Image",
+                            type="filepath",
+                            file_count="single",
+                            interactive=True,
+                            file_types=[".jpg", ".jpeg", ".png"],
+                        )
+                        image_process_parameter = gr.Dropdown(
+                            choices=single_task_list,
+                            label="Task Prompt",
+                            value="Caption",
+                            interactive=True,
+                        )
+                        image_process_button = gr.Button("Process Image")
+                    with gr.Column(scale=200):
+                        image_process_output_text = gr.Textbox(label="Output Text")
+                        image_process_output_image = gr.Gallery(
+                            label="Output Image ⌛", interactive=False
+                        )
+                with gr.Accordion("JSON Output"):
+                    image_process_json = gr.JSON(label="Output JSON", visible=False)
+                with gr.Accordion("Use API", open=True):
+                    gr.Code(
+                        language="shell",
+                        value=process_image_docs["curl"],
+                        lines=1,
+                        label="Curl",
+                    )
+                    gr.Code(
+                        language="python",
+                        value="Coming Soon⌛",
+                        lines=1,
+                        label="python",
+                    )
+                    gr.Code(
+                        language="javascript",
+                        value="Coming Soon⌛",
+                        lines=1,
+                        label="Javascript",
+                    )
+            with gr.TabItem("Parse"):
+                with gr.Row():
+                    with gr.Column(scale=80):
+                        image_parse_file = gr.File(
+                            label="Upload Image",
+                            type="filepath",
+                            file_count="single",
+                            interactive=True,
+                        )
+                        with gr.Accordion("Parameters", visible=False):
+                            image_parse_parameter = gr.CheckboxGroup(
+                                ["chunk document"], show_label=False
                             )
-                            image_process_parameter = gr.Dropdown(
-                                choices=single_task_list,
-                                label="Task Prompt",
-                                value="Caption",
-                                interactive=True,
-                            )
-                            image_process_button = gr.Button("Process Image")
-                        with gr.Column(scale=200):
-                            image_process_output_text = gr.Textbox(label="Output Text")
-                            image_process_output_image = gr.Gallery(
-                                label="Output Image ⌛", interactive=False
-                            )
-                    with gr.Accordion("JSON Output"):
-                        image_process_json = gr.JSON(label="Output JSON", visible=False)
-                    with gr.Accordion("Use API", open=True):
-                        gr.Code(
-                            language="shell",
-                            value=process_image_docs["curl"],
-                            lines=1,
-                            label="Curl",
-                        )
-                        gr.Code(
-                            language="python",
-                            value="Coming Soon⌛",
-                            lines=1,
-                            label="python",
-                        )
-                        gr.Code(
-                            language="javascript",
-                            value="Coming Soon⌛",
-                            lines=1,
-                            label="Javascript",
-                        )
-                with gr.TabItem("Parse"):
-                    with gr.Row():
-                        with gr.Column(scale=80):
-                            image_parse_file = gr.File(
-                                label="Upload Image",
-                                type="filepath",
-                                file_count="single",
-                                interactive=True,
-                            )
-                            with gr.Accordion("Parameters", visible=False):
-                                image_parse_parameter = gr.CheckboxGroup(
-                                    ["chunk document"], show_label=False
-                                )
-                            image_parse_button = gr.Button("Parse Image")
-                        with gr.Column(scale=200):
-                            with gr.Accordion("Markdown"):
-                                image_parse_markdown = gr.Markdown()
-                            with gr.Accordion("Extracted Images"):
-                                image_parse_images = gr.Gallery(visible=False)
-                            with gr.Accordion("Chunks", visible=False):
-                                image_parse_chunks = gr.Markdown()
-                    with gr.Accordion("JSON Output"):
-                        image_parse_json = gr.JSON(label="Output JSON", visible=False)
-                    with gr.Accordion("Use API", open=True):
-                        gr.Code(
-                            language="shell",
-                            value=parse_image_docs["curl"],
-                            lines=1,
-                            label="Curl",
-                        )
-                        gr.Code(
-                            language="python",
-                            value="Coming Soon⌛",
-                            lines=1,
-                            label="python",
-                        )
-                        gr.Code(
-                            language="javascript",
-                            value="Coming Soon⌛",
-                            lines=1,
-                            label="Javascript",
-                        )
+                        image_parse_button = gr.Button("Parse Image")
+                    with gr.Column(scale=200):
+                        with gr.Accordion("Markdown"):
+                            image_parse_markdown = gr.Markdown()
+                        with gr.Accordion("Extracted Images"):
+                            image_parse_images = gr.Gallery(visible=False)
+                        with gr.Accordion("Chunks", visible=False):
+                            image_parse_chunks = gr.Markdown()
+                with gr.Accordion("JSON Output"):
+                    image_parse_json = gr.JSON(label="Output JSON", visible=False)
+                with gr.Accordion("Use API", open=True):
+                    gr.Code(
+                        language="shell",
+                        value=parse_image_docs["curl"],
+                        lines=1,
+                        label="Curl",
+                    )
+                    gr.Code(
+                        language="python",
+                        value="Coming Soon⌛",
+                        lines=1,
+                        label="python",
+                    )
+                    gr.Code(
+                        language="javascript",
+                        value="Coming Soon⌛",
+                        lines=1,
+                        label="Javascript",
+                    )
         with gr.TabItem("Media"):
             with gr.Row():
                 with gr.Column(scale=80):
@@ -642,55 +643,54 @@ with demo_ui:
                     lines=1,
                     label="Javascript",
                 )
-        with gr.TabItem("Web"):
-            with gr.Tabs():
-                with gr.TabItem("Parse"):
-                    with gr.Row():
-                        with gr.Column(scale=90):
-                            crawl_url = gr.Textbox(
-                                interactive=True,
-                                placeholder="https://adithyask.com ....",
-                                show_label=False,
-                            )
-                        with gr.Column(scale=10):
-                            crawl_button = gr.Button("➡️ Parse Website")
-                    with gr.Accordion("Markdown"):
-                        crawl_markdown = gr.Markdown()
-                    with gr.Accordion("HTML"):
-                        crawl_html = gr.HTML()
-                    with gr.Accordion("Screen Shots"):
-                        crawl_image = gr.Gallery()
-                    with gr.Accordion("JSON Output"):
-                        crawl_json = gr.JSON(label="Output JSON", visible=False)
-                    with gr.Accordion("Use API", open=True):
-                        gr.Code(
-                            language="shell",
-                            value=parse_website_docs["curl"],
-                            lines=1,
-                            label="Curl",
+        with gr.TabItem("Web"), gr.Tabs():
+            with gr.TabItem("Parse"):
+                with gr.Row():
+                    with gr.Column(scale=90):
+                        crawl_url = gr.Textbox(
+                            interactive=True,
+                            placeholder="https://adithyask.com ....",
+                            show_label=False,
                         )
-                        gr.Code(
-                            language="python",
-                            value="Coming Soon⌛",
-                            lines=1,
-                            label="python",
-                        )
-                        gr.Code(
-                            language="javascript",
-                            value="Coming Soon⌛",
-                            lines=1,
-                            label="Javascript",
-                        )
-                with gr.TabItem("Crawl ⌛", interactive=False):
-                    gr.Markdown("Enter query to search:")
-                    gr.Textbox(
-                        label="Search Query", interactive=False, value="Coming Soon ⌛"
+                    with gr.Column(scale=10):
+                        crawl_button = gr.Button("➡️ Parse Website")
+                with gr.Accordion("Markdown"):
+                    crawl_markdown = gr.Markdown()
+                with gr.Accordion("HTML"):
+                    crawl_html = gr.HTML()
+                with gr.Accordion("Screen Shots"):
+                    crawl_image = gr.Gallery()
+                with gr.Accordion("JSON Output"):
+                    crawl_json = gr.JSON(label="Output JSON", visible=False)
+                with gr.Accordion("Use API", open=True):
+                    gr.Code(
+                        language="shell",
+                        value=parse_website_docs["curl"],
+                        lines=1,
+                        label="Curl",
                     )
-                with gr.TabItem("Search ⌛", interactive=False):
-                    gr.Markdown("Enter query to search:")
-                    gr.Textbox(
-                        label="Search Query", interactive=False, value="Coming Soon ⌛"
+                    gr.Code(
+                        language="python",
+                        value="Coming Soon⌛",
+                        lines=1,
+                        label="python",
                     )
+                    gr.Code(
+                        language="javascript",
+                        value="Coming Soon⌛",
+                        lines=1,
+                        label="Javascript",
+                    )
+            with gr.TabItem("Crawl ⌛", interactive=False):
+                gr.Markdown("Enter query to search:")
+                gr.Textbox(
+                    label="Search Query", interactive=False, value="Coming Soon ⌛"
+                )
+            with gr.TabItem("Search ⌛", interactive=False):
+                gr.Markdown("Enter query to search:")
+                gr.Textbox(
+                    label="Search Query", interactive=False, value="Coming Soon ⌛"
+                )
         gr.Markdown(header_markdown)
 
     document_button.click(

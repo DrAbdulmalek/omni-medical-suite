@@ -17,7 +17,6 @@ agent1 = A2AServer(
 def handle_proposal(text: str) -> str:
     """处理协商提案"""
     import re
-    import json
     
     # 解析提案
     match = re.search(r'propose\s+(.+)', text, re.IGNORECASE)
@@ -25,7 +24,7 @@ def handle_proposal(text: str) -> str:
     
     try:
         proposal = eval(proposal_str)
-        task = proposal.get("task")
+        proposal.get("task")
         deadline = proposal.get("deadline")
         
         # 评估提案

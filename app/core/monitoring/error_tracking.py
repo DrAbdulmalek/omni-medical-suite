@@ -15,11 +15,11 @@ Usage:
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 def init_sentry(
-    dsn: Optional[str] = None,
+    dsn: str | None = None,
     environment: str = "production",
     traces_sample_rate: float = 0.2,
     send_default_pii: bool = False,
@@ -67,7 +67,7 @@ def init_sentry(
         return False
 
 
-def capture_error(exc: Exception, context: Optional[Dict[str, Any]] = None):
+def capture_error(exc: Exception, context: dict[str, Any] | None = None):
     """
     Capture an exception with optional context.
 

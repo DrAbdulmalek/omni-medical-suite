@@ -20,17 +20,15 @@
 
 import os
 import sys
-import json
 import threading
 import queue
 import tkinter as tk
 from tkinter import (
     filedialog, messagebox, scrolledtext, ttk,
-    Frame, Label, Button, Entry, Text, StringVar,
-    BooleanVar, DoubleVar, PanedWindow, Menu
+    Frame, Label, Button, Entry, StringVar,
+    BooleanVar, DoubleVar, Menu
 )
-from datetime import datetime
-from typing import Optional, Dict, Any, List, Callable
+from typing import Optional
 
 # إضافة مسار المشروع
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -666,7 +664,7 @@ class OmniFileGUI:
 
             # ملخص
             self._msg_queue.put(("header", "=" * 60))
-            self._msg_queue.put(("header", f"اكتملت المعالجة!"))
+            self._msg_queue.put(("header", "اكتملت المعالجة!"))
             self._msg_queue.put(("success", f"جديد: {new_count} | متخطى: {cached_count}"))
             self._msg_queue.put(("info", f"إجمالي: {len(files)} ملف"))
 
@@ -1023,7 +1021,6 @@ class OmniFileGUI:
             status_parts.append("PyMuPDF ✗")
 
         try:
-            from modules.core.classifier import MedicalClassifier
             status_parts.append("Classifier ✓")
         except Exception:
             status_parts.append("Classifier ✗")
@@ -1067,7 +1064,7 @@ def main():
     except Exception:
         pass
 
-    app = OmniFileGUI(root)
+    OmniFileGUI(root)
     root.protocol("WM_DELETE_WINDOW", lambda: (root.quit(), root.destroy()))
     root.mainloop()
 

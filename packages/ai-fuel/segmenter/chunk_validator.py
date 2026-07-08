@@ -15,9 +15,9 @@ from __future__ import annotations
 import logging
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from core.schemas import ChunkType, Language, TextChunk
+from core.schemas import Language, TextChunk
 from core.utils import count_tokens, detect_language
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 _SENTENCE_ENDINGS = re.compile(r"[.!?؟۔]+\s*$")
 
 # Common boilerplate / artifact patterns that should not stand alone as chunks.
-_ARTIFACT_PATTERNS: List[re.Pattern] = [
+_ARTIFACT_PATTERNS: list[re.Pattern] = [
     re.compile(r"^[-=_]{3,}$"),                       # decorative lines
     re.compile(r"^\d+$"),                              # standalone page numbers
     re.compile(r"^صحفه\s*\d+\s*من\s*\d+$"),            # Arabic "page X of Y"
@@ -80,7 +80,7 @@ class ChunkValidator:
     # Validation
     # ------------------------------------------------------------------
 
-    def validate(self, chunk: TextChunk) -> Tuple[bool, List[str]]:
+    def validate(self, chunk: TextChunk) -> tuple[bool, list[str]]:
         """Validate a single chunk against quality criteria.
 
         The following checks are performed:
@@ -108,7 +108,7 @@ class ChunkValidator:
             ``True`` when no issues are found and *list_of_issues* contains
             human-readable problem descriptions.
         """
-        issues: List[str] = []
+        issues: list[str] = []
         text = chunk.text
 
         # 1. Non-empty text.
@@ -169,7 +169,7 @@ class ChunkValidator:
 
         return (len(issues) == 0, issues)
 
-    def validate_batch(self, chunks: List[TextChunk]) -> Dict[str, Any]:
+    def validate_batch(self, chunks: list[TextChunk]) -> dict[str, Any]:
         """Validate a batch of chunks and return an aggregate report.
 
         Args:
@@ -185,7 +185,7 @@ class ChunkValidator:
         """
         total = len(chunks)
         valid_count = 0
-        details: Dict[str, List[str]] = {}
+        details: dict[str, list[str]] = {}
 
         for chunk in chunks:
             is_valid, issues = self.validate(chunk)
@@ -296,9 +296,9 @@ class ChunkValidator:
 
     def merge_small_chunks(
         self,
-        chunks: List[TextChunk],
-        min_tokens: Optional[int] = None,
-    ) -> List[TextChunk]:
+        chunks: list[TextChunk],
+        min_tokens: int | None = None,
+    ) -> list[TextChunk]:
         """Merge consecutive chunks that fall below the minimum token threshold.
 
         Small chunks are greedily merged with their **next** neighbour until
@@ -345,7 +345,7 @@ class ChunkValidator:
             return list(chunks)
 
         # Greedy merge: iterate and build result.
-        result: List[TextChunk] = []
+        result: list[TextChunk] = []
         i = 0
         while i < len(chunks):
             if i not in small_indices:
@@ -354,10 +354,10 @@ class ChunkValidator:
                 continue
 
             # Start a merge group beginning at index i.
-            group: List[TextChunk] = [chunks[i]]
+            group: list[TextChunk] = [chunks[i]]
             group_text = chunks[i].text
             group_tokens = count_tokens(group_text)
-            group_meta: Dict[str, Any] = {}
+            group_meta: dict[str, Any] = {}
             j = i + 1
 
             while j < len(chunks) and group_tokens < threshold:
@@ -401,9 +401,9 @@ class ChunkValidator:
 
     def split_large_chunks(
         self,
-        chunks: List[TextChunk],
-        max_tokens: Optional[int] = None,
-    ) -> List[TextChunk]:
+        chunks: list[TextChunk],
+        max_tokens: int | None = None,
+    ) -> list[TextChunk]:
         """Split chunks that exceed the maximum token limit.
 
         Large chunks are split at sentence boundaries when possible.
@@ -430,7 +430,7 @@ class ChunkValidator:
             limit,
         )
 
-        result: List[TextChunk] = []
+        result: list[TextChunk] = []
 
         for chunk in chunks:
             actual_tokens = count_tokens(chunk.text)
@@ -462,10 +462,10 @@ class ChunkValidator:
 
     def normalize(
         self,
-        chunks: List[TextChunk],
-        min_tokens: Optional[int] = None,
-        max_tokens: Optional[int] = None,
-    ) -> List[TextChunk]:
+        chunks: list[TextChunk],
+        min_tokens: int | None = None,
+        max_tokens: int | None = None,
+    ) -> list[TextChunk]:
         """Run the full normalisation pipeline: fix → merge → split → filter.
 
         1. Fix individual chunk issues (whitespace, punctuation, counts).
@@ -497,7 +497,7 @@ class ChunkValidator:
         # Step 4: Filter out empty/invalid chunks.
         final = []
         for chunk in split:
-            is_valid, issues = self.validate(chunk)
+            is_valid, _issues = self.validate(chunk)
             if is_valid:
                 final.append(chunk)
             else:
@@ -525,7 +525,7 @@ class ChunkValidator:
         chunk: TextChunk,
         max_tokens: int,
         overlap_tokens: int,
-    ) -> List[TextChunk]:
+    ) -> list[TextChunk]:
         """Split a single oversized chunk into sub-chunks.
 
         Strategy:
@@ -551,8 +551,8 @@ class ChunkValidator:
             return self._split_by_words(chunk, max_tokens, overlap_tokens)
 
         # Greedy sentence packing.
-        sub_chunks_raw: List[str] = []
-        current_sentences: List[str] = []
+        sub_chunks_raw: list[str] = []
+        current_sentences: list[str] = []
         current_tokens = 0
 
         for sentence in sentences:
@@ -562,7 +562,7 @@ class ChunkValidator:
                 # Flush current group.
                 sub_chunks_raw.append(" ".join(current_sentences))
                 # Keep the last sentence(s) for overlap.
-                overlap_sents: List[str] = []
+                overlap_sents: list[str] = []
                 overlap_count = 0
                 for s in reversed(current_sentences):
                     st = count_tokens(s)
@@ -589,7 +589,7 @@ class ChunkValidator:
         chunk: TextChunk,
         max_tokens: int,
         overlap_tokens: int,
-    ) -> List[TextChunk]:
+    ) -> list[TextChunk]:
         """Split a chunk by word boundaries (fallback for long sentences).
 
         Args:
@@ -601,17 +601,17 @@ class ChunkValidator:
             List of sub-chunks.
         """
         words = chunk.text.split()
-        sub_chunks_raw: List[str] = []
-        current_words: List[str] = []
+        sub_chunks_raw: list[str] = []
+        current_words: list[str] = []
         current_tokens = 0
-        step = max(1, max_tokens - overlap_tokens)
+        max(1, max_tokens - overlap_tokens)
 
         for word in words:
             word_tokens = count_tokens(word)
             if current_tokens + word_tokens > max_tokens and current_words:
                 sub_chunks_raw.append(" ".join(current_words))
                 # Keep overlap words.
-                overlap_words: List[str] = []
+                overlap_words: list[str] = []
                 overlap_count = 0
                 for w in reversed(current_words):
                     wt = count_tokens(w)
@@ -620,7 +620,7 @@ class ChunkValidator:
                         overlap_count += wt
                     else:
                         break
-                current_words = overlap_words + [word]
+                current_words = [*overlap_words, word]
                 current_tokens = overlap_count + word_tokens
             else:
                 current_words.append(word)
@@ -634,9 +634,9 @@ class ChunkValidator:
     def _build_sub_chunks(
         self,
         original: TextChunk,
-        texts: List[str],
+        texts: list[str],
         split_reason: str,
-    ) -> List[TextChunk]:
+    ) -> list[TextChunk]:
         """Build :class:`TextChunk` instances from a list of sub-texts.
 
         Preserves ``chunk_type``, ``source_file``, and ``metadata`` from
@@ -650,7 +650,7 @@ class ChunkValidator:
         Returns:
             List of sub-chunks.
         """
-        chunks: List[TextChunk] = []
+        chunks: list[TextChunk] = []
         offset = original.start_token
 
         for idx, text in enumerate(texts):
@@ -690,9 +690,9 @@ class ChunkValidator:
 
     @staticmethod
     def _build_merged_chunk(
-        texts: List[str],
+        texts: list[str],
         combined_text: str,
-        chunks: List[TextChunk],
+        chunks: list[TextChunk],
     ) -> TextChunk:
         """Build a merged :class:`TextChunk` from multiple source chunks.
 
@@ -713,7 +713,7 @@ class ChunkValidator:
         language = Language(lang_code) if lang_code != "unknown" else Language.UNKNOWN
 
         # Merge all metadata (later chunks win on conflicts).
-        merged_meta: Dict[str, Any] = {}
+        merged_meta: dict[str, Any] = {}
         for c in chunks:
             merged_meta.update(c.metadata)
         merged_meta["merged_from"] = [c.id for c in chunks]
@@ -735,7 +735,7 @@ class ChunkValidator:
         )
 
     @staticmethod
-    def _split_into_sentences(text: str) -> List[str]:
+    def _split_into_sentences(text: str) -> list[str]:
         """Split text into sentences with Arabic + English awareness.
 
         Uses regex-based splitting on sentence-ending punctuation
@@ -753,7 +753,7 @@ class ChunkValidator:
 
         # Also split on double newlines (paragraph breaks often indicate
         # sentence breaks too).
-        expanded: List[str] = []
+        expanded: list[str] = []
         for part in parts:
             sub = re.split(r"\n{2,}", part)
             expanded.extend(sub)

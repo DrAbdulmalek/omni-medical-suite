@@ -5,7 +5,7 @@ MCP工具包装器 - 将单个MCP工具包装成HelloAgents Tool
 使得Agent可以像调用普通工具一样调用MCP工具。
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, List
 from ..base import Tool, ToolParameter
 
 

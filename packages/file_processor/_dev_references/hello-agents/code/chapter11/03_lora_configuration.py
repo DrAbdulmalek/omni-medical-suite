@@ -5,7 +5,6 @@
 
 import sys
 from pathlib import Path
-import json
 
 # 添加项目路径
 project_root = Path(__file__).parent.parent / "HelloAgents"
@@ -28,7 +27,7 @@ def basic_lora_config():
     - 提升2-3倍训练速度
     - 模型文件只有~10MB
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     # 使用RLTrainingTool进行SFT训练,启用LoRA
     config = {
@@ -50,7 +49,7 @@ def basic_lora_config():
     print(f"  use_lora: {config['use_lora']}")
     print(f"  lora_r: {config['lora_r']}")
     print(f"  lora_alpha: {config['lora_alpha']}")
-    print(f"  目标模块: ['q_proj', 'v_proj'] (默认)")
+    print("  目标模块: ['q_proj', 'v_proj'] (默认)")
     
     # 实际训练时取消注释
     # result = tool.run(config)
@@ -150,7 +149,7 @@ def practical_training_configs():
     """
     实际训练中的推荐配置
     """
-    tool = RLTrainingTool()
+    RLTrainingTool()
     
     # 快速训练配置
     quick_config = {
@@ -210,7 +209,7 @@ def practical_training_configs():
     print(f"   batch_size: {standard_config['batch_size']}")
     
     print("\n3. 高质量训练配置:")
-    print(f"   样本数: 全部 (max_samples=None)")
+    print("   样本数: 全部 (max_samples=None)")
     print(f"   epochs: {high_quality_config['num_epochs']}")
     print(f"   lora_r: {high_quality_config['lora_r']}")
     print(f"   batch_size: {high_quality_config['batch_size']}")

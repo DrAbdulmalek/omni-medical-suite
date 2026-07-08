@@ -15,7 +15,6 @@ evaluate_checkpoint.py
 
 import argparse
 import json
-import re
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple

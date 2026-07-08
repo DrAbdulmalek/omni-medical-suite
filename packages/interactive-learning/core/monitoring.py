@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 interactive_learning/core/monitoring.py
 =======================================
@@ -13,15 +12,15 @@ Provides:
 - AlertManager: Threshold-based alerting
 """
 
+import json
 import logging
-import time
 import threading
-from collections import deque, defaultdict
+import time
+from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, Any
-import json
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ class MetricSnapshot:
     """لقطة مقياس."""
     timestamp: float
     value: float
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -67,7 +66,7 @@ class MetricsCollector:
         """
         self.retention = retention_seconds
         self.max_points = max_points
-        self.metrics: Dict[str, deque] = defaultdict(
+        self.metrics: dict[str, deque] = defaultdict(
             lambda: deque(maxlen=max_points)
         )
         self._lock = threading.Lock()
@@ -76,7 +75,7 @@ class MetricsCollector:
         self,
         metric_name: str,
         value: float,
-        labels: Optional[Dict[str, str]] = None
+        labels: dict[str, str] | None = None
     ):
         """
         تسجيل قيمة مقياس.
@@ -97,9 +96,9 @@ class MetricsCollector:
     def get_summary(
         self,
         metric_name: str,
-        time_window: Optional[float] = None,
-        labels: Optional[Dict[str, str]] = None
-    ) -> Dict[str, Any]:
+        time_window: float | None = None,
+        labels: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         """
         الحصول على ملخص إحصائي.
 
@@ -149,8 +148,8 @@ class MetricsCollector:
         metric_name: str,
         time_window: float = 3600,
         bucket_size: float = 60,
-        labels: Optional[Dict[str, str]] = None
-    ) -> List[Dict]:
+        labels: dict[str, str] | None = None
+    ) -> list[dict]:
         """
         الحصول على سلسلة زمنية مجمعة.
 
@@ -168,7 +167,7 @@ class MetricsCollector:
             now = time.time()
             window_start = now - time_window
 
-            buckets: Dict[int, List[float]] = defaultdict(list)
+            buckets: dict[int, list[float]] = defaultdict(list)
             for s in snapshots:
                 if s.timestamp >= window_start:
                     if labels and not self._labels_match(s.labels, labels):
@@ -187,12 +186,12 @@ class MetricsCollector:
                 for ts, vals in sorted(buckets.items())
             ]
 
-    def list_metrics(self) -> List[str]:
+    def list_metrics(self) -> list[str]:
         """List all recorded metric names."""
         with self._lock:
             return list(self.metrics.keys())
 
-    def get_all_summaries(self, time_window: float = 300) -> Dict[str, Dict]:
+    def get_all_summaries(self, time_window: float = 300) -> dict[str, dict]:
         """Get summaries for all metrics."""
         result = {}
         for name in self.list_metrics():
@@ -201,7 +200,7 @@ class MetricsCollector:
                 result[name] = summary
         return result
 
-    def clear(self, metric_name: Optional[str] = None):
+    def clear(self, metric_name: str | None = None):
         """Clear metrics."""
         with self._lock:
             if metric_name:
@@ -219,15 +218,12 @@ class MetricsCollector:
         return json.dumps(data, indent=2, default=str)
 
     @staticmethod
-    def _labels_match(snapshot_labels: Dict, filter_labels: Dict) -> bool:
+    def _labels_match(snapshot_labels: dict, filter_labels: dict) -> bool:
         """Check if snapshot labels match filter."""
-        for key, value in filter_labels.items():
-            if snapshot_labels.get(key) != value:
-                return False
-        return True
+        return all(snapshot_labels.get(key) == value for key, value in filter_labels.items())
 
     @staticmethod
-    def _std(values: List[float]) -> float:
+    def _std(values: list[float]) -> float:
         """Compute standard deviation."""
         n = len(values)
         if n < 2:
@@ -237,7 +233,7 @@ class MetricsCollector:
         return variance ** 0.5
 
     @staticmethod
-    def _percentile(sorted_values: List[float], p: int) -> float:
+    def _percentile(sorted_values: list[float], p: int) -> float:
         """Compute percentile from sorted values."""
         n = len(sorted_values)
         if n == 0:
@@ -267,7 +263,7 @@ class PerformanceMonitor:
 
     def __init__(self):
         self.collector = MetricsCollector(retention_seconds=86400)
-        self.active_operations: Dict[str, float] = {}
+        self.active_operations: dict[str, float] = {}
         self._lock = threading.Lock()
 
     def start_operation(self, operation_id: str):
@@ -284,9 +280,9 @@ class PerformanceMonitor:
         self,
         operation_id: str,
         operation_type: str,
-        labels: Optional[Dict[str, str]] = None,
+        labels: dict[str, str] | None = None,
         success: bool = True
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         إنهاء عملية وتسجيل المدة.
 
@@ -370,7 +366,7 @@ class PerformanceMonitor:
             {'user_id': user_id, 'type': activity_type}
         )
 
-    def get_dashboard_data(self) -> Dict[str, Any]:
+    def get_dashboard_data(self) -> dict[str, Any]:
         """
         بيانات لوحة التحكم.
 
@@ -397,7 +393,7 @@ class PerformanceMonitor:
             'timestamp': datetime.utcnow().isoformat(),
         }
 
-    def get_report(self, time_window: float = 86400) -> Dict[str, Any]:
+    def get_report(self, time_window: float = 86400) -> dict[str, Any]:
         """Generate a comprehensive performance report."""
         return {
             'generated_at': datetime.utcnow().isoformat(),
@@ -423,7 +419,7 @@ class QualityAssurance:
 
     def __init__(self):
         self.collector = MetricsCollector(retention_seconds=86400)
-        self.quality_rules: List[tuple] = []
+        self.quality_rules: list[tuple] = []
 
     def add_rule(self, rule: Callable[[str, str], bool], name: str):
         """
@@ -439,8 +435,8 @@ class QualityAssurance:
         self,
         original: str,
         corrected: str,
-        context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+        context: dict | None = None
+    ) -> dict[str, Any]:
         """
         التحقق من جودة تصحيح.
 
@@ -452,7 +448,7 @@ class QualityAssurance:
         Returns:
             Dictionary with validation results
         """
-        results: Dict[str, Any] = {
+        results: dict[str, Any] = {
             'is_valid': True,
             'checks': {},
             'warnings': [],
@@ -528,7 +524,7 @@ class QualityAssurance:
                 results['warnings'].append(f'Rule error ({rule_name}): {e}')
 
         # Final validity check
-        passed_checks = [
+        [
             v for v in results['checks'].values()
             if v is not None and v is not False
         ]
@@ -542,7 +538,7 @@ class QualityAssurance:
 
         return results
 
-    def record_validation(self, word_id: str, validation_result: Dict):
+    def record_validation(self, word_id: str, validation_result: dict):
         """تسجيل نتيجة تحقق."""
         self.collector.record(
             "correction_quality_score",
@@ -553,7 +549,7 @@ class QualityAssurance:
             }
         )
 
-    def get_quality_report(self, time_window: float = 86400) -> Dict:
+    def get_quality_report(self, time_window: float = 86400) -> dict:
         """Generate quality assurance report."""
         score_summary = self.collector.get_summary(
             'correction_quality_score', time_window=time_window
@@ -592,8 +588,8 @@ class AlertManager:
     """
 
     def __init__(self):
-        self.rules: List[AlertRule] = []
-        self.active_alerts: List[Dict] = []
+        self.rules: list[AlertRule] = []
+        self.active_alerts: list[dict] = []
         self.alert_history: deque = deque(maxlen=1000)
 
     def add_rule(
@@ -622,7 +618,7 @@ class AlertManager:
             cooldown_seconds=cooldown_seconds
         ))
 
-    def check_rules(self, collector: MetricsCollector) -> List[Dict]:
+    def check_rules(self, collector: MetricsCollector) -> list[dict]:
         """
         Check all rules against current metrics.
 
@@ -646,9 +642,7 @@ class AlertManager:
             current_value = summary.get('mean', summary.get('last', 0))
             is_triggered = False
 
-            if rule.condition == 'above' and current_value > rule.threshold:
-                is_triggered = True
-            elif rule.condition == 'below' and current_value < rule.threshold:
+            if (rule.condition == 'above' and current_value > rule.threshold) or (rule.condition == 'below' and current_value < rule.threshold):
                 is_triggered = True
             elif rule.condition == 'spike':
                 p95 = summary.get('p95', 0)
@@ -686,13 +680,13 @@ class AlertManager:
 
         return triggered
 
-    def get_active_alerts(self) -> List[Dict]:
+    def get_active_alerts(self) -> list[dict]:
         """Get currently active alerts."""
         return list(self.active_alerts)
 
     def get_alert_history(
         self,
         limit: int = 50
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Get recent alert history."""
         return list(self.alert_history)[-limit:]

@@ -12,8 +12,6 @@
 """
 
 import logging
-import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -439,11 +437,7 @@ class TextReconstructor:
         if not text:
             return False
 
-        for char in text:
-            if ("A" <= char <= "Z") or ("a" <= char <= "z"):
-                return True
-
-        return False
+        return any("A" <= char <= "Z" or "a" <= char <= "z" for char in text)
 
     # ------------------------------------------------------------------
     # أساليب إعادة تشكيل النص العربي

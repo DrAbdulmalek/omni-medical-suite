@@ -15,7 +15,6 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
 
 # إضافة مسار المشروع
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -155,7 +154,7 @@ class TestFileFingerprintManager(unittest.TestCase):
             self.assertTrue(result)
             self.assertTrue(os.path.exists(export_path))
 
-            with open(export_path, "r", encoding="utf-8") as f:
+            with open(export_path, encoding="utf-8") as f:
                 data = json.load(f)
             self.assertEqual(len(data), 1)
         finally:
@@ -333,7 +332,7 @@ class TestDatasetGenerator(unittest.TestCase):
         self.assertTrue(os.path.exists(files["full"]))
 
         # التحقق من محتوى الملف
-        with open(files["full"], "r", encoding="utf-8") as f:
+        with open(files["full"], encoding="utf-8") as f:
             lines = f.readlines()
         self.assertEqual(len(lines), 2)
 

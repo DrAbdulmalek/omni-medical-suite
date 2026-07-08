@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Medical Document Scanner GUI - v13.1
 =====================================
-إصلاحات: 
+إصلاحات:
 1. find_page_bounds - كشف حدود الصفحة باستخدام Contour Detection + Perspective Transform
 2. auto_detect_skew - تصحيح الميلان باستخدام Projection Profile Method (لا يعطي +15° للصور المستقيمة)
 3. smart_auto_crop - قص ذكي مع الحفاظ على الحواف
@@ -13,21 +12,31 @@ Medical Document Scanner GUI - v13.1
 """
 
 import sys
+from typing import Any
+
 import cv2
 import numpy as np
-from typing import Tuple, Optional, List, Dict, Any
-from pathlib import Path
-import json
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QImage, QPixmap
 
 # GUI imports
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QFileDialog, QSpinBox, QDoubleSpinBox,
-    QCheckBox, QGroupBox, QScrollArea, QMessageBox, QProgressBar,
-    QTextEdit, QSplitter, QFrame, QComboBox, QStatusBar
+    QApplication,
+    QCheckBox,
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSplitter,
+    QStatusBar,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor
 
 try:
     import pytesseract
@@ -42,7 +51,7 @@ except ImportError:
 
 def find_page_bounds_fixed(image: np.ndarray,
                            gray_threshold: int = 200,
-                           padding: int = 10) -> Optional[Tuple[int, int, int, int]]:
+                           padding: int = 10) -> tuple[int, int, int, int] | None:
     """
     كشف حدود الصفحة باستخدام Contour Detection و Projection Profiles
     يعمل على الصور الملونة والرمادية والمستندات ذات الخلفيات المعقدة
@@ -78,7 +87,7 @@ def find_page_bounds_fixed(image: np.ndarray,
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_medium, iterations=2)
 
     # 4. إيجاد الكونتورات
-    contours, hierarchy = cv2.findContours(
+    contours, _hierarchy = cv2.findContours(
         binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
 
@@ -232,7 +241,7 @@ def auto_detect_skew_fixed(image: np.ndarray,
 
 
 def smart_auto_crop(image: np.ndarray,
-                    bounds: Tuple[int, int, int, int],
+                    bounds: tuple[int, int, int, int],
                     margin: int = 20) -> np.ndarray:
     """
     قص ذكي مع الحفاظ على هوامش مناسبة
@@ -298,7 +307,7 @@ def apply_deskew(image: np.ndarray, angle: float) -> np.ndarray:
 # OCR PIPELINE
 # =============================================================================
 
-def run_ocr(image: np.ndarray, lang: str = "ara+eng") -> Dict[str, Any]:
+def run_ocr(image: np.ndarray, lang: str = "ara+eng") -> dict[str, Any]:
     """
     تشغيل OCR على الصورة المعالجة
     """
@@ -438,7 +447,7 @@ class ProcessThread(QThread):
             self.finished_signal.emit(results)
 
         except Exception as e:
-            self.status.emit(f"خطأ: {str(e)}")
+            self.status.emit(f"خطأ: {e!s}")
             self.finished_signal.emit({"error": str(e)})
 
     def stop(self):

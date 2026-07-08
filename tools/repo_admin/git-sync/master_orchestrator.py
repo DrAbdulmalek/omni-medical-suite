@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Master Orchestrator — Automated infrastructure management
 Dr. Abdulmalek - Omni Medical Suite
@@ -10,10 +9,10 @@ Usage:
   python3 master_orchestrator.py --phase 1    # specific phase only
 """
 import os
-import sys
 import subprocess
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # ══════════════════════════════════════════════════════════════
 #  Settings
@@ -289,7 +288,7 @@ def phase5_quality_audit():
         report_lines.append(f"## {repo}")
         report_lines.append(f"### Flake8 (Critical)\n```\n{flake_out.strip() or 'No critical errors'}\n```\n")
 
-        rc, bandit_out, _ = run(
+        _rc, bandit_out, _ = run(
             'bandit -r . -q -lll 2>/dev/null | head -30',
             cwd=BASE_DIR / repo
         )

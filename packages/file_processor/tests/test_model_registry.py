@@ -1,5 +1,4 @@
 """Tests for modules.core.model_registry.ModelRegistry"""
-import pytest
 
 class TestModelRegistry:
     """Test ModelRegistry singleton (without actually loading models)."""

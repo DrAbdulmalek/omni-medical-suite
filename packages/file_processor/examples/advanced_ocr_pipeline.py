@@ -33,7 +33,6 @@ Author: OmniFile AI Processor v5.0
 import argparse
 import json
 import logging
-import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -57,12 +56,10 @@ from modules.vision.result_fusion import (
     BoundingBox,
     LineResult,
     PageResult,
-    DocumentResult,
     TextBlockType,
 )
 from modules.nlp.arabic_rtl import (
     RTLFixer,
-    is_rtl_text,
     get_text_direction,
     fix_rtl_display,
     normalize_arabic_ocr,
@@ -573,21 +570,21 @@ def print_pipeline_report(result: PipelineResult) -> None:
     print(f"🔀 استراتيجية الدمج:      {result.fusion_strategy}")
 
     # استخدام المحركات
-    print(f"\n🔧 استخدام المحركات:")
+    print("\n🔧 استخدام المحركات:")
     for engine, count in result.engine_usage.items():
         bar = "█" * count + "░" * (result.total_pages - count)
         print(f"   {engine:15s} {bar}  ({count} صفحة)")
 
     # تقدير الوقت
     router = EngineRouter()
-    print(f"\n⏳ تقدير وقت المعالجة:")
+    print("\n⏳ تقدير وقت المعالجة:")
     for engine in result.engine_usage:
         est = router.estimate_time([engine])
         print(f"   {engine}: ~{est} ثانية/صفحة")
 
     # النص المدمج
     if result.merged_text:
-        print(f"\n📝 النص المدمج (أول 500 حرف):")
+        print("\n📝 النص المدمج (أول 500 حرف):")
         print("-" * 40)
         preview = result.merged_text[:500]
         print(preview)
@@ -598,7 +595,7 @@ def print_pipeline_report(result: PipelineResult) -> None:
     # تقرير الذاكرة
     if result.memory_report:
         report = result.memory_report
-        print(f"\n💾 تقرير الذاكرة:")
+        print("\n💾 تقرير الذاكرة:")
         print(f"   النماذج المخزنة:       {report['total_models']}")
         print(f"   الذاكرة المستخدمة:      {report['total_memory_mb']:.1f} MB")
         print(f"   الحد الأقصى:            {report['max_memory_gb']:.1f} GB")
@@ -614,7 +611,7 @@ def print_pipeline_report(result: PipelineResult) -> None:
     # ملخص إحصائيات المعالج المتوازي
     processor = ParallelProcessor()
     stats = processor.get_stats()
-    print(f"\n🚀 إحصائيات المعالج المتوازي:")
+    print("\n🚀 إحصائيات المعالج المتوازي:")
     print(f"   العمال المتاحين:        {stats['max_workers']}")
     print(f"   العمال الأمثل:          {stats['optimal_workers']}")
     print(f"   المنفذ الافتراضي:       {stats['default_executor_type']}")

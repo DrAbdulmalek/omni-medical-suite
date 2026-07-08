@@ -633,7 +633,6 @@ class AuditLogger:
     def _get_last_chain_hash(self) -> str:
         """Get the hash of the most recent entry across all log files."""
         last_entry = None
-        last_file = None
 
         for log_file in sorted(self.log_dir.glob("audit_*.jsonl")):
             try:
@@ -644,7 +643,6 @@ class AuditLogger:
                         if last_line:
                             try:
                                 last_entry = json.loads(last_line)
-                                last_file = log_file
                             except json.JSONDecodeError:
                                 pass
             except Exception:

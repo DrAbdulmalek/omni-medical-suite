@@ -24,7 +24,6 @@ generate_synthetic_data.py
 
 import argparse
 import json
-import os
 import random
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -592,15 +591,12 @@ class SyntheticDatasetGenerator:
                 if difficulty == 'easy':
                     # خط واضح، خلفية بيضاء
                     text = self.text_gen.random_text(5, 20)
-                    aug_intensity = 0.3
                 elif difficulty == 'medium':
                     # بعض التعقيد
                     text = self.text_gen.random_text(10, 40)
-                    aug_intensity = 0.6
                 else:  # hard
                     # صعوبة عالية
                     text = self.text_gen.random_text(20, 100)
-                    aug_intensity = 1.0
                 
                 image, _ = self.image_gen.generate(
                     text=text,

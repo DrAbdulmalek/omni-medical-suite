@@ -2,12 +2,12 @@
 Pydantic schemas for structured medical document extraction.
 """
 
+from enum import StrEnum
+
 from pydantic import BaseModel, Field
-from typing import Optional, List
-from enum import Enum
 
 
-class DocumentType(str, Enum):
+class DocumentType(StrEnum):
     ADMISSION_FORM = "admission_form"
     VITALS = "vitals"
     LAB_RESULTS = "lab_results"
@@ -21,7 +21,7 @@ class DocumentType(str, Enum):
     UNKNOWN = "unknown"
 
 
-class UrgencyLevel(str, Enum):
+class UrgencyLevel(StrEnum):
     ROUTINE = "routine"
     URGENT = "urgent"
     CRITICAL = "critical"
@@ -44,51 +44,51 @@ class Medication(BaseModel):
 
 
 class VitalsData(BaseModel):
-    date_recorded: Optional[str] = None
-    blood_pressure: Optional[str] = None
-    heart_rate: Optional[str] = None
-    temperature: Optional[str] = None
-    weight: Optional[float] = None
-    height: Optional[float] = None
-    oxygen_saturation: Optional[str] = None
-    respiratory_rate: Optional[str] = None
+    date_recorded: str | None = None
+    blood_pressure: str | None = None
+    heart_rate: str | None = None
+    temperature: str | None = None
+    weight: float | None = None
+    height: float | None = None
+    oxygen_saturation: str | None = None
+    respiratory_rate: str | None = None
 
 
 class LabResultsData(BaseModel):
-    patient_name: Optional[str] = None
-    mrn: Optional[str] = None
-    test_date: Optional[str] = None
-    tests: List[LabTest] = Field(default_factory=list)
+    patient_name: str | None = None
+    mrn: str | None = None
+    test_date: str | None = None
+    tests: list[LabTest] = Field(default_factory=list)
 
 
 class PrescriptionData(BaseModel):
-    patient_name: Optional[str] = None
-    mrn: Optional[str] = None
-    prescription_date: Optional[str] = None
-    diagnosis: Optional[str] = None
-    medications: List[Medication] = Field(default_factory=list)
+    patient_name: str | None = None
+    mrn: str | None = None
+    prescription_date: str | None = None
+    diagnosis: str | None = None
+    medications: list[Medication] = Field(default_factory=list)
 
 
 class AdmissionFormData(BaseModel):
-    patient_name: Optional[str] = None
-    date_of_birth: Optional[str] = None
-    mrn: Optional[str] = None
-    admission_date: Optional[str] = None
-    department: Optional[str] = None
-    attending_physician: Optional[str] = None
-    reason_for_admission: Optional[str] = None
-    insurance_info: Optional[str] = None
-    emergency_contact: Optional[str] = None
+    patient_name: str | None = None
+    date_of_birth: str | None = None
+    mrn: str | None = None
+    admission_date: str | None = None
+    department: str | None = None
+    attending_physician: str | None = None
+    reason_for_admission: str | None = None
+    insurance_info: str | None = None
+    emergency_contact: str | None = None
 
 
 class ClassificationResult(BaseModel):
     document_type: DocumentType = DocumentType.UNKNOWN
     confidence: float = 0.0
-    routing_department: Optional[str] = None
+    routing_department: str | None = None
     urgency: UrgencyLevel = UrgencyLevel.ROUTINE
-    key_identifiers_found: List[str] = Field(default_factory=list)
+    key_identifiers_found: list[str] = Field(default_factory=list)
     requires_signature: bool = False
-    summary: Optional[str] = None
+    summary: str | None = None
 
 
 class QualityMetrics(BaseModel):
@@ -114,5 +114,5 @@ class ProcessingOptions(BaseModel):
     use_mistral: bool = False
     mistral_structured: bool = False
     encrypt: bool = False
-    encryption_password: Optional[str] = None
-    patient_id: Optional[str] = None
+    encryption_password: str | None = None
+    patient_id: str | None = None

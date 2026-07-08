@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 interactive_learning/_system.py
 ================================
@@ -11,9 +10,8 @@ Uses lazy initialization for all heavy components.
 """
 
 import logging
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -37,7 +35,7 @@ class InteractiveLearningSystem:
         system.apply_correction("word_1", "original", "corrected")
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self._config = config or {}
         self._initialized = False
 
@@ -119,7 +117,7 @@ class InteractiveLearningSystem:
 
     def _init_security(self):
         """Initialize security components."""
-        from .core.security import SecureCorrectionStorage, AuditLogger, RateLimiter
+        from .core.security import AuditLogger, RateLimiter, SecureCorrectionStorage
 
         log_dir = self._config.get("audit_log_dir", ".audit_logs")
         self._secure_storage = SecureCorrectionStorage()
@@ -133,7 +131,7 @@ class InteractiveLearningSystem:
     # Public API
     # -------------------------------------------------------------------------
 
-    def recognize_page(self, image: np.ndarray, return_layout: bool = False) -> Dict:
+    def recognize_page(self, image: np.ndarray, return_layout: bool = False) -> dict:
         """
         Recognize a full page of handwritten Arabic text.
 
@@ -169,10 +167,10 @@ class InteractiveLearningSystem:
         original_text: str,
         corrected_text: str,
         user_id: str = "anonymous",
-        ip_address: Optional[str] = None,
-        image: Optional[np.ndarray] = None,
-        confidence: Optional[float] = None
-    ) -> Dict:
+        ip_address: str | None = None,
+        image: np.ndarray | None = None,
+        confidence: float | None = None
+    ) -> dict:
         """
         Apply a user correction with full security.
 
@@ -248,7 +246,7 @@ class InteractiveLearningSystem:
             "corrected": corrected_text
         }
 
-    def train_from_corrections(self, epochs: int = 1, batch_size: int = 4) -> Dict:
+    def train_from_corrections(self, epochs: int = 1, batch_size: int = 4) -> dict:
         """
         Train model on accumulated corrections.
 
@@ -279,7 +277,7 @@ class InteractiveLearningSystem:
 
         return {"status": "completed", **metrics}
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get system statistics."""
         self._ensure_initialized()
 

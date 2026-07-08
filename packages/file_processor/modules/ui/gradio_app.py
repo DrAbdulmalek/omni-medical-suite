@@ -19,7 +19,7 @@ Author: Dr. Abdulmalek Al-husseini
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple
 
 import numpy as np
 

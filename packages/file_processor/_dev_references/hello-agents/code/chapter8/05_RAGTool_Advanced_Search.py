@@ -165,7 +165,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
         
         # 批量添加文档
         for doc in tech_documents:
-            result = self.rag_tool.run({"action":"add_text",
+            self.rag_tool.run({"action":"add_text",
                                          "text":doc["content"],
                                          "document_id":doc["id"]})
             print(f"✅ 添加文档: {doc['id']}")
@@ -190,7 +190,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             ("机器翻译模型", "测试跨文档匹配")
         ]
         
-        print(f"\n🔍 基础搜索测试:")
+        print("\n🔍 基础搜索测试:")
         for query, description in basic_queries:
             print(f"\n查询: '{query}' ({description})")
             
@@ -221,7 +221,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             ("神经网络", "测试架构扩展")
         ]
         
-        print(f"\n🔄 MQE搜索测试:")
+        print("\n🔄 MQE搜索测试:")
         for query, description in mqe_queries:
             print(f"\n查询: '{query}' ({description})")
             
@@ -264,7 +264,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             ("什么是计算机视觉中的目标检测？", "测试定义性问题")
         ]
         
-        print(f"\n📝 HyDE搜索测试:")
+        print("\n📝 HyDE搜索测试:")
         for query, description in hyde_queries:
             print(f"\n查询: '{query}' ({description})")
             
@@ -296,7 +296,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             ("计算机视觉和自然语言处理的共同技术", "跨领域问题")
         ]
         
-        print(f"\n🚀 组合高级搜索测试:")
+        print("\n🚀 组合高级搜索测试:")
         for query, description in complex_queries:
             print(f"\n查询: '{query}' ({description})")
             
@@ -341,7 +341,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             "计算机视觉目标检测方法比较"
         ]
         
-        print(f"\n📊 性能对比测试:")
+        print("\n📊 性能对比测试:")
         
         # 测试不同搜索策略的性能
         strategies = [
@@ -358,7 +358,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             for query in performance_queries:
                 start_time = time.time()
                 
-                result = self.rag_tool.run({"action":"search",
+                self.rag_tool.run({"action":"search",
                                              "query":query,
                                              "limit":3,
                                              **params})
@@ -377,7 +377,7 @@ Transformer的核心是自注意力机制（Self-Attention），它允许模型�
             print(f"  平均耗时: {avg_time:.3f}秒")
         
         # 性能对比分析
-        print(f"\n📈 性能对比分析:")
+        print("\n📈 性能对比分析:")
         basic_avg = performance_results["基础搜索"]["average"]
         advanced_avg = performance_results["高级搜索"]["average"]
         

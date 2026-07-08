@@ -16,7 +16,6 @@ from __future__ import annotations
 import logging
 import math
 from enum import Enum, auto
-from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -74,13 +73,13 @@ class ImagePreprocessor:
 
     def __init__(
         self,
-        enabled_steps: Optional[List[PreprocessStep]] = None,
+        enabled_steps: list[PreprocessStep] | None = None,
         target_dpi: int = 300,
         denoise_h: int = 10,
         denoise_template_window: int = 7,
         denoise_search_window: int = 21,
         clahe_clip_limit: float = 2.0,
-        clahe_grid_size: Tuple[int, int] = (8, 8),
+        clahe_grid_size: tuple[int, int] = (8, 8),
         adaptive_block_size: int = 15,
         adaptive_c: int = 8,
         border_margin: int = 20,
@@ -96,7 +95,7 @@ class ImagePreprocessor:
         self._border_margin = border_margin
 
         # Default pipeline order
-        self._default_order: List[PreprocessStep] = [
+        self._default_order: list[PreprocessStep] = [
             PreprocessStep.RESIZE,
             PreprocessStep.DESKEW,
             PreprocessStep.DENOISE,
@@ -204,7 +203,7 @@ class ImagePreprocessor:
             return image
 
         # Calculate median angle of detected lines
-        angles: List[float] = []
+        angles: list[float] = []
         for line in lines:
             x1, y1, x2, y2 = line[0]
             angle = math.degrees(math.atan2(y2 - y1, x2 - x1))
@@ -429,7 +428,7 @@ class ImagePreprocessor:
     def resize_for_ocr(
         self,
         image: np.ndarray,
-        target_dpi: Optional[int] = None,
+        target_dpi: int | None = None,
     ) -> np.ndarray:
         """Resize the image to a target DPI, maintaining aspect ratio.
 

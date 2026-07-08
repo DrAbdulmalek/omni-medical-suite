@@ -246,7 +246,7 @@ class Person:
 - GPT：生成式预训练模型
 """
         
-        print(f"\n📝 添加复杂Markdown文档进行分块测试...")
+        print("\n📝 添加复杂Markdown文档进行分块测试...")
         result = self.rag_tool.run({"action":"add_text",
                                      "text":complex_markdown,
                                      "document_id":"ai_tech_stack",
@@ -256,7 +256,7 @@ class Person:
         print(f"分块结果: {result}")
         
         # 测试基于结构的检索
-        print(f"\n🔍 测试基于Markdown结构的检索:")
+        print("\n🔍 测试基于Markdown结构的检索:")
         
         search_queries = [
             ("监督学习算法", "测试二级标题内容检索"),
@@ -299,7 +299,7 @@ def process_data(data):
 *注意*：这个函数会`自动过滤`空值。
 """
         
-        print(f"\n📝 原始Markdown内容:")
+        print("\n📝 原始Markdown内容:")
         print(raw_markdown)
         
         # 添加到RAG系统，内部会进行预处理
@@ -310,7 +310,7 @@ def process_data(data):
         print(f"\n✅ 预处理并添加完成: {result}")
         
         # 测试预处理后的检索效果
-        print(f"\n🔍 测试预处理后的检索效果:")
+        print("\n🔍 测试预处理后的检索效果:")
         search_result = self.rag_tool.run({"action":"search",
                                             "query":"Python函数处理数据",
                                             "limit":1})
@@ -335,7 +335,7 @@ def process_data(data):
             for i in range(10)
         ]
         
-        print(f"\n⏱️ 批量处理性能测试 (10个文档):")
+        print("\n⏱️ 批量处理性能测试 (10个文档):")
         start_time = time.time()
         
         batch_result = self.rag_tool.batch_add_texts(
@@ -366,7 +366,7 @@ def main():
         file_paths = demo.create_sample_documents()
         
         # 2. 演示MarkItDown转换过程
-        conversion_results = demo.demonstrate_markitdown_conversion(file_paths)
+        demo.demonstrate_markitdown_conversion(file_paths)
         
         # 3. 演示基于Markdown的智能分块
         demo.demonstrate_markdown_chunking()

@@ -8,7 +8,6 @@
 from dotenv import load_dotenv
 load_dotenv()
 import time
-from datetime import datetime, timedelta
 from hello_agents.tools import MemoryTool
 
 
@@ -83,7 +82,7 @@ class MemoryConsolidationDemo:
             content = memory.pop("content")
             importance = memory.pop("importance")
             
-            result = self.memory_tool.run({"action":"add",
+            self.memory_tool.run({"action":"add",
                                             "content":content,
                                             "memory_type":"working",
                                             "importance":importance,
@@ -120,13 +119,12 @@ class MemoryConsolidationDemo:
             print(f"\n🔍 测试重要性阈值 {threshold}:")
             
             # 模拟整合过程（不实际执行，只是分析）
-            working_memories = []
             # 这里应该从实际的工作记忆中获取，简化演示
             
             print(f"  阈值 {threshold} 下符合整合条件的记忆:")
             print(f"  • 重要性 >= {threshold} 的记忆将被整合")
-            print(f"  • 整合后类型: working → episodic")
-            print(f"  • 重要性提升: importance × 1.1")
+            print("  • 整合后类型: working → episodic")
+            print("  • 重要性提升: importance × 1.1")
     
     def demonstrate_consolidation_process(self):
         """演示实际的整合过程"""
@@ -169,7 +167,7 @@ class MemoryConsolidationDemo:
             print(f"整合后状态: {stats_after}")
             
             # 查看整合后的情景记忆
-            print(f"\n📚 整合后的情景记忆:")
+            print("\n📚 整合后的情景记忆:")
             episodic_search = self.memory_tool.run({"action":"search",
                                                      "query":"",
                                                      "memory_type":"episodic",
@@ -200,7 +198,7 @@ class MemoryConsolidationDemo:
         print(f"添加特殊记忆: {special_memory_result}")
         
         # 执行整合
-        print(f"\n🔄 执行整合...")
+        print("\n🔄 执行整合...")
         consolidation_result = self.memory_tool.run({"action":"consolidate",
                                                        "from_type":"working",
                                                        "to_type":"episodic",
@@ -209,7 +207,7 @@ class MemoryConsolidationDemo:
         print(f"整合结果: {consolidation_result}")
         
         # 搜索整合后的记忆查看元数据
-        print(f"\n🔍 查看整合后的记忆元数据:")
+        print("\n🔍 查看整合后的记忆元数据:")
         search_result = self.memory_tool.run({"action":"search",
                                                 "query":"特殊记忆",
                                                 "memory_type":"episodic",
@@ -251,7 +249,7 @@ class MemoryConsolidationDemo:
             }
         ]
         
-        print(f"\n📝 添加整合候选记忆:")
+        print("\n📝 添加整合候选记忆:")
         for memory in consolidation_candidates:
             content = memory.pop("content")
             memory_type = memory.pop("memory_type")
@@ -295,12 +293,12 @@ class MemoryConsolidationDemo:
         print("• 提升检索效率")
         
         # 获取最终的记忆系统状态
-        print(f"\n📊 最终记忆系统状态:")
+        print("\n📊 最终记忆系统状态:")
         final_stats = self.memory_tool.run({"action":"stats"})
         print(final_stats)
         
         # 获取各类型记忆的摘要
-        print(f"\n📋 各类型记忆摘要:")
+        print("\n📋 各类型记忆摘要:")
         
         memory_types = ["working", "episodic", "semantic"]
         for memory_type in memory_types:
@@ -312,7 +310,7 @@ class MemoryConsolidationDemo:
             print(type_summary)
         
         # 演示整合后的检索效果
-        print(f"\n🔍 整合后的检索效果测试:")
+        print("\n🔍 整合后的检索效果测试:")
         search_queries = [
             ("深度学习", "测试跨类型检索"),
             ("学习经历", "测试整合记忆检索"),

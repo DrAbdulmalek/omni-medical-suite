@@ -11,7 +11,6 @@ from peft import LoraConfig, get_peft_model, TaskType
 from pathlib import Path
 import logging
 from typing import Optional, List, Union
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -353,7 +352,6 @@ class TrOCRFineTuner:
         self.load_model()
 
         try:
-            from datasets import Dataset
             from evaluate import evaluator
 
             # إعداد مجموعة البيانات

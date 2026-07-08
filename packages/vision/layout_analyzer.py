@@ -21,7 +21,6 @@ OmniFile AI Processor - وحدة معالجة الملفات الذكية
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import cv2
 import numpy as np

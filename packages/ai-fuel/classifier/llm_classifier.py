@@ -13,7 +13,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +52,14 @@ class LLMClassifier:
     )
 
     # Provider → default model mapping
-    _DEFAULT_MODELS: Dict[str, str] = {
+    _DEFAULT_MODELS: dict[str, str] = {
         "gemini": "gemini-2.0-flash",
         "openai": "gpt-4o-mini",
         "local": "llama3",
     }
 
     # Provider → env var for API key
-    _API_KEY_ENV: Dict[str, str] = {
+    _API_KEY_ENV: dict[str, str] = {
         "gemini": "GEMINI_API_KEY",
         "openai": "OPENAI_API_KEY",
         "local": "LOCAL_LLM_URL",
@@ -68,9 +68,9 @@ class LLMClassifier:
     def __init__(
         self,
         provider: str = "gemini",
-        api_key: Optional[str] = None,
-        model_name: Optional[str] = None,
-        taxonomy_path: Optional[str] = None,
+        api_key: str | None = None,
+        model_name: str | None = None,
+        taxonomy_path: str | None = None,
         temperature: float = 0.1,
         max_tokens: int = 1024,
     ) -> None:
@@ -84,13 +84,13 @@ class LLMClassifier:
 
         # Resolve API key
         env_var = self._API_KEY_ENV.get(self.provider)
-        self.api_key: Optional[str] = api_key or (
+        self.api_key: str | None = api_key or (
             os.environ.get(env_var) if env_var else None
         )
 
         # Lazy-loaded client
         self._client: Any = None
-        self._categories: List[Dict] = []
+        self._categories: list[dict] = []
 
         # Stats
         self._call_count: int = 0
@@ -186,7 +186,7 @@ class LLMClassifier:
 
     # ── Category loading ──────────────────────────────────────────────
 
-    def _load_categories(self) -> List[Dict]:
+    def _load_categories(self) -> list[dict]:
         """Load category list from taxonomy JSON."""
         if self._categories:
             return self._categories
@@ -198,14 +198,14 @@ class LLMClassifier:
             )
             return []
 
-        with open(self.taxonomy_path, "r", encoding="utf-8") as fh:
+        with open(self.taxonomy_path, encoding="utf-8") as fh:
             data = json.load(fh)
         self._categories = data.get("categories", [])
         return self._categories
 
     # ── Classification ────────────────────────────────────────────────
 
-    def classify(self, text: str, chunk_id: str = "unknown") -> "ClassificationResult":
+    def classify(self, text: str, chunk_id: str = "unknown") -> ClassificationResult:
         """Classify text using LLM analysis.
 
         Always returns a result (even with low confidence) since this is
@@ -271,7 +271,7 @@ class LLMClassifier:
 
     # ── Prompt construction ───────────────────────────────────────────
 
-    def _build_prompt(self, text: str, categories: List[Dict]) -> str:
+    def _build_prompt(self, text: str, categories: list[dict]) -> str:
         """Build a classification prompt with the category list.
 
         Constructs a structured prompt that instructs the LLM to classify
@@ -285,7 +285,7 @@ class LLMClassifier:
             The complete prompt string.
         """
         # Build category list
-        cat_lines: List[str] = []
+        cat_lines: list[str] = []
         for cat in categories:
             cat_id = cat["id"]
             name_en = cat.get("name_en", cat_id)
@@ -380,7 +380,7 @@ Respond ONLY with the JSON object. No additional text."""
 
     def _parse_response(
         self, response_text: str, chunk_id: str
-    ) -> "ClassificationResult":
+    ) -> ClassificationResult:
         """Parse the LLM's JSON response into a ClassificationResult.
 
         Handles common formatting issues such as markdown code fences
@@ -447,7 +447,7 @@ Respond ONLY with the JSON object. No additional text."""
             processing_time_ms=0.0,  # will be set by caller
         )
 
-    def _fallback_result(self, chunk_id: str) -> "ClassificationResult":
+    def _fallback_result(self, chunk_id: str) -> ClassificationResult:
         """Create a low-confidence fallback result when parsing fails."""
         from core.schemas import ClassificationMethod, ClassificationResult
 
@@ -463,7 +463,7 @@ Respond ONLY with the JSON object. No additional text."""
 
     # ── Stats ────────────────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Return usage statistics for the LLM classifier.
 
         Returns:

@@ -2,7 +2,6 @@ import streamlit as st
 import cv2
 import numpy as np
 from pdf2image import convert_from_bytes
-from PIL import Image
 
 st.set_page_config(layout="wide")
 st.title("تطبيق OCR تفاعلي لملاحظات بايثون 📝")

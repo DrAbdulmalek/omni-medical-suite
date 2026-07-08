@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 gui/custom_dialogs.py
 ========================
@@ -11,7 +10,8 @@ module_card.py لا يحتاج أي تعديل.
 """
 
 from __future__ import annotations
-from typing import Callable
+
+from collections.abc import Callable
 
 from PyQt5.QtWidgets import QDialog
 

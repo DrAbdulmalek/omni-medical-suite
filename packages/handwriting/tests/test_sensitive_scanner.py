@@ -2,7 +2,6 @@
 اختبارات فاحص البيانات الحساسة
 """
 
-import pytest
 import sys
 from pathlib import Path
 

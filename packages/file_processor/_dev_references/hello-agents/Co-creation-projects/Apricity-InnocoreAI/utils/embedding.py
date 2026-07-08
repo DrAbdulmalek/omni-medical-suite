@@ -2,12 +2,10 @@
 InnoCore AI 向量生成工具
 """
 
-import asyncio
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Any
 import numpy as np
 from openai import AsyncOpenAI
 import hashlib
-import json
 
 from ..core.config import get_config
 from ..core.exceptions import AgentException
@@ -84,7 +82,7 @@ class EmbeddingGenerator:
                 batch_embeddings = [item.embedding for item in response.data]
                 embeddings.extend(batch_embeddings)
                 
-            except Exception as e:
+            except Exception:
                 # 如果批量失败，逐个生成
                 for text in batch:
                     try:

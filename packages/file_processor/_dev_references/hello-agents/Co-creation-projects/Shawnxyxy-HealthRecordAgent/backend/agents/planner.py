@@ -3,7 +3,6 @@ HealthRecord 健康档案规划师 (planner Agent)
 负责对健康档案、体检报告进行分析任务的拆解和规划
 """
 
-import os
 import json
 from datetime import datetime
 from core.exceptions import AgentException

@@ -17,7 +17,6 @@ scripts/benchmark_kitab.py
 
 import argparse
 import json
-import os
 import sys
 import time
 import logging

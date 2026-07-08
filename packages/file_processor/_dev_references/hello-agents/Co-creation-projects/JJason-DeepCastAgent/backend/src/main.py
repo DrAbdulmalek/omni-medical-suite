@@ -76,7 +76,6 @@ def _build_config(payload: ResearchRequest) -> Configuration:
 
 def create_app() -> FastAPI:
     """创建并配置 FastAPI 应用实例。"""
-
     # 当前活跃的研究 agent 引用，用于支持取消操作
     _active_agent: dict[str, DeepResearchAgent | None] = {"current": None}
 

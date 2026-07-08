@@ -14,10 +14,8 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 
 import rapidfuzz
-
 
 # Medical term dictionaries — Arabic and English
 ENGLISH_MEDICAL_TERMS: set = {
@@ -95,7 +93,7 @@ class MetricsResult:
     characters_errors: int = 0
     words_total: int = 0
     words_errors: int = 0
-    details: Dict = field(default_factory=dict)
+    details: dict = field(default_factory=dict)
 
 
 def normalize_text(text: str) -> str:
@@ -128,14 +126,14 @@ def normalize_arabic(text: str) -> str:
     return text
 
 
-def extract_words(text: str) -> List[str]:
+def extract_words(text: str) -> list[str]:
     """Extract words from text, handling both Arabic and English."""
     text = normalize_text(text)
     words = re.findall(r"[\u0600-\u06FF\u0750-\u077Fa-zA-Z0-9]+", text)
     return words
 
 
-def character_error_rate(reference: str, hypothesis: str) -> Tuple[float, int, int]:
+def character_error_rate(reference: str, hypothesis: str) -> tuple[float, int, int]:
     """
     Calculate Character Error Rate (CER).
     CER = (S + D + I) / N
@@ -151,7 +149,7 @@ def character_error_rate(reference: str, hypothesis: str) -> Tuple[float, int, i
     return distance / len(ref), distance, len(ref)
 
 
-def word_error_rate(reference: str, hypothesis: str) -> Tuple[float, int, int]:
+def word_error_rate(reference: str, hypothesis: str) -> tuple[float, int, int]:
     """
     Calculate Word Error Rate (WER).
     WER = (S + D + I) / N
@@ -170,8 +168,8 @@ def word_error_rate(reference: str, hypothesis: str) -> Tuple[float, int, int]:
 def medical_term_accuracy(
     reference: str,
     hypothesis: str,
-    custom_terms: Optional[set] = None,
-) -> Tuple[float, int, int, int]:
+    custom_terms: set | None = None,
+) -> tuple[float, int, int, int]:
     """
     Calculate medical term accuracy.
     Measures how many medical terms from the reference appear in the hypothesis.
@@ -223,7 +221,7 @@ def medical_term_accuracy(
 def calculate_all_metrics(
     reference: str,
     hypothesis: str,
-    custom_terms: Optional[set] = None,
+    custom_terms: set | None = None,
 ) -> MetricsResult:
     """Calculate all metrics and return a MetricsResult container."""
     cer, char_errors, char_total = character_error_rate(reference, hypothesis)

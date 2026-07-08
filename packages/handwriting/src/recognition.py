@@ -12,7 +12,6 @@ HandwrittenOCR - محرك التعرف على النصوص v4.1
 
 import os
 import cv2
-import io
 import time
 import traceback
 import numpy as np

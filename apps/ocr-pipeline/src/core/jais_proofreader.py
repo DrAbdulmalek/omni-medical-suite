@@ -1,5 +1,4 @@
 # src/core/jais_proofreader.py
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,8 +12,8 @@ class JaisProofreader:
         self._available = False
 
         try:
-            from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
             import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
             model_id = model_name or "instructlab/merlinite-7b"
 

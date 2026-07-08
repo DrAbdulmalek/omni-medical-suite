@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """系统诊断脚本 - 检查所有配置和依赖"""
 
-import sys
-import os
 from pathlib import Path
 
 def check_env_file():
@@ -79,7 +77,7 @@ def check_config():
         from core.config import get_config
         config = get_config()
         
-        print(f"✅ 配置加载成功")
+        print("✅ 配置加载成功")
         print(f"   - API Key: {'已设置' if config.llm.api_key else '未设置'}")
         print(f"   - Base URL: {config.llm.base_url or '未设置'}")
         print(f"   - Model: {config.llm.model_name}")
@@ -133,7 +131,6 @@ def check_frontend():
         "frontend/static/js/app.js"
     ]
     
-    all_exist = True
     for file_path in frontend_files:
         path = Path(file_path)
         if path.exists():
@@ -151,7 +148,6 @@ def check_llm_connection():
     
     try:
         import asyncio
-        from hello_agents import HelloAgentsLLM
         from core.config import get_config
         
         config = get_config()
@@ -169,7 +165,7 @@ def check_llm_connection():
         
         print("正在测试 LLM 连接...")
         result = asyncio.run(test())
-        print(f"✅ LLM 连接成功")
+        print("✅ LLM 连接成功")
         print(f"   模型响应: {result[:50]}...")
         
         return True
@@ -177,7 +173,7 @@ def check_llm_connection():
         error_msg = str(e)
         # 如果是 API 格式错误，说明连接是通的，只是请求格式问题
         if "400" in error_msg or "invalid_request" in error_msg:
-            print(f"⚠️  LLM API 可访问，但请求格式需要调整")
+            print("⚠️  LLM API 可访问，但请求格式需要调整")
             print(f"   错误信息: {error_msg[:100]}...")
             return True  # 认为通过，因为连接本身是正常的
         print(f"❌ LLM 连接失败: {error_msg[:100]}...")

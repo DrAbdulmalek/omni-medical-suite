@@ -28,15 +28,13 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple
-
-import numpy as np
+from collections.abc import Sequence
 
 from src.engines.base_engine import (
     BBox,
+    ImageInput,
     OCREngine,
     OCRResult,
-    ImageInput,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,8 +108,8 @@ def normalized_levenshtein(a: str, b: str) -> float:
 # ---------------------------------------------------------------------------
 
 def align_texts(
-    texts: List[str],
-) -> List[List[Optional[str]]]:
+    texts: list[str],
+) -> list[list[str | None]]:
     """Align multiple text outputs using progressive Levenshtein
     alignment.
 
@@ -137,7 +135,7 @@ def align_texts(
 
     # Start with the first engine's words as the base alignment.
     # Each row is a list of (engine_idx, word) or None for gaps.
-    aligned: List[List[Optional[str]]] = [
+    aligned: list[list[str | None]] = [
         [word] + [None] * (n_engines - 1) for word in word_lists[0]
     ]
 
@@ -149,10 +147,10 @@ def align_texts(
 
 
 def _align_two_columns(
-    current: List[List[Optional[str]]],
+    current: list[list[str | None]],
     new_eng_idx: int,
-    new_words: List[str],
-) -> List[List[Optional[str]]]:
+    new_words: list[str],
+) -> list[list[str | None]]:
     """Align a new engine's word sequence against the current alignment.
 
     Uses a greedy approach: for each word in the new sequence, find
@@ -194,7 +192,7 @@ def _align_two_columns(
     # Add unmatched new words as new rows
     for nw_idx, nw in enumerate(new_words):
         if nw_idx not in used_new_indices:
-            new_row: List[Optional[str]] = [None] * (new_eng_idx + 1)
+            new_row: list[str | None] = [None] * (new_eng_idx + 1)
             new_row[new_eng_idx] = nw
             result.append(new_row)
 
@@ -233,8 +231,8 @@ class EnsembleOCR(OCREngine):
 
     def __init__(
         self,
-        engines: List[OCREngine],
-        weights: Optional[Dict[str, float]] = None,
+        engines: list[OCREngine],
+        weights: dict[str, float] | None = None,
         strategy: str = "weighted_confidence",
         iou_threshold: float = 0.3,
         min_confidence: float = 0.1,
@@ -250,7 +248,7 @@ class EnsembleOCR(OCREngine):
         # Normalise weights
         if weights is None:
             n = max(len(engines), 1)
-            self._weights: Dict[str, float] = {
+            self._weights: dict[str, float] = {
                 e.engine_name: 1.0 / n for e in engines
             }
         else:
@@ -303,7 +301,7 @@ class EnsembleOCR(OCREngine):
         t0 = time.perf_counter()
 
         # Run each engine (skip unavailable ones)
-        engine_results: List[OCRResult] = []
+        engine_results: list[OCRResult] = []
         for engine in self._engines:
             if not engine.is_available():
                 self._logger.debug(
@@ -345,7 +343,7 @@ class EnsembleOCR(OCREngine):
         fused.metadata["weights"] = dict(self._weights)
         return fused
 
-    def ocr_batch(self, images: Sequence[ImageInput]) -> List[OCRResult]:
+    def ocr_batch(self, images: Sequence[ImageInput]) -> list[OCRResult]:
         """Run ensemble OCR on a batch of images.
 
         Parameters
@@ -356,7 +354,7 @@ class EnsembleOCR(OCREngine):
         -------
         list[OCRResult]
         """
-        results: List[OCRResult] = []
+        results: list[OCRResult] = []
         for idx, img in enumerate(images):
             self._logger.debug(
                 "Ensemble batch: image %d/%d.", idx + 1, len(images),
@@ -389,7 +387,7 @@ class EnsembleOCR(OCREngine):
         """
         t0 = time.perf_counter()
 
-        best_result: Optional[OCRResult] = None
+        best_result: OCRResult | None = None
         best_score = -1.0
 
         for engine in self._engines:
@@ -424,7 +422,7 @@ class EnsembleOCR(OCREngine):
 
     def _fuse_weighted_confidence(
         self,
-        results: List[OCRResult],
+        results: list[OCRResult],
     ) -> OCRResult:
         """Strategy 1: Weighted confidence fusion.
 
@@ -433,8 +431,8 @@ class EnsembleOCR(OCREngine):
         without bounding boxes are appended as supplemental text.
         """
         # Separate bounded and unbounded results
-        bounded: List[OCRResult] = []
-        unbounded: List[OCRResult] = []
+        bounded: list[OCRResult] = []
+        unbounded: list[OCRResult] = []
 
         for r in results:
             if r.bbox is not None:
@@ -446,13 +444,13 @@ class EnsembleOCR(OCREngine):
         clusters = self._cluster_bboxes(bounded)
 
         # For each cluster, select the best text
-        merged_lines: List[str] = []
-        merged_confs: List[float] = []
-        merged_bboxes: List[BBox] = []
-        engine_sources: Dict[str, float] = {}
+        merged_lines: list[str] = []
+        merged_confs: list[float] = []
+        merged_bboxes: list[BBox] = []
+        engine_sources: dict[str, float] = {}
 
         for cluster in clusters:
-            best_result: Optional[OCRResult] = None
+            best_result: OCRResult | None = None
             best_score = -1.0
 
             for r in cluster:
@@ -483,7 +481,7 @@ class EnsembleOCR(OCREngine):
             merged_bboxes = [merged_bboxes[i] for i in order]
 
         # Handle unbounded results (e.g. TrOCR)
-        supplemental_texts: List[str] = []
+        supplemental_texts: list[str] = []
         for r in unbounded:
             if r.text.strip():
                 supplemental_texts.append(r.text.strip())
@@ -518,7 +516,7 @@ class EnsembleOCR(OCREngine):
 
     def _fuse_majority_vote(
         self,
-        results: List[OCRResult],
+        results: list[OCRResult],
     ) -> OCRResult:
         """Strategy 2: Majority vote at the word level.
 
@@ -546,12 +544,12 @@ class EnsembleOCR(OCREngine):
         aligned = align_texts(texts)
 
         # Majority vote per row
-        final_words: List[str] = []
-        row_confs: List[float] = []
+        final_words: list[str] = []
+        row_confs: list[float] = []
 
         for row in aligned:
             # Collect (word, weight) pairs, ignoring Nones
-            votes: Dict[str, float] = {}
+            votes: dict[str, float] = {}
             for col_idx, word in enumerate(row):
                 if word is None:
                     continue
@@ -591,7 +589,7 @@ class EnsembleOCR(OCREngine):
 
     def _fuse_text_alignment(
         self,
-        results: List[OCRResult],
+        results: list[OCRResult],
     ) -> OCRResult:
         """Strategy 3: Levenshtein-based text alignment and merge.
 
@@ -620,8 +618,8 @@ class EnsembleOCR(OCREngine):
         aligned = align_texts(texts)
 
         # For each aligned position, compute a consensus word
-        consensus_words: List[str] = []
-        position_confs: List[float] = []
+        consensus_words: list[str] = []
+        position_confs: list[float] = []
 
         for row in aligned:
             non_none = [(i, w) for i, w in enumerate(row) if w is not None]
@@ -640,7 +638,7 @@ class EnsembleOCR(OCREngine):
 
             # Multiple engines: pick the word that is most "central"
             # by computing average Levenshtein to all others.
-            candidates: List[str] = [w for _, w in non_none]
+            candidates: list[str] = [w for _, w in non_none]
             best_word = candidates[0]
             best_avg_dist = float("inf")
 
@@ -697,8 +695,8 @@ class EnsembleOCR(OCREngine):
 
     def _cluster_bboxes(
         self,
-        results: List[OCRResult],
-    ) -> List[List[OCRResult]]:
+        results: list[OCRResult],
+    ) -> list[list[OCRResult]]:
         """Group results whose bounding boxes overlap (IoU ≥ threshold).
 
         Uses a greedy clustering approach: for each unvisited result,
@@ -717,7 +715,7 @@ class EnsembleOCR(OCREngine):
         """
         n = len(results)
         used: set[int] = set()
-        clusters: List[List[OCRResult]] = []
+        clusters: list[list[OCRResult]] = []
 
         for i in range(n):
             if i in used:
@@ -745,8 +743,8 @@ class EnsembleOCR(OCREngine):
 
     @staticmethod
     def _merge_cluster_bboxes(
-        results: List[OCRResult],
-    ) -> Optional[BBox]:
+        results: list[OCRResult],
+    ) -> BBox | None:
         """Compute the union bounding box of all results.
 
         Parameters
@@ -772,7 +770,7 @@ class EnsembleOCR(OCREngine):
     # Configuration helpers
     # ==================================================================
 
-    def set_weights(self, weights: Dict[str, float]) -> None:
+    def set_weights(self, weights: dict[str, float]) -> None:
         """Update engine weights at runtime.
 
         Parameters

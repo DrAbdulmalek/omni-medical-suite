@@ -57,7 +57,7 @@ class EvaluatorAgent:
         try:
             result = json.loads(response)
             return result
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             # 如果解析失败，返回默认响应
             return {
                 "is_correct": True,

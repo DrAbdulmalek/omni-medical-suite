@@ -1,11 +1,10 @@
 # processors/add_knowledge.py
 """知识添加处理器 - 使用 LLM 分析、分类并保存知识"""
 
-import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 from hello_agents import HelloAgentsLLM
 from core.file_manager import FileManager
 from core.summary_manager import SummaryManager

@@ -14,32 +14,34 @@ HandwrittenOCR - معالجة PDF v5.0
 - دعم العمل المتزامن من عدة أجهزة
 """
 
-import cv2
-import json
-import time
+import contextlib
 import gc
-import os
+import json
 import logging
+import os
+import time
 from datetime import datetime
-from pathlib import Path
-from pdf2image import convert_from_path
+
+import cv2
 import numpy as np
 import pandas as pd
 import torch
+from pdf2image import convert_from_path
 
 from config import Config
-from src.preprocessing import (
-    preprocess_image, smart_segmentation,
-    match_boxes_with_detections, crop_safe,
-)
-from src.recognition import OCREngine
 from src.correction import (
-    init_correctors,
-    correct_text, build_correction_dict,
-    apply_correction_dict, spell_correct_word,
-    append_feedback,
+    apply_correction_dict,
+    build_correction_dict,
+    spell_correct_word,
 )
 from src.database import HandwritingDB
+from src.preprocessing import (
+    crop_safe,
+    match_boxes_with_detections,
+    preprocess_image,
+    smart_segmentation,
+)
+from src.recognition import OCREngine
 from src.sync import FileLock, SyncManager
 
 logger = logging.getLogger("HandwrittenOCR")
@@ -141,7 +143,7 @@ class PDFProcessor:
         total_words = 0
         conf_acc = []
 
-        for idx, (pil_img, actual_pg) in enumerate(zip(images, page_nums)):
+        for _idx, (pil_img, actual_pg) in enumerate(zip(images, page_nums, strict=False)):
             logger.info(f"معالجة صفحة {actual_pg}/{pages_end}")
 
             img_bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
@@ -201,7 +203,7 @@ class PDFProcessor:
                 # اختيار أفضل نتيجة
                 if easy_res and easy_res[2] >= self.config.easy_conf_threshold:
                     raw, conf, src = easy_res[1], easy_res[2], easy_res[0]
-                elif i in trocr_texts and trocr_texts[i]:
+                elif trocr_texts.get(i):
                     raw = trocr_texts[i]
                     conf = self.config.trocr_default_confidence
                     src = "trocr"
@@ -304,7 +306,7 @@ class PDFProcessor:
         ckpt_path = self.config.checkpoint_file
         if os.path.exists(ckpt_path):
             try:
-                with open(ckpt_path, "r", encoding="utf-8") as f:
+                with open(ckpt_path, encoding="utf-8") as f:
                     return json.load(f)
             except Exception:
                 return None
@@ -314,10 +316,8 @@ class PDFProcessor:
         """مسح checkpoint عند الاكتمال"""
         ckpt_path = self.config.checkpoint_file
         if os.path.exists(ckpt_path):
-            try:
+            with contextlib.suppress(Exception):
                 os.remove(ckpt_path)
-            except Exception:
-                pass
 
     def _save_run_history(self, stats: dict) -> None:
         """حفظ سجل التشغيل في CSV"""

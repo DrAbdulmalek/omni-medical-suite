@@ -17,14 +17,17 @@ This section of the code was adapted from the marker repository to load all the 
 All credits for the original implementation go to VikParuchuri.
 """
 
-import torch
 from typing import Any
-from pydantic import BaseModel
-from transformers import AutoProcessor, AutoModelForCausalLM
+
+import torch
 import whisper
+from marker.models import load_all_models
+from pydantic import BaseModel
+from transformers import AutoModelForCausalLM, AutoProcessor
+
 from omniparse.utils import print_omniparse_text_art
 from omniparse.web.web_crawler import WebCrawler
-from marker.models import load_all_models
+
 # from omniparse.documents.models import load_all_models
 
 

@@ -7,25 +7,21 @@ Supports running benchmarks across multiple OCR engines and generating reports.
 
 from __future__ import annotations
 
-import sys
 import time
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Dict, List, Optional, Set
+from dataclasses import dataclass
 
 import click
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
-from rich.table import Table
 
+from benchmarks.ci import ThresholdChecker
 from benchmarks.dataset import DatasetManager, TestCase
-from benchmarks.metrics import MetricsResult, calculate_all_metrics
+from benchmarks.metrics import calculate_all_metrics
 from benchmarks.report import (
     BenchmarkReport,
     EngineResult,
     ReportGenerator,
 )
-from benchmarks.ci import ThresholdChecker, CIResult
 
 console = Console()
 
@@ -208,11 +204,11 @@ class BenchmarkRunner:
 
     def __init__(
         self,
-        data_dir: Optional[str] = None,
-        output_dir: Optional[str] = None,
-        engines: Optional[List[str]] = None,
-        thresholds_path: Optional[str] = None,
-        baselines_path: Optional[str] = None,
+        data_dir: str | None = None,
+        output_dir: str | None = None,
+        engines: list[str] | None = None,
+        thresholds_path: str | None = None,
+        baselines_path: str | None = None,
     ):
         """
         Initialize benchmark runner.
@@ -230,10 +226,10 @@ class BenchmarkRunner:
         self.report_gen = ReportGenerator(output_dir)
         self.ci_checker = ThresholdChecker(thresholds_path, baselines_path)
 
-        self.engine_instances: Dict[str, OCREngine] = {}
+        self.engine_instances: dict[str, OCREngine] = {}
         self.selected_engines = engines or list(self.ENGINES.keys())
 
-    def _init_engines(self, skip_unavailable: bool = True) -> List[str]:
+    def _init_engines(self, skip_unavailable: bool = True) -> list[str]:
         """Initialize selected OCR engines."""
         available = []
         for name in self.selected_engines:
@@ -261,7 +257,7 @@ class BenchmarkRunner:
     def _run_single_engine(
         self,
         engine: OCREngine,
-        cases: List[TestCase],
+        cases: list[TestCase],
         images_available: bool = False,
     ) -> EngineResult:
         """Run benchmark for a single engine across all test cases."""
@@ -269,9 +265,9 @@ class BenchmarkRunner:
         total_start = time.time()
 
         # Track metrics per category
-        lang_metrics: Dict[str, List] = {}
-        spec_metrics: Dict[str, List] = {}
-        diff_metrics: Dict[str, List] = {}
+        lang_metrics: dict[str, list] = {}
+        spec_metrics: dict[str, list] = {}
+        diff_metrics: dict[str, list] = {}
 
         for case in cases:
             if images_available and case.image_path:
@@ -339,12 +335,12 @@ class BenchmarkRunner:
 
     def run(
         self,
-        language: Optional[str] = None,
-        specialty: Optional[str] = None,
-        difficulty: Optional[str] = None,
+        language: str | None = None,
+        specialty: str | None = None,
+        difficulty: str | None = None,
         skip_unavailable: bool = True,
         check_ci: bool = False,
-        formats: Optional[List[str]] = None,
+        formats: list[str] | None = None,
         images_available: bool = False,
     ) -> BenchmarkReport:
         """
@@ -380,7 +376,7 @@ class BenchmarkRunner:
             console.print("[red]No test cases matching filters![/red]")
             return BenchmarkReport()
 
-        console.print(f"\n[bold]Medical OCR Benchmark Suite[/bold]")
+        console.print("\n[bold]Medical OCR Benchmark Suite[/bold]")
         console.print(f"  Test cases: {len(cases)}")
         console.print(f"  Engines: {', '.join(available_engines)}")
         console.print(f"  Dataset stats: {self.dataset.get_stats()}")

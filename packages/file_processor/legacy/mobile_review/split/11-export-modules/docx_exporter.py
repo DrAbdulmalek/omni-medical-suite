@@ -1,12 +1,10 @@
 # docx_exporter.py - DOCX export module (updated)
 from pathlib import Path
-from typing import Optional, List, Tuple
 from docx import Document as DocxDocument
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from bs4 import BeautifulSoup
-import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -197,7 +195,7 @@ class DOCXExporter:
         code_element = pre_element.find("code")
         if code_element:
             code = code_element.text
-            language = code_element.get("class", [""])[0].replace("language-", "")
+            code_element.get("class", [""])[0].replace("language-", "")
 
             paragraph = doc.add_paragraph()
             run = paragraph.add_run(code)

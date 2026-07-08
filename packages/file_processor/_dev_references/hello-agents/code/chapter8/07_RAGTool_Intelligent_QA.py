@@ -174,12 +174,12 @@ class IntelligentQADemo:
         
         # 批量添加知识文档
         for doc in knowledge_documents:
-            result = self.rag_tool.run({"action":"add_text",
+            self.rag_tool.run({"action":"add_text",
                                          "text":doc["content"],
                                          "document_id":doc["id"]})
             print(f"✅ 添加知识文档: {doc['id']}")
         
-        print(f"📊 知识库设置完成")
+        print("📊 知识库设置完成")
     
     def demonstrate_question_understanding(self):
         """演示问题理解和分类"""
@@ -268,7 +268,7 @@ class IntelligentQADemo:
         print("这个问题需要整合多个文档的信息...")
         
         # 先进行搜索，查看检索到的片段
-        print(f"\n🔍 第一步：检索相关片段")
+        print("\n🔍 第一步：检索相关片段")
         search_result = self.rag_tool.run({"action":"search",
                                             "query":complex_question,
                                             "limit":4,
@@ -276,7 +276,7 @@ class IntelligentQADemo:
         print(f"检索片段: {search_result}")
         
         # 然后进行智能问答，查看完整的上下文构建
-        print(f"\n🤖 第二步：构建上下文并生成答案")
+        print("\n🤖 第二步：构建上下文并生成答案")
         start_time = time.time()
         qa_result = self.rag_tool.run({"action":"ask",
                                         "question":complex_question,
@@ -319,7 +319,7 @@ class IntelligentQADemo:
             }
         ]
         
-        print(f"\n📊 答案质量测试:")
+        print("\n📊 答案质量测试:")
         
         quality_results = []
         
@@ -371,7 +371,6 @@ class IntelligentQADemo:
     
     def _calculate_quality_score(self, answer: str, expected_aspects: list, response_time: float) -> float:
         """计算答案质量评分"""
-        score = 0.0
         
         # 内容完整性评分 (40%)
         content_score = 0
@@ -394,7 +393,7 @@ class IntelligentQADemo:
     
     def _analyze_quality_results(self, results: list):
         """分析质量测试结果"""
-        print(f"\n📈 质量分析总结:")
+        print("\n📈 质量分析总结:")
         
         avg_score = sum(r["quality_score"] for r in results) / len(results)
         avg_time = sum(r["response_time"] for r in results) / len(results)
@@ -412,7 +411,7 @@ class IntelligentQADemo:
                 difficulty_analysis[difficulty] = []
             difficulty_analysis[difficulty].append(result["quality_score"])
         
-        print(f"\n📊 按难度分析:")
+        print("\n📊 按难度分析:")
         for difficulty, scores in difficulty_analysis.items():
             avg_difficulty_score = sum(scores) / len(scores)
             print(f"  {difficulty}: {avg_difficulty_score:.2f}/10")
@@ -459,7 +458,7 @@ class IntelligentQADemo:
         
         test_question = "什么是深度学习，它有哪些主要应用？"
         
-        print(f"\n🧪 提示词策略对比测试:")
+        print("\n🧪 提示词策略对比测试:")
         print(f"测试问题: {test_question}")
         
         for strategy in prompt_strategies:
@@ -493,7 +492,7 @@ class IntelligentQADemo:
             "系统设计中的SOLID原则是什么？"
         ]
         
-        print(f"\n📚 引用系统测试:")
+        print("\n📚 引用系统测试:")
         
         for question in citation_test_questions:
             print(f"\n❓ 问题: {question}")

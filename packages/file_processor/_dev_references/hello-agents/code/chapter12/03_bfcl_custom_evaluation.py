@@ -36,13 +36,13 @@ results = evaluator.evaluate(
 )
 
 # 5. 查看详细结果
-print(f"\n评估结果:")
+print("\n评估结果:")
 print(f"总样本数: {results['total_samples']}")
 print(f"正确样本数: {results['correct_samples']}")
 print(f"准确率: {results['overall_accuracy']:.2%}")
 
 # 6. 查看每个样本的详细结果
-print(f"\n详细结果:")
+print("\n详细结果:")
 for detail in results['detailed_results']:
     print(f"样本 {detail['sample_id']}:")
     print(f"  问题: {detail['question'][:50]}...")

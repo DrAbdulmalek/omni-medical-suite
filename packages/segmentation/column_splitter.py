@@ -2,9 +2,9 @@
 Vocabulary Column Splitter — تقسيم صفحات المفردات ثنائية العمود
 مصمم خصيصاً للدفاتر المسطرة والخط اليدوي المختلط (إنجليزي ← عربي)
 """
+
 import cv2
 import numpy as np
-from typing import List, Tuple, Optional
 
 
 class VocabularyColumnSplitter:
@@ -97,14 +97,13 @@ class VocabularyColumnSplitter:
 
         empty_threshold = width * 0.7
         for i, density in enumerate(horizontal_proj):
-            if density < empty_threshold and i > 20:
-                if i + 2 < len(horizontal_proj) and \
+            if density < empty_threshold and i > 20 and i + 2 < len(horizontal_proj) and \
                    horizontal_proj[i+1] < empty_threshold and \
                    horizontal_proj[i+2] < empty_threshold:
-                    return i
+                return i
         return 0
 
-    def _find_column_gap(self, projection: np.ndarray, width: int, min_gap: int) -> Optional[int]:
+    def _find_column_gap(self, projection: np.ndarray, width: int, min_gap: int) -> int | None:
         """إيجاد موقع الفجوة الرأسية بين العمودين"""
         text_pixels = projection[projection > 0]
         if len(text_pixels) == 0:
@@ -138,7 +137,7 @@ class VocabularyColumnSplitter:
 
     def _detect_line_positions(self, binary: np.ndarray,
                               min_line_spacing: int = 10,
-                              max_line_spacing: int = 100) -> List[int]:
+                              max_line_spacing: int = 100) -> list[int]:
         """اكتشاف مواقع بداية كل سطر للمحاذاة بين العمودين"""
         height = binary.shape[0]
         horizontal_proj = np.sum(binary, axis=1)

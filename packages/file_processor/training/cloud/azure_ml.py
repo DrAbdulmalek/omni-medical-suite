@@ -18,11 +18,11 @@ training/cloud/azure_ml.py
 import os
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict
 
 from azure.ai.ml import MLClient, command, Input, Output
 from azure.ai.ml.entities import (
-    AmlCompute, Environment, Data, Model, Endpoint, ManagedOnlineEndpoint,
+    AmlCompute, Environment, Data, Model, ManagedOnlineEndpoint,
     ManagedOnlineDeployment
 )
 from azure.identity import DefaultAzureCredential
@@ -271,10 +271,10 @@ dependencies:
             time.sleep(poll_interval)
 
         if status == 'Completed':
-            print(f"✅ اكتملت المهمة!")
+            print("✅ اكتملت المهمة!")
             return {'status': 'success', 'job': job}
         elif status == 'Failed':
-            print(f"❌ فشلت المهمة!")
+            print("❌ فشلت المهمة!")
             return {'status': 'failed', 'job': job}
         else:
             return {'status': 'canceled', 'job': job}

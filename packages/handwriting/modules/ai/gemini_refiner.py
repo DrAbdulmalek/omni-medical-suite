@@ -12,7 +12,6 @@ The module is optional and requires a valid Gemini API key.
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Optional
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,8 +12,8 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from config import Configuration, SearchAPI
 from agent import DeepResearchAgent
+from config import Configuration, SearchAPI
 
 # 添加控制台日志处理程序
 logger.add(
@@ -55,7 +55,7 @@ class ResearchResponse(BaseModel):
     )
 
 
-def _mask_secret(value: Optional[str], visible: int = 4) -> str:
+def _mask_secret(value: str | None, visible: int = 4) -> str:
     """Mask sensitive tokens while keeping leading and trailing characters."""
     if not value:
         return "unset"

@@ -21,7 +21,6 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -123,7 +122,8 @@ def sample_image_path(tmp_path) -> str:
         return str(img_path)
     except ImportError:
         # Create a minimal PNG file manually
-        import struct, zlib
+        import struct
+        import zlib
         img_path = tmp_path / "test_image.png"
         # Minimal 1x1 white PNG
         def create_minimal_png(path):
@@ -453,7 +453,7 @@ class TestImagePreprocessing:
         mock_img.resize.return_value = mock_img
         mock_open.return_value = mock_img
 
-        result = mock_img.convert("L").resize((500, 500))
+        mock_img.convert("L").resize((500, 500))
         mock_img.convert.assert_called_once_with("L")
         mock_img.resize.assert_called_once_with((500, 500))
 
@@ -700,8 +700,8 @@ class TestFullPipelineIntegration:
 
     def test_normalize_then_correct(self, sample_arabic_text: str) -> None:
         """Test normalization followed by correction."""
-        from src.postprocessing.text_normalizer import ArabicTextNormalizer
         from src.postprocessing.medical_text_cleaner import MedicalTextCleaner
+        from src.postprocessing.text_normalizer import ArabicTextNormalizer
 
         # Step 1: Normalize
         normalizer = ArabicTextNormalizer()

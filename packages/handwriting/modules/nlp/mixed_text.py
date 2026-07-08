@@ -18,7 +18,6 @@ Capabilities:
 
 import logging
 import re
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +89,7 @@ def detect_language(text: str) -> str:
     latin_ratio = latin_chars / total_text_chars
 
     # If digits are significant alongside text, it's mixed
-    has_significant_digits = digit_chars > total_text_chars * 0.2
+    digit_chars > total_text_chars * 0.2
 
     if arabic_ratio > 0.7:
         return "ar"

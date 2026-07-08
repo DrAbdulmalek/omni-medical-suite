@@ -9,14 +9,15 @@
 - مُصدَّر من src.correction للحفاظ على التوافق العكسي
 """
 
+import contextlib
 import json
-import os
 import logging
-import traceback
-import pandas as pd
-from datetime import datetime
+import os
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
+from datetime import datetime
+
+import pandas as pd
 
 logger = logging.getLogger("modules.nlp.feedback")
 
@@ -59,7 +60,7 @@ PYTHON_KEYWORDS = {
     "format", "replace", "lower", "upper", "title", "capitalize",
     "enumerate", "zip", "map", "filter", "sorted", "reversed",
     "isinstance", "issubclass", "hasattr", "getattr", "setattr",
-    "import", "from", "as", "module", "package",
+    "module", "package",
 }
 
 _CUSTOM_VOCAB = set()
@@ -268,7 +269,7 @@ def load_correction_dict(correction_dict_path: str) -> dict:
         logger.debug(f"load_correction_dict: الملف غير موجود: {correction_dict_path}")
         return {}
     try:
-        with open(correction_dict_path, "r", encoding="utf-8") as f:
+        with open(correction_dict_path, encoding="utf-8") as f:
             result = json.load(f)
         logger.info(f"تم تحميل قاموس التصحيح: {len(result)} كلمة من {correction_dict_path}")
         return result
@@ -294,7 +295,7 @@ def track_correction_usage(correction_dict_path: str, word: str) -> None:
     if not word or not os.path.exists(correction_dict_path):
         return
     try:
-        with open(correction_dict_path, "r", encoding="utf-8") as f:
+        with open(correction_dict_path, encoding="utf-8") as f:
             data = json.load(f)
         if word in data:
             entry = data[word]
@@ -306,7 +307,7 @@ def track_correction_usage(correction_dict_path: str, word: str) -> None:
         pass
 
 
-def calculate_rule_indicator(rule: CorrectionRule, thresholds: dict = None) -> dict:
+def calculate_rule_indicator(rule: CorrectionRule, thresholds: dict | None = None) -> dict:
     """حساب مؤشر بصري لقاعدة تصحيح: 🟢 موثوق / 🟡 مراجعة / 🔴 عاجل / ⏳ جديد."""
     if thresholds is None:
         thresholds = {
@@ -324,18 +325,14 @@ def calculate_rule_indicator(rule: CorrectionRule, thresholds: dict = None) -> d
 
     days_review = 999
     if rule.last_reviewed:
-        try:
+        with contextlib.suppress(Exception):
             days_review = (datetime.now() - datetime.fromisoformat(rule.last_reviewed)).days
-        except Exception:
-            pass
     if rule.usage_count > thresholds.get("usage_high", 50) and days_review > thresholds.get("days_critical", 30):
         score += 2
 
     days_seen = 999
-    try:
+    with contextlib.suppress(Exception):
         days_seen = (datetime.now() - datetime.fromisoformat(rule.first_seen)).days
-    except Exception:
-        pass
 
     if score >= 5:
         visual = "🔴 عاجل"
@@ -359,7 +356,7 @@ def get_dictionary_audit_queue(correction_dict_path: str, priority: str = "all",
     if not os.path.exists(correction_dict_path):
         return []
     try:
-        with open(correction_dict_path, "r", encoding="utf-8") as f:
+        with open(correction_dict_path, encoding="utf-8") as f:
             data = json.load(f)
         if not data:
             return []
@@ -389,7 +386,7 @@ def archive_correction_rule(correction_dict_path: str, key: str, reason: str = "
     if not os.path.exists(correction_dict_path):
         return False
     try:
-        with open(correction_dict_path, "r", encoding="utf-8") as f:
+        with open(correction_dict_path, encoding="utf-8") as f:
             data = json.load(f)
         if key not in data:
             return False
@@ -399,7 +396,7 @@ def archive_correction_rule(correction_dict_path: str, key: str, reason: str = "
         archive_path = correction_dict_path.replace(".json", "_archived.json")
         archive = {}
         if os.path.exists(archive_path):
-            with open(archive_path, "r", encoding="utf-8") as f:
+            with open(archive_path, encoding="utf-8") as f:
                 archive = json.load(f)
         archive[key] = rule_data
         with open(archive_path, "w", encoding="utf-8") as f:
@@ -418,7 +415,7 @@ def auto_calibrate_dict_thresholds(correction_dict_path: str, method: str = "per
     if not os.path.exists(correction_dict_path):
         return {}
     try:
-        with open(correction_dict_path, "r", encoding="utf-8") as f:
+        with open(correction_dict_path, encoding="utf-8") as f:
             data = json.load(f)
         if not data:
             return {}

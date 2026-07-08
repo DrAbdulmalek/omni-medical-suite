@@ -1,8 +1,7 @@
 # modules/export/pdf_exporter.py
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional
 import pdfkit
-import os
 
 class PDFExporter:
     """مصدّر للنصوص إلى PDF."""

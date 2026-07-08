@@ -7,7 +7,6 @@ from typing import Any
 from ..base import ProviderConfig
 from ..defaults import KIMI_DEFAULT_BASE
 from ..openai_compat import OpenAIChatTransport
-
 from .request import build_request_body
 
 

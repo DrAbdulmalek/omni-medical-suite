@@ -11,10 +11,10 @@ Modules:
     feedback_processor: Analyses corrections and suggests taxonomy updates.
 """
 
-from active_learning.review_queue import HumanReviewQueue
 from active_learning.feedback_processor import FeedbackProcessor
+from active_learning.review_queue import HumanReviewQueue
 
 __all__ = [
-    "HumanReviewQueue",
     "FeedbackProcessor",
+    "HumanReviewQueue",
 ]

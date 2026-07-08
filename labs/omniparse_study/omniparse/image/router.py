@@ -1,5 +1,6 @@
-from fastapi import UploadFile, File, HTTPException, APIRouter, Form
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
+
 from omniparse import get_shared_state
 from omniparse.image import parse_image, process_image
 from omniparse.models import responseDocument

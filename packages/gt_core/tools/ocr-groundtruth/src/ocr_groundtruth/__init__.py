@@ -11,31 +11,31 @@ Workflow:
        actual accuracy against the merged ground truth.
 """
 
-from .pdf_extractor import extract_pdf_text, extract_pdf_words, extract_pdf_lines, is_text_layer_present
-from .alignment import tokenize, align_two_sources, merge_multi_source, compute_similarity_ratio
-from .groundtruth_builder import build_ground_truth_record, build_dataset_from_folder
+from .alignment import align_two_sources, compute_similarity_ratio, merge_multi_source, tokenize
 from .evaluate import (
     character_error_rate,
-    word_error_rate,
-    evaluate_engine_output,
     compare_engines,
+    evaluate_engine_output,
+    word_error_rate,
 )
+from .groundtruth_builder import build_dataset_from_folder, build_ground_truth_record
+from .pdf_extractor import extract_pdf_lines, extract_pdf_text, extract_pdf_words, is_text_layer_present
 
 __version__ = "1.0.0"
 
 __all__ = [
+    "align_two_sources",
+    "build_dataset_from_folder",
+    "build_ground_truth_record",
+    "character_error_rate",
+    "compare_engines",
+    "compute_similarity_ratio",
+    "evaluate_engine_output",
+    "extract_pdf_lines",
     "extract_pdf_text",
     "extract_pdf_words",
-    "extract_pdf_lines",
     "is_text_layer_present",
-    "tokenize",
-    "align_two_sources",
     "merge_multi_source",
-    "compute_similarity_ratio",
-    "build_ground_truth_record",
-    "build_dataset_from_folder",
-    "character_error_rate",
+    "tokenize",
     "word_error_rate",
-    "evaluate_engine_output",
-    "compare_engines",
 ]

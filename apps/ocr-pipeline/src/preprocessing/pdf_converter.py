@@ -14,9 +14,7 @@ configurable DPI.
 from __future__ import annotations
 
 import logging
-from typing import List, Optional, Tuple
 
-import numpy as np
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -42,11 +40,11 @@ class PDFConverter:
         self,
         dpi: int = 300,
         backend: str = "auto",
-        poppler_path: Optional[str] = None,
+        poppler_path: str | None = None,
     ) -> None:
         self._dpi = dpi
         self._poppler_path = poppler_path
-        self._backend_name: Optional[str] = None
+        self._backend_name: str | None = None
         self._backend = self._select_backend(backend)
 
     # ==================================================================
@@ -71,7 +69,7 @@ class PDFConverter:
         RuntimeError
             If no backend is available.
         """
-        available: List[str] = []
+        available: list[str] = []
 
         # Check PyMuPDF
         try:
@@ -118,7 +116,7 @@ class PDFConverter:
         self,
         pdf_path: str,
         page_num: int,
-        dpi: Optional[int] = None,
+        dpi: int | None = None,
     ) -> Image.Image:
         """Convert a single PDF page to a PIL Image.
 
@@ -158,8 +156,8 @@ class PDFConverter:
     def convert_all_pages(
         self,
         pdf_path: str,
-        dpi: Optional[int] = None,
-    ) -> List[Image.Image]:
+        dpi: int | None = None,
+    ) -> list[Image.Image]:
         """Convert all pages of a PDF to PIL Images.
 
         Parameters
@@ -361,7 +359,7 @@ class PDFConverter:
         self,
         pdf_path: str,
         dpi: int,
-    ) -> List[Image.Image]:
+    ) -> list[Image.Image]:
         """Render all pages using PyMuPDF."""
         import fitz
 
@@ -370,9 +368,9 @@ class PDFConverter:
 
         zoom = dpi / 72.0
         matrix = fitz.Matrix(zoom, zoom)
-        images: List[Image.Image] = []
+        images: list[Image.Image] = []
 
-        for i, page in enumerate(doc):
+        for _i, page in enumerate(doc):
             pixmap = page.get_pixmap(matrix=matrix, alpha=False)
             img_data = pixmap.tobytes("png")
             image = Image.open(__import__("io").BytesIO(img_data))
@@ -442,7 +440,7 @@ class PDFConverter:
         self,
         pdf_path: str,
         dpi: int,
-    ) -> List[Image.Image]:
+    ) -> list[Image.Image]:
         """Render all pages using pdf2image."""
         from pdf2image import convert_from_path
 

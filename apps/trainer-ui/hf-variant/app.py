@@ -24,23 +24,21 @@ Medical OCR Trainer — مُدرّب التعرف على الملاحظات ال
 """
 
 import os
-import sys
 import json
 import sqlite3
 import uuid
-import time
 import logging
 import streamlit as st
 import pandas as pd
 import numpy as np
 import cv2
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image
 from datetime import datetime
 
 logger = logging.getLogger("MedicalOCR")
 
 # استيراد نظام التجمع
-from ensemble_ocr import EnsembleOCR, EnsembleResult
+from ensemble_ocr import EnsembleOCR
 
 
 # ============================================================
@@ -459,7 +457,7 @@ def preprocess_image(img_path, lang='unknown'):
         logger.error(f"Cannot read image: {img_path}")
         return img_path
 
-    original = img_cv.copy()
+    img_cv.copy()
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
 
     # --- الخطوة 1: إزالة الحدود الرمادية ---
@@ -855,7 +853,7 @@ def main():
             else:
                 # عرض تقدم المعالجة
                 progress_placeholder = st.empty()
-                log_placeholder = st.empty()
+                st.empty()
 
                 progress_placeholder.progress(0, text="جاري كشف اللغة...")
 
@@ -893,7 +891,7 @@ def main():
                 # عرض معلومات المعالجة المسبقة
                 with st.expander("🔧 تفاصيل المعالجة المسبقة", expanded=False):
                     st.markdown(f"**اللغة المكتشفة**: {lang_label} (`{detected_lang}`)")
-                    st.markdown(f"**الصورة المعالجة**: `border removal → deskew → CLAHE → adaptive binarization`")
+                    st.markdown("**الصورة المعالجة**: `border removal → deskew → CLAHE → adaptive binarization`")
                     # عرض الصورة المعالجة
                     try:
                         st.image(pre_path, caption="الصورة بعد المعالجة", use_container_width=True)

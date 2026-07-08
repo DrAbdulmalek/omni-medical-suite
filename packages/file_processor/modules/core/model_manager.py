@@ -20,7 +20,7 @@ import logging
 import threading
 import time
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 # --- إعداد المسجل — Logger Setup ---
 logger = logging.getLogger(__name__)
@@ -618,7 +618,6 @@ class ModelCache:
             return
 
         try:
-            import torch
 
             if hasattr(entry.model, "to"):
                 entry.model.to("cuda")

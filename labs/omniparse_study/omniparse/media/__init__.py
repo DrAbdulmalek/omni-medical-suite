@@ -19,12 +19,16 @@ All credits for the original implementation go to OpenAI.
 
 import os
 import tempfile
+
 from fastapi import UploadFile
 from fastapi.responses import JSONResponse
 from moviepy.editor import VideoFileClip
+
+from omniparse.media.utils import (
+    WHISPER_DEFAULT_SETTINGS,
+    transcribe,  # Assuming transcribe function is imported
+)
 from omniparse.models import responseDocument
-from omniparse.media.utils import WHISPER_DEFAULT_SETTINGS
-from omniparse.media.utils import transcribe  # Assuming transcribe function is imported
 
 
 def parse_audio(input_data, model_state) -> responseDocument:

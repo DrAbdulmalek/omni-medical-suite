@@ -4,14 +4,10 @@ Tests Protected Health Information detection accuracy, masking
 performance, and throughput across different modes.
 """
 
-import statistics
 import re
-import json
-import time
-from typing import Optional
+import statistics
 
 from benchmarks.core.metrics import LatencyProfiler
-
 
 # Common PHI patterns used for fallback detection
 _PHI_PATTERNS: list[dict] = [
@@ -72,7 +68,7 @@ class PHIBenchmark:
     def __init__(self):
         """Initialize the PHI benchmark."""
         self._postprocessor = None
-        self._available: Optional[bool] = None
+        self._available: bool | None = None
 
     def _is_available(self) -> bool:
         """Check if the postprocessor PHI module is available.

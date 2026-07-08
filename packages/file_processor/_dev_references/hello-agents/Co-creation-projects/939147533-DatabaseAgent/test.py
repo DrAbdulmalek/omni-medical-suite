@@ -2,7 +2,6 @@
 数据库Agent助手 - 测试脚本
 用于测试各个组件的功能
 """
-import os
 from dotenv import load_dotenv
 from hello_agents import HelloAgentsLLM
 from react_agent import DatabaseAgent, DatabaseConfig

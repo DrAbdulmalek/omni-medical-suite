@@ -11,7 +11,6 @@ import click
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.prompt import Prompt
 
 # 禁用 PYTHONSTARTUP 以避免 I/O 问题
 os.environ.pop("PYTHONSTARTUP", None)

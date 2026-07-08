@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 interactive_learning/core/fast_segmenter.py
 ===========================================
@@ -15,7 +14,7 @@ batch processing.
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import cv2
 import numpy as np
@@ -32,7 +31,7 @@ class WordBox:
     height: int
     text: str = ""
     confidence: float = 0.0
-    image: Optional[np.ndarray] = None
+    image: np.ndarray | None = None
 
 
 @dataclass
@@ -42,7 +41,7 @@ class LineBox:
     y: int
     width: int
     height: int
-    words: List[WordBox] = None
+    words: list[WordBox] = None
     text: str = ""
     confidence: float = 0.0
 
@@ -75,7 +74,7 @@ class FastSegmenter:
         processor: Any,
         model: Any,
         batch_size: int = 16,
-        device: Optional[str] = None,
+        device: str | None = None,
         num_beams: int = 1,
     ):
         """
@@ -101,7 +100,7 @@ class FastSegmenter:
         else:
             self.device = device
 
-    def segment_page_from_array(self, image: np.ndarray) -> Dict:
+    def segment_page_from_array(self, image: np.ndarray) -> dict:
         """
         Segment and recognize a full page.
 
@@ -169,7 +168,7 @@ class FastSegmenter:
             "avg_confidence": float(avg_conf),
         }
 
-    def _detect_text_regions(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
+    def _detect_text_regions(self, image: np.ndarray) -> list[tuple[int, int, int, int]]:
         """
         Detect text regions using MSER.
 
@@ -204,7 +203,7 @@ class FastSegmenter:
 
         return boxes
 
-    def _detect_regions_fallback(self, gray: np.ndarray) -> List[Tuple[int, int, int, int]]:
+    def _detect_regions_fallback(self, gray: np.ndarray) -> list[tuple[int, int, int, int]]:
         """Fallback detection using connected components + contours."""
         # Adaptive threshold
         binary = cv2.adaptiveThreshold(
@@ -229,9 +228,9 @@ class FastSegmenter:
 
     def _merge_overlapping(
         self,
-        boxes: List[Tuple[int, int, int, int]],
+        boxes: list[tuple[int, int, int, int]],
         iou_threshold: float = 0.3
-    ) -> List[Tuple[int, int, int, int]]:
+    ) -> list[tuple[int, int, int, int]]:
         """Merge overlapping bounding boxes using IoU."""
         if not boxes:
             return []
@@ -290,7 +289,7 @@ class FastSegmenter:
 
         return [(int(b[0]), int(b[1]), int(b[2]), int(b[3])) for b in boxes]
 
-    def _recognize_batch(self, word_boxes: List[WordBox]) -> List[WordBox]:
+    def _recognize_batch(self, word_boxes: list[WordBox]) -> list[WordBox]:
         """
         Recognize words in batches with mixed precision.
 
@@ -326,7 +325,7 @@ class FastSegmenter:
                                 pixel_values,
                                 max_length=128,
                                 num_beams=self.num_beams,
-                                early_stopping=True if self.num_beams > 1 else False,
+                                early_stopping=self.num_beams > 1,
                                 pad_token_id=self.processor.tokenizer.pad_token_id,
                             )
                     else:
@@ -334,7 +333,7 @@ class FastSegmenter:
                             pixel_values,
                             max_length=128,
                             num_beams=self.num_beams,
-                            early_stopping=True if self.num_beams > 1 else False,
+                            early_stopping=self.num_beams > 1,
                             pad_token_id=self.processor.tokenizer.pad_token_id,
                         )
 
@@ -392,7 +391,7 @@ class FastSegmenter:
 
         return all_results
 
-    def _build_lines(self, word_boxes: List[WordBox]) -> List[LineBox]:
+    def _build_lines(self, word_boxes: list[WordBox]) -> list[LineBox]:
         """
         Group word boxes into text lines based on vertical position.
 
@@ -429,7 +428,7 @@ class FastSegmenter:
 
         return lines
 
-    def _finalize_line(self, words: List[WordBox]) -> LineBox:
+    def _finalize_line(self, words: list[WordBox]) -> LineBox:
         """Create a LineBox from a list of word boxes."""
         if not words:
             return LineBox(x=0, y=0, width=0, height=0)

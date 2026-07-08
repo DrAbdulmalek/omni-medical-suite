@@ -3,12 +3,12 @@
 #  Reads corrected text + source images -> produces training dataset
 # ══════════════════════════════════════════════════════════╝
 
-import cv2
 import json
-import numpy as np
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+
+import cv2
+import numpy as np
 
 
 class DatasetBuilder:
@@ -54,7 +54,7 @@ class DatasetBuilder:
     def clean_scribbles(img_gray: np.ndarray) -> np.ndarray:
         """إزالة الشطب من الصورة."""
         _, binary = cv2.threshold(img_gray, 50, 255, cv2.THRESH_BINARY_INV)
-        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
+        num_labels, _labels, stats, _ = cv2.connectedComponentsWithStats(
             binary, connectivity=8
         )
         mask = np.ones_like(img_gray) * 255
@@ -78,7 +78,7 @@ class DatasetBuilder:
     # ────────────────────────────────────────────────────────
 
     @staticmethod
-    def get_line_crops(img_gray: np.ndarray) -> List[np.ndarray]:
+    def get_line_crops(img_gray: np.ndarray) -> list[np.ndarray]:
         """
         تقسيم الصورة إلى أسطر مع هامش بسيط.
 
@@ -114,7 +114,7 @@ class DatasetBuilder:
     # ────────────────────────────────────────────────────────
 
     @staticmethod
-    def parse_text_file(text_file: Path) -> List[Tuple[str, str]]:
+    def parse_text_file(text_file: Path) -> list[tuple[str, str]]:
         """
         تحليل ملف النص المصحح إلى (اسم_الصورة, النص).
 
@@ -150,7 +150,7 @@ class DatasetBuilder:
     # Build Dataset (Main Method)
     # ────────────────────────────────────────────────────────
 
-    def build(self) -> Dict:
+    def build(self) -> dict:
         """
         بناء الداتاسيت: قراءة النص المصحح + قص الأسطر من الصور.
 
@@ -219,7 +219,7 @@ class DatasetBuilder:
             'images_count': len(labels_content),
         }
 
-        print(f"\nDataset built successfully!")
+        print("\nDataset built successfully!")
         print(f"  Location: {self.output_dir}")
         print(f"  Total lines: {total_lines}")
         print(f"  Pages: {pages_processed}")
@@ -233,8 +233,8 @@ class DatasetBuilder:
     def build_from_json(
         self,
         json_file: str,
-        corrected_json: Optional[str] = None,
-    ) -> Dict:
+        corrected_json: str | None = None,
+    ) -> dict:
         """
         بناء الداتاسيت من مخرجات JSON لـ BatchMedicalOCR.
 

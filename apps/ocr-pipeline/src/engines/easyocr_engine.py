@@ -11,12 +11,13 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Any
 
 import cv2
 import numpy as np
 
-from src.engines.base_engine import BBox, OCREngine, OCRResult, ImageInput
+from src.engines.base_engine import BBox, ImageInput, OCREngine, OCRResult
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +94,9 @@ class EasyOCREngine(OCREngine):
 
     def __init__(
         self,
-        languages: Optional[List[str]] = None,
-        gpu: Optional[bool] = None,
-        model_storage_directory: Optional[str] = None,
+        languages: list[str] | None = None,
+        gpu: bool | None = None,
+        model_storage_directory: str | None = None,
         download_enabled: bool = True,
         detect_network: str = "craft",
         paragraph: bool = True,
@@ -138,7 +139,7 @@ class EasyOCREngine(OCREngine):
                 gpu = False
             self._logger.info("GPU auto-detection: %s.", gpu)
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "lang_list": self._languages,
             "gpu": gpu,
             "download_enabled": self._download_enabled,
@@ -159,7 +160,7 @@ class EasyOCREngine(OCREngine):
     def _check_availability(self) -> None:
         """Verify EasyOCR is importable and a reader can be created."""
         import easyocr  # noqa: F401
-        reader = self._init_reader()
+        self._init_reader()
         self._logger.info("EasyOCR reader ready (langs=%s).", self._languages)
 
     # ------------------------------------------------------------------
@@ -198,7 +199,7 @@ class EasyOCREngine(OCREngine):
 
         # reader.readtext_batched returns a list of lists
         # Each inner item: (bbox_points, text, confidence)
-        page_detections: List[Tuple[Any, str, float]] = detections[0] if detections else []
+        page_detections: list[tuple[Any, str, float]] = detections[0] if detections else []
 
         if not page_detections:
             return OCRResult(
@@ -215,10 +216,10 @@ class EasyOCREngine(OCREngine):
             )
 
         # Build per-line results
-        lines_text: List[str] = []
-        line_confs: List[float] = []
-        line_bboxes: List[BBox] = []
-        word_level: List[tuple[str, float, BBox]] = []
+        lines_text: list[str] = []
+        line_confs: list[float] = []
+        line_bboxes: list[BBox] = []
+        word_level: list[tuple[str, float, BBox]] = []
 
         for bbox_pts, text, raw_conf in page_detections:
             text = text.strip()
@@ -283,7 +284,7 @@ class EasyOCREngine(OCREngine):
             },
         )
 
-    def ocr_batch(self, images: Sequence[ImageInput]) -> List[OCRResult]:
+    def ocr_batch(self, images: Sequence[ImageInput]) -> list[OCRResult]:
         """Run EasyOCR on a batch of images.
 
         Uses EasyOCR's built-in batched inference for better GPU
@@ -299,7 +300,7 @@ class EasyOCREngine(OCREngine):
         list[OCRResult]
         """
         reader = self._init_reader()
-        rgb_images: List[np.ndarray] = []
+        rgb_images: list[np.ndarray] = []
 
         for img in images:
             validated = self.validate_image(img) if not isinstance(img, np.ndarray) else img
@@ -314,8 +315,8 @@ class EasyOCREngine(OCREngine):
         )
         inference_time = time.perf_counter() - t0
 
-        results: List[OCRResult] = []
-        for idx, page_dets in enumerate(all_detections):
+        results: list[OCRResult] = []
+        for _idx, page_dets in enumerate(all_detections):
             result = self._build_result_from_detections(
                 page_dets, inference_time / max(len(images), 1),
             )
@@ -329,14 +330,14 @@ class EasyOCREngine(OCREngine):
 
     def _build_result_from_detections(
         self,
-        detections: List[Tuple[Any, str, float]],
+        detections: list[tuple[Any, str, float]],
         processing_time: float,
     ) -> OCRResult:
         """Convert raw EasyOCR detections to an :class:`OCRResult`."""
-        lines_text: List[str] = []
-        line_confs: List[float] = []
-        line_bboxes: List[BBox] = []
-        word_level: List[tuple[str, float, BBox]] = []
+        lines_text: list[str] = []
+        line_confs: list[float] = []
+        line_bboxes: list[BBox] = []
+        word_level: list[tuple[str, float, BBox]] = []
 
         for bbox_pts, text, raw_conf in detections:
             text = text.strip()

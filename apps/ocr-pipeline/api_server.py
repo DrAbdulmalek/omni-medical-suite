@@ -5,16 +5,14 @@ REST API for programmatic access to the OCR pipeline.
 Run with: uvicorn api_server:app --host 0.0.0.0 --port 8000
 """
 
-import sys
+import contextlib
 import os
-import io
-import json
-import time
+import sys
 import tempfile
+import time
 from pathlib import Path
-from typing import Optional, List
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -43,7 +41,7 @@ app.add_middleware(
 class OCRRequest(BaseModel):
     """Request model for text-based OCR correction."""
     text: str = Field(..., min_length=1, description="Arabic text to correct")
-    engine: Optional[str] = Field(None, description="OCR engine to use (tesseract/easyocr/paddleocr/trocr/ensemble)")
+    engine: str | None = Field(None, description="OCR engine to use (tesseract/easyocr/paddleocr/trocr/ensemble)")
     auto_correct: bool = Field(True, description="Apply automatic spell correction")
 
 
@@ -57,7 +55,7 @@ class WordResult(BaseModel):
     word: str
     confidence: float
     corrected: bool = False
-    original: Optional[str] = None
+    original: str | None = None
 
 
 class OCRResponse(BaseModel):
@@ -78,7 +76,7 @@ class BatchItemResult(BaseModel):
     confidence: float
     processing_time: float
     success: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class BatchResponse(BaseModel):
@@ -87,14 +85,14 @@ class BatchResponse(BaseModel):
     successful: int
     failed: int
     total_time: float
-    results: List[BatchItemResult]
+    results: list[BatchItemResult]
 
 
 class HealthResponse(BaseModel):
     """Health check response."""
     status: str
     version: str
-    engines_available: List[str]
+    engines_available: list[str]
 
 
 class EngineInfo(BaseModel):
@@ -149,7 +147,7 @@ async def health_check():
     )
 
 
-@app.get("/engines", response_model=List[EngineInfo])
+@app.get("/engines", response_model=list[EngineInfo])
 async def list_engines():
     """List all available OCR engines with their status."""
     engines_info = [
@@ -208,7 +206,7 @@ async def process_ocr(file: UploadFile = File(...), engine: str = "ensemble", au
                     orig_words = original_text.split()
                     corr_words = corrected_text.split()
                     corrections = sum(
-                        1 for a, b in zip(orig_words, corr_words) if a != b
+                        1 for a, b in zip(orig_words, corr_words, strict=False) if a != b
                     )
                     original_text = corrected_text
 
@@ -225,19 +223,17 @@ async def process_ocr(file: UploadFile = File(...), engine: str = "ensemble", au
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"OCR processing failed: {e!s}")
 
     finally:
         # Cleanup temp file
         if 'tmp_path' in locals():
-            try:
+            with contextlib.suppress(Exception):
                 os.unlink(tmp_path)
-            except Exception:
-                pass
 
 
 @app.post("/ocr/batch", response_model=BatchResponse)
-async def process_batch(files: List[UploadFile] = File(...), engine: str = "ensemble"):
+async def process_batch(files: list[UploadFile] = File(...), engine: str = "ensemble"):
     """
     Process multiple uploaded files in batch.
 
@@ -288,10 +284,8 @@ async def process_batch(files: List[UploadFile] = File(...), engine: str = "ense
 
         finally:
             if 'tmp_path' in locals():
-                try:
+                with contextlib.suppress(Exception):
                     os.unlink(tmp_path)
-                except Exception:
-                    pass
 
     successful = sum(1 for r in results if r.success)
     failed = len(results) - successful
@@ -321,7 +315,7 @@ async def spell_check(request: SpellCheckRequest):
     try:
         corrected, confidence = checker.correct_with_confidence(request.text)
         corrections = sum(
-            1 for a, b in zip(request.text.split(), corrected.split()) if a != b
+            1 for a, b in zip(request.text.split(), corrected.split(), strict=False) if a != b
         )
 
         return OCRResponse(
@@ -335,7 +329,7 @@ async def spell_check(request: SpellCheckRequest):
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Spell check failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Spell check failed: {e!s}")
 
 
 # ─── Run Server ───────────────────────────────────────────────────────────────

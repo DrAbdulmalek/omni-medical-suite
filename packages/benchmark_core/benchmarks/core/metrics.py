@@ -4,9 +4,8 @@ Provides CER, WER, medical term accuracy, latency, and throughput metrics
 for the medical OCR ecosystem benchmark suite.
 """
 
-import time
 import statistics
-from typing import Any
+import time
 
 
 class EditDistance:
@@ -252,7 +251,7 @@ class LatencyProfiler:
         timings = []
         for _ in range(self.benchmark_runs):
             start = time.perf_counter()
-            result = func(*args, **kwargs)
+            func(*args, **kwargs)
             elapsed = time.perf_counter() - start
             timings.append(elapsed)
 

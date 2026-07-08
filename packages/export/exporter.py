@@ -13,12 +13,10 @@ Exports OCR results to multiple formats with RTL support:
 
 from __future__ import annotations
 
-import io
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +57,7 @@ class DocumentExporter:
         document,
         output_path: str | Path,
         format_name: str = "txt",
-        images: Optional[list] = None,
+        images: list | None = None,
     ) -> str:
         """Export a document to the specified format.
 
@@ -115,7 +113,7 @@ class DocumentExporter:
         self,
         document,
         output_path: str | Path,
-        images: Optional[list] = None,
+        images: list | None = None,
     ) -> None:
         """Export document as plain text (UTF-8).
 
@@ -178,7 +176,7 @@ class DocumentExporter:
         self,
         document,
         output_path: str | Path,
-        images: Optional[list] = None,
+        images: list | None = None,
     ) -> None:
         """Export document as structured JSON.
 
@@ -263,7 +261,7 @@ class DocumentExporter:
         self,
         document,
         output_path: str | Path,
-        images: Optional[list] = None,
+        images: list | None = None,
     ) -> None:
         """Export document as a DOCX file with RTL support.
 
@@ -280,8 +278,8 @@ class DocumentExporter:
         """
         try:
             from docx import Document as DocxDocument
-            from docx.shared import Pt
             from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from docx.shared import Pt
         except ImportError:
             raise RuntimeError(
                 "python-docx is required for DOCX export. "
@@ -357,7 +355,7 @@ class DocumentExporter:
         self,
         document,
         output_path: str | Path,
-        images: Optional[list] = None,
+        images: list | None = None,
     ) -> None:
         """Export document as an HTML file preserving layout.
 
@@ -466,7 +464,7 @@ class DocumentExporter:
         self,
         document,
         output_path: str | Path,
-        images: Optional[list] = None,
+        images: list | None = None,
     ) -> None:
         """Export document as a searchable PDF.
 

@@ -4,18 +4,14 @@ Export corrections from PostgreSQL to HuggingFace Dataset format
 for TrOCR fine-tuning.
 """
 
-import os
-import json
 import argparse
-from datetime import datetime
+import json
+import os
 from pathlib import Path
-from typing import List, Dict, Optional
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
-from PIL import Image
-import io
 from minio import Minio
+from psycopg2.extras import RealDictCursor
 from tqdm import tqdm
 
 
@@ -51,7 +47,7 @@ class DatasetExporter:
             'medical_terms': 0
         }
 
-    def fetch_gold_standard(self, min_corrections: int = 1) -> List[Dict]:
+    def fetch_gold_standard(self, min_corrections: int = 1) -> list[dict]:
         """
         Fetch gold standard regions from database.
         """
@@ -89,10 +85,10 @@ class DatasetExporter:
 
     def process_and_save(
         self,
-        records: List[Dict],
+        records: list[dict],
         split: str = 'train',
         max_size: int = 384
-    ) -> Dict:
+    ) -> dict:
         """
         Process records and save in HuggingFace-compatible format.
         """
@@ -105,7 +101,7 @@ class DatasetExporter:
 
         for idx, record in enumerate(tqdm(records, desc=f"Processing {split}")):
             image_filename = f"{split}_{idx:06d}_{record['id']}.png"
-            image_path = images_dir / image_filename
+            images_dir / image_filename
 
             # Save metadata
             entry = {

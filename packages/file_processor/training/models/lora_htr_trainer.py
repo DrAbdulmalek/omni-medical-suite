@@ -17,11 +17,9 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
 
 from transformers import (
     TrOCRProcessor,
@@ -35,7 +33,6 @@ from transformers import (
 from peft import (
     LoraConfig,
     get_peft_model,
-    PeftModel,
     TaskType,
     prepare_model_for_kbit_training
 )
@@ -337,7 +334,6 @@ class LoRAHTRTrainer:
     def export_to_onnx(self, output_path: Optional[Path] = None):
         """تصدير النموذج لـ ONNX."""
         try:
-            import onnx
             from onnxruntime.quantization import quantize_dynamic, QuantType
             
             output_path = output_path or Path(self.config.output_dir) / 'model.onnx'
@@ -447,7 +443,6 @@ class UnslothHTRTrainer(LoRAHTRTrainer):
         
         # Unsloth يتطلب معالجة خاصة
         from trl import SFTTrainer
-        from transformers import TrainingArguments
         
         # تحويل البيانات لتنسيق Unsloth
         formatted_data = self._format_for_unsloth(train_dataset)

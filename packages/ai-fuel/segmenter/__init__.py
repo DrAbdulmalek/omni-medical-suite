@@ -21,12 +21,12 @@ Quick Start::
     chunks = seg.segment(long_text, method="hybrid")
 """
 
-from segmenter.document_segmenter import DocumentSegmenter
-from segmenter.context_preserver import ContextPreserver
 from segmenter.chunk_validator import ChunkValidator
+from segmenter.context_preserver import ContextPreserver
+from segmenter.document_segmenter import DocumentSegmenter
 
 __all__ = [
-    "DocumentSegmenter",
-    "ContextPreserver",
     "ChunkValidator",
+    "ContextPreserver",
+    "DocumentSegmenter",
 ]

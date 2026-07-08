@@ -12,15 +12,13 @@ comprehensive built-in taxonomy covering 20+ medical categories.
 from __future__ import annotations
 
 import json
+import logging
 import math
 import os
 import re
 import time
-import unicodedata
-import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
 
 from core.schemas import ClassificationMethod, ClassificationResult
 
@@ -56,7 +54,7 @@ class KeywordRouter:
     _DEFAULT_THRESHOLD: float = 0.85
 
     # ── Arabic normalisation patterns ───────────────────────────────────
-    _ARABIC_NORMALIZATION_MAP: Dict[str, str] = {
+    _ARABIC_NORMALIZATION_MAP: dict[str, str] = {
         "\u0623": "\u0627",  # Hamza on Alef → Alef
         "\u0625": "\u0627",  # Hamza below Alef → Alef
         "\u0624": "\u0627",  # Hamza on Waw → Alef
@@ -67,22 +65,22 @@ class KeywordRouter:
 
     def __init__(
         self,
-        taxonomy_path: Optional[str] = None,
+        taxonomy_path: str | None = None,
         threshold: float = _DEFAULT_THRESHOLD,
     ) -> None:
         self.threshold: float = threshold
 
         # ── Keyword index structures ───────────────────────────────────
         # inverted_index[word] → list of (category_id, weight)
-        self._inverted_index: Dict[str, List[Tuple[str, float]]] = defaultdict(list)
+        self._inverted_index: dict[str, list[tuple[str, float]]] = defaultdict(list)
         # category_keywords[category_id] → set of all keywords for that category
-        self._category_keywords: Dict[str, Set[str]] = defaultdict(set)
+        self._category_keywords: dict[str, set[str]] = defaultdict(set)
         # category_names[category_id] → (name_en, name_ar)
-        self._category_names: Dict[str, Tuple[str, str]] = {}
+        self._category_names: dict[str, tuple[str, str]] = {}
         # category_descriptions[category_id] → (desc_en, desc_ar)
-        self._category_descriptions: Dict[str, Tuple[str, str]] = {}
+        self._category_descriptions: dict[str, tuple[str, str]] = {}
         # Total keyword count per category (for confidence normalisation)
-        self._category_keyword_counts: Dict[str, int] = {}
+        self._category_keyword_counts: dict[str, int] = {}
 
         self._taxonomy_path = taxonomy_path or self._DEFAULT_TAXONOMY_PATH
         self._load_taxonomy()
@@ -101,7 +99,7 @@ class KeywordRouter:
         if path.exists():
             logger.info("Loading taxonomy from %s", path)
             try:
-                with open(path, "r", encoding="utf-8") as fh:
+                with open(path, encoding="utf-8") as fh:
                     data = json.load(fh)
                 self._build_index_from_taxonomy(data)
                 return
@@ -115,7 +113,7 @@ class KeywordRouter:
         logger.info("Using built-in default taxonomy")
         self._build_index_from_taxonomy(self._build_default_taxonomy())
 
-    def _build_index_from_taxonomy(self, data: Dict) -> None:
+    def _build_index_from_taxonomy(self, data: dict) -> None:
         """Build the inverted keyword index from taxonomy data."""
         categories = data.get("categories", [])
         if not categories:
@@ -130,18 +128,18 @@ class KeywordRouter:
             )
 
             # ── English keywords ────────────────────────────────────────
-            en_keywords: List[str] = cat.get("keywords_en", [])
+            en_keywords: list[str] = cat.get("keywords_en", [])
             self._index_keywords(cat_id, en_keywords, lang="en")
 
             # ── Arabic keywords ───────────────────────────────────────
-            ar_keywords: List[str] = cat.get("keywords_ar", [])
+            ar_keywords: list[str] = cat.get("keywords_ar", [])
             self._index_keywords(cat_id, ar_keywords, lang="ar")
 
             self._category_keyword_counts[cat_id] = len(
                 self._category_keywords[cat_id]
             )
 
-    def _index_keywords(self, cat_id: str, keywords: List[str], lang: str = "en") -> None:
+    def _index_keywords(self, cat_id: str, keywords: list[str], lang: str = "en") -> None:
         """Index a list of keywords into the inverted index."""
         for keyword in keywords:
             if not keyword or not keyword.strip():
@@ -165,7 +163,7 @@ class KeywordRouter:
 
     # ── Classification ────────────────────────────────────────────────
 
-    def classify(self, text: str, chunk_id: str = "unknown") -> Optional[ClassificationResult]:
+    def classify(self, text: str, chunk_id: str = "unknown") -> ClassificationResult | None:
         """Classify text using keyword matching.
 
         Tokenises the input text, looks up matching keywords in the inverted
@@ -185,9 +183,9 @@ class KeywordRouter:
             return None
 
         # ── Score accumulation ────────────────────────────────────────
-        scores: Dict[str, float] = defaultdict(float)
-        match_counts: Dict[str, int] = defaultdict(int)
-        matched_keywords: Dict[str, Set[str]] = defaultdict(set)
+        scores: dict[str, float] = defaultdict(float)
+        match_counts: dict[str, int] = defaultdict(int)
+        matched_keywords: dict[str, set[str]] = defaultdict(set)
 
         # Tokenise input text into overlapping n-grams for matching
         tokens = self._tokenize(text)
@@ -214,7 +212,7 @@ class KeywordRouter:
         #   3. Specificity boost — longer / multi-word matches add confidence
         total_raw_score = sum(scores.values()) or 1.0
 
-        results: List[Tuple[str, float]] = []
+        results: list[tuple[str, float]] = []
         for cat_id, raw_score in scores.items():
             n_matches = match_counts[cat_id]
 
@@ -257,7 +255,7 @@ class KeywordRouter:
             for cat_id, conf in results[1:6]  # top 5 alternatives
         ]
 
-        name_en, name_ar = self._category_names.get(best_cat_id, (best_cat_id, ""))
+        _name_en, name_ar = self._category_names.get(best_cat_id, (best_cat_id, ""))
 
         result = ClassificationResult(
             chunk_id=chunk_id,
@@ -280,7 +278,7 @@ class KeywordRouter:
 
     # ── Tokenisation ───────────────────────────────────────────────────
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         """Tokenise text into normalised tokens including Arabic normalisation.
 
         Generates unigrams and bigrams (and trigrams for short texts) to
@@ -322,8 +320,8 @@ class KeywordRouter:
         all_tokens = unigrams + bigrams + trigrams
 
         # Deduplicate while preserving order
-        seen: Set[str] = set()
-        unique_tokens: List[str] = []
+        seen: set[str] = set()
+        unique_tokens: list[str] = []
         for token in all_tokens:
             if token not in seen:
                 seen.add(token)
@@ -358,7 +356,7 @@ class KeywordRouter:
     # ── Default taxonomy ──────────────────────────────────────────────
 
     @staticmethod
-    def _build_default_taxonomy() -> Dict:
+    def _build_default_taxonomy() -> dict:
         """Built-in medical taxonomy with Arabic and English keywords.
 
         This serves as a fallback when no external taxonomy file is available.
@@ -506,7 +504,7 @@ class KeywordRouter:
 
     # ── Utility / introspection ────────────────────────────────────────
 
-    def get_category_names(self) -> Dict[str, str]:
+    def get_category_names(self) -> dict[str, str]:
         """Return a mapping of category IDs to their English names.
 
         Returns:

@@ -5,11 +5,8 @@
 展示从文档处理到智能问答的完整RAG流程
 """
 
-import os
 import time
-import json
 from datetime import datetime
-from typing import List, Dict, Any, Optional
 from hello_agents.tools import RAGTool
 from dotenv import load_dotenv
 load_dotenv()
@@ -34,10 +31,10 @@ class RAGPipelineComplete:
         print("✅ RAG系统初始化完成")
         
         # 显示系统配置
-        print(f"\n📊 系统配置:")
-        print(f"  知识库路径: ./rag_pipeline_kb")
-        print(f"  命名空间: complete_pipeline")
-        print(f"  支持格式: PDF, DOCX, TXT, MD, HTML, JSON")
+        print("\n📊 系统配置:")
+        print("  知识库路径: ./rag_pipeline_kb")
+        print("  命名空间: complete_pipeline")
+        print("  支持格式: PDF, DOCX, TXT, MD, HTML, JSON")
     
     def demonstrate_document_ingestion(self):
         """演示文档摄取过程"""
@@ -51,7 +48,7 @@ class RAGPipelineComplete:
         print("• 🎯 元数据提取")
         
         # 演示不同类型文档的处理
-        print(f"\n1. 多格式文档处理:")
+        print("\n1. 多格式文档处理:")
         
         # 模拟不同格式的文档
         documents = [
@@ -211,7 +208,7 @@ class RAGPipelineComplete:
             print(f"  文档统计: {doc_stats}")
         
         # 演示批量文档处理
-        print(f"\n2. 批量文档处理:")
+        print("\n2. 批量文档处理:")
         
         batch_documents = []
         for i in range(3):
@@ -279,7 +276,7 @@ class RAGPipelineComplete:
         print("• 🎯 优化检索效果")
         
         # 演示不同分块策略
-        print(f"\n1. 分块策略对比:")
+        print("\n1. 分块策略对比:")
         
         # 长文档示例
         long_document = """# 人工智能发展史
@@ -354,7 +351,7 @@ class RAGPipelineComplete:
         print(f"长文档分块结果: {chunking_result}")
         
         # 演示不同分块大小的影响
-        print(f"\n2. 分块大小影响分析:")
+        print("\n2. 分块大小影响分析:")
         
         # 搜索测试，观察分块对检索的影响
         test_queries = [
@@ -374,7 +371,7 @@ class RAGPipelineComplete:
             print(f"    结果: {results[:120]}...")
         
         # 演示结构化文档的分块
-        print(f"\n3. 结构化文档分块:")
+        print("\n3. 结构化文档分块:")
         
         structured_doc = """# 机器学习算法手册
 
@@ -451,7 +448,7 @@ class RAGPipelineComplete:
         print("• 📊 相关性重排序")
         
         # 演示多查询扩展
-        print(f"\n1. 多查询扩展（MQE）演示:")
+        print("\n1. 多查询扩展（MQE）演示:")
         
         base_query = "如何提高机器学习模型的性能？"
         print(f"原始查询: {base_query}")
@@ -464,7 +461,7 @@ class RAGPipelineComplete:
             "机器学习模型评估指标"
         ]
         
-        print(f"扩展查询:")
+        print("扩展查询:")
         for i, query in enumerate(expanded_queries, 1):
             print(f"  {i}. {query}")
         
@@ -478,7 +475,7 @@ class RAGPipelineComplete:
             print(f"  查询结果 '{query[:20]}...': {results[:80]}...")
         
         # 演示假设文档嵌入（HyDE）
-        print(f"\n2. 假设文档嵌入（HyDE）演示:")
+        print("\n2. 假设文档嵌入（HyDE）演示:")
         
         user_question = "什么是深度学习？"
         print(f"用户问题: {user_question}")
@@ -501,7 +498,7 @@ class RAGPipelineComplete:
         print(f"直接查询结果: {direct_results[:120]}...")
         
         # 演示混合检索策略
-        print(f"\n3. 混合检索策略演示:")
+        print("\n3. 混合检索策略演示:")
         
         complex_query = "比较监督学习和无监督学习的区别，并给出具体应用例子"
         print(f"复杂查询: {complex_query}")
@@ -515,7 +512,7 @@ class RAGPipelineComplete:
             "监督学习和无监督学习的区别"
         ]
         
-        print(f"查询分解:")
+        print("查询分解:")
         mixed_results = {}
         for sub_query in sub_queries:
             results = self.rag_tool.run({"action":"search",
@@ -526,7 +523,7 @@ class RAGPipelineComplete:
             print(f"    结果: {results[:80]}...")
         
         # 演示相关性重排序
-        print(f"\n4. 相关性重排序演示:")
+        print("\n4. 相关性重排序演示:")
         
         ranking_query = "神经网络训练过程"
         print(f"排序查询: {ranking_query}")
@@ -538,10 +535,10 @@ class RAGPipelineComplete:
         print(f"初始检索结果: {initial_results[:150]}...")
         
         # 模拟重排序过程（基于多个因素）
-        print(f"重排序因素:")
-        print(f"  • 语义相似度权重: 0.6")
-        print(f"  • 文档新鲜度权重: 0.2") 
-        print(f"  • 文档权威性权重: 0.2")
+        print("重排序因素:")
+        print("  • 语义相似度权重: 0.6")
+        print("  • 文档新鲜度权重: 0.2") 
+        print("  • 文档权威性权重: 0.2")
         
         # 最终排序结果
         final_results = self.rag_tool.run({"action":"search",
@@ -561,7 +558,7 @@ class RAGPipelineComplete:
         print("• 🔗 引用和溯源")
         
         # 演示不同类型问题的处理
-        print(f"\n1. 不同类型问题处理:")
+        print("\n1. 不同类型问题处理:")
         
         qa_examples = [
             {
@@ -606,17 +603,17 @@ class RAGPipelineComplete:
             print(f"回答 ({qa_time:.3f}秒): {answer[:200]}...")
         
         # 演示上下文构建过程
-        print(f"\n2. 上下文构建过程演示:")
+        print("\n2. 上下文构建过程演示:")
         
         context_question = "如何防止神经网络过拟合？"
         print(f"问题: {context_question}")
         
         # 模拟上下文构建步骤
-        print(f"上下文构建步骤:")
-        print(f"  1. 问题分析 - 识别关键概念：过拟合、神经网络、防止方法")
-        print(f"  2. 相关文档检索 - 搜索相关技术文档")
-        print(f"  3. 上下文筛选 - 选择最相关的信息片段")
-        print(f"  4. 上下文排序 - 按相关性和重要性排序")
+        print("上下文构建步骤:")
+        print("  1. 问题分析 - 识别关键概念：过拟合、神经网络、防止方法")
+        print("  2. 相关文档检索 - 搜索相关技术文档")
+        print("  3. 上下文筛选 - 选择最相关的信息片段")
+        print("  4. 上下文排序 - 按相关性和重要性排序")
         
         # 执行上下文构建
         context_search = self.rag_tool.run({"action":"search",
@@ -631,7 +628,7 @@ class RAGPipelineComplete:
         print(f"  最终答案: {final_answer[:250]}...")
         
         # 演示多轮对话支持
-        print(f"\n3. 多轮对话支持:")
+        print("\n3. 多轮对话支持:")
         
         conversation = [
             "什么是卷积神经网络？",
@@ -640,7 +637,7 @@ class RAGPipelineComplete:
             "在实际项目中如何使用？"
         ]
         
-        print(f"模拟对话场景:")
+        print("模拟对话场景:")
         for i, question in enumerate(conversation, 1):
             print(f"\n  轮次 {i}: {question}")
             
@@ -656,7 +653,7 @@ class RAGPipelineComplete:
             print(f"  回答: {answer[:150]}...")
         
         # 演示答案质量评估
-        print(f"\n4. 答案质量评估:")
+        print("\n4. 答案质量评估:")
         
         quality_question = "解释反向传播算法的工作原理"
         print(f"评估问题: {quality_question}")
@@ -676,7 +673,7 @@ class RAGPipelineComplete:
             "引用质量": "中 - 基于可靠来源"
         }
         
-        print(f"质量评估:")
+        print("质量评估:")
         for metric, score in quality_metrics.items():
             print(f"  {metric}: {score}")
     
@@ -692,7 +689,7 @@ class RAGPipelineComplete:
         print("• 📊 系统监控")
         
         # 演示检索性能测试
-        print(f"\n1. 检索性能测试:")
+        print("\n1. 检索性能测试:")
         
         performance_queries = [
             "机器学习基础概念",
@@ -709,7 +706,7 @@ class RAGPipelineComplete:
         
         for i, query in enumerate(performance_queries, 1):
             start_time = time.time()
-            results = self.rag_tool.run({"action":"search",
+            self.rag_tool.run({"action":"search",
                                           "query":query,
                                           "limit":5})
             query_time = time.time() - start_time
@@ -718,13 +715,13 @@ class RAGPipelineComplete:
             print(f"  查询 {i}: '{query}' - {query_time:.4f}秒")
         
         avg_time = total_time / total_queries
-        print(f"\n性能统计:")
+        print("\n性能统计:")
         print(f"  总耗时: {total_time:.4f}秒")
         print(f"  平均查询时间: {avg_time:.4f}秒")
         print(f"  查询吞吐量: {1/avg_time:.2f} 查询/秒")
         
         # 演示批量处理优化
-        print(f"\n2. 批量处理优化:")
+        print("\n2. 批量处理优化:")
         
         batch_queries = [
             "什么是监督学习？",
@@ -756,13 +753,13 @@ class RAGPipelineComplete:
         print(f"  性能提升: {((individual_time - batch_time) / individual_time * 100):.1f}%")
         
         # 演示缓存机制
-        print(f"\n3. 缓存机制演示:")
+        print("\n3. 缓存机制演示:")
         
         cache_query = "机器学习算法分类"
         
         # 第一次查询（无缓存）
         start_time = time.time()
-        first_result = self.rag_tool.run({"action":"search",
+        self.rag_tool.run({"action":"search",
                                            "query":cache_query,
                                            "limit":3})
         first_time = time.time() - start_time
@@ -770,7 +767,7 @@ class RAGPipelineComplete:
         
         # 第二次查询（可能有缓存）
         start_time = time.time()
-        second_result = self.rag_tool.run({"action":"search",
+        self.rag_tool.run({"action":"search",
                                             "query":cache_query,
                                             "limit":3})
         second_time = time.time() - start_time
@@ -781,7 +778,7 @@ class RAGPipelineComplete:
             print(f"  缓存加速: {speedup:.1f}%")
         
         # 演示系统监控
-        print(f"\n4. 系统监控:")
+        print("\n4. 系统监控:")
         
         # 获取系统统计
         system_stats = self.rag_tool.run({"action":"stats"})
@@ -796,7 +793,7 @@ class RAGPipelineComplete:
             "成功率": "100%"
         }
         
-        print(f"  资源使用情况:")
+        print("  资源使用情况:")
         for metric, value in resource_usage.items():
             print(f"    {metric}: {value}")
 

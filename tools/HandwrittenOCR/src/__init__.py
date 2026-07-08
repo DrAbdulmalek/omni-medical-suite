@@ -10,18 +10,20 @@ v2.0 - نظام التحسين المستمر:
 - إعادة تجميع الجمل (RTL)
 """
 
-from src.preprocessing import preprocess_image, smart_word_segmentation
-from src.recognition import OCREngine
+from config import Config
 from src.correction import (
-    correct_text, init_correctors,
-    build_correction_dict, apply_correction_dict,
+    apply_correction_dict,
+    build_correction_dict,
+    correct_text,
+    init_correctors,
 )
 from src.database import HandwritingDB
-from src.pdf_processor import PDFProcessor
-from src.review_ui import ReviewUI
 from src.export import export_finetuning_dataset, push_to_huggingface
 from src.finetuning import finetune_trocr_lora
+from src.pdf_processor import PDFProcessor
+from src.preprocessing import preprocess_image, smart_word_segmentation
+from src.recognition import OCREngine
 from src.reconstruction import reconstruct_sentences
-from config import Config
+from src.review_ui import ReviewUI
 
 __version__ = "2.1.0"

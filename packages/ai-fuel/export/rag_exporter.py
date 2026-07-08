@@ -18,7 +18,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from core.schemas import ClassifiedChunk
 
@@ -56,7 +56,7 @@ class RAGExporter:
             generation (text-only export).
     """
 
-    def __init__(self, model_name: Optional[str] = None) -> None:
+    def __init__(self, model_name: str | None = None) -> None:
         """Initialise the RAG exporter.
 
         Args:
@@ -66,7 +66,7 @@ class RAGExporter:
         self.model_name = model_name
         self.model = None
         self._model_loaded = False
-        self._exports_completed = int = 0
+        self._exports_completed = 0
 
     # ------------------------------------------------------------------
     # Model loading
@@ -117,10 +117,10 @@ class RAGExporter:
 
     def export(
         self,
-        chunks: List[ClassifiedChunk],
+        chunks: list[ClassifiedChunk],
         output_dir: str,
         include_embeddings: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Export RAG-ready dataset to a directory.
 
         Produces:
@@ -149,7 +149,7 @@ class RAGExporter:
 
         # ── Export texts.jsonl ──────────────────────────────────────
         texts_path = os.path.join(output_dir, "texts.jsonl")
-        records: List[Dict[str, Any]] = []
+        records: list[dict[str, Any]] = []
 
         with open(texts_path, "w", encoding="utf-8") as fh:
             for classified in chunks:
@@ -218,10 +218,10 @@ class RAGExporter:
 
     def export_for_qdrant(
         self,
-        chunks: List[ClassifiedChunk],
+        chunks: list[ClassifiedChunk],
         collection_name: str = "ai_fuel_corpus",
         batch_size: int = 100,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Prepare data for direct upload to Qdrant.
 
         Generates Qdrant-compatible point payloads (id, vector, payload)
@@ -257,11 +257,11 @@ class RAGExporter:
             embeddings = self._compute_embeddings(chunks)
             embedding_dim = embeddings.shape[1] if embeddings is not None else 0  # type: ignore[union-attr]
 
-        batches: List[List[Dict[str, Any]]] = []
-        current_batch: List[Dict[str, Any]] = []
+        batches: list[list[dict[str, Any]]] = []
+        current_batch: list[dict[str, Any]] = []
 
         for idx, classified in enumerate(chunks):
-            point: Dict[str, Any] = {
+            point: dict[str, Any] = {
                 "id": classified.chunk.id,
                 "payload": {
                     "text": classified.chunk.text,
@@ -300,7 +300,7 @@ class RAGExporter:
         )
         return result
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Return exporter statistics.
 
         Returns:
@@ -317,8 +317,8 @@ class RAGExporter:
     # ------------------------------------------------------------------
 
     def _compute_embeddings(
-        self, chunks: List[ClassifiedChunk]
-    ) -> Optional[Any]:
+        self, chunks: list[ClassifiedChunk]
+    ) -> Any | None:
         """Compute dense embeddings for all chunk texts.
 
         Returns:
@@ -349,9 +349,9 @@ class RAGExporter:
             return None
 
     @staticmethod
-    def _compute_category_dist(chunks: List[ClassifiedChunk]) -> Dict[str, int]:
+    def _compute_category_dist(chunks: list[ClassifiedChunk]) -> dict[str, int]:
         """Count chunks per category."""
-        dist: Dict[str, int] = {}
+        dist: dict[str, int] = {}
         for c in chunks:
             cat = c.classification.category
             dist[cat] = dist.get(cat, 0) + 1

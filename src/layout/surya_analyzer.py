@@ -11,7 +11,7 @@ and determines reading order for Arabic and multilingual medical documents.
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any
 
 import numpy as np
 
@@ -55,8 +55,8 @@ class SuryaLayoutAnalyzer:
         logger.info(_MSG_LOADING)
         try:
             from surya.detection import DetectionPredictor
-            from surya.recognition import RecognitionPredictor
             from surya.ordering import OrderPredictor
+            from surya.recognition import RecognitionPredictor
 
             self.detector = DetectionPredictor()
             logger.info("تم تحميل نموذج الكشف | Detection model loaded")
@@ -83,7 +83,7 @@ class SuryaLayoutAnalyzer:
         """Check if Surya models are loaded and available."""
         return self._available
 
-    def analyze(self, image: np.ndarray) -> Dict[str, Any]:
+    def analyze(self, image: np.ndarray) -> dict[str, Any]:
         """
         Perform full layout analysis on an image.
 
@@ -137,8 +137,8 @@ class SuryaLayoutAnalyzer:
             order_map = order_result.get("order_indices", {})
 
             # Step 4: Build structured lines with classification
-            lines: List[Dict] = []
-            for idx, (bbox, pred) in enumerate(zip(bboxes, line_results)):
+            lines: list[dict] = []
+            for idx, (bbox, pred) in enumerate(zip(bboxes, line_results, strict=False)):
                 text = pred.get("text", "")
                 confidence = float(pred.get("confidence", 0.0))
 
@@ -188,7 +188,7 @@ class SuryaLayoutAnalyzer:
             )
             return self._empty_result()
 
-    def get_reading_order(self, image: np.ndarray) -> List[Dict]:
+    def get_reading_order(self, image: np.ndarray) -> list[dict]:
         """
         Detect text lines and return them in reading order.
 
@@ -228,7 +228,7 @@ class SuryaLayoutAnalyzer:
             order_map = order_result.get("order_indices", {})
 
             ordered_lines = []
-            for idx, (bbox, pred) in enumerate(zip(bboxes, line_results)):
+            for idx, (bbox, pred) in enumerate(zip(bboxes, line_results, strict=False)):
                 text = pred.get("text", "")
                 confidence = float(pred.get("confidence", 0.0))
                 bbox_list = self._normalize_bbox(bbox)
@@ -257,7 +257,7 @@ class SuryaLayoutAnalyzer:
             return []
 
     def _classify_element(
-        self, bbox: List, text: str
+        self, bbox: list, text: str
     ) -> str:
         """
         Classify a layout element based on its bounding box and text content.
@@ -317,7 +317,7 @@ class SuryaLayoutAnalyzer:
         )
         return "text_line"
 
-    def _get_layout_summary(self, lines: List[Dict]) -> Dict[str, int]:
+    def _get_layout_summary(self, lines: list[dict]) -> dict[str, int]:
         """
         Count the occurrences of each layout element type.
 
@@ -329,7 +329,7 @@ class SuryaLayoutAnalyzer:
         Returns:
             Dictionary mapping element type to count.
         """
-        summary: Dict[str, int] = {}
+        summary: dict[str, int] = {}
         for line in lines:
             elem_type = line.get("type", "unknown")
             summary[elem_type] = summary.get(elem_type, 0) + 1
@@ -340,8 +340,8 @@ class SuryaLayoutAnalyzer:
         return summary
 
     def _get_reading_order_internal(
-        self, pil_image, bboxes: List
-    ) -> Dict[str, Any]:
+        self, pil_image, bboxes: list
+    ) -> dict[str, Any]:
         """
         Internal method to get reading order from Surya order predictor.
 
@@ -360,7 +360,7 @@ class SuryaLayoutAnalyzer:
             order_indices = order_predictions[0] if order_predictions else []
 
             # Build order map: original_index -> position
-            order_map: Dict[int, int] = {}
+            order_map: dict[int, int] = {}
             for position, original_idx in enumerate(order_indices):
                 order_map[original_idx] = position
 
@@ -405,7 +405,7 @@ class SuryaLayoutAnalyzer:
         return pil_image
 
     @staticmethod
-    def _normalize_bbox(bbox) -> List[float]:
+    def _normalize_bbox(bbox) -> list[float]:
         """
         Normalize bounding box to a consistent [x1, y1, x2, y2] format.
 
@@ -451,7 +451,7 @@ class SuryaLayoutAnalyzer:
         return [0.0, 0.0, 0.0, 0.0]
 
     @staticmethod
-    def _empty_result() -> Dict[str, Any]:
+    def _empty_result() -> dict[str, Any]:
         """Return an empty analysis result."""
         return {
             "full_text": "",

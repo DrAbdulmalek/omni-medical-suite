@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -70,7 +69,7 @@ CANONICAL_TYPES: dict[str, type] = {
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     """Load a JSONL file into a list of dicts. Skips blank / malformed lines."""
     rows: list[dict[str, Any]] = []
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         for lineno, line in enumerate(fh, start=1):
             stripped = line.strip()
             if not stripped:
@@ -394,7 +393,7 @@ def main() -> None:
             print(f"        ... and {len(analysis['rows_with_extra_columns']) - 5} more")
 
     if analysis["type_mismatches"]:
-        print(f"      Type mismatches detected:")
+        print("      Type mismatches detected:")
         for col, types in analysis["type_mismatches"].items():
             print(f"        {col}: {types}")
     print()

@@ -58,7 +58,7 @@ def main():
         
         # 打印统计
         print(f"\n{'='*70}")
-        print(f"▸ 创作统计")
+        print("▸ 创作统计")
         print(f"{'='*70}")
         stats = result['statistics']
         print(f"文章总数: {stats['total_articles']}")
@@ -68,7 +68,7 @@ def main():
         # 显示创作统计
         if 'creation_stats' in result:
             creation = result['creation_stats']
-            print(f"\n创作流程:")
+            print("\n创作流程:")
             print(f"  生成次数: {creation.get('total_generations', 0)}")
             if creation.get('total_reviews', 0) > 0:
                 print(f"  评审次数: {creation.get('total_reviews', 0)}")
@@ -79,7 +79,7 @@ def main():
                 print(f"  重写次数: {creation.get('total_rewrites', 0)}")
         
         if 'agent_modes' in result:
-            print(f"\nAgent 模式:")
+            print("\nAgent 模式:")
             print(f"  Planner: {result['agent_modes']['planner']}")
             print(f"  Writer: {result['agent_modes']['writer']}")
             if result['agent_modes'].get('reviewer'):
@@ -88,7 +88,7 @@ def main():
                 print(f"  Revision: {result['agent_modes']['revision']}")
         
         print(f"\n{'='*70}")
-        print(f"▸ 专栏创建完成！")
+        print("▸ 专栏创建完成！")
         print(f"   输出目录: {output_dir}")
         print(f"{'='*70}\n")
         

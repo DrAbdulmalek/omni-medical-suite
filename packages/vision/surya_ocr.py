@@ -12,7 +12,6 @@
 """
 
 import logging
-from typing import Optional
 
 # ⚠️ هذا الملف معطّل — Surya غير مثبّت في البيئة الحالية
 # لتفعيله: pip install surya-ocr
@@ -35,7 +34,7 @@ class SuryaOCREngine:
         >>> print(text)
     """
 
-    def __init__(self, langs: Optional[list[str]] = None):
+    def __init__(self, langs: list[str] | None = None):
         """
         تهيئة محرك Surya.
 
@@ -162,7 +161,7 @@ class SuryaOCREngine:
     def process(
         self,
         image_path: str,
-        output_json_path: Optional[str] = None,
+        output_json_path: str | None = None,
     ) -> dict:
         """
         معالجة كاملة: استخراج نص + تطبيع + حفظ JSON.
@@ -175,9 +174,10 @@ class SuryaOCREngine:
             dict النتيجة الموحدة بالهيكل القياسي
         """
         from PIL import Image
+
         from packages.vision.normalize import normalize_ocr_output, save_normalized
 
-        text, blocks = self.extract_text(image_path)
+        _text, blocks = self.extract_text(image_path)
         img = Image.open(image_path)
         w, h = img.size
 

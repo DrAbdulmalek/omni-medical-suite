@@ -1,8 +1,9 @@
 """Tests for CI threshold checking."""
+
 import pytest
 import yaml
-from pathlib import Path
-from benchmarks.ci import ThresholdChecker, ThresholdViolation, CIResult
+
+from benchmarks.ci import CIResult, ThresholdChecker, ThresholdViolation
 from benchmarks.report import EngineResult
 
 

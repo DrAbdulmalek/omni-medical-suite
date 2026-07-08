@@ -16,7 +16,6 @@ import fnmatch
 import logging
 import re
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -184,10 +183,10 @@ class FileScanner:
 
     def __init__(
         self,
-        custom_patterns: Optional[list[dict[str, str]]] = None,
+        custom_patterns: list[dict[str, str]] | None = None,
         min_severity: str = "low",
         max_file_size: int = 10 * 1024 * 1024,  # 10 ميغابايت
-        ignore_patterns: Optional[list[str]] = None,
+        ignore_patterns: list[str] | None = None,
     ) -> None:
         """
         تهيئة ماسح الأمان.
@@ -239,7 +238,7 @@ class FileScanner:
     #  تحميل .gitignore
     # ===================================================================
 
-    def _load_gitignore(self, directory: Optional[Path] = None) -> None:
+    def _load_gitignore(self, directory: Path | None = None) -> None:
         """
         يحمل أنماط التجاهل من ملف .gitignore.
 

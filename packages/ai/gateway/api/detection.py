@@ -5,7 +5,6 @@ and filepath extraction requests to enable fast-path responses.
 """
 
 from ..core.anthropic import extract_text_from_content
-
 from .models.anthropic import MessagesRequest
 
 

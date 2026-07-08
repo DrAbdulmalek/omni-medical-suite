@@ -13,7 +13,7 @@ import sys
 # إضافة المسار
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from interactive_learning import InteractiveLearningSystem, process_and_learn
+from interactive_learning import InteractiveLearningSystem
 
 
 def demo_basic():
@@ -42,7 +42,7 @@ def demo_basic():
 
     # إحصائيات
     stats = system.get_stats()
-    print(f"\n📊 إحصائيات الصفحة:")
+    print("\n📊 إحصائيات الصفحة:")
     print(f"   الكلمات: {stats['current_page']['words']}")
     print(f"   الفقرات: {stats['current_page']['paragraphs']}")
     print(f"   الجداول: {stats['current_page']['tables']}")

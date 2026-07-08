@@ -11,7 +11,6 @@ Only includes models verified to exist on HuggingFace Hub.
 """
 
 import hashlib
-import json
 import logging
 import os
 from dataclasses import dataclass, field

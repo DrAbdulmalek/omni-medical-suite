@@ -10,7 +10,7 @@
 """
 
 import logging
-import traceback
+
 import pandas as pd
 from langdetect import detect
 
@@ -47,7 +47,7 @@ def reconstruct_sentences(db, y_tolerance=25, verified_only=True) -> list[dict] 
         return None
 
     all_sentences = []
-    pages = set(w["page_num"] for w in words if w["page_num"])
+    pages = {w["page_num"] for w in words if w["page_num"]}
     logger.info(f"  {len(pages)} صفحة للمعالجة: {sorted(pages)}")
 
     for page in sorted(pages):
@@ -82,7 +82,7 @@ def reconstruct_sentences(db, y_tolerance=25, verified_only=True) -> list[dict] 
                 lang = detect(text_preview)
             except Exception:
                 lang = "en"
-                logger.debug(f"    فشل كشف اللغة — افتراضي: en")
+                logger.debug("    فشل كشف اللغة — افتراضي: en")
 
             # ترتيب حسب اللغة
             is_rtl = (lang == "ar")
@@ -125,7 +125,8 @@ def reconstruct_sentences_direct(df, y_tolerance=25) -> list[str]:
     try:
         from langdetect import detect
     except ImportError:
-        detect = lambda _: "en"
+        def detect(_):
+            return "en"
 
     lines_out = []
     for pg in sorted(df["page_num"].dropna().unique()):
@@ -143,7 +144,7 @@ def reconstruct_sentences_direct(df, y_tolerance=25) -> list[str]:
                 curr = [row]
         line_groups.append(curr)
 
-        for lg_idx, lg in enumerate(line_groups):
+        for _lg_idx, lg in enumerate(line_groups):
             preview = " ".join(str(w.get("predicted_text", "")) for w in lg)
             try:
                 lang = detect(preview)
@@ -173,7 +174,7 @@ def extract_bilingual_vocab(db, y_tolerance=30, output_path=None) -> pd.DataFram
     logger.debug(f"  {len(words)} كلمة مؤكدة")
 
     vocab_pairs = []
-    for page in set(w["page_num"] for w in words if w["page_num"]):
+    for page in {w["page_num"] for w in words if w["page_num"]}:
         p_words = [w for w in words if w["page_num"] == page]
         p_words.sort(key=lambda k: (k["y"], k["x"]))
 
@@ -224,7 +225,7 @@ def derive_word_corrections(original, corrected) -> list[dict]:
         logger.debug(f"derive_word_corrections: عدد الكلمات مختلف ({len(orig_words)} vs {len(corr_words)})")
         return []
 
-    corrections = [{"original": o, "corrected": c} for o, c in zip(orig_words, corr_words) if o != c]
+    corrections = [{"original": o, "corrected": c} for o, c in zip(orig_words, corr_words, strict=False) if o != c]
     if corrections:
         logger.debug(f"derive_word_corrections: {len(corrections)} تعديل: {corrections}")
 

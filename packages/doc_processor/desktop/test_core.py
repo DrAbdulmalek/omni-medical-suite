@@ -4,19 +4,22 @@ Desktop Test Suite - Imports from packages/core for consistency.
 All tests here delegate to the shared core modules.
 """
 
-import sys
 import os
+import sys
+
 import pytest
 
 # Add packages/core to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "packages", "core"))
 
-import numpy as np
 import cv2
+import numpy as np
 from image_processor import (
-    find_page_bounds, auto_detect_skew, smart_auto_crop,
-    detect_blur_laplacian, assess_image_quality, apply_processing,
-    image_segmentation,
+    assess_image_quality,
+    auto_detect_skew,
+    detect_blur_laplacian,
+    find_page_bounds,
+    smart_auto_crop,
 )
 
 

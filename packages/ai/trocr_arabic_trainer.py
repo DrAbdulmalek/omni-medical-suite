@@ -2,11 +2,11 @@
 TrOCR Arabic/English Fine-tuning Pipeline
 ضبط دقيق لـ TrOCR على الخط اليدوي العربي/الإنجليزي
 """
-from transformers import TrOCRProcessor, VisionEncoderDecoderModel, Trainer, TrainingArguments
-from datasets import Dataset
-from typing import List, Optional
+
 import torch
+from datasets import Dataset
 from PIL import Image
+from transformers import Trainer, TrainingArguments, TrOCRProcessor, VisionEncoderDecoderModel
 
 
 class ArabicTrOCRTrainer:
@@ -28,7 +28,7 @@ class ArabicTrOCRTrainer:
         # Resize embeddings for new tokens
         self.model.resize_token_embeddings(len(self.processor.tokenizer))
 
-    def prepare_dataset(self, samples: List[dict]) -> Dataset:
+    def prepare_dataset(self, samples: list[dict]) -> Dataset:
         """تحويل عينات (صورة، نص) إلى Dataset جاهز للتدريب"""
         import cv2
 
@@ -54,7 +54,7 @@ class ArabicTrOCRTrainer:
 
         return Dataset.from_list(samples).map(preprocess, remove_columns=['image', 'label'])
 
-    def train(self, train_samples: List[dict], eval_samples: Optional[List[dict]] = None,
+    def train(self, train_samples: list[dict], eval_samples: list[dict] | None = None,
               epochs: int = 20, batch_size: int = 8, learning_rate: float = 5e-5):
         """تدريب النموذج على عينات المستخدم المصححة"""
         from pathlib import Path

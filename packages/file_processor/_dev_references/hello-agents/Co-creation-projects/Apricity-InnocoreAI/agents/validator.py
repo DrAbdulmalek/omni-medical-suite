@@ -3,17 +3,14 @@ InnoCore AI 校验官 (Validator Agent)
 负责生成引用格式并联网校验元数据
 """
 
-import asyncio
 import aiohttp
 import re
-import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-import hashlib
 
 from agents.base import BaseAgent
 from core.database import db_manager
-from core.exceptions import AgentException, ExternalAPIException
+from core.exceptions import AgentException
 
 class ValidatorAgent(BaseAgent):
     """校验官智能体"""
@@ -250,7 +247,7 @@ class ValidatorAgent(BaseAgent):
         if len(authors) > 3:
             ieee_authors.append("et al.")
         
-        author_text = ", ".join(ieee_authors)
+        ", ".join(ieee_authors)
         
         # 构建IEEE引用
         if title:

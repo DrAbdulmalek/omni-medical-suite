@@ -19,9 +19,9 @@ import logging
 import os
 import time
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from core.schemas import ClassifiedChunk
 from export.csv_exporter import CSVExporter
@@ -91,8 +91,8 @@ class ExportPipeline:
         self._csv_exporter = CSVExporter()
 
         # Lazily initialised (may raise if dependencies missing)
-        self._parquet_exporter: Optional[ParquetExporter] = None
-        self._rag_exporter: Optional[RAGExporter] = None
+        self._parquet_exporter: ParquetExporter | None = None
+        self._rag_exporter: RAGExporter | None = None
 
         self._exports_completed: int = 0
 
@@ -108,9 +108,9 @@ class ExportPipeline:
 
     def export(
         self,
-        chunks: List[ClassifiedChunk],
+        chunks: list[ClassifiedChunk],
         format: str = "jsonl",
-        output_path: Optional[str] = None,
+        output_path: str | None = None,
         **kwargs: Any,
     ) -> str:
         """Export chunks in a specified format.
@@ -182,10 +182,10 @@ class ExportPipeline:
 
     def export_multi_format(
         self,
-        chunks: List[ClassifiedChunk],
-        formats: Optional[List[str]] = None,
-        output_dir: Optional[str] = None,
-    ) -> Dict[str, str]:
+        chunks: list[ClassifiedChunk],
+        formats: list[str] | None = None,
+        output_dir: str | None = None,
+    ) -> dict[str, str]:
         """Export in multiple formats simultaneously.
 
         Args:
@@ -212,7 +212,7 @@ class ExportPipeline:
                 )
 
         Path(output_dir).mkdir(parents=True, exist_ok=True)
-        results: Dict[str, str] = {}
+        results: dict[str, str] = {}
 
         for fmt in formats:
             ext = _FORMAT_EXTENSIONS.get(fmt, "")
@@ -239,8 +239,8 @@ class ExportPipeline:
 
     def generate_report(
         self,
-        chunks: List[ClassifiedChunk],
-        output_path: Optional[str] = None,
+        chunks: list[ClassifiedChunk],
+        output_path: str | None = None,
     ) -> str:
         """Generate a processing report as a JSON file.
 
@@ -264,7 +264,7 @@ class ExportPipeline:
             Path(output_dir).mkdir(parents=True, exist_ok=True)
             output_path = os.path.join(
                 output_dir,
-                f"processing_report_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json",
+                f"processing_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json",
             )
 
         output_path = os.path.abspath(output_path)
@@ -274,7 +274,7 @@ class ExportPipeline:
         total = len(chunks)
 
         # Category distribution
-        cat_dist: Dict[str, int] = Counter(
+        cat_dist: dict[str, int] = Counter(
             c.classification.category for c in chunks
         )
 
@@ -288,17 +288,17 @@ class ExportPipeline:
         low_conf_count = sum(1 for c in confidences if c < 0.7)
 
         # Language breakdown
-        lang_dist: Dict[str, int] = Counter(
+        lang_dist: dict[str, int] = Counter(
             c.chunk.language.value for c in chunks
         )
 
         # Classification method breakdown
-        method_dist: Dict[str, int] = Counter(
+        method_dist: dict[str, int] = Counter(
             c.classification.method.value for c in chunks
         )
 
         # Source file breakdown
-        source_dist: Dict[str, int] = Counter(
+        source_dist: dict[str, int] = Counter(
             c.chunk.source_file or "unknown" for c in chunks
         )
 
@@ -307,7 +307,7 @@ class ExportPipeline:
         avg_tokens = total_tokens / total if total else 0
 
         # Subcategory counts
-        subcat_dist: Dict[str, int] = Counter()
+        subcat_dist: dict[str, int] = Counter()
         for c in chunks:
             subcat = c.classification.subcategory
             if subcat:
@@ -315,7 +315,7 @@ class ExportPipeline:
                 subcat_dist[key] += 1
 
         report = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "summary": {
                 "total_chunks": total,
                 "total_tokens": total_tokens,
@@ -340,7 +340,7 @@ class ExportPipeline:
         logger.info("Processing report saved to %s", output_path)
         return output_path
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Return pipeline statistics.
 
         Returns:
@@ -362,7 +362,7 @@ class ExportPipeline:
     def _auto_output_path(self, fmt: str, chunk_count: int) -> str:
         """Generate an automatic output path based on format and timestamp."""
         ext = _FORMAT_EXTENSIONS.get(fmt, "")
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         filename = f"ai_fuel_export_{chunk_count}chunks_{timestamp}{ext}"
         return os.path.join(self._default_output_dir, filename)
 

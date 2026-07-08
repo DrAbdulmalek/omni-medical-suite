@@ -12,12 +12,12 @@ Author: Dr. Abdulmalek
 Version: 1.0.0
 """
 
-from packages.data_prep.segmenter import MedicalDocumentSegmenter
-from packages.data_prep.dedup import MedicalDeduplicationEngine
 from packages.data_prep.classifier import MedicalDocumentClassifier
+from packages.data_prep.dedup import MedicalDeduplicationEngine
+from packages.data_prep.segmenter import MedicalDocumentSegmenter
 
 __all__ = [
-    "MedicalDocumentSegmenter",
     "MedicalDeduplicationEngine",
     "MedicalDocumentClassifier",
+    "MedicalDocumentSegmenter",
 ]

@@ -2,12 +2,12 @@
 Pattern DB — قاعدة بيانات لأنماط الخط اليدوي الشخصية
 تتعلم من تصحيحات المستخدم وتقترح تلقائياً
 """
-from packages.core.base_db import BaseDB
 import hashlib
+
 import cv2
 import numpy as np
-from pathlib import Path
-from typing import Optional, List, Dict
+
+from packages.core.base_db import BaseDB
 
 
 class PatternDB(BaseDB):
@@ -59,7 +59,7 @@ class PatternDB(BaseDB):
                     confidence: float,
                     category: str = 'vocab',
                     writer_id: str = 'default',
-                    context: dict = None) -> int:
+                    context: dict | None = None) -> int:
         """حفظ نمط جديد أو تحديث نمط موجود"""
         image_hash = self._compute_robust_hash(image)
         _, buffer = cv2.imencode('.png', image, [cv2.IMWRITE_PNG_COMPRESSION, 9])
@@ -87,7 +87,7 @@ class PatternDB(BaseDB):
                     image: np.ndarray,
                     language: str,
                     threshold: float = 0.92,
-                    writer_id: str = 'default') -> Optional[Dict]:
+                    writer_id: str = 'default') -> dict | None:
         """البحث عن نمط مشابه بصرياً"""
         image_hash = self._compute_robust_hash(image)
 
@@ -117,7 +117,7 @@ class PatternDB(BaseDB):
                            writer_id: str = 'default',
                            min_usage: int = 3,
                            limit: int = 500,
-                           category: str = None) -> List[Dict]:
+                           category: str | None = None) -> list[dict]:
         """جلب عينات عالية الجودة لإعادة تدريب النموذج"""
         samples = []
 
@@ -158,7 +158,7 @@ class PatternDB(BaseDB):
                    total_words: int,
                    corrected_words: int,
                    avg_confidence: float,
-                   notes: str = None) -> int:
+                   notes: str | None = None) -> int:
         """تسجيل إحصائيات جلسة معالجة"""
         with self.connection() as conn:
             cursor = conn.execute("""
@@ -168,7 +168,7 @@ class PatternDB(BaseDB):
             """, (page_hash, total_words, corrected_words, avg_confidence, notes))
             return cursor.lastrowid
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """إحصائيات عامة لقاعدة الأنماط"""
         with self.connection() as conn:
             total = conn.execute("SELECT COUNT(*) FROM patterns").fetchone()[0]
@@ -201,7 +201,7 @@ class PatternDB(BaseDB):
         blurred = cv2.GaussianBlur(normalized, (3, 3), 0)
         return hashlib.sha256(blurred.tobytes()).hexdigest()[:32]
 
-    def _get_id_by_hash(self, image_hash: str) -> Optional[int]:
+    def _get_id_by_hash(self, image_hash: str) -> int | None:
         """مساعدة: جلب معرف النمط من البصمة"""
         with self.connection() as conn:
             cursor = conn.execute(

@@ -8,15 +8,14 @@ Processing: shadow removal, deskew, perspective correction,
 denoise, CLAHE contrast enhancement, auto-crop.
 """
 
+import logging
 import os
 import time
-import tempfile
-import logging
 
 import cv2
+import gradio as gr
 import numpy as np
 from PIL import Image
-import gradio as gr
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")

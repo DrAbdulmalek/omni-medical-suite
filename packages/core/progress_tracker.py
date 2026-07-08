@@ -36,16 +36,11 @@ import logging
 import sys
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import (
     Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
     Protocol,
-    Sequence,
-    Set,
     runtime_checkable,
 )
 
@@ -138,7 +133,7 @@ class ProgressCallback(Protocol):
     def on_complete(
         self,
         total_duration: float,
-        results_summary: Dict[str, Any],
+        results_summary: dict[str, Any],
     ) -> None:
         """
         يُستدعى عند اكتمال جميع الخطوات.
@@ -181,10 +176,10 @@ class StepProgress:
     index: int = 0
     """فهرس الخطوة — Step index (0-based)"""
 
-    start_time: Optional[float] = None
+    start_time: float | None = None
     """وقت البدء (timestamp) — Start timestamp"""
 
-    end_time: Optional[float] = None
+    end_time: float | None = None
     """وقت الانتهاء (timestamp) — End timestamp"""
 
     duration: float = 0.0
@@ -205,7 +200,7 @@ class StepProgress:
     status: str = "pending"
     """حالة الخطوة: pending | running | completed | error — Step status"""
 
-    error: Optional[Exception] = None
+    error: Exception | None = None
     """الخطأ الذي حدث (إن وُجد) — Error that occurred"""
 
     @property
@@ -248,7 +243,7 @@ class ProgressTracker:
         self,
         total_steps: int,
         description: str = "",
-        callbacks: Optional[List[ProgressCallback]] = None,
+        callbacks: list[ProgressCallback] | None = None,
     ) -> None:
         """
         تهيئة متتبّع التقدّم.
@@ -261,21 +256,21 @@ class ProgressTracker:
         """
         self._total_steps: int = total_steps
         self._description: str = description
-        self._callbacks: List[ProgressCallback] = list(callbacks or [])
+        self._callbacks: list[ProgressCallback] = list(callbacks or [])
         self._lock: threading.Lock = threading.Lock()
 
         # حالة الخطوات
-        self._steps: Dict[str, StepProgress] = {}
-        self._step_order: List[str] = []
-        self._current_step: Optional[str] = None
+        self._steps: dict[str, StepProgress] = {}
+        self._step_order: list[str] = []
+        self._current_step: str | None = None
         self._completed_steps: int = 0
 
         # التوقيت العام
         self._start_time: float = time.time()
-        self._end_time: Optional[float] = None
+        self._end_time: float | None = None
 
         # حالة الخطأ
-        self._error: Optional[Exception] = None
+        self._error: Exception | None = None
         self._has_error: bool = False
 
         logger.debug(
@@ -565,7 +560,7 @@ class ProgressTracker:
             percentage = step.percentage
 
         # حساب النسبة المئوية الإجمالية عبر جميع الخطوات
-        overall = self._calculate_overall_percentage()
+        self._calculate_overall_percentage()
 
         # إرسال إشعار التقدّم
         self._notify(
@@ -614,7 +609,7 @@ class ProgressTracker:
     # حالة التقدّم — Progress State
     # -----------------------------------------------------------------
 
-    def get_progress(self) -> Dict[str, Any]:
+    def get_progress(self) -> dict[str, Any]:
         """
         الحصول على حالة التقدّم الحالية كقاموس.
         Get the current progress state as a dictionary.
@@ -636,7 +631,7 @@ class ProgressTracker:
             >>> print(f"Overall: {state['overall_percentage']:.1f}%")
         """
         with self._lock:
-            current_step_data: Optional[Dict[str, Any]] = None
+            current_step_data: dict[str, Any] | None = None
             current_step_pct: float = 0.0
 
             if self._current_step and self._current_step in self._steps:
@@ -664,7 +659,7 @@ class ProgressTracker:
                 elapsed = time.time() - self._start_time
 
             # تفاصيل الخطوات
-            steps_details: List[Dict[str, Any]] = []
+            steps_details: list[dict[str, Any]] = []
             for name in self._step_order:
                 s = self._steps[name]
                 steps_details.append({
@@ -715,9 +710,9 @@ class ProgressTracker:
 
         return min(100.0, completed_contribution + current_contribution)
 
-    def _build_summary(self, total_duration: float) -> Dict[str, Any]:
+    def _build_summary(self, total_duration: float) -> dict[str, Any]:
         """بناء ملخص النتائج النهائي."""
-        steps_summary: Dict[str, Any] = {}
+        steps_summary: dict[str, Any] = {}
         for name in self._step_order:
             s = self._steps[name]
             steps_summary[name] = {
@@ -740,7 +735,7 @@ class ProgressTracker:
     # سياق المساعد — Context Manager Support
     # -----------------------------------------------------------------
 
-    def step(self, step_name: str) -> "_StepContext":
+    def step(self, step_name: str) -> _StepContext:
         """
         إنشاء سياق لإدارة خطوة تلقائياً.
         Create a context manager for automatic step lifecycle.
@@ -793,7 +788,7 @@ class _StepContext:
         self._step_name = step_name
         self._result: Any = None
 
-    def __enter__(self) -> "_StepContext":
+    def __enter__(self) -> _StepContext:
         self._tracker.start_step(self._step_name)
         return self
 
@@ -875,7 +870,7 @@ class ProgressRenderer:
         self._terminal_mode: bool = terminal_mode
         self._show_eta: bool = show_eta
         self._last_print_length: int = 0
-        self._step_start_time: Optional[float] = None
+        self._step_start_time: float | None = None
         self._step_item_total: int = 0
 
     @staticmethod
@@ -1122,7 +1117,7 @@ class ProgressRenderer:
     def on_complete(
         self,
         total_duration: float,
-        results_summary: Dict[str, Any],
+        results_summary: dict[str, Any],
     ) -> None:
         """
         عرض رسالة اكتمال الكل.
@@ -1170,8 +1165,8 @@ class ProgressRenderer:
 # =====================================================================
 # استيراد os للفحص — Import os for terminal detection
 # =====================================================================
+import contextlib
 import os  # noqa: E402 (مطلوب لـ _supports_color)
-
 
 # =====================================================================
 # تعريف خطوة خط المعالجة — PipelineStep Dataclass
@@ -1212,14 +1207,14 @@ class PipelineStep:
     Step description for display purposes.
     """
 
-    depends_on: Optional[List[str]] = field(default_factory=list)
+    depends_on: list[str] | None = field(default_factory=list)
     """
     أسماء الخطوات التي يجب إكمالها قبل هذه الخطوة.
     Names of steps that must complete before this step runs.
     إذا كانت القائمة فارغة، يمكن تنفيذ الخطوة مباشرة.
     """
 
-    timeout: Optional[float] = None
+    timeout: float | None = None
     """
     مهلة زمنية اختيارية بالثواني.
     Optional timeout in seconds. If None, no timeout.
@@ -1272,7 +1267,7 @@ class ProcessingPipeline:
     def __init__(
         self,
         description: str = "",
-        callbacks: Optional[List[ProgressCallback]] = None,
+        callbacks: list[ProgressCallback] | None = None,
     ) -> None:
         """
         تهيئة خط المعالجة.
@@ -1283,12 +1278,12 @@ class ProcessingPipeline:
             callbacks: قائمة مبدئية من الاستدعاءات الراجعة
         """
         self._description: str = description
-        self._steps: List[PipelineStep] = []
-        self._callbacks: List[ProgressCallback] = list(callbacks or [])
-        self._results: Dict[str, Any] = {}
-        self._tracker: Optional[ProgressTracker] = None
+        self._steps: list[PipelineStep] = []
+        self._callbacks: list[ProgressCallback] = list(callbacks or [])
+        self._results: dict[str, Any] = {}
+        self._tracker: ProgressTracker | None = None
 
-    def add_step(self, step: PipelineStep) -> "ProcessingPipeline":
+    def add_step(self, step: PipelineStep) -> ProcessingPipeline:
         """
         إضافة خطوة لخط المعالجة.
         Add a step to the pipeline.
@@ -1317,7 +1312,7 @@ class ProcessingPipeline:
         self._steps.append(step)
         return self
 
-    def add_callback(self, callback: ProgressCallback) -> "ProcessingPipeline":
+    def add_callback(self, callback: ProgressCallback) -> ProcessingPipeline:
         """
         إضافة استدعاع راجع.
         Add a callback.
@@ -1337,8 +1332,8 @@ class ProcessingPipeline:
 
     def run(
         self,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         تشغيل خط المعالجة بالكامل.
         Run the complete pipeline.
@@ -1389,9 +1384,9 @@ class ProcessingPipeline:
 
     def run_pipeline(
         self,
-        steps: Optional[List[PipelineStep]] = None,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        steps: list[PipelineStep] | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         تشغيل خط معالجة مع خطوات ممرّرة مباشرة.
         Run a pipeline with directly provided steps.
@@ -1418,7 +1413,7 @@ class ProcessingPipeline:
     def _execute_step(
         self,
         step: PipelineStep,
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> Any:
         """
         تنفيذ خطوة واحدة مع إعادة المحاولة والمهلة.
@@ -1438,7 +1433,6 @@ class ProcessingPipeline:
         display_name = step.description or step.name
         self._tracker.start_step(display_name)
 
-        last_error: Optional[Exception] = None
         attempts = step.retry_count + 1
 
         for attempt in range(attempts):
@@ -1463,7 +1457,6 @@ class ProcessingPipeline:
                 return result
 
             except Exception as exc:
-                last_error = exc
 
                 if attempt < attempts - 1:
                     logger.warning(
@@ -1488,7 +1481,7 @@ class ProcessingPipeline:
     def _run_with_timeout(
         fn: Callable[..., Any],
         timeout: float,
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> Any:
         """
         تنفيذ دالة مع مهلة زمنية.
@@ -1505,8 +1498,8 @@ class ProcessingPipeline:
         Raises:
             TimeoutError: إذا تجاوز التنفيذ المهلة
         """
-        result_holder: List[Any] = [None]
-        error_holder: List[Optional[Exception]] = [None]
+        result_holder: list[Any] = [None]
+        error_holder: list[Exception | None] = [None]
         done_event = threading.Event()
 
         def _target() -> None:
@@ -1536,7 +1529,7 @@ class ProcessingPipeline:
     # تحليل التبعيات — Dependency Resolution
     # -----------------------------------------------------------------
 
-    def _resolve_execution_order(self) -> List[PipelineStep]:
+    def _resolve_execution_order(self) -> list[PipelineStep]:
         """
         تحليل ترتيب تنفيذ الخطوات بناءً على التبعيات.
         Resolve the execution order based on dependencies.
@@ -1552,9 +1545,9 @@ class ProcessingPipeline:
             ValueError: إذا وُجدت تبعية دورية
         """
         # بناء رسم بياني للتبعيات
-        step_map: Dict[str, PipelineStep] = {s.name: s for s in self._steps}
-        in_degree: Dict[str, int] = {s.name: 0 for s in self._steps}
-        dependents: Dict[str, List[str]] = {s.name: [] for s in self._steps}
+        step_map: dict[str, PipelineStep] = {s.name: s for s in self._steps}
+        in_degree: dict[str, int] = {s.name: 0 for s in self._steps}
+        dependents: dict[str, list[str]] = {s.name: [] for s in self._steps}
 
         for step in self._steps:
             for dep in step.depends_on:
@@ -1567,10 +1560,10 @@ class ProcessingPipeline:
                 dependents[dep].append(step.name)
 
         # الفرز الطوبولوجي — Topological sort (Kahn's algorithm)
-        queue: List[str] = [
+        queue: list[str] = [
             name for name, degree in in_degree.items() if degree == 0
         ]
-        order: List[str] = []
+        order: list[str] = []
 
         while queue:
             # ترتيب أبجدي لضمان تناسق النتائج
@@ -1611,12 +1604,12 @@ class ProcessingPipeline:
 
 def create_progress_callback(
     description: str = "",
-    on_step_start_fn: Optional[CallbackFn] = None,
-    on_step_complete_fn: Optional[CallbackFn] = None,
-    on_progress_fn: Optional[CallbackFn] = None,
-    on_error_fn: Optional[CallbackFn] = None,
-    on_complete_fn: Optional[CallbackFn] = None,
-) -> "_ProgressCallbackAdapter":
+    on_step_start_fn: CallbackFn | None = None,
+    on_step_complete_fn: CallbackFn | None = None,
+    on_progress_fn: CallbackFn | None = None,
+    on_error_fn: CallbackFn | None = None,
+    on_complete_fn: CallbackFn | None = None,
+) -> _ProgressCallbackAdapter:
     """
     مصنع لإنشاء استدعاع راجع مخصّص.
     Factory for creating custom progress callbacks.
@@ -1666,11 +1659,11 @@ class _ProgressCallbackAdapter:
     def __init__(
         self,
         description: str = "",
-        on_step_start_fn: Optional[CallbackFn] = None,
-        on_step_complete_fn: Optional[CallbackFn] = None,
-        on_progress_fn: Optional[CallbackFn] = None,
-        on_error_fn: Optional[CallbackFn] = None,
-        on_complete_fn: Optional[CallbackFn] = None,
+        on_step_start_fn: CallbackFn | None = None,
+        on_step_complete_fn: CallbackFn | None = None,
+        on_progress_fn: CallbackFn | None = None,
+        on_error_fn: CallbackFn | None = None,
+        on_complete_fn: CallbackFn | None = None,
     ) -> None:
         self._description = description
         self._on_step_start = on_step_start_fn
@@ -1722,7 +1715,7 @@ class _ProgressCallbackAdapter:
     def on_complete(
         self,
         total_duration: float,
-        results_summary: Dict[str, Any],
+        results_summary: dict[str, Any],
     ) -> None:
         """تسليم الحدث للدالة المخصّصة إن وُجدت."""
         if self._on_complete is not None:
@@ -1733,10 +1726,10 @@ class _ProgressCallbackAdapter:
 
 
 def progress_to_logger(
-    logger_obj: Optional[logging.Logger] = None,
+    logger_obj: logging.Logger | None = None,
     level: int = logging.INFO,
     progress_level: int = logging.DEBUG,
-) -> "_LoggerCallbackAdapter":
+) -> _LoggerCallbackAdapter:
     """
     إنشاء استدعاع راجع يوجّه أحداث التقدّم إلى المسجّل (logger).
     Create a callback that directs progress events to a Python logger.
@@ -1842,7 +1835,7 @@ class _LoggerCallbackAdapter:
     def on_complete(
         self,
         total_duration: float,
-        results_summary: Dict[str, Any],
+        results_summary: dict[str, Any],
     ) -> None:
         """تسجيل اكتمال الكل."""
         has_error = results_summary.get("has_error", False)
@@ -1911,10 +1904,8 @@ class GradioProgressAdapter:
         percentage: float,
     ) -> None:
         """تحديث شريط Gradio."""
-        try:
+        with contextlib.suppress(Exception):
             self._progress(percentage / 100.0, desc=message or "")
-        except Exception:
-            pass
 
     def on_error(
         self,
@@ -1984,7 +1975,7 @@ class StreamlitProgressAdapter:
     def on_complete(
         self,
         total_duration: float,
-        results_summary: Dict[str, Any],
+        results_summary: dict[str, Any],
     ) -> None:
         """إكمال شريط التقدّم في Streamlit."""
         try:

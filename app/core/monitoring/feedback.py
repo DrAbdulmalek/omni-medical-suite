@@ -16,9 +16,8 @@ Usage (API):
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -27,8 +26,8 @@ class Feedback:
     rating: int  # 1-5
     category: str  # ocr, translation, ui, performance, bug, feature_request
     message: str
-    metadata: Optional[Dict] = None
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    metadata: dict | None = None
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class FeedbackCollector:
@@ -39,9 +38,9 @@ class FeedbackCollector:
 
     VALID_CATEGORIES = {"ocr", "translation", "ui", "performance", "bug", "feature_request"}
 
-    def __init__(self, storage_path: Optional[str] = None):
+    def __init__(self, storage_path: str | None = None):
         self._storage_path = Path(storage_path) if storage_path else Path("data/feedback.jsonl")
-        self._feedback: List[Feedback] = []
+        self._feedback: list[Feedback] = []
         if self._storage_path.exists():
             self._load()
 
@@ -50,7 +49,7 @@ class FeedbackCollector:
         rating: int,
         category: str,
         message: str,
-        metadata: Optional[Dict] = None,
+        metadata: dict | None = None,
     ) -> Feedback:
         """Submit a feedback entry. Returns the created Feedback object."""
         if category not in self.VALID_CATEGORIES:
@@ -63,12 +62,12 @@ class FeedbackCollector:
         self._save(fb)
         return fb
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get aggregated feedback statistics."""
         if not self._feedback:
             return {"total": 0, "avg_rating": 0.0, "by_category": {}}
 
-        by_cat: Dict[str, List[int]] = {}
+        by_cat: dict[str, list[int]] = {}
         for fb in self._feedback:
             by_cat.setdefault(fb.category, []).append(fb.rating)
 
@@ -81,7 +80,7 @@ class FeedbackCollector:
             },
         }
 
-    def get_recent(self, n: int = 50) -> List[Dict]:
+    def get_recent(self, n: int = 50) -> list[dict]:
         """Get the most recent N feedback entries."""
         return [asdict(fb) for fb in self._feedback[-n:]]
 
@@ -92,7 +91,7 @@ class FeedbackCollector:
 
     def _load(self):
         if self._storage_path.exists():
-            with open(self._storage_path, "r", encoding="utf-8") as f:
+            with open(self._storage_path, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line:

@@ -1,16 +1,16 @@
-import pytest
 from app.dictionary_client import DictionaryManager
+
 
 class TestDictionaryManager:
     def test_without_token(self):
         manager = DictionaryManager(token=None)
-        assert manager.enabled == False
+        assert not manager.enabled
         status = manager.get_status()
-        assert status['enabled'] == False
+        assert not status['enabled']
 
     def test_invalid_token_format(self):
         manager = DictionaryManager(token="invalid_token")
-        assert manager.enabled == False
+        assert not manager.enabled
 
     def test_status_without_token(self):
         manager = DictionaryManager()

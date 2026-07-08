@@ -14,18 +14,14 @@ Version: 1.0.0
 Date: 2026-06-04
 """
 
+import hashlib
 import json
-import re
+import logging
 import os
 import sqlite3
-import hashlib
-import pickle
-from pathlib import Path
-from dataclasses import dataclass, asdict
-from typing import List, Dict, Tuple, Optional, Any, Callable
+from dataclasses import asdict, dataclass
 from datetime import datetime
-import logging
-from collections import defaultdict
+from pathlib import Path
 
 # Optional imports with graceful fallback
 try:
@@ -62,7 +58,7 @@ class TextSnippet:
     """Represents a single text region (snippet) from an image."""
     id: str
     image_path: str
-    bbox: Tuple[int, int, int, int]  # x, y, w, h
+    bbox: tuple[int, int, int, int]  # x, y, w, h
     ocr_text: str
     corrected_text: str = ""
     confidence: float = 0.0
@@ -91,11 +87,11 @@ class TextSnippet:
         data = f"{self.image_hash}:{self.bbox}"
         return hashlib.sha256(data.encode()).hexdigest()[:16]
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "TextSnippet":
+    def from_dict(cls, data: dict) -> "TextSnippet":
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
@@ -110,8 +106,8 @@ class CorrectionPattern:
     confidence_score: float = 0.5
     first_seen: str = ""
     last_seen: str = ""
-    source_snippets: List[str] = None
-    context_examples: List[str] = None
+    source_snippets: list[str] = None
+    context_examples: list[str] = None
     is_auto_promoted: bool = False
     promotion_threshold: float = 0.85
 
@@ -138,7 +134,7 @@ class CorrectionPattern:
         if self.confidence_score >= self.promotion_threshold:
             self.is_auto_promoted = True
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 
@@ -241,7 +237,7 @@ class SnippetDatabase:
             logger.error(f"Failed to save snippet: {e}")
             return False
 
-    def get_snippet(self, snippet_id: str) -> Optional[TextSnippet]:
+    def get_snippet(self, snippet_id: str) -> TextSnippet | None:
         """Retrieve a snippet by ID."""
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM snippets WHERE id = ?", (snippet_id,))
@@ -254,7 +250,7 @@ class SnippetDatabase:
             return TextSnippet.from_dict(data)
         return None
 
-    def get_snippets_by_image(self, image_hash: str) -> List[TextSnippet]:
+    def get_snippets_by_image(self, image_hash: str) -> list[TextSnippet]:
         """Get all snippets for an image."""
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM snippets WHERE image_hash = ? ORDER BY created_at", (image_hash,))
@@ -267,13 +263,13 @@ class SnippetDatabase:
             snippets.append(TextSnippet.from_dict(data))
         return snippets
 
-    def get_unreviewed_snippets(self, limit: int = 50) -> List[TextSnippet]:
+    def get_unreviewed_snippets(self, limit: int = 50) -> list[TextSnippet]:
         """Get snippets pending review."""
         cursor = self.conn.cursor()
         cursor.execute("""
-            SELECT * FROM snippets 
-            WHERE is_reviewed = 0 
-            ORDER BY confidence ASC 
+            SELECT * FROM snippets
+            WHERE is_reviewed = 0
+            ORDER BY confidence ASC
             LIMIT ?
         """, (limit,))
         snippets = []
@@ -307,11 +303,11 @@ class SnippetDatabase:
             logger.error(f"Failed to save pattern: {e}")
             return False
 
-    def get_pattern(self, original: str, pattern_type: str = "exact") -> Optional[CorrectionPattern]:
+    def get_pattern(self, original: str, pattern_type: str = "exact") -> CorrectionPattern | None:
         """Find a pattern by original text."""
         cursor = self.conn.cursor()
         cursor.execute("""
-            SELECT * FROM patterns 
+            SELECT * FROM patterns
             WHERE original_pattern = ? AND pattern_type = ?
         """, (original, pattern_type))
         row = cursor.fetchone()
@@ -319,7 +315,7 @@ class SnippetDatabase:
             return self._row_to_pattern(row)
         return None
 
-    def get_all_patterns(self, promoted_only: bool = False) -> List[CorrectionPattern]:
+    def get_all_patterns(self, promoted_only: bool = False) -> list[CorrectionPattern]:
         """Get all patterns, optionally only auto-promoted ones."""
         cursor = self.conn.cursor()
         if promoted_only:
@@ -344,7 +340,7 @@ class SnippetDatabase:
         """, (datetime.now().isoformat(), event_type, snippet_id, pattern_id, details))
         self.conn.commit()
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get database statistics."""
         cursor = self.conn.cursor()
         stats = {}
@@ -385,10 +381,10 @@ class ImageSegmenter:
         if not CV_AVAILABLE:
             raise RuntimeError("OpenCV required for image segmentation")
 
-    def segment(self, image_path: str, 
+    def segment(self, image_path: str,
                 method: str = "contour",
                 min_area: int = 500,
-                padding: int = 5) -> List[Dict]:
+                padding: int = 5) -> list[dict]:
         """
         Segment image into text regions.
 
@@ -414,8 +410,8 @@ class ImageSegmenter:
         else:
             raise ValueError(f"Unknown method: {method}")
 
-    def _segment_by_contour(self, img: np.ndarray, image_path: str, 
-                            min_area: int, padding: int) -> List[Dict]:
+    def _segment_by_contour(self, img: np.ndarray, image_path: str,
+                            min_area: int, padding: int) -> list[dict]:
         """Segment using contour detection."""
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -472,8 +468,8 @@ class ImageSegmenter:
 
         return regions
 
-    def _segment_by_projection(self, img: np.ndarray, image_path: str, 
-                             padding: int) -> List[Dict]:
+    def _segment_by_projection(self, img: np.ndarray, image_path: str,
+                             padding: int) -> list[dict]:
         """Segment using horizontal projection (for line-based text)."""
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
@@ -517,8 +513,8 @@ class ImageSegmenter:
 
         return regions
 
-    def _segment_by_lines(self, img: np.ndarray, image_path: str, 
-                          padding: int) -> List[Dict]:
+    def _segment_by_lines(self, img: np.ndarray, image_path: str,
+                          padding: int) -> list[dict]:
         """Segment into individual text lines using improved method."""
         return self._segment_by_projection(img, image_path, padding)
 
@@ -568,7 +564,7 @@ class OCREngine:
         if not self.engines:
             logger.warning("No OCR engines available!")
 
-    def recognize(self, image_path: str, engine: str = "auto") -> Dict:
+    def recognize(self, image_path: str, engine: str = "auto") -> dict:
         """
         Run OCR on an image.
 
@@ -603,7 +599,7 @@ class OCREngine:
             return 'easyocr'
         return 'tesseract'
 
-    def _run_easyocr(self, image_path: str) -> Dict:
+    def _run_easyocr(self, image_path: str) -> dict:
         reader = self.engines['easyocr']
         results = reader.readtext(image_path, detail=1)
 
@@ -626,7 +622,7 @@ class OCREngine:
             "boxes": boxes
         }
 
-    def _run_tesseract(self, image_path: str) -> Dict:
+    def _run_tesseract(self, image_path: str) -> dict:
         pytesseract = self.engines['tesseract']
 
         # Get data with bounding boxes
@@ -658,7 +654,7 @@ class OCREngine:
             "boxes": boxes
         }
 
-    def _run_paddleocr(self, image_path: str) -> Dict:
+    def _run_paddleocr(self, image_path: str) -> dict:
         ocr = self.engines['paddleocr']
         result = ocr.ocr(image_path, cls=True)
 
@@ -702,7 +698,7 @@ class PatternLearner:
         for p in patterns:
             self.pattern_cache[p.original_pattern] = p
 
-    def learn_from_correction(self, snippet: TextSnippet) -> List[CorrectionPattern]:
+    def learn_from_correction(self, snippet: TextSnippet) -> list[CorrectionPattern]:
         """
         Learn patterns from a user-corrected snippet.
 
@@ -718,7 +714,7 @@ class PatternLearner:
         ocr_words = snippet.ocr_text.split()
         corr_words = snippet.corrected_text.split()
 
-        for ow, cw in zip(ocr_words, corr_words):
+        for ow, cw in zip(ocr_words, corr_words, strict=False):
             if ow != cw:
                 p = self._create_or_update_pattern(
                     original=ow,
@@ -748,10 +744,10 @@ class PatternLearner:
 
         # Pattern 3: Character-level (for single character errors)
         if len(ocr_words) == len(corr_words):
-            for ow, cw in zip(ocr_words, corr_words):
-                if len(ow) == len(cw) and sum(a != b for a, b in zip(ow, cw)) == 1:
+            for ow, cw in zip(ocr_words, corr_words, strict=False):
+                if len(ow) == len(cw) and sum(a != b for a, b in zip(ow, cw, strict=False)) == 1:
                     # Single character substitution
-                    for a, b in zip(ow, cw):
+                    for a, b in zip(ow, cw, strict=False):
                         if a != b:
                             p = self._create_or_update_pattern(
                                 original=a,
@@ -796,7 +792,7 @@ class PatternLearner:
         self.pattern_cache[original] = pattern
         return pattern
 
-    def apply_learned_patterns(self, text: str, min_confidence: float = 0.7) -> Tuple[str, List[Dict]]:
+    def apply_learned_patterns(self, text: str, min_confidence: float = 0.7) -> tuple[str, list[dict]]:
         """
         Apply learned patterns to new OCR text.
 
@@ -835,7 +831,7 @@ class PatternLearner:
 
         return corrected, corrections
 
-    def get_suggestions(self, text: str, max_suggestions: int = 5) -> List[Dict]:
+    def get_suggestions(self, text: str, max_suggestions: int = 5) -> list[dict]:
         """Get correction suggestions for a text."""
         suggestions = []
         words = text.split()
@@ -881,7 +877,7 @@ class OCRSnippetTrainer:
     """
 
     def __init__(self, db_path: str = "ocr_snippets.db",
-                 dictionary_path: Optional[str] = None):
+                 dictionary_path: str | None = None):
         self.db = SnippetDatabase(db_path)
         self.segmenter = ImageSegmenter() if CV_AVAILABLE else None
         self.ocr = OCREngine()
@@ -891,13 +887,13 @@ class OCRSnippetTrainer:
         # Load medical dictionary if available
         self.medical_dict = {}
         if dictionary_path and os.path.exists(dictionary_path):
-            with open(dictionary_path, 'r', encoding='utf-8') as f:
+            with open(dictionary_path, encoding='utf-8') as f:
                 data = json.load(f)
                 self.medical_dict = data.get("corrections", {})
 
     def process_image(self, image_path: str,
                       segmentation_method: str = "contour",
-                      engine: str = "auto") -> List[TextSnippet]:
+                      engine: str = "auto") -> list[TextSnippet]:
         """
         Process an image: segment → OCR → create snippets.
 
@@ -987,7 +983,7 @@ class OCRSnippetTrainer:
 
     def submit_correction(self, snippet_id: str, corrected_text: str,
                           user_id: str = "anonymous",
-                          correction_type: str = "") -> Dict:
+                          correction_type: str = "") -> dict:
         """
         Submit a user correction for a snippet.
 
@@ -1039,14 +1035,14 @@ class OCRSnippetTrainer:
         elif len(corr_words) < len(orig_words):
             return "omission"
         elif len(original) == len(corrected):
-            diff_count = sum(a != b for a, b in zip(original, corrected))
+            diff_count = sum(a != b for a, b in zip(original, corrected, strict=False))
             if diff_count <= 2:
                 return "spelling"
             return "formatting"
         return "mixed"
 
     def auto_correct(self, text: str, apply_dictionary: bool = True,
-                     apply_patterns: bool = True) -> Dict:
+                     apply_patterns: bool = True) -> dict:
         """
         Auto-correct OCR text using learned patterns and dictionary.
 
@@ -1078,11 +1074,11 @@ class OCRSnippetTrainer:
             "was_corrected": text != original
         }
 
-    def get_review_queue(self, limit: int = 50) -> List[TextSnippet]:
+    def get_review_queue(self, limit: int = 50) -> list[TextSnippet]:
         """Get snippets pending review, sorted by confidence (lowest first)."""
         return self.db.get_unreviewed_snippets(limit)
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get training statistics."""
         return self.db.get_stats()
 
@@ -1090,7 +1086,7 @@ class OCRSnippetTrainer:
         """Export training data for model fine-tuning."""
         cursor = self.db.conn.cursor()
         cursor.execute("""
-            SELECT id, image_path, bbox, ocr_text, corrected_text, 
+            SELECT id, image_path, bbox, ocr_text, corrected_text,
                    confidence, engine, correction_type, snippet_hash
             FROM snippets WHERE is_reviewed = 1
         """)

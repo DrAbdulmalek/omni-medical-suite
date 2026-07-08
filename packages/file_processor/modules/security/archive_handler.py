@@ -13,8 +13,6 @@
 """
 
 import logging
-import os
-import shutil
 import subprocess
 import tarfile
 import zipfile
@@ -682,7 +680,7 @@ class ArchiveHandler:
 
         # كشف النوع
         if archive_type is None:
-            suffix = output.suffix.lower()
+            output.suffix.lower()
             type_by_ext = {
                 ".zip": "zip",
                 ".tar.gz": "tar.gz",
@@ -738,7 +736,7 @@ class ArchiveHandler:
         password: Optional[str],
     ) -> None:
         """ينشئ أرشيف ZIP."""
-        pwd_bytes = password.encode("utf-8") if password else None
+        password.encode("utf-8") if password else None
 
         with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
             for i, file_path in enumerate(files, 1):

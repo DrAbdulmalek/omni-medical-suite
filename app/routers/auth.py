@@ -3,27 +3,31 @@
 Authentication Router - with RBAC endpoints
 """
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
-from app.db.models.auth import (
-    User, Permission, Role, RolePermission, UserRoleAssignment, UserPermissionAssignment, UserRole
-)
 from app.core.rbac import (
-    require_permission, require_any_permission, require_role, require_min_role_level,
-    get_user_permissions, check_permission, RBACError
+    check_permission,
+    get_user_permissions,
+    require_permission,
 )
+from app.db.models.auth import (
+    Permission,
+    Role,
+    RolePermission,
+    User,
+    UserRoleAssignment,
+)
+from app.db.session import get_db
 
 router = APIRouter()
 security = HTTPBearer()
 
 # --- Placeholder for get_current_user (depends on existing auth implementation) ---
 async def get_current_user(
-    token: str = None,
+    token: str | None = None,
     db: AsyncSession = None
 ) -> User:
     """Get current authenticated user - placeholder"""
@@ -35,13 +39,13 @@ async def get_current_user(
 # --- Placeholder for log_audit_event ---
 async def log_audit_event(
     db, user_id: int, action: str, entity_type: str,
-    entity_id: str = None, success: bool = True,
-    details: dict = None, request: Request = None
+    entity_id: str | None = None, success: bool = True,
+    details: dict | None = None, request: Request = None
 ):
     """Log an audit event - placeholder"""
     pass
 
-@router.get("/me/permissions", response_model=List[str])
+@router.get("/me/permissions", response_model=list[str])
 async def get_my_permissions(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -50,7 +54,7 @@ async def get_my_permissions(
     permissions = await get_user_permissions(current_user, db)
     return permissions
 
-@router.get("/me/roles", response_model=List[str])
+@router.get("/me/roles", response_model=list[str])
 async def get_my_roles(
     current_user: User = Depends(get_current_user)
 ):
@@ -130,7 +134,7 @@ async def create_role(
         "is_default": role.is_default
     }
 
-@router.get("/roles", response_model=List[dict])
+@router.get("/roles", response_model=list[dict])
 @require_permission("user.role.manage")
 async def list_roles(
     db: AsyncSession = Depends(get_db),
@@ -250,10 +254,10 @@ async def add_permission_to_role(
         "permission_codename": permission.codename
     }
 
-@router.get("/permissions", response_model=List[dict])
+@router.get("/permissions", response_model=list[dict])
 @require_permission("user.role.manage")
 async def list_permissions(
-    category: Optional[str] = None,
+    category: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """List all permissions (Admin only)"""

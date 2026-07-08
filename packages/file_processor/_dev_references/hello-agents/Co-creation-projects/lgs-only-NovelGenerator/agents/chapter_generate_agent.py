@@ -346,7 +346,7 @@ created_at: 2025-01-27T10:00:00
     )
 
     # 3. 生成第一章
-    print(f"\n正在生成第一章...")
+    print("\n正在生成第一章...")
     try:
         # run 方法需要 novel_title 来定位目录
         chapter_data_1, note_id_1 = chapter_agent.run(
@@ -360,7 +360,7 @@ created_at: 2025-01-27T10:00:00
         print(f"下一章预测: {chapter_data_1.get('next_chapter_prediction')}")
 
         # 4. 生成第二章（会自动读取第一章作为上下文）
-        print(f"\n正在生成第二章...")
+        print("\n正在生成第二章...")
         chapter_data_2, note_id_2 = chapter_agent.run(
             user_input="主角在废墟中发现了一个奇怪的物品，触发了回忆。那个物品似乎在呼唤他。",
             novel_id=novel_id,

@@ -359,7 +359,7 @@ class CodebaseMaintainer:
         
         Agent 会自主决定如何分析代码质量
         """
-        query = f"请分析代码质量" + (f"，重点关注{focus}" if focus else "")
+        query = "请分析代码质量" + (f"，重点关注{focus}" if focus else "")
         return self.run(query, mode="analyze")
 
     def plan_next_steps(self) -> str:
@@ -452,15 +452,15 @@ def main():
 
     # 探索代码库（Agent 自主决定如何探索）
     print("\n### 探索代码库（Agent 自主探索）###")
-    response = maintainer.explore()
+    maintainer.explore()
 
     # 分析代码质量（Agent 自主决定分析方法）
     print("\n### 分析代码质量（Agent 自主分析）###")
-    response = maintainer.analyze()
+    maintainer.analyze()
 
     # 规划下一步（Agent 基于历史信息规划）
     print("\n### 规划下一步任务（Agent 自主规划）###")
-    response = maintainer.plan_next_steps()
+    maintainer.plan_next_steps()
 
     # 生成报告
     print("\n### 生成会话报告 ###")

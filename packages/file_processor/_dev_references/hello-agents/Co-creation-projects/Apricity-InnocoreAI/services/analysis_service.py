@@ -4,7 +4,6 @@
 
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
-from ..core.database import get_db
 from ..models.analysis import AnalysisDB, Analysis, AnalysisCreate, AnalysisUpdate
 from ..core.exceptions import AnalysisNotFoundError
 from ..services.paper_service import PaperService

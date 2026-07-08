@@ -81,7 +81,7 @@ class TriageAgent:
         return []
 
     def _fallback_plan(self, incident: Dict[str, Any]) -> List[Dict[str, str]]:
-        service = incident.get("service", "unknown")
+        incident.get("service", "unknown")
         return [
             {"tool": "log_search", "query": "ERROR",
              "reason": "Find all error-level log entries"},

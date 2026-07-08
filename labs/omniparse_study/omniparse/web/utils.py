@@ -12,18 +12,22 @@ License: Apache 2.0 License
 URL: https://github.com/unclecode/crawl4ai/blob/main/LICENSE
 """
 
+import functools
+import html
+import json
+import operator
+import os
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from bs4 import BeautifulSoup, Comment, element, Tag, NavigableString
-import html2text
-import json
-import html
-import re
-import os
-from html2text import HTML2Text
-from .prompts import PROMPT_EXTRACT_BLOCKS
-from .config import *
 from pathlib import Path
+
+import html2text
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag, element
+from html2text import HTML2Text
+
+from .config import *
+from .prompts import PROMPT_EXTRACT_BLOCKS
 
 
 class InvalidCSSSelectorError(Exception):
@@ -139,7 +143,7 @@ def escape_json_string(s):
 
     # Additional problematic characters
     # Unicode control characters
-    s = re.sub(r"[\x00-\x1f\x7f-\x9f]", lambda x: "\\u{:04x}".format(ord(x.group())), s)
+    s = re.sub(r"[\x00-\x1f\x7f-\x9f]", lambda x: f"\\u{ord(x.group()):04x}", s)
 
     return s
 
@@ -472,7 +476,7 @@ def perform_completion_with_backoff(provider, prompt_with_variables, api_token):
 
 def extract_blocks(url, html, provider=DEFAULT_PROVIDER, api_token=None):
     # api_token = os.getenv('GROQ_API_KEY', None) if not api_token else api_token
-    api_token = PROVIDER_MODELS.get(provider, None) if not api_token else api_token
+    api_token = api_token if api_token else PROVIDER_MODELS.get(provider, None)
 
     variable_values = {
         "URL": url,
@@ -512,7 +516,7 @@ def extract_blocks(url, html, provider=DEFAULT_PROVIDER, api_token=None):
 
 
 def extract_blocks_batch(batch_data, provider="groq/llama3-70b-8192", api_token=None):
-    api_token = os.getenv("GROQ_API_KEY", None) if not api_token else api_token
+    api_token = api_token if api_token else os.getenv("GROQ_API_KEY", None)
     from litellm import batch_completion
 
     messages = []
@@ -557,7 +561,7 @@ def extract_blocks_batch(batch_data, provider="groq/llama3-70b-8192", api_token=
             ]
         all_blocks.append(blocks)
 
-    return sum(all_blocks, [])
+    return functools.reduce(operator.iadd, all_blocks, [])
 
 
 def merge_chunks_based_on_token_threshold(chunks, token_threshold):
@@ -626,8 +630,9 @@ def wrap_text(draw, text, font, max_width):
     return "\n".join(lines)
 
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, status, Form
 import importlib
+
+from fastapi import HTTPException
 
 
 def import_strategy(module_name: str, class_name: str, *args, **kwargs):

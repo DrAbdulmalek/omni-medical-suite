@@ -4,7 +4,6 @@
 """
 import re
 import difflib
-from typing import Tuple
 
 
 def normalize_for_comparison(text: str) -> str:

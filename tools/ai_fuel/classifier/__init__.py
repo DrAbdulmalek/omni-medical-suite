@@ -29,13 +29,13 @@ Quick Start::
 """
 
 from classifier.keyword_router import KeywordRouter
-from classifier.semantic_matcher import SemanticMatcher
 from classifier.llm_classifier import LLMClassifier
 from classifier.orchestrator import ClassificationOrchestrator
+from classifier.semantic_matcher import SemanticMatcher
 
 __all__ = [
-    "KeywordRouter",
-    "SemanticMatcher",
-    "LLMClassifier",
     "ClassificationOrchestrator",
+    "KeywordRouter",
+    "LLMClassifier",
+    "SemanticMatcher",
 ]

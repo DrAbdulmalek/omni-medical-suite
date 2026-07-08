@@ -10,13 +10,13 @@
 - الجدولة عبر cron (Linux/macOS) أو Task Scheduler (Windows)
 """
 
-import os
-import sys
+import argparse
 import json
 import logging
-import subprocess
-import argparse
+import os
 import shutil
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -67,7 +67,7 @@ def get_last_train_info():
             "last_eval_results": None
         }
     try:
-        with open(LAST_TRAIN_RECORD, 'r', encoding='utf-8') as f:
+        with open(LAST_TRAIN_RECORD, encoding='utf-8') as f:
             return json.load(f)
     except (json.JSONDecodeError, KeyError):
         logger.warning("ملف حالة آخر تدريب تالف، سيتم إنشاء واحد جديد")
@@ -204,7 +204,7 @@ def evaluate_model(model_path=None, label=""):
         if result.returncode == 0:
             # محاولة قراءة النتائج من ملف JSON
             if EVAL_RESULTS_FILE.exists():
-                with open(EVAL_RESULTS_FILE, 'r') as f:
+                with open(EVAL_RESULTS_FILE) as f:
                     metrics = json.load(f)
                 logger.info(f"📊 نتائج تقييم {label}: CER = {metrics.get('cer', 'N/A'):.4f}, "
                            f"WER = {metrics.get('wer', 'N/A'):.4f}")

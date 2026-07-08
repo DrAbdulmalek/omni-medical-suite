@@ -1,7 +1,6 @@
 """Shared pytest fixtures for OmniFile tests."""
 import pytest
 import json
-from pathlib import Path
 
 
 @pytest.fixture

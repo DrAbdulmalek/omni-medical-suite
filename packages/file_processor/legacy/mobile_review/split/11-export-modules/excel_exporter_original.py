@@ -1,9 +1,7 @@
 # modules/export/excel_exporter.py
 from pathlib import Path
-from typing import Optional, List
 import openpyxl
-from openpyxl.styles import Alignment, Font
-from openpyxl.utils import get_column_letter
+from openpyxl.styles import Alignment
 from bs4 import BeautifulSoup
 
 class ExcelExporter:

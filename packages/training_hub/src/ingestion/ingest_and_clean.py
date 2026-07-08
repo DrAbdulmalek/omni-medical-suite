@@ -6,10 +6,10 @@ Description: Automatically pulls corrected OCR data from Hugging Face Spaces,
              validates structure, and scrubs PII (Anonymization) before Ground Truth routing.
 """
 
-import os
 import json
+import os
 import re
-from typing import Dict, Any, List
+from typing import Any
 
 # Configuration
 HF_SPACE_API_URL = "https://huggingface.co/api/spaces/DrAbdulmalek/handwriting-ocr/host"
@@ -31,7 +31,7 @@ class DataIngestionPipeline:
         )
         self.date_pattern = re.compile(r'\b\d{1,2}[-/\s]\d{1,2}[-/\s]\d{2,4}\b')
 
-    def fetch_corrections_from_hf(self) -> List[Dict[str, Any]]:
+    def fetch_corrections_from_hf(self) -> list[dict[str, Any]]:
         """Fetch corrected data from Hugging Face Space API."""
         print("[INFO] Fetching latest correction logs from Hugging Face Space...")
         # Mock data for initial testing — replace with actual HF API call
@@ -53,7 +53,7 @@ class DataIngestionPipeline:
         scrubbed_text = self.date_pattern.sub("[REDACTED_DATE]", scrubbed_text)
         return scrubbed_text
 
-    def validate_and_clean(self, data_packet: Dict[str, Any]) -> bool:
+    def validate_and_clean(self, data_packet: dict[str, Any]) -> bool:
         """Quality gate: validate required fields and data quality."""
         required_fields = ["image_id", "predicted_text", "corrected_text"]
 
@@ -69,7 +69,7 @@ class DataIngestionPipeline:
         print(f"[SUCCESS] Packet {data_packet['image_id']} passed structural validation.")
         return True
 
-    def save_to_hub(self, valid_packet: Dict[str, Any]):
+    def save_to_hub(self, valid_packet: dict[str, Any]):
         """Apply PII scrubbing and save cleaned data."""
         valid_packet["corrected_text"] = self.scrub_pii(valid_packet["corrected_text"])
         valid_packet["predicted_text"] = self.scrub_pii(valid_packet["predicted_text"])

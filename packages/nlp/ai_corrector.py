@@ -16,7 +16,7 @@ Capabilities:
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     from dotenv import load_dotenv
@@ -55,7 +55,7 @@ class AICorrector:
             return
 
         try:
-            from openai import OpenAI  # noqa: F811
+            from openai import OpenAI
             self.client = OpenAI(api_key=api_key)
             logger.info("OpenAI client initialized successfully")
         except Exception as e:
@@ -77,8 +77,8 @@ class AICorrector:
         self,
         text: str,
         language: str = "mixed",
-        context: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        context: str | None = None,
+    ) -> dict[str, Any]:
         """Correct OCR text using AI.
 
         Args:
@@ -166,10 +166,10 @@ class AICorrector:
 
     def correct_multiple_texts(
         self,
-        texts: List[str],
+        texts: list[str],
         language: str = "mixed",
-        context: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        context: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Correct multiple texts sequentially.
 
         Args:
@@ -186,10 +186,10 @@ class AICorrector:
 
     def batch_correct_ocr_results(
         self,
-        ocr_results: Dict[str, Any],
+        ocr_results: dict[str, Any],
         language: str = "mixed",
-        context: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        context: str | None = None,
+    ) -> dict[str, Any]:
         """Correct OCR results from multiple engines.
 
         Args:
@@ -203,7 +203,7 @@ class AICorrector:
             ``original_ocr``, ``ai_correction``, ``final_text``, and
             ``improvement_score`` keys.
         """
-        corrected_results: Dict[str, Any] = {}
+        corrected_results: dict[str, Any] = {}
 
         for engine_name, result in ocr_results.items():
             if result.get("success", False) and result.get("text"):
@@ -237,7 +237,7 @@ class AICorrector:
         self,
         text: str,
         language: str = "mixed",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Suggest improvements for text quality.
 
         Args:
@@ -306,7 +306,7 @@ Provide suggestions in a structured format with specific examples."""
     def _create_correction_prompt(
         text: str,
         language: str,
-        context: Optional[str] = None,
+        context: str | None = None,
     ) -> str:
         """Create correction prompt based on language and context."""
         base_prompt = f"""Please correct the following OCR-extracted text. Fix spelling errors, grammar mistakes, and typical OCR errors while preserving the original meaning and structure.
@@ -337,19 +337,19 @@ Instructions:
     def _analyze_changes(
         original: str,
         corrected: str,
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """Analyze changes made during correction.
 
         Uses a simple word-level comparison to identify modifications.
         """
-        changes: List[Dict[str, str]] = []
+        changes: list[dict[str, str]] = []
 
         original_words = original.split()
         corrected_words = corrected.split()
 
         if len(original_words) == len(corrected_words):
             for i, (orig_word, corr_word) in enumerate(
-                zip(original_words, corrected_words)
+                zip(original_words, corrected_words, strict=False)
             ):
                 if orig_word != corr_word:
                     changes.append({
@@ -372,7 +372,7 @@ Instructions:
     def _calculate_confidence(
         original: str,
         corrected: str,
-        changes: List[Dict],
+        changes: list[dict],
     ) -> float:
         """Calculate confidence score for the correction.
 

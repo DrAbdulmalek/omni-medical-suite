@@ -34,11 +34,10 @@ updated_at: 2025-01-18T12:00:00
 ```
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 from pathlib import Path
 import json
-import os
 import re
 
 from ..base import Tool, ToolParameter
@@ -488,7 +487,7 @@ class NoteTool(Tool):
             note_type = note["type"]
             type_counts[note_type] = type_counts.get(note_type, 0) + 1
         
-        result = f"📊 笔记摘要\n\n"
+        result = "📊 笔记摘要\n\n"
         result += f"总笔记数: {total}\n\n"
         result += "按类型统计:\n"
         for note_type, count in sorted(type_counts.items()):
@@ -505,7 +504,7 @@ class NoteTool(Tool):
                 f"内容: {note['content'][:100]}{'...' if len(note['content']) > 100 else ''}"
             )
         else:
-            result = f"📝 笔记详情\n\n"
+            result = "📝 笔记详情\n\n"
             result += f"ID: {note['id']}\n"
             result += f"标题: {note['title']}\n"
             result += f"类型: {note['type']}\n"
