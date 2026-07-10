@@ -172,7 +172,7 @@ MEDICAL_PATTERNS = {
     },
     "lab_values": {
         "ar": r"(مخبر|فحص|تحليل|هيموغلوبين|صفيحات|كرات|بيضاء|حمراء|glucose|uric acid)",
-        "en": r"(lab|test|hemoglobin|platelet|WBC|RBC|glucose|ESR|CRP|calcium|phosphorus|uric.acid|creatinine)",
+        "en": r"(lab|hemoglobin|platelet|WBC|RBC|glucose|ESR|CRP|calcium|phosphorus|uric.acid|creatinine)",
     },
     "radiology": {
         "ar": r"(أشعة|صورة|إشعاع|رنين مغناطيسي|\bMRI\b|\bCT\b|سونار|تصوير|طاقة)",
