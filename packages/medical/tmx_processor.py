@@ -175,8 +175,8 @@ MEDICAL_PATTERNS = {
         "en": r"(lab|test|hemoglobin|platelet|WBC|RBC|glucose|ESR|CRP|calcium|phosphorus|uric.acid|creatinine)",
     },
     "radiology": {
-        "ar": r"(أشعة|صورة|إشعاع|رنين مغناطيسي|MRI|CT|سونار|تصوير|طاقة)",
-        "en": r"(X-ray|radiograph|MRI|CT|ultrasound|scan|imaging|radiograph|fluoroscopy|sonograph)",
+        "ar": r"(أشعة|صورة|إشعاع|رنين مغناطيسي|\bMRI\b|\bCT\b|سونار|تصوير|طاقة)",
+        "en": r"(X-ray|radiograph|\bMRI\b|\bCT\b|ultrasound|\bscan\b|imaging|radiograph|fluoroscopy|sonograph)",
     },
 }
 
@@ -536,7 +536,7 @@ class TMXMedicalExtractor:
                 scores[cat] = score
 
         if scores:
-            return max(scores, key=scores.get)
+            return max(reversed(scores), key=scores.get)
         return "general_medical"
 
     def _compute_confidence(self, source: str, target: str,
