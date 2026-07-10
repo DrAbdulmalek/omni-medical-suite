@@ -119,7 +119,7 @@ After: declared under `# === Computer Vision & OCR ===` section.
 e593db0 refactor: replace monolithic scanner_fixer.py with modular v1.0 package
 ```
 - 24 files changed, 1367 insertions(+), 2591 deletions(-)
-- Repo: https://github.com/DrAbdulmalek/scanner-fixer
+- Repo: https://github.com/DrAbdulmalek/omni-medical-suite  <!-- ARCHIVED: scanner-fixer merged into packages/scanner_fixer/ -->
 
 ### omni-medical-suite
 ```

@@ -374,7 +374,7 @@ def process_handwriting(image_path: str) -> dict:
 
 ```bash
 # Clone the repository
-git clone https://github.com/DrAbdulmalek/medical-ocr-postprocessor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-ocr-postprocessor (archived) → packages/ocr_postprocess/ -->
 cd medical-ocr-postprocessor
 
 # Install with dev dependencies

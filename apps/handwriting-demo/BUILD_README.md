@@ -307,6 +307,6 @@ android {
 
 ## 📞 دعم
 
-- GitHub Issues: https://github.com/DrAbdulmalek/medical-handwriting-ocr/issues
+- GitHub Issues: https://github.com/DrAbdulmalek/medical-handwriting-ocr/issues <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 - Firebase Help: https://firebase.google.com/support
 - Play Console Help: https://support.google.com/googleplay/android-developer

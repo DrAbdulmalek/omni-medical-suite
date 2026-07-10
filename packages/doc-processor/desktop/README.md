@@ -14,7 +14,7 @@
 ## 🚀 التثبيت والتشغيل
 
 ```bash
-git clone https://github.com/DrAbdulmalek/medical-doc-processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-doc-processor (archived) → packages/doc-processor/ -->
 cd medical-doc-processor
 chmod +x install.sh run.sh
 ./install.sh

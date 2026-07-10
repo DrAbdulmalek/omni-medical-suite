@@ -58,7 +58,7 @@ except ImportError:
         "medical-ocr-benchmarks not installed. "
         "BenchmarkBridge will use local-only metrics. "
         "Install with: pip install 'medical-ocr-benchmarks "
-        "@ git+https://github.com/DrAbdulmalek/medical-ocr-benchmarks.git'"
+        "@ git+https://github.com/DrAbdulmalek/omni-medical-suite.git@main  # ARCHIVED: medical-ocr-benchmarks (archived) → use monorepo package'"
     )
 
 

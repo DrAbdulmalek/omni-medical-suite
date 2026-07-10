@@ -1,6 +1,6 @@
 # Medical Handwriting OCR API — Documentation
 
-> **Version:** 3.0.0 | **License:** MIT | **Contact:** [Dr. Abdulmalek](https://github.com/DrAbdulmalek/medical-handwriting-ocr)
+> **Version:** 3.0.0 | **License:** MIT | **Contact:** [Dr. Abdulmalek](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 
 ---
 

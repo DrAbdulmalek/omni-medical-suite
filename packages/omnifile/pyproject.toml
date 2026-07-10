@@ -38,8 +38,8 @@ dev = ["pytest>=7.4.0", "pytest-cov>=4.1.0", "ruff>=0.1.0"]
 omnifile = "src.main:main"
 
 [project.urls]
-Homepage = "https://github.com/DrAbdulmalek/OmniFile_Processor"
-Repository = "https://github.com/DrAbdulmalek/OmniFile_Processor"
+Homepage = "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: OmniFile_Processor merged
+Repository = "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: OmniFile_Processor merged
 
 [tool.ruff]
 line-length = 120

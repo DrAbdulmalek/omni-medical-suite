@@ -11,7 +11,7 @@ project:
   description: "Bridge between HuggingFace Spaces corrections and GitHub training pipeline"
   owner: "DrAbdulmalek"
   hf_space: "https://huggingface.co/spaces/DrAbdulmalek/medical-handwriting-ocr"
-  github_repo: "https://github.com/DrAbdulmalek/medical-ocr-training-hub"
+  github_repo: "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: medical-ocr-training-hub merged
 
 # ── Training Data Paths ──
 # HF Space exports corrections here. Models read from here.

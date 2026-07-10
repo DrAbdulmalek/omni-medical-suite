@@ -66,10 +66,10 @@ dev = [
 bilingual-extract = "term_extractor.term_extractor:main"
 
 [project.urls]
-Homepage = "https://github.com/DrAbdulmalek/bilingual-extractor"
-Documentation = "https://github.com/DrAbdulmalek/bilingual-extractor#readme"
-Repository = "https://github.com/DrAbdulmalek/bilingual-extractor.git"
-Issues = "https://github.com/DrAbdulmalek/bilingual-extractor/issues"
+Homepage = "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: bilingual-extractor merged
+Documentation = "https://github.com/DrAbdulmalek/omni-medical-suite/tree/main/packages/bilingual/"  # ARCHIVED
+Repository = "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: bilingual-extractor merged
+Issues = "https://github.com/DrAbdulmalek/omni-medical-suite/issues"  # ARCHIVED
 
 [tool.setuptools.packages.find]
 where = ["."]

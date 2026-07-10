@@ -53,7 +53,7 @@ omnifile_processor/
 
 ```bash
 # 1. استنساخ المشروع
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 cd OmniFile_Processor
 
 # 2. إنشاء بيئة افتراضية
@@ -86,7 +86,7 @@ pytest tests/ -x -q --co  # عرض قائمة الاختبارات
 # Fork المشروع على GitHub، ثم:
 git clone https://github.com/<YOUR_USERNAME>/OmniFile_Processor.git
 cd OmniFile_Processor
-git remote add upstream https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git remote add upstream https://github.com/DrAbdulmalek/OmniFile_Processor <!-- ARCHIVED: archived, merged into omni-medical-suite -->.git
 ```
 
 ### 2. إنشاء Branch

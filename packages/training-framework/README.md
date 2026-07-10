@@ -335,5 +335,5 @@ python training/scripts/extend_vocabulary.py \
 
 💬 دعم
 
-- GitHub Issues: [OmniFile_Processor/issues](https://github.com/DrAbdulmalek/OmniFile_Processor/issues)
+- GitHub Issues: [omni-medical-suite/issues](https://github.com/DrAbdulmalek/omni-medical-suite/issues) <!-- ARCHIVED: OmniFile_Processor merged -->
 - HuggingFace Discussions: [DrAbdulmalek](https://huggingface.co/DrAbdulmalek)

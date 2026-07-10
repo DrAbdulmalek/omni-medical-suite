@@ -46,7 +46,7 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/DrAbdulmalek/OmniFile_Processor
+      link: https://github.com/DrAbdulmalek/omni-medical-suite  # ARCHIVED: OmniFile_Processor merged
 
 markdown_extensions:
   - pymdownx.highlight:

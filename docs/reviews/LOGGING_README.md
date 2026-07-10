@@ -342,5 +342,5 @@ const LOG_CONFIG = {
 
 ## 📞 دعم
 
-- GitHub Issues: https://github.com/DrAbdulmalek/medical-handwriting-ocr/issues
+- GitHub Issues: https://github.com/DrAbdulmalek/medical-handwriting-ocr/issues <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 - Email logs: تصدير → إرسال للمطور

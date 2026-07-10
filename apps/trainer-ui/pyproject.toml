@@ -31,7 +31,7 @@ dependencies = [
     "pandas>=2.0.0",
     "numpy>=1.24.0",
     "matplotlib>=3.7.0",
-    "medical-ocr-benchmarks @ git+https://github.com/DrAbdulmalek/medical-ocr-benchmarks.git@main",
+    "medical-ocr-benchmarks @ git+https://github.com/DrAbdulmalek/omni-medical-suite.git@main  # ARCHIVED: medical-ocr-benchmarks (archived) → use monorepo package@main",
 ]
 
 [project.optional-dependencies]

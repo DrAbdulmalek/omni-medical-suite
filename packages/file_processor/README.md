@@ -24,9 +24,9 @@ license: mit
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI Tests](https://img.shields.io/github/actions/workflow/status/DrAbdulmalek/OmniFile_Processor/ci.yml?branch=main&label=CI%20Tests)](https://github.com/DrAbdulmalek/OmniFile_Processor/actions/workflows/ci.yml)
+[![CI Tests](https://img.shields.io/github/actions/workflow/status/DrAbdulmalek/OmniFile_Processor/ci.yml?branch=main&label=CI%20Tests)](https://github.com/DrAbdulmalek/OmniFile_Processor/actions/workflows/ci <!-- ARCHIVED: archived, merged into omni-medical-suite -->.yml)
 [![HF Spaces](https://img.shields.io/badge/🤗-HuggingFace%20Spaces-orange)](https://huggingface.co/spaces/DrAbdulmalek/handwriting-ocr)
-[![GitHub](https://img.shields.io/badge/GitHub-DrAbdulmalek-181717?logo=github)](https://github.com/DrAbdulmalek/OmniFile_Processor)
+[![GitHub](https://img.shields.io/badge/GitHub-DrAbdulmalek-181717?logo=github)](https://github.com/DrAbdulmalek/OmniFile_Processor) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 
 <p>
   <b>Version:</b> v5.0.0 &nbsp;|&nbsp;
@@ -39,7 +39,7 @@ license: mit
 [🧩 Dependency Profiles](docs/DEPENDENCY_PROFILES.md) &nbsp;|&nbsp;
 [📓 Colab Debug Notebook](notebooks/OmniFile_Processor_Colab_Debug.ipynb) &nbsp;|&nbsp;
 [🗂️ Prioritized Suggestions](docs/PRIORITIZED_SUGGESTIONS.md) &nbsp;|&nbsp;
-[🐛 Report Bug](https://github.com/DrAbdulmalek/OmniFile_Processor/issues) &nbsp;|&nbsp;
+[🐛 Report Bug](https://github.com/DrAbdulmalek/OmniFile_Processor/issues) <!-- ARCHIVED: archived, merged into omni-medical-suite --> &nbsp;|&nbsp;
 [💡 Suggestions](SUGGESTIONS.md)
 
 </div>
@@ -148,7 +148,7 @@ The project is deployed and available at:
 To deploy your own instance:
 
 ```bash
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 cd OmniFile_Processor
 pip install -r requirements-hf.txt
 python -m src.gradio_ui
@@ -158,7 +158,7 @@ python -m src.gradio_ui
 
 ```bash
 # Clone the repository
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 cd OmniFile_Processor
 
 # Install dependencies
@@ -179,7 +179,7 @@ cd frontend && npm install && npm run dev  # React Frontend
 ### Option 3: Docker Compose (Full Stack)
 
 ```bash
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 cd OmniFile_Processor
 docker-compose up -d
 
@@ -207,7 +207,7 @@ python tools/build_training_data.py --corrections mobile_review/ocr_corrected.js
 👉 **[notebooks/OmniFile_Processor_Colab_Debug.ipynb](notebooks/OmniFile_Processor_Colab_Debug.ipynb)**
 
 ```python
-!git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+!git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 %cd OmniFile_Processor
 !apt-get update -qq
 !apt-get install -y -qq poppler-utils tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng libgl1
@@ -223,7 +223,7 @@ The OmniFile AI Gateway provides a universal proxy for routing AI model requests
 
 ```bash
 # Clone and install gateway dependencies
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 cd OmniFile_Processor
 pip install -r requirements-gateway.txt
 
@@ -707,7 +707,7 @@ See [LICENSE](LICENSE) for the full text.
 
 | Resource | Link |
 |----------|------|
-| 🐙 **GitHub Repository** | [https://github.com/DrAbdulmalek/OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor) |
+| 🐙 **GitHub Repository** | [https://github.com/DrAbdulmalek/OmniFile_Processor <!-- ARCHIVED: archived, merged into omni-medical-suite -->](https://github.com/DrAbdulmalek/OmniFile_Processor) <!-- ARCHIVED: archived, merged into omni-medical-suite --> |
 | 🤗 **HuggingFace Spaces** | [https://huggingface.co/spaces/DrAbdulmalek/handwriting-ocr](https://huggingface.co/spaces/DrAbdulmalek/handwriting-ocr) |
 | 📚 **User Guide** | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) |
 | 👨‍💻 **Developer Guide** | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) |
@@ -723,7 +723,7 @@ See [LICENSE](LICENSE) for the full text.
 **Built with ❤️ by Dr Abdulmalek Tamer Al-husseini**
 *📍 Homs, Syria &nbsp;|&nbsp; 📧 Abdulmalek.husseini@gmail.com*
 
-⭐ If you find this project useful, please give it a star on [GitHub](https://github.com/DrAbdulmalek/OmniFile_Processor)!
+⭐ If you find this project useful, please give it a star on [GitHub](https://github.com/DrAbdulmalek/OmniFile_Processor) <!-- ARCHIVED: archived, merged into omni-medical-suite -->!
 
 </div>
 
@@ -776,7 +776,7 @@ See [LICENSE](LICENSE) for the full text.
 | Repo | Role | Status |
 |------|------|--------|
 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Main Platform (Successor) | Active |
-| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | Core Correction Engine | Active |
-| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) | Production OCR | Active |
+| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Core Correction Engine | Active |
+| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Production OCR | Active |
 
 **License: MIT** — Dr. Abdulmalek Tamer Al-husseini

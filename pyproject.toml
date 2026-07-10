@@ -24,27 +24,210 @@ dependencies = [
     "rapidfuzz>=3.0.0",
 ]
 
+# ===================================================================
+# Optional-dependencies — unified from all requirements*.txt files
+# ===================================================================
+# Each group can be installed independently:
+#   pip install -e ".[core]"       — basic UI + file processing
+#   pip install -e ".[ocr]"        — all OCR engines
+#   pip install -e ".[nlp]"        — NLP & translation
+#   pip install -e ".[ai]"         — LLM/AI providers
+#   pip install -e ".[hf]"         — HuggingFace Spaces (CPU-only)
+#   pip install -e ".[training]"   — model training
+#   pip install -e ".[dev]"        — testing & linting
+#   pip install -e ".[full]"       — everything
+#   pip install -e ".[core,ocr,nlp]" — custom combination
+#
+# See docs/DEPENDENCY_STRATEGY.md for the full mapping table.
+# ===================================================================
 [project.optional-dependencies]
-ocr = ["easyocr>=1.7.0", "surya-ocr>=0.4.0", "transformers>=4.36.0", "torch>=2.1.0"]
-nlp = ["ar-corrector>=0.6.3", "arabic-reshaper>=3.0.0", "python-bidi>=0.4.2", "langdetect>=1.0.9"]
-ai = ["openai>=1.0.0", "google-generativeai>=0.3.0"]
-training = ["datasets>=2.15.0", "peft>=0.7.0", "accelerate>=0.25.0"]
-export = ["openpyxl>=3.1.0", "python-docx>=0.8.11", "fpdf2>=2.7.0"]
-all = [
-    "easyocr>=1.7.0", "transformers>=4.36.0", "torch>=2.1.0",
-    "ar-corrector>=0.6.3", "arabic-reshaper>=3.0.0", "python-bidi>=0.4.2",
-    "openai>=1.0.0", "datasets>=2.15.0", "peft>=0.7.0",
-    "openpyxl>=3.1.0", "python-docx>=0.8.11", "fpdf2>=2.7.0",
+core = [
+    # Web frameworks & UI
+    "streamlit>=1.28.0",
+    "gradio>=4.0.0",
+    "flask>=3.0.0",
+    # Data processing
+    "pandas>=2.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "jinja2>=3.1.0",
+    # File handling & export
+    "openpyxl>=3.1.0",
+    "python-docx>=0.8.11",
+    "fpdf2>=2.7.0",
+    "PyMuPDF>=1.23.0",
+    "pdf2image>=1.16.0",
+    "beautifulsoup4>=4.12.0",
+    "striprtf>=0.0.26",
+    # Visualization
+    "matplotlib>=3.8.0",
+    # Utilities
+    "httpx>=0.25.0",
+    "tenacity>=8.2.0",
+    "aiofiles>=23.2.1",
+    "GitPython>=3.1.0",
+    "psutil>=5.9.0",
+    # Logging
+    "structlog>=23.2.0",
+]
+ocr = [
+    # OCR engines
+    "easyocr>=1.7.0",
+    "paddlepaddle>=2.5.0",
+    "paddleocr>=2.7.0",
+    "surya-ocr>=0.4.0",
+    # Computer vision
+    "scikit-image>=0.21.0",
+    "onnxruntime>=1.16.0",
+    "timm>=0.9.0",
+    # Advanced OCR tools
+    "symspellpy>=6.7.0",
+    "imagehash>=4.3.0",
+]
+nlp = [
+    # Deep learning framework (shared with training)
+    "transformers>=4.36.0",
+    "torch>=2.1.0",
+    "torchvision>=0.15.0",
+    "peft>=0.7.0",
+    "accelerate>=0.25.0",
+    # Tokenization
+    "sentencepiece>=0.1.99",
+    "huggingface_hub>=0.19.0",
+    "datasets>=2.15.0",
+    # Arabic NLP
+    "ar-corrector>=0.6.3",
+    "arabic-reshaper>=3.0.0",
+    "python-bidi>=0.4.2",
+    "language-tool-python>=2.7.0",
+    # Language detection & spell check
+    "langdetect>=1.0.9",
+    "pyspellchecker>=0.7.2",
+    # Evaluation
+    "jiwer>=3.0.0",
+    # Embeddings & retrieval
+    "sentence-transformers>=2.2.0",
+    "faiss-cpu>=1.7.4",
+]
+ai = [
+    # LLM providers
+    "openai>=1.0.0",
+    "google-generativeai>=0.3.0",
+    "mistralai>=1.0.0",
+    # Tokenization & routing
+    "tiktoken>=0.7.0",
+    "loguru>=0.7.0",
+    "aiohttp>=3.13.4",
+    "markdown-it-py>=4.2.0",
+    # FHIR (optional medical standard)
+    "fhir.resources>=8.0.0",
+]
+training = [
+    # Training framework (higher pins than nlp)
+    "transformers>=4.40.0",
+    "accelerate>=0.30.0",
+    "datasets>=2.19.0",
+    "tokenizers>=0.19.0",
+    "huggingface_hub>=0.23.0",
+    "peft>=0.11.0",
+    # Quantization & LoRA
+    "bitsandbytes>=0.43.0",
+    "trl>=0.9.0",
+    # Experiment tracking
+    "wandb>=0.17.0",
+    "tensorboard>=2.16.0",
+    # Data augmentation & processing
+    "albumentations>=1.4.0",
+    "opencv-python>=4.9.0",
+    "lmdb>=1.4.1",
+    "pyarrow>=16.0.0",
+    "pyyaml>=6.0.0",
+    # Evaluation
+    "editdistance>=0.8.0",
+    # Model export
+    "onnx>=1.16.0",
+    "onnxruntime-gpu>=1.18.0",
+    "optimum>=1.20.0",
+]
+hf = [
+    # HuggingFace Spaces — CPU-only, optimized for HF free tier
+    "gradio>=6.0.0",
+    "easyocr>=1.7.0",
+    "transformers>=4.36.0",
+    "torch>=2.1.0",
+    "sentencepiece>=0.1.99",
+    "PyMuPDF>=1.23.0",
+    "python-docx>=0.8.11",
+    "openpyxl>=3.1.0",
+    "langdetect>=1.0.9",
+    "pyspellchecker>=0.7.2",
+    "ar-corrector>=0.6.3",
+    "arabic-reshaper>=3.0.0",
+    "python-bidi>=0.4.2",
+    "jiwer>=3.0.0",
 ]
 dev = [
-    "pytest>=7.4.0",
+    # Testing
+    "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
     "pytest-asyncio>=0.23.0",
     "pytest-xdist>=3.5.0",
+    "httpx>=0.26.0",
+    "factory-boy>=3.3.0",
+    "faker>=22.0.0",
+    # Linting & type checking (ruff replaces flake8, black, isort)
     "ruff>=0.8.0",
     "mypy>=1.10.0",
-    "bandit>=1.7.0",
+    "bandit>=1.8.0",
     "pre-commit>=3.6.0",
+]
+export = [
+    "openpyxl>=3.1.0",
+    "python-docx>=0.8.11",
+    "fpdf2>=2.7.0",
+    "weasyprint>=60.0",
+]
+# Security & deployment (separate from full for fine-grained control)
+security = [
+    "presidio-analyzer>=2.2.0",
+    "presidio-anonymizer>=2.2.0",
+    "detect-secrets>=1.4.0",
+    "slowapi>=0.1.9",
+    "pyotp>=2.9.0",
+]
+deployment = [
+    "gunicorn>=21.2.0",
+    "celery>=5.3.0",
+    "redis>=5.0.0",
+    "prometheus-client>=0.19.0",
+    "pyngrok>=7.0.0",
+]
+# Legacy alias — kept for backward compat
+all = [
+    "streamlit>=1.28.0", "gradio>=4.0.0", "flask>=3.0.0",
+    "pandas>=2.0.0", "pydantic>=2.0.0", "pydantic-settings>=2.0.0",
+    "easyocr>=1.7.0", "paddlepaddle>=2.5.0", "paddleocr>=2.7.0",
+    "surya-ocr>=0.4.0", "transformers>=4.40.0", "torch>=2.1.0",
+    "torchvision>=0.15.0", "peft>=0.11.0", "accelerate>=0.30.0",
+    "ar-corrector>=0.6.3", "arabic-reshaper>=3.0.0", "python-bidi>=0.4.2",
+    "langdetect>=1.0.9", "pyspellchecker>=0.7.2", "sentencepiece>=0.1.99",
+    "huggingface_hub>=0.23.0", "datasets>=2.19.0",
+    "openai>=1.0.0", "google-generativeai>=0.3.0", "mistralai>=1.0.0",
+    "openpyxl>=3.1.0", "python-docx>=0.8.11", "fpdf2>=2.7.0",
+    "PyMuPDF>=1.23.0", "pdf2image>=1.16.0",
+    "onnxruntime>=1.16.0", "sentence-transformers>=2.2.0",
+    "scikit-image>=0.21.0", "timm>=0.9.0",
+]
+# Full — recommended alias for complete installation
+full = [
+    "omni-medical-suite[core]",
+    "omni-medical-suite[ocr]",
+    "omni-medical-suite[nlp]",
+    "omni-medical-suite[ai]",
+    "omni-medical-suite[security]",
+    "omni-medical-suite[deployment]",
+    "omni-medical-suite[export]",
 ]
 
 # ===================================================================

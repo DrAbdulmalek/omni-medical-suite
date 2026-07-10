@@ -10,9 +10,9 @@ Choose the right tool for your needs:
 | Need | Repository | Link |
 |------|-----------|------|
 | Complete document processing | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | [README](../README.md) |
-| OCR correction engine | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | [Install Guide](https://github.com/DrAbdulmalek/medical-ocr-postprocessor#installation) |
-| Production handwriting OCR | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) | [Docker Profiles](https://github.com/DrAbdulmalek/medical-handwriting-ocr/blob/main/DOCKER_PROFILES.md) |
-| Collect training data | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | [README](https://github.com/DrAbdulmalek/medical-ocr-trainer) |
+| OCR correction engine | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | [Install Guide](https://github.com/DrAbdulmalek/medical-ocr-postprocessor <!-- ARCHIVED: archived, merged into omni-medical-suite -->#installation) |
+| Production handwriting OCR | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | [Docker Profiles](https://github.com/DrAbdulmalek/medical-handwriting-ocr/blob/main/DOCKER_PROFILES <!-- ARCHIVED: archived, merged into omni-medical-suite -->.md) |
+| Collect training data | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | [README](https://github.com/DrAbdulmalek/medical-ocr-trainer) <!-- ARCHIVED: archived, merged into omni-medical-suite --> |
 
 ### For Developers
 - [Architecture Overview](./ADR/001-platform-architecture.md) — Monorepo structure

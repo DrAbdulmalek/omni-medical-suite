@@ -37,5 +37,5 @@ If any upstream changes need to be incorporated:
 | Repo | Relationship |
 |------|-------------|
 | [omniparse-study](https://github.com/DrAbdulmalek/omniparse-study) | Study notes and analysis |
-| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | Target integration point |
+| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessorNone) <!-- ARCHIVED: merged into omni-medical-suite/packages/ocr_postprocess/ --> | Target integration point |
 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Main platform |

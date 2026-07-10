@@ -10,12 +10,12 @@ The suite is built as a modular, data-driven network with specialized repositori
 
 | Layer | Repository | Primary Responsibility |
 |-------|------------|------------------------|
-| **Preprocessing (MANDATORY)** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) | **Required** first step — skew detection, auto-crop, noise reduction, scan normalization before OCR |
+| **Preprocessing (MANDATORY)** | [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) ~~scanner-fixer~~ | **Required** first step — now in `packages/scanner_fixer/` |
 | **Orchestration** | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Pipeline orchestration, API endpoints, core logic |
-| **Data** | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) | Single source of truth for verified datasets |
-| **Training** | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) | Data ingestion, validation, PII scrubbing |
-| **Learning** | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | Human-in-the-loop correction, ensemble collection |
-| **Evaluation** | [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) | Nightly regression tests, quality gates |
+| **Data** | [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) ~~archived~~ | Now in `packages/gt_core/` |
+| **Training** | [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) ~~archived~~ | Now in `packages/training_hub/` |
+| **Learning** | [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) ~~archived~~ | Now in `apps/trainer-ui/` |
+| **Evaluation** | [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) ~~archived~~ | Now in `packages/benchmark_core/` |
 | **Deployment** | [HF Spaces](https://huggingface.co/DrAbdulmalek) | Live demos and user correction interfaces |
 
 ---
@@ -51,7 +51,7 @@ These rules govern all data processing and model updates:
 
 1. **Resolution Gate**: Images below 150 DPI are auto-rejected to prevent OCR degradation.
 
-2. **Mandatory Preprocessing**: ALL scanned images MUST pass through [Scanner Fixer](https://github.com/DrAbdulmalek/scanner-fixer) for skew correction, auto-crop, and noise reduction before OCR processing. This is a required step — not optional. Skipping it increases CER by 40-50% on printed text.
+2. **Mandatory Preprocessing**: ALL scanned images MUST pass through [Scanner Fixer](https://github.com/DrAbdulmalek/scanner-fixer) <!-- ARCHIVED: merged into omni-medical-suite/packages/scanner_fixer/ --> for skew correction, auto-crop, and noise reduction before OCR processing. This is a required step — not optional. Skipping it increases CER by 40-50% on printed text.
 
 3. **PII Redaction**: All patient identifiers (names, phones, dates) are automatically redacted before storage using a hybrid Regex + CamelBERT NER pipeline.
 
@@ -102,10 +102,10 @@ python main.py
 ## Ecosystem Documentation
 
 - **Main Platform**: [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite)
-- **Pre-OCR Normalization (MANDATORY)**: [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) — required first step for all medical images
-- **Ground Truth**: [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth)
-- **Training Hub**: [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub)
-- **OCR Trainer**: [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer)
-- **Benchmarks**: [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks)
+- **Pre-OCR Normalization (MANDATORY)**: [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) ~~archived~~ — now in `packages/scanner_fixer/`
+- **Ground Truth**: [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth) ~~archived~~ — now in `packages/gt_core/`
+- **Training Hub**: [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) ~~archived~~ — now in `packages/training_hub/`
+- **OCR Trainer**: [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) ~~archived~~ — now in `apps/trainer-ui/`
+- **Benchmarks**: [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) ~~archived~~ — now in `packages/benchmark_core/`
 
 *Maintained with precision and care by [DrAbdulmalek](https://github.com/DrAbdulmalek).*

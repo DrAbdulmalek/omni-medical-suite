@@ -65,7 +65,7 @@ omniparse-study/
 |------|-----------|
 | Understand OmniParse study findings | **This repo** (omniparse-study) |
 | Original OmniParse code | [omniparse](https://github.com/DrAbdulmalek/omniparse) |
-| Production medical OCR | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) |
+| Production medical OCR | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocrNone) <!-- ARCHIVED: merged into omni-medical-suite/apps/handwriting-demo/ --> |
 | Unified platform | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) |
 
 ## Related Repositories
@@ -74,6 +74,6 @@ omniparse-study/
 |------|------|--------|
 | [omniparse](https://github.com/DrAbdulmalek/omniparse) | Forked Source | Study |
 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Main Platform | Active |
-| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | Core Correction Engine | Active |
+| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessorNone) <!-- ARCHIVED: merged into omni-medical-suite/packages/ocr_postprocess/ --> | Core Correction Engine | Active |
 
 **License: GPL-3.0** (upstream) — Analysis by Dr. Abdulmalek Tamer Al-husseini

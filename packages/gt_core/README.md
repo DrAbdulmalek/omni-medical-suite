@@ -210,12 +210,12 @@ python-bidi>=0.4.2
 
 | Repo | Role |
 |------|------|
-| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | Core correction engine |
+| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Core correction engine |
 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Main platform |
-| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) | Handwriting OCR |
-| [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) | Benchmark suite |
-| [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) | Training tool |
-| [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer-hf) | HF Space deployment |
+| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Handwriting OCR |
+| [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Benchmark suite |
+| [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Training tool |
+| [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | HF Space deployment |
 
 ---
 

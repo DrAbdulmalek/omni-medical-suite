@@ -1,8 +1,8 @@
 # 🏥 Medical OCR Benchmarks / معايير تقييم OCR للوثائق الطبية
 
-[![CI Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/benchmark.yml/badge.svg)](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions)
-[![Nightly Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/nightly-benchmark.yml/badge.svg)](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/nightly-benchmark.yml)
-[![PR Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/pr-benchmark.yml/badge.svg)](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/pr-benchmark.yml)
+[![CI Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/benchmark <!-- ARCHIVED: archived, merged into omni-medical-suite -->.yml/badge.svg)](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
+[![Nightly Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/nightly <!-- ARCHIVED: archived, merged into omni-medical-suite -->-benchmark.yml/badge.svg)](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/nightly <!-- ARCHIVED: archived, merged into omni-medical-suite -->-benchmark.yml)
+[![PR Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/pr <!-- ARCHIVED: archived, merged into omni-medical-suite -->-benchmark.yml/badge.svg)](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/pr <!-- ARCHIVED: archived, merged into omni-medical-suite -->-benchmark.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -37,7 +37,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/DrAbdulmalek/medical-ocr-benchmarks.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-ocr-benchmarks (archived) → packages/benchmark_core/ -->
 cd medical-ocr-benchmarks
 
 # Install with all dependencies
@@ -57,7 +57,7 @@ pytest tests/ -v
 
 ```bash
 # استنساخ المستودع
-git clone https://github.com/DrAbdulmalek/medical-ocr-benchmarks.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-ocr-benchmarks (archived) → packages/benchmark_core/ -->
 cd medical-ocr-benchmarks
 
 # تثبيت مع جميع التبعيات
@@ -208,7 +208,7 @@ medical-ocr-benchmarks/
 
 ## Nightly Benchmarks / المعايير الليلية
 
-![Nightly Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/nightly-benchmark.yml/badge.svg)
+![Nightly Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/nightly <!-- ARCHIVED: archived, merged into omni-medical-suite -->-benchmark.yml/badge.svg)
 
 A **nightly benchmark workflow** runs automatically every day at **3:00 AM UTC** (and can also be triggered manually via `workflow_dispatch`). It performs the following:
 
@@ -221,7 +221,7 @@ A **nightly benchmark workflow** runs automatically every day at **3:00 AM UTC**
 
 ### PR Benchmarks / معايير طلبات السحب
 
-![PR Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/pr-benchmark.yml/badge.svg)
+![PR Benchmark](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions/workflows/pr <!-- ARCHIVED: archived, merged into omni-medical-suite -->-benchmark.yml/badge.svg)
 
 A lightweight **PR benchmark workflow** triggers on pull requests that modify `src/`, `data/`, or `config/` files. It:
 
@@ -231,7 +231,7 @@ A lightweight **PR benchmark workflow** triggers on pull requests that modify `s
 
 ### Latest Reports / أحدث التقارير
 
-Nightly benchmark results are stored in the [`reports/`](reports/) directory and also uploaded as [GitHub Actions artifacts](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions).
+Nightly benchmark results are stored in the [`reports/`](reports/) directory and also uploaded as [GitHub Actions artifacts](https://github.com/DrAbdulmalek/medical-ocr-benchmarks/actions) <!-- ARCHIVED: archived, merged into omni-medical-suite -->.
 
 ---
 
@@ -319,7 +319,7 @@ Copy this template and place it in the appropriate language directory (`data/eng
 
 ## Pre-OCR Normalization Impact / أثر المعالجة المسبقة
 
-The [Scanner Fixer](https://github.com/DrAbdulmalek/scanner-fixer) tool serves as the official **Pre-OCR Normalization Layer** for the ecosystem. Benchmarking its impact is critical for measuring the full pipeline quality.
+The [Scanner Fixer](https://github.com/DrAbdulmalek/scanner-fixer) <!-- ARCHIVED: archived, merged into omni-medical-suite --> tool serves as the official **Pre-OCR Normalization Layer** for the ecosystem. Benchmarking its impact is critical for measuring the full pipeline quality.
 
 ### Before vs After Preprocessing / قبل وبعد المعالجة المسبقة
 

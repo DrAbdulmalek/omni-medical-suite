@@ -29,4 +29,4 @@ pinned: false
 
 ## المصدر
 - الكود: [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite)
-- المعالجة المسبقة: [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer)
+- المعالجة المسبقة: [scanner-fixer](https://github.com/DrAbdulmalek/scanner-fixer) <!-- ARCHIVED: archived, merged into omni-medical-suite -->

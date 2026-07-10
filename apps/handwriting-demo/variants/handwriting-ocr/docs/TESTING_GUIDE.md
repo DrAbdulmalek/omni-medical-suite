@@ -13,7 +13,7 @@
 افتح Terminal وقم بإنشاء بيئة معزولة لتجنب تضارب المكتبات:
 
 ```bash
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor
+git clone https://github.com/DrAbdulmalek/OmniFile_Processor <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 cd OmniFile_Processor
 python -m venv venv
 source venv/bin/activate
@@ -53,7 +53,7 @@ pip install -r requirements-full.txt          # الكامل (~6-8 GB, ~15-30 mi
 
 ```python
 # 1. تنزيل المشروع من GitHub
-!git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+!git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 %cd OmniFile_Processor
 
 # 2. تثبيت المكتبات (متدرج)

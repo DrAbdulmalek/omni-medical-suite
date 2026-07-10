@@ -43,4 +43,4 @@ pytesseract>=0.3.10
 # surya-ocr>=0.4.5
 
 # --- Benchmarks ---
-medical-ocr-benchmarks @ git+https://github.com/DrAbdulmalek/medical-ocr-benchmarks.git@main
+medical-ocr-benchmarks @ git+https://github.com/DrAbdulmalek/omni-medical-suite.git@main  # ARCHIVED: medical-ocr-benchmarks (archived) → use monorepo package@main

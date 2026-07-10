@@ -19,7 +19,7 @@ Convert medical-ocr-postprocessor into a standard Python package with:
 - Single source of truth for OCR correction logic
 - Semantic versioning enables safe dependency management
 - Easy to install: `pip install medical-ocr-postprocessor`
-- Other repos can depend on it via `pip install git+https://github.com/DrAbdulmalek/medical-ocr-postprocessor.git`
+- Other repos can depend on it via `pip install git+https://github.com/DrAbdulmalek/omni-medical-suite.git@main  # ARCHIVED: medical-ocr-postprocessor (archived) → use monorepo package`
 
 ### Negative
 - Breaking changes to the postprocessor affect all consuming projects

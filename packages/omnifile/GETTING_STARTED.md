@@ -3,7 +3,7 @@
 ## التثبيت (دقيقتان)
 
 ```bash
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 cd OmniFile_Processor
 bash scripts/setup.sh
 ```
@@ -19,7 +19,7 @@ python process.py -i img.jpg -o out -e surya --correct --export-docx
 ## على Google Colab
 
 ```python
-!git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+!git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 %cd OmniFile_Processor
 !pip install -r requirements-colab.txt
 ```

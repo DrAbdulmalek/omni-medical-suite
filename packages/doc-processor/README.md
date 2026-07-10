@@ -78,7 +78,7 @@ All active development, bug fixes, and new features continue there.
 
 ```bash
 # Clone the repository
-git clone https://github.com/DrAbdulmalek/medical-doc-processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-doc-processor (archived) → packages/doc-processor/ -->
 cd medical-doc-processor
 
 # Install dependencies
@@ -294,8 +294,8 @@ Built with ❤️ by [Dr. Abdulmalek](https://github.com/DrAbdulmalek)
 |------|-----------|
 | Full unified medical document processing | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) |
 | Desktop image scanning & quality check | **This repo** (medical-doc-processor) |
-| OCR correction engine | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) |
-| Production handwriting OCR | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) |
+| OCR correction engine | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) <!-- ARCHIVED: archived, merged into omni-medical-suite --> |
+| Production handwriting OCR | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite --> |
 
 ## Migration Path
 
@@ -312,7 +312,7 @@ medical-doc-processor
 | Repo | Role | Status |
 |------|------|--------|
 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Main Platform (Migration Target) | Active |
-| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | Core Correction Engine | Active |
-| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) | Production OCR | Active |
+| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Core Correction Engine | Archived (merged into omni-medical-suite) |
+| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Production OCR | Archived (merged into omni-medical-suite) |
 
 **License: MIT** — Dr. Abdulmalek Tamer Al-husseini

@@ -11,7 +11,7 @@ Thank you for your interest in contributing to **bilingual-extractor**! This gui
 
 ### Setup
 ```bash
-git clone https://github.com/DrAbdulmalek/bilingual-extractor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: bilingual-extractor (archived) → packages/bilingual/ -->
 cd bilingual-extractor
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
@@ -22,7 +22,7 @@ pip install -r requirements.txt
 ## How to Contribute
 
 ### Reporting Bugs
-1. Check if the bug has already been reported in [Issues](https://github.com/DrAbdulmalek/bilingual-extractor/issues)
+1. Check if the bug has already been reported in [Issues](https://github.com/DrAbdulmalek/bilingual-extractor/issues) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 2. If not, open a new issue using the **Bug Report** template
 3. Include: OS, Python version, steps to reproduce, expected vs actual behavior
 
@@ -65,4 +65,4 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 4. Respond to review feedback promptly
 
 ## Questions?
-Feel free to open a [Discussion](https://github.com/DrAbdulmalek/bilingual-extractor/discussions) or reach out via Issues.
+Feel free to open a [Discussion](https://github.com/DrAbdulmalek/bilingual-extractor/discussions) <!-- ARCHIVED: archived, merged into omni-medical-suite --> or reach out via Issues.

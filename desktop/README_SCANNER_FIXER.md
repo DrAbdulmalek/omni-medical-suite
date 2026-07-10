@@ -11,10 +11,10 @@
 | Repository | الحالة | الوصف |
 |-----------|--------|-------|
 | `omni-medical-suite` | **نشط** | المنصة الرئيسية المتكاملة |
-| `scanner-fixer` | **نشط** | معالجة الصور المسحوبة (Pre-OCR) |
+| `scanner-fixer` | **مؤرشف** | دُمج في omni-medical-suite/packages/scanner_fixer/ |
 | `medical-ocr-postprocessor` | **مؤرشف** | دُمج في omni-medical-suite |
-| `medical-handwriting-ocr` | **نشط** | OCR للخط اليد |
-| `medical-ocr-trainer` | **نشط** | تدريب النماذج |
+| `medical-handwriting-ocr` | **مؤرشف** | دُمج في omni-medical-suite/apps/handwriting-demo/ |
+| `medical-ocr-trainer` | **مؤرشف** | دُمج في omni-medical-suite/apps/trainer-ui/ |
 
 ### 2. Hugging Face Space
 

@@ -119,7 +119,12 @@
 
 2. **200MB محتوى `_dev_references/`** — لا علاقة له بـ OCR طبي. يحتاج حذفاً كاملاً بعد تأكيد المستخدم.
 
-3. **43 تطبيق Gradio** — فقط `app/gradio_full_hitl.py` معتمَد. الباقي يحتاج مراجعة لتحديد: هل يُحتفظ بأي منها كـ"نسخة بديلة" أم يُحذف؟
+3. **18 تطبيق Gradio معلّق** — 24 ملفاً حُذفوا (نسخ مكررة + إيجابيات كاذبة). 18 ملفاً باقون يحتاجون مراجعة بشرية. انظر `GRADIO_APPS_DECISION.md` للتفاصيل الكاملة والتوصيات المجمّعة:
+   - **المجموعة A** (دمج بالتطبيق الرسمي): `app/hf_app.py` (EasyOCR/TrOCR/PDF)، `correction_trainer_ui.py`، `apps/ocr-pipeline/app.py`
+   - **المجموعة B** (تطبيقات مستقلة): `desktop/gradio_scanner_app.py`، `apps/handwriting-demo/hf-deploy/app/gradio_app.py`، `tools/ops/telegram_forwarder/app.py`
+   - **المجموعة C** (أرشفة/دراسة): `notebooks/omnimedical_gradio_ui.py`، `packages/omniparse/`، `Medical_OCR_Review_Colab.py`
+   - **المجموعة D** (دمج أو حذف): `app/gradio_ui.py`، `batch_correction_ui.py`، `dual_ocr_interface.py`، `gradio_pwa_wrapper.py`، `translation_corrector/app.py`
+   - **المجموعة E** (حزم مكررة بمحتوى فريد): `packages/doc_processor/download/.../gradio_phase2_enhanced.py`، `omni_gradio_fusion_v3.py`، `apps/ocr-demo/app.py`
 
 4. **ruff auto-fix دفعة واحدة على 12,846 مشكلة** — تم تنفيذها بلا مراجعة بشرية فردية. قد تحتوي تغييرات سلوكية غير مقصودة.
 

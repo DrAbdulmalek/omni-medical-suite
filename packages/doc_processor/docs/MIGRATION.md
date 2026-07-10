@@ -103,7 +103,7 @@ python3 -m pytest test_core.py  # Python
 
 1. أضف إشعار الدمج في README كل مشروع قديم:
 ```markdown
-> ⚠️ تم دمج هذا المشروع في [medical-doc-processor](https://github.com/DrAbdulmalek/medical-doc-processor)
+> ⚠️ تم دمج هذا المشروع في [medical-doc-processor](https://github.com/DrAbdulmalek/medical-doc-processor) <!-- ARCHIVED -->
 ```
 
 2. أرشف المستودع من إعدادات GitHub:

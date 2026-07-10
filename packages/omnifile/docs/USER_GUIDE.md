@@ -59,7 +59,7 @@
 
 ```bash
 # 1. استنساخ المشروع / Clone the repository
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 cd OmniFile_Processor
 
 # 2. إنشاء بيئة افتراضية (موصى به) / Create virtual environment (recommended)
@@ -81,7 +81,7 @@ brew install tesseract
 
 ```python
 # 1. استنساخ المشروع / Clone the project
-!git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+!git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 %cd OmniFile_Processor
 
 # 2. تثبيت الحزم / Install packages
@@ -933,7 +933,7 @@ corrector.add_protected_term("TrOCR")
 
 **A:** اتبع الخطوات التالية:
 **A:** Follow these steps:
-1. Fork المشروع من [GitHub](https://github.com/DrAbdulmalek/OmniFile_Processor)
+1. Fork المشروع من [GitHub](https://github.com/DrAbdulmalek/OmniFile_Processor) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 2. أنشئ branch جديد: `git checkout -b feature/my-feature`
 3. اتبع معايير الكود في `دليل المطور / Developer Guide`
 4. أضف اختبارات للميزة الجديدة

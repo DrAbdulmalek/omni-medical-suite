@@ -53,7 +53,7 @@
 ## Step-by-Step Flow
 
 ### Step 1: Import Ground Truth
-**Repository:** [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truth)
+**Repository:** [medical-ocr-ground-truth](https://github.com/DrAbdulmalek/medical-ocr-ground-truthNone) <!-- ARCHIVED: merged into omni-medical-suite/packages/gt_core/ -->
 
 ```bash
 # Import from ABBYY FineReader
@@ -70,7 +70,7 @@ python gt_comparison_engine.py --gt gt_page588.txt --ocr ocr_output.txt \
 **Output:** Ground truth files, correction dictionaries, training pairs.
 
 ### Step 2: Establish Baselines
-**Repository:** [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks)
+**Repository:** [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarksNone) <!-- ARCHIVED: merged into omni-medical-suite/packages/benchmark_core/ -->
 
 ```bash
 # Run benchmarks against current engines
@@ -82,7 +82,7 @@ medocr-bench --engines paddleocr,tesseract --check-ci
 **Output:** Baseline metrics for regression detection.
 
 ### Step 3: Collect Corrections
-**Repository:** [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainer)
+**Repository:** [medical-ocr-trainer](https://github.com/DrAbdulmalek/medical-ocr-trainerNone) <!-- ARCHIVED: merged into omni-medical-suite/apps/trainer-ui/ -->
 
 ```bash
 streamlit run app.py
@@ -101,7 +101,7 @@ Users try the demo, upload documents, and make corrections.
 These corrections are captured and can be bridged back to GitHub.
 
 ### Step 5: Training Hub Integration
-**Repository:** [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub)
+**Repository:** [medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hubNone) <!-- ARCHIVED: merged into omni-medical-suite/packages/training_hub/ -->
 
 ```text
 HF Space corrections → Training Hub → GitHub training data → Model improvement
@@ -110,7 +110,7 @@ HF Space corrections → Training Hub → GitHub training data → Model improve
 The Training Hub acts as the bridge between online user feedback and offline training.
 
 ### Step 6: Re-evaluate
-**Repository:** [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks)
+**Repository:** [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarksNone) <!-- ARCHIVED: merged into omni-medical-suite/packages/benchmark_core/ -->
 
 ```bash
 # Re-run benchmarks after improvement

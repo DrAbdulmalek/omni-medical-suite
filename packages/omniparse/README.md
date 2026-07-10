@@ -416,8 +416,8 @@ This is a **fork** of [OmniParse](https://github.com/adithya-s-k/omniparse) — 
 | Need | Repository |
 |------|-----------|
 | Study OmniParse architecture | **This repo** (omniparse) |
-| Production medical OCR | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) |
-| OCR correction | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) |
+| Production medical OCR | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocrNone) <!-- ARCHIVED: merged into omni-medical-suite/apps/handwriting-demo/ --> |
+| OCR correction | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessorNone) <!-- ARCHIVED: merged into omni-medical-suite/packages/ocr_postprocess/ --> |
 | Unified platform | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) |
 
 ## Related Repositories
@@ -426,6 +426,6 @@ This is a **fork** of [OmniParse](https://github.com/adithya-s-k/omniparse) — 
 |------|------|--------|
 | [omniparse-study](https://github.com/DrAbdulmalek/omniparse-study) | Study Notes & Analysis | Study |
 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Main Platform | Active |
-| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | Core Correction Engine | Active |
+| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessorNone) <!-- ARCHIVED: merged into omni-medical-suite/packages/ocr_postprocess/ --> | Core Correction Engine | Active |
 
 **License: GPL-3.0** (upstream) — Fork by Dr. Abdulmalek Tamer Al-husseini

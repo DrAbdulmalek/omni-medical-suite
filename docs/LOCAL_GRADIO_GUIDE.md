@@ -94,16 +94,16 @@ pip install "pydantic<2.11"
 | Repo | Description |
 |------|-------------|
 | omni-medical-suite | Main project |
-| hf-space-medical-ocr-demo | HF Space (runs locally) |
-| scanner-fixer | Pre-OCR image enhancement |
-| medical-handwriting-ocr | Production OCR platform |
-| medical-ocr-trainer | Evaluation & training |
-| medical-ocr-training-hub | Training data pipeline |
-| medical-ocr-postprocessor | Post-processing (archived) |
-| medical-ocr-benchmarks | OCR benchmarking |
-| ai-fuel-engine | Data processing engine |
-| bilingual-extractor | Medical term extraction |
-| IntelliFile-app | File management |
-| git-sync-system | Repo synchronization |
 | reset-net | Network reset tool |
 | manjaro-care | System maintenance |
+| hf-space-medical-ocr-demo | HF Space (runs locally) |
+| ~~scanner-fixer~~ | Archived → packages/scanner_fixer/ |
+| ~~medical-handwriting-ocr~~ | Archived → apps/handwriting-demo/ |
+| ~~medical-ocr-trainer~~ | Archived → apps/trainer-ui/ |
+| ~~medical-ocr-training-hub~~ | Archived → packages/training_hub/ |
+| ~~medical-ocr-postprocessor~~ | Archived → packages/ocr_postprocess/ |
+| ~~medical-ocr-benchmarks~~ | Archived → packages/benchmark_core/ |
+| ~~ai-fuel-engine~~ | Archived → packages/ai-fuel/ |
+| ~~bilingual-extractor~~ | Archived → packages/bilingual/ |
+| ~~IntelliFile-app~~ | Archived → intelli-file-manager |
+| ~~git-sync-system~~ | Renamed → repo-sync-toolkit |

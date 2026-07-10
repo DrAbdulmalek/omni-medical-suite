@@ -66,7 +66,7 @@ pip install bilingual-extractor
 
 #### From Source
 ```bash
-git clone https://github.com/DrAbdulmalek/bilingual-extractor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: bilingual-extractor (archived) → packages/bilingual/ -->
 cd bilingual-extractor
 pip install -e .
 ```

@@ -478,7 +478,7 @@ class ReportGenerator:
 ---
 
 Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-"""
+  # ARCHIVED: merged into omni-medical-suite"""
 
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(md_content)

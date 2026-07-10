@@ -72,4 +72,4 @@ make run
 
 ## المساعدة
 
-إذا واجهت مشاكل في الترحيل، افتح [Issue](https://github.com/DrAbdulmalek/OmniFile_Processor/issues) مع وسم `migration`.
+إذا واجهت مشاكل في الترحيل، افتح [Issue](https://github.com/DrAbdulmalek/OmniFile_Processor/issues) <!-- ARCHIVED: merged into omni-medical-suite/packages/file_processor/ --> مع وسم `migration`.

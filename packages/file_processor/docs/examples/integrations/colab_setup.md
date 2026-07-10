@@ -8,7 +8,7 @@
 
 ```python
 # 1. استنساخ المشروع
-!git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+!git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 %cd OmniFile_Processor
 
 # 2. التثبيت السريع (لـ Colab)

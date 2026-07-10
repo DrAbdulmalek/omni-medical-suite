@@ -1,7 +1,7 @@
-# Governance Policy — git-sync-system
+# Governance Policy — repo-sync-toolkit
 
 ## Overview
-This document defines the governance rules for the git-sync-system tool that manages 28+ GitHub repos and 11 HF Spaces.
+This document defines the governance rules for the repo-sync-toolkit tool that manages 28+ GitHub repos and 11 HF Spaces.
 
 ## Sync Policies
 
@@ -21,12 +21,6 @@ This document defines the governance rules for the git-sync-system tool that man
 
 ### Allowlist (repos that CAN receive pushes)
 - omni-medical-suite
-- scanner-fixer
-- medical-handwriting-ocr
-- medical-ocr-training-hub
-- medical-ocr-benchmarks
-- medical-ocr-trainer
-- medical-ocr-ground-truth
 - profile-readme (DrAbdulmalek/DrAbdulmalek)
 - reset-net
 
@@ -43,11 +37,15 @@ This document defines the governance rules for the git-sync-system tool that man
 - telegram-forwarder (archived)
 - tg-forwarder (archived)
 - IntelliFile-app (archived)
+- scanner-fixer (archived, merged into omni-medical-suite/packages/scanner_fixer/)
+- medical-handwriting-ocr (archived, merged into omni-medical-suite/apps/handwriting-demo/)
+- medical-ocr-training-hub (archived, merged into omni-medical-suite/packages/training_hub/)
+- medical-ocr-benchmarks (archived, merged into omni-medical-suite/packages/benchmark_core/)
+- medical-ocr-trainer (archived, merged into omni-medical-suite/apps/trainer-ui/)
+- medical-ocr-ground-truth (archived, merged into omni-medical-suite/packages/gt_core/)
 
 ### Sensitive Repos (require --force-write + explicit confirmation)
 - omni-medical-suite (core platform)
-- medical-ocr-ground-truth (contains training data)
-- medical-ocr-benchmarks (benchmark authority)
 - Any repo with 'private' visibility
 
 ## Branch Protection
@@ -55,8 +53,6 @@ This document defines the governance rules for the git-sync-system tool that man
 ### read_only_main (direct push to main is blocked)
 These repos require PR-based workflow for main branch changes:
 - omni-medical-suite
-- medical-ocr-ground-truth
-- medical-ocr-benchmarks
 
 ### Force Push Policy
 Force push is **never allowed** on protected branches. The system checks branch protection rules before pushing:
@@ -67,8 +63,6 @@ Force push is **never allowed** on protected branches. The system checks branch 
 ### Dry-Run Requirement
 The following repos require a dry-run pass before any actual sync:
 - omni-medical-suite
-- medical-ocr-ground-truth
-- medical-ocr-benchmarks
 
 ## Audit Log
 

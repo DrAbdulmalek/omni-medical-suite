@@ -1,4 +1,4 @@
-# Git Sync System
+# Repo Sync Toolkit
 
 Secure, automated Git synchronization system for managing multiple GitHub repositories and HuggingFace Spaces. Built for the [Omni Medical Suite](https://github.com/DrAbdulmalek/omni-medical-suite) ecosystem.
 
@@ -18,8 +18,8 @@ Secure, automated Git synchronization system for managing multiple GitHub reposi
 
 ```bash
 # Clone
-git clone https://github.com/DrAbdulmalek/git-sync-system.git ~/github-sync-system
-cd ~/github-sync-system
+git clone https://github.com/DrAbdulmalek/repo-sync-toolkit.git ~/repo-sync-toolkit
+cd ~/repo-sync-toolkit
 
 # Make executable
 chmod +x github-sync.sh token-manager.py sync-scripts/*.sh config/lib-common.sh
@@ -70,7 +70,7 @@ Securely manage API tokens without storing them in the repository:
 
 | Aspect | Implementation |
 |--------|---------------|
-| Storage location | `~/.config/git-sync-system/secrets.env` |
+| Storage location | `~/.config/repo-sync-toolkit/secrets.env` |
 | File permissions | `600` (owner read/write only) |
 | Directory permissions | `700` (owner access only) |
 | Display | Masked by default (`ghp_XXXX...XXXX`) |
@@ -100,7 +100,7 @@ Securely manage API tokens without storing them in the repository:
 ## Project Structure
 
 ```
-git-sync-system/
+repo-sync-toolkit/
 ├── github-sync.sh           # Main TUI dashboard
 ├── token-manager.py         # Secure token CLI manager
 ├── install.sh               # Installation script

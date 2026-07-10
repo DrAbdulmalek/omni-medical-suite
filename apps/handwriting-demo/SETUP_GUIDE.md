@@ -422,7 +422,7 @@ plugins: {
 
 ## 📞 دعم
 
-- GitHub Issues: https://github.com/DrAbdulmalek/medical-handwriting-ocr/issues
+- GitHub Issues: https://github.com/DrAbdulmalek/medical-handwriting-ocr/issues <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 - API Docs: http://localhost:8000/docs (بعد تشغيل السيرفر)
 - Mobile Docs: انظر `mobile/README.md`
 

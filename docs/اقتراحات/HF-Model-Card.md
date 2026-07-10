@@ -94,7 +94,7 @@ with open("prescription.jpg", "rb") as f:
 ### Local Installation
 
 ```bash
-git clone https://github.com/DrAbdulmalek/medical-handwriting-ocr.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-handwriting-ocr (archived) → apps/handwriting-demo/ -->
 cd medical-handwriting-ocr
 pip install -r requirements.txt
 python app.py
@@ -115,7 +115,7 @@ The model was fine-tuned on a curated dataset of **medical handwritten documents
 
 ## Evaluation Results
 
-Benchmarks measured on the held-out test set (see [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks)):
+Benchmarks measured on the held-out test set (see [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) <!-- ARCHIVED: archived, merged into omni-medical-suite -->):
 
 | Metric | Arabic | English | Mixed |
 |--------|--------|---------|-------|
@@ -151,8 +151,8 @@ This system processes medical documents which may contain protected health infor
 
 ## Links
 
-- **Source Code**: [github.com/DrAbdulmalek/medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr)
+- **Source Code**: [github.com/DrAbdulmalek/medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 - **Unified Suite**: [github.com/DrAbdulmalek/omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite)
-- **Benchmarks**: [github.com/DrAbdulmalek/medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks)
+- **Benchmarks**: [github.com/DrAbdulmalek/medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 - **Ground Truth Data**: [huggingface.co/datasets/DrAbdulmalek/medical-ocr-ground-truth](https://huggingface.co/datasets/DrAbdulmalek/medical-ocr-ground-truth)
-- **Training Hub**: [github.com/DrAbdulmalek/medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub)
+- **Training Hub**: [github.com/DrAbdulmalek/medical-ocr-training-hub](https://github.com/DrAbdulmalek/medical-ocr-training-hub) <!-- ARCHIVED: archived, merged into omni-medical-suite -->

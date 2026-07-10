@@ -22,7 +22,7 @@ Email:   Abdulmalek.husseini@gmail.com
 Location: Homs, Syria
 GitHub:  https://github.com/DrAbdulmalek/OmniFile_Processor
 License: MIT
-"""
+  # ARCHIVED: merged into omni-medical-suite"""
 
 # ====================================================================
 # Standard Library Imports
@@ -1204,7 +1204,7 @@ ABOUT_MD = """
 *Built with ❤️ by Dr Abdulmalek Tamer Al-husseini | OmniFile AI Processor v5.0*
 *📍 Homs, Syria | 📧 Abdulmalek.husseini@gmail.com*
 *🆕 v5.0: Engine Router + Corrections Export + Engine Profiles (Low/Balanced/High)*
-"""
+  # ARCHIVED: merged into omni-medical-suite"""
 
 
 # ====================================================================

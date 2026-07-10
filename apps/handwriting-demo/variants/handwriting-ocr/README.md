@@ -5,7 +5,7 @@
 > **لكن الدمج الفعلي للكود لم يبدأ بعد** — سيحتاج مراجعة منفصلة قبل نقل أي محتوى
 > (3478 ملفاً، بنية مختلفة جذرياً عن omni-medical-suite).
 >
-> **المصدر الحالي الفعلي لهذا الكود**: [OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor)
+> **المصدر الحالي الفعلي لهذا الكود**: [OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 > (هذا المستودع نسخة قديمة منه فقط).
 >
 > **للاستخدام الفعلي لنظام OCR الطبي**: [medical-ocr-demo](https://huggingface.co/spaces/DrAbdulmalek/medical-ocr-demo)
@@ -23,5 +23,5 @@ license: mit
 
 # ⚠️ نسخة قديمة — راجع البانر أعلاه
 
-هذا المستودع مرآة قديمة لمشروع [OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor).
+هذا المستودع مرآة قديمة لمشروع [OmniFile_Processor](https://github.com/DrAbdulmalek/OmniFile_Processor) <!-- ARCHIVED: archived, merged into omni-medical-suite -->.
 لا يُنصح بالتطوير عليه مباشرة.

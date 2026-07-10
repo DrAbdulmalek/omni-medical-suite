@@ -13,7 +13,7 @@
 ### التشغيل السريع
 
 ```bash
-git clone https://github.com/DrAbdulmalek/omni-medical-ocr-pipeline.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: omni-medical-ocr-pipeline (deleted (404)) → apps/ocr-pipeline/ -->
 cd omni-medical-ocr-pipeline
 pip install -r requirements.txt
 cp .env.example .env

@@ -5,7 +5,7 @@
 **Project:** Medical Handwriting OCR — Medical Data Analysis Platform v4.0
 **License:** MIT
 **Author:** Dr. Abdulmalek
-**Repository:** [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr)
+**Repository:** [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 
 ---
 

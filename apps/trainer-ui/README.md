@@ -35,7 +35,7 @@ Choose your installation level based on available resources:
 
 ```bash
 # Clone
-git clone https://github.com/DrAbdulmalek/medical-ocr-trainer.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-ocr-trainer (archived) → apps/trainer-ui/ -->
 cd medical-ocr-trainer
 
 # Option 1: Lite (~350MB) — PaddleOCR + Tesseract only
@@ -289,7 +289,7 @@ python ensemble_ocr.py --image note.jpg --engines all --strategy majority_voting
 
 ## Benchmark Integration
 
-The trainer integrates with [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) for standardised evaluation against golden datasets. The integration is **optional** — the trainer works fully without it, using built-in local metrics with a graceful fallback when the benchmarks package is not installed.
+The trainer integrates with [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) <!-- ARCHIVED: archived, merged into omni-medical-suite --> for standardised evaluation against golden datasets. The integration is **optional** — the trainer works fully without it, using built-in local metrics with a graceful fallback when the benchmarks package is not installed.
 
 ### How It Works
 
@@ -372,8 +372,8 @@ print(f"Thresholds passed: {results['thresholds_passed']}")
 
 ## Related Projects
 
-- [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) — Standardised golden datasets and evaluation suite for medical OCR
-- [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) — Full production OCR platform (FastAPI + React + K8s)
+- [medical-ocr-benchmarks](https://github.com/DrAbdulmalek/medical-ocr-benchmarks) <!-- ARCHIVED: archived, merged into omni-medical-suite --> — Standardised golden datasets and evaluation suite for medical OCR
+- [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite --> — Full production OCR platform (FastAPI + React + K8s)
 
 ## License
 
@@ -427,18 +427,18 @@ MIT License
 | Need | Repository |
 |------|-----------|
 | Collect & correct training data | **This repo** (medical-ocr-trainer) |
-| Production OCR deployment | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) |
-| OCR correction engine | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) |
+| Production OCR deployment | [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite --> |
+| OCR correction engine | [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) <!-- ARCHIVED: archived, merged into omni-medical-suite --> |
 | Unified platform | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) |
-| HF demo deployment | [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer-hf) |
+| HF demo deployment | [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer) <!-- ARCHIVED: archived, merged into omni-medical-suite --> |
 
 ## Related Repositories
 
 | Repo | Role | Status |
 |------|------|--------|
-| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) | Production OCR | Active |
-| [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer-hf) | HF Deployment | Deployment |
+| [medical-handwriting-ocr](https://github.com/DrAbdulmalek/medical-handwriting-ocr) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Production OCR | Archived (merged into omni-medical-suite) |
+| [medical-ocr-trainer-hf](https://github.com/DrAbdulmalek/medical-ocr-trainer) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | HF Deployment | Deployment |
 | [omni-medical-suite](https://github.com/DrAbdulmalek/omni-medical-suite) | Main Platform | Active |
-| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) | Core Correction Engine | Active |
+| [medical-ocr-postprocessor](https://github.com/DrAbdulmalek/medical-ocr-postprocessor) <!-- ARCHIVED: archived, merged into omni-medical-suite --> | Core Correction Engine | Archived (merged into omni-medical-suite) |
 
 **License: MIT** — Dr. Abdulmalek Tamer Al-husseini

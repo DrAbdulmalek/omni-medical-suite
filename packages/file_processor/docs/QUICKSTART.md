@@ -4,7 +4,7 @@
 
 ```bash
 # Clone
-git clone https://github.com/DrAbdulmalek/OmniFile_Processor.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: OmniFile_Processor (archived) → packages/file_processor/ -->
 cd OmniFile_Processor
 
 # Python environment
@@ -129,6 +129,6 @@ VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-base-handwritten')
 
 ## Support
 
-- [GitHub Issues](https://github.com/DrAbdulmalek/OmniFile_Processor/issues)
+- [GitHub Issues](https://github.com/DrAbdulmalek/OmniFile_Processor/issues) <!-- ARCHIVED: archived, merged into omni-medical-suite -->
 - [Discord](https://discord.gg/omnifile)
 - contact@omnifile.app

@@ -449,7 +449,7 @@ if [ "$DRY_RUN" = false ]; then
     echo -e "${GREEN}${BOLD}Uninstall complete!${NC}"
     echo ""
     echo -e "${YELLOW}To reinstall:${NC}"
-    echo -e "  git clone https://github.com/DrAbdulmalek/medical-handwriting-ocr.git"
+    echo -e "  git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-handwriting-ocr (archived) → apps/handwriting-demo/ -->"
     echo -e "  cd medical-handwriting-ocr"
     echo -e "  chmod +x setup.sh && ./setup.sh"
     echo ""

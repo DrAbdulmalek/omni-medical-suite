@@ -52,8 +52,8 @@ omnifile = "src.main:main"
 omnifile-gateway = "modules.ai.gateway.server:main"
 
 [project.urls]
-Homepage = "https://github.com/DrAbdulmalek/OmniFile_Processor"
-Repository = "https://github.com/DrAbdulmalek/OmniFile_Processor"
+Homepage = "https://https://github.com/DrAbdulmalek/omni-medical-suite  # ARCHIVED: OmniFile_Processor merged"
+Repository = "https://https://github.com/DrAbdulmalek/omni-medical-suite  # ARCHIVED: OmniFile_Processor merged"
 
 [tool.ruff]
 line-length = 120

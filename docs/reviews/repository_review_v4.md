@@ -1,7 +1,7 @@
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║          تقرير المراجعة النهائية - المستودع مكتمل بنسبة 98%                  ║
-║          https://github.com/DrAbdulmalek/medical-handwriting-ocr            ║
+║          https://github.com/DrAbdulmalek/medical-handwriting-ocr <!-- ARCHIVED: archived, merged into omni-medical-suite -->            ║
 ║          التاريخ: 2026-05-30 14:15                                           ║
 ║          Commit: 2066f72e (v4.0.0)                                           ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

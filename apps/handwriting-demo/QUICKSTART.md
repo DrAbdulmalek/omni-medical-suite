@@ -9,7 +9,7 @@ pip install streamlit paddleocr paddlepaddle pillow
 
 ### Step 2: Run
 ```bash
-git clone https://github.com/DrAbdulmalek/medical-handwriting-ocr.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-handwriting-ocr (archived) → apps/handwriting-demo/ -->
 cd medical-handwriting-ocr
 streamlit run app.py
 ```
@@ -27,7 +27,7 @@ streamlit run app.py
 Requires: Docker, 8GB RAM, 10GB disk
 
 ```bash
-git clone https://github.com/DrAbdulmalek/medical-handwriting-ocr.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-handwriting-ocr (archived) → apps/handwriting-demo/ -->
 cd medical-handwriting-ocr
 ./setup.sh
 ```

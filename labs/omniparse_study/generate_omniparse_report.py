@@ -420,7 +420,7 @@ story.append(Paragraph(
     'NLTK\'s sentence tokenizer for linguistically-aware sentence splitting, <b>FixedLengthWordChunking</b> which creates chunks of '
     'a specified word count, and <b>SlidingWindowChunking</b> which creates overlapping chunks with configurable window size and step. '
     'Additionally, there is a <b>TopicSegmentationChunking</b> class designed to use NLTK\'s TextTiling algorithm for topic-based '
-    'segmentation, though it has a minor bug in the implementation (using "nl.toknize" instead of "nltk.tokenize"). These chunking '
+    'segmentation, though it has a minor bug in the implementation (using   # ARCHIVED: merged into omni-medical-suite"nl.toknize" instead of "nltk.tokenize"). These chunking '
     'strategies are particularly relevant for preparing parsed content for RAG (Retrieval-Augmented Generation) pipelines.',
     styles['Body']
 ))
@@ -881,4 +881,4 @@ for ref in refs:
 
 # ── Build ──
 doc.multiBuild(story)
-print(f"Body PDF generated: {OUTPUT}")
+print(f  # ARCHIVED: merged into omni-medical-suite"Body PDF generated: {OUTPUT}")

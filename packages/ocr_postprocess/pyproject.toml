@@ -65,9 +65,9 @@ all = [
 medical-ocr-postprocess = "medical_ocr_postprocessor.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/DrAbdulmalek/medical-ocr-postprocessor"
-Repository = "https://github.com/DrAbdulmalek/medical-ocr-postprocessor"
-Issues = "https://github.com/DrAbdulmalek/medical-ocr-postprocessor/issues"
+Homepage = "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: medical-ocr-postprocessor merged
+Repository = "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: medical-ocr-postprocessor merged
+Issues = "https://github.com/DrAbdulmalek/omni-medical-suite/issues"  # ARCHIVED
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/medical_ocr_postprocessor"]

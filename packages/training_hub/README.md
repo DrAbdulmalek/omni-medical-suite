@@ -101,7 +101,7 @@ Because this pipeline processes medical text and handwriting documents, strict d
 
 ```bash
 # Clone the repository
-git clone https://github.com/DrAbdulmalek/medical-ocr-training-hub.git
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git <!-- ARCHIVED: medical-ocr-training-hub (archived) → packages/training_hub/ -->
 cd medical-ocr-training-hub
 
 # Install dependencies
