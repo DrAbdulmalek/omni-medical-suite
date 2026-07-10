@@ -944,7 +944,7 @@ class MedicalDictionaryManager:
                 }
 
             data["entries"] = [
-                {k: row[k] for k in row} for row in terms
+                dict(row) for row in terms
             ]
 
             os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
