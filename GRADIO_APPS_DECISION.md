@@ -57,7 +57,7 @@
 | 25 | `labs/omniparse_study/server.py` | 88 | **DELETE** | Variant copy of `packages/omniparse/server.py` (minor diff only) |
 | 26 | `apps/ocr-pipeline/app/gradio_hitl.py` | 47 | **DELETE** | Trivial 3-function wrapper — no unique functionality |
 
-### PENDING HUMAN REVIEW (17 files)
+### PENDING HUMAN REVIEW (18 files)
 
 | # | File | Lines | Decision | Reason / Unique Feature |
 |---|------|------:|----------|--------------------------|
