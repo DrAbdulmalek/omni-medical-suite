@@ -370,6 +370,85 @@ See [ROADMAP.md](ROADMAP.md) for details.
 
 ---
 
+## Standalone Tools
+
+The following Gradio-based tools serve different use cases and are independent
+from the main OCR pipeline. They are **not** part of the canonical app but are
+available for specific workflows.
+
+### Scanner Fixer Pro (`desktop/gradio_scanner_app.py`)
+
+Web-based alternative to the Tkinter desktop scanner app. Provides the same
+image enhancement pipeline via the browser.
+
+**Features:**
+- Shadow removal, deskew, perspective correction
+- Denoising (fastNlMeans), CLAHE contrast enhancement, auto-crop
+- Per-option toggles and processing metrics
+
+**Run:**
+```bash
+python desktop/gradio_scanner_app.py
+```
+
+### Medical Data Analysis Platform (`apps/handwriting-demo/hf-deploy/app/gradio_app.py`)
+
+Interactive HuggingFace Spaces deployment with clinical AI features.
+
+**Features:**
+- OCR Correction — annotated bounding boxes, editable word crops, ground truth collection
+- Document Parser — extract structured text from PDF/DOCX/PPTX
+- Medical Analysis — extract vitals, medications, diagnoses from free-form text
+- Clinical Q&A — evidence-based clinical questions with citations
+
+### Telegram Content Forwarder (`tools/ops/telegram_forwarder/app.py`)
+
+Gradio UI for the Telegram content forwarding tool (ops utility).
+
+**Features:**
+- Download-Upload technique to bypass "Restrict Saving Content" on protected channels
+- Real-time progress tracking, session string export for HF Spaces
+- Configurable delay, media/text filtering, reverse order
+- Rate-limit warnings and cancel support
+
+---
+
+## Archived Prototypes
+
+Formerly PENDING Gradio files with unique but non-production code have been
+moved to `research/prototypes/`. See that directory for details.
+
+## Legacy Translation Corrector Notes
+
+The file `packages/file_processor/legacy/translation_corrector/app.py` (977
+lines) contains a `TranslationRule`-based Arabic translation post-correction
+system with **13 unique regex patterns** not present in
+`packages/medical/tmx_processor.py`. The tmx_processor handles TMX file
+import/export and has only 3 language-detection regexes — it is a different
+tool entirely.
+
+**Unique regex rules in the legacy file:**
+
+| Pattern | Purpose |
+|---------|---------|
+| `comma_spacing` | Normalize comma whitespace |
+| `arabic_comma` | Normalize Arabic comma (،) spacing |
+| `waw_conjunction` | Fix waw after punctuation |
+| `number_spacing` | Merge split digits |
+| `number_comma` | Handle decimal commas in numbers |
+| `passive_by` | Detect English passive voice (was/were/by) |
+| `passive_simple` | Detect English passive (was/is/are + -ed) |
+| `tanween_alif` | Detect incorrect tanween alif |
+| `redundant_ba` | Remove redundant "بواسطة" |
+| `redundant_waw` | Fix redundant waw after certain words |
+| `word_repeat` | Remove consecutive duplicate words |
+| `extra_spaces` | Collapse multiple spaces |
+| `space_before_punct` | Remove space before Arabic punctuation |
+
+These rules are preserved in the legacy file for future reference.
+
+---
+
 <p align="center">
   <sub>Built with passion for Arabic medical NLP</sub>
 </p>
