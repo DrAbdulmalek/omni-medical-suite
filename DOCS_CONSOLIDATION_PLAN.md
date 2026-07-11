@@ -1,7 +1,9 @@
 # Documentation Consolidation Plan
 
-**Date:** 2026-07-11
-**Scope:** 24 root-level markdown files (excluding README.md, STATE_OF_TRUTH.md, PARTIAL_DUPLICATES_DECISION_QUEUE.md, VERIFICATION_LOG.md which remain at root)
+**Date:** 2026-07-11 (revised 2026-07-11 — ARCHIVE category added)
+**Scope:** 24 root-level markdown files (excluding README.md, STATE_OF_TRUTH.md, PARTIAL_DUPLICATES_DECISION_QUEUE.md, VERIFICATION_LOG.md, GRADIO_APPS_DECISION.md which remain at root)
+
+**Revision note:** Original plan classified 5 audit-trail files as DELETE. These are now ARCHIVE — they document how and when decisions were made and contain active PENDING items. See new ARCHIVE section below.
 
 ---
 
@@ -24,24 +26,25 @@
 | CHANGELOG.md | 60 | 3,568 | MERGE | merge | `docs/CHANGELOG.md` |
 | CLEANUP_LOG.md | 194 | 7,425 | MERGE | merge | `docs/CHANGELOG.md` |
 | MIGRATION_REPORT.md | 46 | 1,886 | MERGE | merge | `docs/CHANGELOG.md` |
-| BROKEN_REFERENCES.md | 238 | 14,908 | DELETE | delete | — |
-| DUPLICATE_VERIFICATION_REPORT.md | 4,127 | 398,214 | DELETE | delete | — |
-| GRADIO_APPS_DECISION.md | 139 | 10,708 | DELETE | delete | — |
+| BROKEN_REFERENCES.md | 238 | 14,908 | ARCHIVE | ~~move→`docs/audits/`~~ **DONE** | `docs/audits/BROKEN_REFERENCES.md` |
+| DUPLICATE_VERIFICATION_REPORT.md | 4,127 | 398,214 | ARCHIVE | ~~move→`docs/audits/`~~ **DONE** | `docs/audits/DUPLICATE_VERIFICATION_REPORT.md` |
+| GRADIO_APPS_DECISION.md | 139 | 10,708 | KEEP AT ROOT | **STAYS** — 18 PENDING decisions not yet resolved | _(root)_ |
 | MODEL_CARD.md | 114 | 3,365 | DELETE | delete | — |
 | PORTFOLIO.md | 110 | 5,414 | DELETE | delete | — |
 | PROPOSALS.md | 107 | 10,468 | DELETE | delete | — |
-| PYTEST_REPORT.md | 284 | 13,595 | DELETE | delete | — |
+| PYTEST_REPORT.md | 284 | 13,595 | ARCHIVE | ~~move→`docs/audits/`~~ **DONE** | `docs/audits/PYTEST_REPORT.md` |
 | TIERS.md | 199 | 5,207 | DELETE | delete | — |
-| WORKFLOW_AUDIT.md | 302 | 18,129 | DELETE | delete | — |
+| WORKFLOW_AUDIT.md | 302 | 18,129 | ARCHIVE | ~~move→`docs/audits/`~~ **DONE** | `docs/audits/WORKFLOW_AUDIT.md` |
 
 ### Category Counts
 
 | Category | File Count |
 |----------|-----------:|
-| KEEP AT ROOT | 2 |
+| KEEP AT ROOT | 3 (incl. GRADIO_APPS_DECISION.md — active PENDING decisions) |
 | MOVE TO docs/ | 5 |
 | MERGE | 8 (3 groups) |
-| DELETE | 9 |
+| ARCHIVE → `docs/audits/` | 4 (moved; GRADIO_APPS_DECISION.md stays at root) |
+| DELETE | 4 |
 | **Total processed** | **24** |
 
 ---
@@ -55,7 +58,7 @@ These files follow GitHub conventions and must remain at the repository root for
 | `CONTRIBUTING.md` | GitHub standard — displayed on PR/issue pages and the repo homepage |
 | `SECURITY.md` | GitHub standard — displayed on the Security tab; enables security policy |
 
-_(4 additional files already confirmed to stay at root: README.md, STATE_OF_TRUTH.md, PARTIAL_DUPLICATES_DECISION_QUEUE.md, VERIFICATION_LOG.md)_
+_(5 additional files already confirmed to stay at root: README.md, STATE_OF_TRUTH.md, PARTIAL_DUPLICATES_DECISION_QUEUE.md, VERIFICATION_LOG.md, GRADIO_APPS_DECISION.md)_
 
 ---
 
@@ -136,21 +139,37 @@ Three files that capture project history from different angles.
 
 ---
 
+## Category: ARCHIVE → `docs/audits/`
+
+Audit-trail files that document how and when decisions were made. These are NOT stale documentation — they contain the reasoning behind cleanup actions and, in some cases, active pending decisions. They are moved (not deleted) to `docs/audits/` to keep the root clean while preserving the audit trail.
+
+**> ⚠️ Standing rule: Any file documenting decisions not yet resolved (containing PENDING items or awaiting human review) is an active work file, not stale documentation. It must not be included in any DELETE plan regardless of its age or location.**
+
+| File | Lines | Justification | Status |
+|------|------:|---------------|--------|
+| `BROKEN_REFERENCES.md` | 238 | Audit of broken cross-repo references (2025-07-26). Documents which references were found broken and what was fixed. | ✅ Moved to `docs/audits/` |
+| `DUPLICATE_VERIFICATION_REPORT.md` | 4,127 | Automated verification of 344 duplicate groups (2026-07-10). Source data for PARTIAL_DUPLICATES_DECISION_QUEUE.md analysis. | ✅ Moved to `docs/audits/` |
+| `PYTEST_REPORT.md` | 284 | Pytest run results (305 passed / 97 failed / 45 skipped). Historical test baseline. | ✅ Moved to `docs/audits/` |
+| `WORKFLOW_AUDIT.md` | 302 | Audit of 213 YAML files identifying 46 remnant GitHub Actions workflows. Documents cleanup decisions. | ✅ Moved to `docs/audits/` |
+
+### Exception: `GRADIO_APPS_DECISION.md` stays at root
+
+This file contains **18 active PENDING decisions** that have not been resolved yet (each file has a unique feature described). It is an **active work document** being used in the current cleanup session.
+
+**It must NOT be moved to `docs/audits/` until all 18 PENDING decisions are resolved.** Once resolved, it can be archived alongside the other audit files.
+
+---
+
 ## Category: DELETE
 
-One-time audit reports, stale outputs, and files whose useful content has been absorbed into living documents.
+Stale outputs and files whose useful content has been absorbed into living documents. These have no audit-trail value and no pending decisions.
 
 | File | Lines | Justification |
 |------|------:|---------------|
-| `BROKEN_REFERENCES.md` | 238 | One-time audit report (2025-07-26) of broken cross-repo references. All actionable findings resolved during monorepo consolidation; current state documented in STATE_OF_TRUTH.md |
-| `DUPLICATE_VERIFICATION_REPORT.md` | 4,127 | One-time automated verification report (2026-07-10) listing 344 duplicate groups. Largest file in root (398 KB). Findings consumed by cleanup actions; decisions recorded in VERIFICATION_LOG.md and STATE_OF_TRUTH.md |
-| `GRADIO_APPS_DECISION.md` | 139 | One-time audit decision (Task 3.5) classifying 43 Gradio files as keep/delete/pending. Decisions already executed; outcome logged in VERIFICATION_LOG.md |
 | `MODEL_CARD.md` | 114 | HuggingFace model card YAML frontmatter for "Ensemble Baseline Model v1.0". Belongs in the model repository or `model/` directory, not the source repo root |
 | `PORTFOLIO.md` | 110 | Architectural portfolio showing pre-monorepo repo structure with strikethrough-deleted repos. Superseded by STATE_OF_TRUTH.md and docs/ARCHITECTURE.md |
 | `PROPOSALS.md` | 107 | Feature proposals (Arabic). Content overlaps with and is subsumed by ROADMAP.md which already tracks planned features |
-| `PYTEST_REPORT.md` | 284 | One-time pytest report (305 passed / 97 failed / 45 skipped). Test results are transient; re-running `pytest` produces current state. Historical report has no ongoing value |
 | `TIERS.md` | 199 | Tier comparison (Lite/Standard/Full) with feature matrix. Content fully duplicated by MODES.md which already covers the same three deployment tiers with the same feature breakdown |
-| `WORKFLOW_AUDIT.md` | 302 | One-time audit (2025-07-11) of 213 YAML files identifying 46 remnant GitHub Actions workflows. Findings consumed during cleanup; outcome in VERIFICATION_LOG.md |
 
 **Action:** `git rm <file>` for each file above. No content needs to be preserved elsewhere.
 
@@ -167,7 +186,8 @@ One-time audit reports, stale outputs, and files whose useful content has been a
 - [ ] MERGE Group 1: Create `docs/DEPLOYMENT.md` from DEPLOYMENT_GUIDE.md + DEPLOY.md + README-Deployment.md
 - [ ] MERGE Group 2: Create `docs/MAINTENANCE.md` from MAINTENANCE.md + MAINTENANCE_LOG.md
 - [ ] MERGE Group 3: Create `docs/CHANGELOG.md` from CHANGELOG.md + CLEANUP_LOG.md + MIGRATION_REPORT.md
-- [ ] DELETE: `git rm` all 9 files listed in DELETE category
+- [ ] ARCHIVE: ~~`git mv` 4 audit files to `docs/audits/`~~ **DONE**
+- [ ] DELETE: `git rm` all 4 files listed in DELETE category
 - [ ] Update `README.md` links to point to `docs/` for moved files
 - [ ] Verify no broken internal references with a link check pass
 - [ ] Commit with message: `docs: consolidate 24 root markdown files per DOCS_CONSOLIDATION_PLAN.md`
@@ -183,6 +203,7 @@ README.md
 STATE_OF_TRUTH.md
 PARTIAL_DUPLICATES_DECISION_QUEUE.md
 VERIFICATION_LOG.md
+GRADIO_APPS_DECISION.md     ← stays until 18 PENDING decisions resolved
 CONTRIBUTING.md
 SECURITY.md
 DOCS_CONSOLIDATION_PLAN.md   ← this file (can be deleted after execution)

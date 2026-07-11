@@ -1,15 +1,17 @@
 # GRADIO_APPS_DECISION.md — Audit of 43 Files Containing `import gradio`
 
 > Generated: 2025-07-10 | Task 3.5 — Gradio Apps Audit
+> **DELETE section executed: 2026-07-11** — 24 files confirmed deleted, 20 remaining (2 KEEP + 18 PENDING)
 
 ## Summary
 
 | Metric | Count |
 |--------|-------|
-| Total files with `import gradio` | 43 |
+| Total files with `import gradio` (original) | 43 |
 | **KEEP** | 2 |
-| **DELETE** (merged-remnant copies / false positives) | 24 |
+| **DELETE** ~~(24)~~ — **EXECUTED, confirmed** | 0 remaining |
 | **PENDING HUMAN REVIEW** (unique functionality) | 18 |
+| **Current files with `import gradio`** | **20** (verified via `find . -name "*.py" -exec grep -l "import gradio" {} \;`)|
 
 ## Decision Rules Applied
 
@@ -28,7 +30,9 @@
 | 1 | `app/gradio_full_hitl.py` | 944 | **KEEP** | Official app — the single canonical Gradio interface |
 | 2 | `hf-space/app.py` | 664 | **KEEP** | Deployed on HuggingFace Space — CPU-optimized variant (no LLM, no HF upload, no dictionary update) |
 
-### DELETE (24 files)
+### DELETE (24 files) — ✅ EXECUTED
+
+> All 24 files below were deleted in commit `f8dab72`. Verified: `find . -name "*.py" -exec grep -l "import gradio" {} \;` returns exactly 20 files (2 KEEP + 18 PENDING).
 
 | # | File | Lines | Decision | Reason |
 |---|------|------:|----------|--------|

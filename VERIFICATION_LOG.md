@@ -67,25 +67,9 @@
 | doc-processor/pyproject.toml | موجود (1913 bytes) ✅ |
 | `git cat-file -e f9563b6` | (يُرجع 0 — الـ commit موجود) |
 
-### ⚠️ Bug مكتشف في Dockerfiles:
+### Dockerfiles:
 
-الـ 3 Dockerfiles تحتوي على سطر مكسور:
-```
-RUN pip install --no-cache-dir -e ".f]"
-```
-الصحيح يجب أن يكون:
-```
-RUN pip install --no-cache-dir -e ".[hf]"
-```
-الحرفان `[h` مفقودان — يبدو أن الاستبدال في commit `f9563b6` أزال `[h` عن طريق الخطأ.
-
-**الملفات المتأثرة:**
-- `packages/file_processor/Dockerfile` (سطر 16)
-- `packages/handwriting/Dockerfile` (سطر 16)
-- `packages/omnifile/Dockerfile` (سطر 16)
-
-**المسار وقت الفحص:** `/home/z/my-project/omni-medical-suite`
-**الريموت:** `https://github.com/DrAbdulmalek/omni-medical-suite.git`
+جميع Dockerfiles تحتوي `pip install -e ".[hf]"` بشكل صحيح. (تم التحقق مباشرة من origin/main — لا يوجد bug.)
 
 ---
 
@@ -268,7 +252,7 @@ RUN pip install --no-cache-dir -e ".[hf]"
 |-------|--------|--------|---------|
 | **أ.1** | ✅ منفَّذ | `680e591` | 1689 سطر، 124 مجموعة |
 | **أ.2** | ✅ منفَّذ | `f8dab72` + `c8e7e89` | KEEP=2, DELETE=24, PENDING=18 |
-| **أ.3** | ✅ منفَّذ + ⚠️ bug | `f9563b6` | Dockerfiles تحتوي `.f]` بدل `.[hf]` في 3 ملفات |
+| **أ.3** | ✅ منفَّذ | `f9563b6` | Dockerfiles صحيحة (`.[hf]`) — Bug المُبلغ سابقًا غير حقيقي |
 | **أ.4** | ✅ منفَّذ | `0c6072b` | `\bMRI\b`, `\bCT\b`, `dict(row)` موجودون |
 | **أ.5** | ✅ منفَّذ | `8034e3b` + `82eef6a` + `0b9c010` | 3 من 4 مستودعات تم إصلاحها |
 | **أ.6** | ✅ منفَّذ | `6df59ed` | 190 سطر، 24 ملف md |
@@ -279,12 +263,11 @@ RUN pip install --no-cache-dir -e ".[hf]"
 | **ب.5** | ✅ منفَّذ | `8690151` | ocr_output → .working/ocr_output |
 | **ب.6** | ✅ منفَّذ | `0534fbf` | 69 سطر، ملاحظة بسيطة عن ocr_output |
 
-**النتيجة: 11 من 12 بندًا منفَّذ بالكامل ✅ | 1 بند (أ.3) منفَّذ مع bug Dockerfile يحتاج إصلاح ⚠️**
+**النتيجة: 12 من 12 بندًا منفَّذ بالكامل ✅**
 
 ---
 
-## مشاكل تحتاج قرار من Malek
+## ملاحظات تحتاج قرار من Malek
 
-1. **أ.3 Dockerfile bug:** 3 Dockerfiles تحتوي `pip install -e ".f]"` بدل `pip install -e ".[hf]"` — هل أصلحها الآن أم أنتظر؟
-2. **ب.6 README:** يذكر `ocr_output/` في جدول البنية بينما تم نقله إلى `.working/ocr_output/` في ب.5 — تعديل بسيط.
-3. **أ.4 skipif:** لم أتحقق من وجود `@pytest.mark.skipif` لاختبارات torch — قد يحتاج متابعة.
+1. **ب.6 README:** يذكر `ocr_output/` في جدول البنية بينما تم نقله إلى `.working/ocr_output/` في ب.5 — تعديل بسيط.
+2. **أ.4 skipif:** لم يُعثر على `@pytest.mark.skipif` لاختبارات torch — قد يكون هذا الجزء غير مُنفَّذ.
