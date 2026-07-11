@@ -1,0 +1,3 @@
+[submodule "data/arabic-medical-glossary"]
+	path = data/arabic-medical-glossary
+	url = https://github.com/DrAbdulmalek/arabic-medical-glossary.git

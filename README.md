@@ -70,8 +70,10 @@ Omni Medical Suite extracts, corrects, and structures Arabic text from medical d
 
 ### Option 1: Gradio Web UI
 ```bash
-git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
+git clone --recursive https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
+# If you cloned without --recursive:
+# git submodule update --init
 pip install -r requirements.txt
 python app/gradio_full_hitl.py
 ```
@@ -79,7 +81,7 @@ Open `http://localhost:7860`
 
 ### Option 2: Desktop App (PyQt6)
 ```bash
-git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
+git clone --recursive https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
 pip install PyQt6 pytesseract  # PaddleOCR/EasyOCR optional
 python desktop/omni_medical_desktop.py
@@ -95,7 +97,7 @@ Features:
 
 ### Option 3: Docker (Full Stack)
 ```bash
-git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
+git clone --recursive https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
 cp .env.example .env   # Edit with your settings
 docker-compose up -d
