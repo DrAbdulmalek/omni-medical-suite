@@ -8,16 +8,12 @@ Groups/files with meaningful code differences that need human review.
 These have <30 changed lines but are in active (non-merged-remnant) paths.
 They were NOT modified.
 
-- `././apps/handwriting-demo/variants/handwriting-ocr/modules/security/audit_logger.py` (audit_logger.py) — 406 changed lines, ? code changes
-  Primary: `./packages/audit/audit_logger.py`
-- `././packages/file_processor/modules/audit/audit_logger.py` (audit_logger.py) — 19 changed lines, ? code changes
-  Primary: `./packages/audit/audit_logger.py`
+<!-- audit_logger.py: RESOLVED 2026-07-11 — security version renamed to security_audit_logger.py, audit/ version stays independent. See commit. -->
 - `././apps/handwriting-demo/variants/handwriting-ocr/modules/vision/data_augmentation.py` (data_augmentation.py) — 18 changed lines, ? code changes
   Primary: `./packages/vision/data_augmentation.py`
 - `././hf-space/packages/vision/data_augmentation.py` (data_augmentation.py) — 25 changed lines, ? code changes
   Primary: `./packages/vision/data_augmentation.py`
-- `././packages/file_processor/legacy/mobile_review/split/03-layout-preserving-export/layout_preserving.py` (layout_preserving.py) — 228 changed lines, ? code changes
-  Primary: `./packages/handwriting/modules/export/layout_preserving.py`
+<!-- layout_preserving.py legacy: DELETED 2026-07-11 — unused file in split/03, no imports found. See commit. -->
 - `././packages/file_processor/modules/export/layout_preserving.py` (layout_preserving.py) — 6 changed lines, ? code changes
   Primary: `./packages/handwriting/modules/export/layout_preserving.py`
 - `././apps/handwriting-demo/variants/handwriting-ocr/modules/vision/pdf_to_training_data.py` (pdf_to_training_data.py) — 75 changed lines, ? code changes
@@ -36,8 +32,7 @@ They were NOT modified.
   Primary: `./packages/nlp/translation_corrector.py`
 - `././hf-space/packages/nlp/translation_corrector.py` (translation_corrector.py) — 25 changed lines, ? code changes
   Primary: `./packages/nlp/translation_corrector.py`
-- `././packages/file_processor/legacy/mobile_review/split/05-review-systems/user_manager.py` (user_manager.py) — 138 changed lines, ? code changes
-  Primary: `./packages/core/user_manager.py`
+<!-- user_manager.py legacy: CLOSED 2026-07-11 — self-contained legacy system, no action needed. See commit. -->
 - `././hf-space/packages/core/user_manager.py` (user_manager.py) — 3 changed lines, ? code changes
   Primary: `./packages/core/user_manager.py`
 - `././apps/handwriting-demo/variants/handwriting-ocr/modules/vision/video_ocr.py` (video_ocr.py) — 25 changed lines, ? code changes

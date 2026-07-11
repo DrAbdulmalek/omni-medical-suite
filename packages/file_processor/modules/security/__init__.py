@@ -19,7 +19,7 @@ from modules.security.encryption import FileEncryptor
 from modules.security.sensitive_data_scanner import SensitiveDataScanner
 
 try:
-    from modules.security.audit_logger import AuditLogger, get_audit_logger
+    from modules.security.security_audit_logger import AuditLogger, get_audit_logger
     _audit_available = True
 except ImportError:
     _audit_available = False
