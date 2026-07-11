@@ -95,3 +95,40 @@
 6. **~50 ملف requirements*.txt قديمة** — يمكن حذفها بعد تحديث Dockerfiles لاستخدام pyproject.toml extras. انظر `docs/DEPENDENCY_STRATEGY.md`.
 
 7. **المراجع المكسورة في المستودعات البعيدة** — تم إصلاح المراجع المحلية فقط. repos البعيدة (repo-sync-toolkit، medical-ocr-trainer-hf، intelli-file-manager، sync-github) تحتاج إصلاحاً مباشراً على GitHub.
+## ⚠️ قاعدة صارمة: فحص استيراد إلزامي بعد أي حذف جماعي
+
+**منذ: 2026-07-11 (بعد اكتشاف 73 استيرادًا مكسورًا بسبب commit 93185df)**
+
+> **أي حذف جماعي لملفات "مكررة" (MD5 أو غير ذلك) يجب أن يتبعه فورًا — في نفس commit — تشغيل فعلي لاختبار استيراد كل حزمة متأثرة.** المطابقة الحرفية للمحتوى (MD5) لا تعني أن الاستيراد آمن — الملف قد يكون مطلوبًا محليًا بواسطة `__init__.py` في مسار مختلف عن المسار الذي احتُفظ بالنسخة الأساسية فيه.
+
+### سكربت الفحص الإلزامي
+بعد أي حذف جماعي، نفّذ:
+```python
+import os, re
+PACKAGES = ['packages/handwriting', 'packages/file_processor', 'packages/omnifile']
+for pkg in PACKAGES:
+    modules_dir = os.path.join(pkg, 'modules')
+    if not os.path.isdir(modules_dir): continue
+    for mod in sorted(os.listdir(modules_dir)):
+        mod_path = os.path.join(modules_dir, mod)
+        if not os.path.isdir(mod_path): continue
+        init = os.path.join(mod_path, '__init__.py')
+        if not os.path.exists(init): continue
+        with open(init) as f: content = f.read()
+        for m in re.finditer(r'from modules\.(\w+)\.(\w+) import', content):
+            fpath = os.path.join(modules_dir, m.group(1), m.group(2) + '.py')
+            if not os.path.exists(fpath):
+                print(f'BROKEN: {pkg}/modules/{mod}/__init__.py -> {fpath}')
+```
+النتيجة يجب أن تكون دائمًا: **صفر**.
+
+## 🔶 سؤال معماري مفتوح (يحتاج قرار Malek)
+
+الوضع الحالي: `packages/handwriting/modules/vision/__init__.py` يستورد `from modules.vision.ocr_engine import OCREngine` — أي يتوقع `ocr_engine.py` محليًا داخل شجرة handwriting. لكن النسخة "الأساسية" المفردة موجودة في `packages/vision/ocr_engine.py`. الحل الفوري كان نسخ الملف محليًا (73+3 ملف).
+
+**السؤال:** هل التصميم الصحيح طويل المدى هو:
+- **(أ)** الاحتفاظ بنسخ محلية في كل حزمة مدمجة (الحل الحالي — بسيط لكنه يُضعِف التناسق)؟
+- **(ب)** تعديل كل `__init__.py` للاستيراد من الموقع المركزي `packages/vision/ocr_engine.py` بدل النسخ المحلية (نظيف معماريًا لكنه يحتاج تعديل مئات الاستيرادات وإعادة اختبار شاملة)؟
+- **(ج)** إزالة الحزم المدمجة بالكامل واستبدالها بـ symlinks أو إعادة توجيه imports؟
+
+هذا قرار معماري لـMalek — الإصلاح الحالي (أ) هو الحل الآمن الفوري فقط.
