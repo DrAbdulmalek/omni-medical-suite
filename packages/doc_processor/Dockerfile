@@ -15,11 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install Python dependencies
-COPY packages/core/requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy core package
+COPY pyproject.toml .
 COPY packages/core/ /app/core/
+RUN pip install --no-cache-dir -e ".[api,ocr]"
 
 # Create upload directories
 RUN mkdir -p /tmp/medical_docs/uploads /tmp/medical_docs/processed

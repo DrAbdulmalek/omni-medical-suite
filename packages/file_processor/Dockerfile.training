@@ -82,9 +82,9 @@ RUN pip install --no-cache-dir \
 # =============================================================================
 # Training Requirements
 # =============================================================================
-COPY requirements-training.txt /app/requirements-training.txt
+COPY pyproject.toml /app/pyproject.toml
 
-RUN pip install --no-cache-dir -r /app/requirements-training.txt
+RUN pip install --no-cache-dir -e "/app[training]"
 
 # =============================================================================
 # Project Source

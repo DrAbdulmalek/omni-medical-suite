@@ -1,9 +1,9 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "omnifile-processor"
+name = "omnifile"
 version = "4.3.0"
 description = "معالج مستندات OCR ذكي يدعم العربية — 5 محركات + NLP + تصدير"
 readme = "README.md"
@@ -21,25 +21,96 @@ classifiers = [
     "Natural Language :: Arabic",
 ]
 dependencies = [
+    "streamlit>=1.28.0",
     "gradio>=4.0.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
+    "filelock>=3.12.0",
+    "tqdm>=4.65.0",
+    "requests>=2.31.0",
+    "openpyxl>=3.1.0",
+    "fpdf2>=2.7.0",
+    "psutil>=5.9.0",
+    "matplotlib>=3.8.0",
+    "google-generativeai>=0.3.0",
+    "GitPython>=3.1.0",
+    "beautifulsoup4>=4.12.0",
+    "flask>=3.0.0",
     "Pillow>=10.0.0",
-    "python-docx>=0.8.11",
+    "flake8>=7.0.0",
+    "jinja2>=3.1.0",
+    "weasyprint>=60.0",
+    "symspellpy>=6.7.0",
 ]
 
 [project.optional-dependencies]
-ocr = ["easyocr>=1.7.0", "pytesseract>=0.3.10"]
-nlp = ["transformers>=4.35.0", "torch>=2.0.0"]
-full = ["omnifile-processor[ocr,nlp]"]
-dev = ["pytest>=7.4.0", "pytest-cov>=4.1.0", "ruff>=0.1.0"]
+ocr = [
+    "pdf2image>=1.16.0",
+    "pytesseract>=0.3.10",
+    "python-multipart>=0.0.6",
+    "python-docx>=0.8.11",
+    "surya-ocr>=0.4.0",
+    "timm>=0.9.0",
+    "easyocr>=1.7.0",
+    "PyMuPDF>=1.23.0",
+    "opencv-python-headless>=4.8.0",
+    "paddlepaddle>=2.5.0",
+    "paddleocr>=2.7.0",
+    "scikit-image>=0.21.0",
+    "rapidfuzz>=3.0.0",
+    "onnxruntime>=1.16.0",
+]
+nlp = [
+    "langdetect>=1.0.9",
+    "pyspellchecker>=0.7.0",
+    "transformers>=4.36.0",
+    "torch>=2.1.0",
+    "sentencepiece>=0.1.99",
+    "arabic-reshaper>=3.0.0",
+    "python-bidi>=0.4.2",
+    "ar-corrector>=0.6.3",
+    "jiwer>=3.0.0",
+    "torchvision>=0.15.0",
+    "peft>=0.7.0",
+    "scikit-learn>=1.3.0",
+    "huggingface_hub>=0.19.0",
+    "datasets>=2.15.0",
+    "language-tool-python>=2.7.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "ruff>=0.1.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=24.0.0",
+    "isort>=5.13.0",
+]
+full = ["omnifile[ocr,nlp]"]
+hf = [
+    "easyocr>=1.7.0",
+    "pytesseract>=0.3.10",
+    "transformers>=4.36.0",
+    "torch>=2.1.0",
+    "PyMuPDF>=1.23.0",
+    "python-docx>=0.8.11",
+    "openpyxl>=3.1.0",
+    "langdetect>=1.0.9",
+    "pyspellchecker>=0.7.2",
+    "ar-corrector>=0.6.3",
+    "arabic-reshaper>=3.0.0",
+    "python-bidi>=0.4.2",
+    "jiwer>=3.0.0",
+    "sentencepiece>=0.1.99",
+]
 
 [project.scripts]
 omnifile = "src.main:main"
 
 [project.urls]
-Homepage = "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: OmniFile_Processor merged
-Repository = "https://github.com/DrAbdulmalek/omni-medical-suite"  # ARCHIVED: OmniFile_Processor merged
+# ARCHIVED: OmniFile_Processor merged into omni-medical-suite
+Homepage = "https://github.com/DrAbdulmalek/omni-medical-suite"
+Repository = "https://github.com/DrAbdulmalek/omni-medical-suite"
 
 [tool.ruff]
 line-length = 120
