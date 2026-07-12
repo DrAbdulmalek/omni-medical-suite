@@ -297,22 +297,106 @@ Even with a better OCR engine (EasyOCR/PaddleOCR), the per-pair cost is acceptab
 
 ---
 
-## Phase 3 Conclusion
+## Phase 4 — EasyOCR validation (proper Arabic OCR)
+
+**Date:** 2026-07-13
+**Commit:** (pending)
+**OCR engine:** EasyOCR 1.7.2 (CPU mode, Arabic + English models)
+**Infrastructure note:** EasyOCR requires PyTorch (~1.3 GB RAM per process). Only one instance can run at a time on this system. The full 40-pair synthetic experiment could not complete within resource constraints — 7 comparisons were obtained.
+
+### Task 0 — Does normalization degrade OCR quality?
+
+Hypothesis: `normalize_scanned_image()` (deskew + auto_crop + resize + grayscale) might produce images that are harder for OCR than the raw scan.
+
+| Comparison | EasyOCR similarity | Verdict |
+|------------|:------------------:|---------|
+| raw vs full_normalize | **91.7%** | Normalization preserves most OCR content |
+| raw vs deskew+crop only | **94.3%** | Slightly better without grayscale/resize |
+| full_normalize vs deskew+crop | **91.3%** | Grayscale/resize causes ~3% additional loss |
+
+**Conclusion: Normalization does NOT destroy OCR quality.** The 91.7% self-similarity between raw and fully normalized versions of the same image is high. The `text_dedup.py` pipeline can safely use normalized images for OCR. However, for maximum OCR accuracy, `deskew + crop` (without resize/grayscale) is marginally better (94.3%).
+
+> Note: EasyOCR receives a 3-channel image. When `normalize_scanned_image()` converts to grayscale (1-channel), EasyOCR internally handles it. The 3% loss likely comes from the resize step changing text geometry, not from the grayscale conversion.
+
+### Task 1 — Real image pairs (EasyOCR)
+
+| Pair | Expected | phash | **EasyOCR text sim** | Verdict |
+|------|----------|:-----:|:---------------------:|---------|
+| ref vs A_tilted | same | 20 | **90.5%** | ✅ DUP at T≤90% |
+| ref vs C_borders | same | 14 | **97.6%** | ✅ DUP at T≤95% |
+| ref vs different_doc | **different** | 26 | **1.8%** | ✅ NOT dup at all T |
+
+**Comparison with Tesseract:**
+
+| Pair | Tesseract | EasyOCR | Improvement |
+|------|:---------:|:-------:|:-----------:|
+| ref vs A_tilted | 52.0% | **90.5%** | +38.5 |
+| ref vs C_borders | 59.2% | **97.6%** | +38.4 |
+| ref vs different_doc | 1.7% | **1.8%** | Same (already good) |
+
+**Same-doc/different-doc separation:**
+- Same-doc minimum: **90.5%**
+- Different-doc maximum: **1.8%**
+- **Gap: 88.7 percentage points** — massive, clear separation
+
+This is exactly the "clear gap" that was missing with both phash alone and Tesseract. With EasyOCR, any threshold between 2% and 90% correctly classifies all three pairs.
+
+### Task 1b — Synthetic "second scan" (1 of 40)
+
+| Pair | Expected | EasyOCR text sim |
+|------|----------|:-----------------:|
+| ref vs ref_synth#1 | same | **89.8%** |
+
+This single data point is above the 85% threshold (and close to 90%). Combined with the 90.5% for the real tilted pair, it suggests the full 40-pair experiment would show same-doc similarity in the 85-95% range. **The full 40-pair experiment could not be completed** due to memory constraints (each EasyOCR process requires ~1.3 GB RAM, and only one instance can run at a time; 9 sequential calls exceeded the tool's time limit).
+
+### Task 1c — Edge case: same template, different patient
+
+| Metric | Value |
+|--------|-------|
+| Text similarity | **98.3%** |
+| At 85% threshold | ⚠️ FALSE POSITIVE |
+| At 90% threshold | ⚠️ FALSE POSITIVE |
+| At 95% threshold | ⚠️ FALSE POSITIVE |
+
+**This is the same result as Tesseract (88.4%) but worse.** The modified patient image changes only a small rectangle (English name overlay on an Arabic document), so 98.3% of the text is identical.
+
+**`fuzz.ratio` on full text cannot detect single-field changes.** This is a fundamental limitation of full-document text comparison, not an OCR quality issue. Detecting "same template, different patient" requires **field-level comparison**: extract individual fields (patient name, ID, date) and compare each one independently.
+
+### Phase 4 Summary
 
 | Question | Answer |
 |----------|--------|
-| Does the two-stage architecture make sense? | **Yes — conceptually sound** |
+| Is the problem in normalization? | **No — 91.7% self-similarity** |
+| Does EasyOCR solve the Arabic problem? | **Yes — 551 chars of real Arabic vs Tesseract's garbage** |
+| Is there clear same-doc/different-doc separation? | **Yes — 88.7% gap (90.5% vs 1.8%)** |
+| Can the edge case be handled? | **No — needs field-level comparison** |
+| Overall verdict | **Partial success** (see below) |
+
+### Assessment against success criteria
+
+- **Full success** (clear gap + edge case rejected): **No** — edge case fails at all thresholds
+- **Partial success** (clear same-doc/different-doc separation, edge case unaddressed): **Yes** — 88.7% gap is excellent
+- **Complete failure**: **No** — massive improvement over Tesseract
+
+---
+
+## Phase 3 Conclusion (updated after Phase 4)
+
+| Question | Answer |
+|----------|--------|
+| Does the two-stage architecture make sense? | **Yes — confirmed by EasyOCR results** |
 | Does it work with Tesseract on Arabic? | **No — Tesseract can't read Arabic** |
-| Should we test with proper Arabic OCR? | **Yes — this is the clear next step** |
-| Is `text_dedup.py` ready for production? | **Architecture ready, needs proper OCR integration** |
+| Does it work with EasyOCR on Arabic? | **Yes — 88.7% gap between same-doc and different-doc** |
+| Can it handle same-template/different-patient? | **No — needs field-level comparison (not full-text)** |
+| Is `text_dedup.py` ready for production? | **Architecture ready, needs EasyOCR integration** |
 
 ### Updated Recommendation
 
 1. **Default phash threshold = 5** (unchanged) — validated for synthetic shifts
-2. **Two-stage pipeline** (`text_dedup.py`) is the correct architecture for real scan dedup
-3. **Test with `OCREngine`** (EasyOCR/PaddleOCR) before drawing final conclusions on text similarity thresholds
-4. **Expected outcome** with proper Arabic OCR: same-doc similarity >95%, different-doc <50%, clear separation at threshold ~85-90%
-5. **Edge case threshold = 90%** — correctly rejects same-template/different-patient while (expected) accepting genuine duplicates
+2. **Two-stage pipeline** with EasyOCR works for same-doc vs different-doc detection
+3. **Text similarity threshold = 85%** (conservative) — based on single synthetic pair (89.8%) and real tilted pair (90.5%)
+4. **Edge case requires field-level comparison** — `fuzz.ratio` on full text cannot detect single-field changes. This is a separate feature (document structure parsing), not a dedup pipeline issue
+5. **Full 40-pair validation** should be re-run on hardware with adequate RAM (or with GPU acceleration) to confirm the 85% threshold holds for all 40 pairs
 
 ---
 
@@ -347,12 +431,14 @@ Despite not solving the dedup problem, `fit_to_canvas()` remains useful as a gen
 | v1 | 2026-07-13 | (previous session) | Initial validation, identified asymmetric crop as root cause |
 | v2 | 2026-07-13 | `8f25e40` | Added `fit_to_canvas` + `fit_mode="canvas"` option |
 | v2 | 2026-07-13 | `c47ae43` | Tested canvas mode — no improvement over aspect_resize |
-| v3 | 2026-07-13 | (pending) | Two-stage pipeline: `text_dedup.py` + experiment |
-| v3 | 2026-07-13 | (pending) | Validation report: architecture correct, Tesseract inadequate |
+| v3 | 2026-07-13 | `a086edb` | Two-stage pipeline: `text_dedup.py` |
+| v3 | 2026-07-13 | `dfd3581` | Tesseract validation — architecture correct, OCR inadequate |
+| v4 | 2026-07-13 | (pending) | EasyOCR validation — 88.7% gap, partial success |
 
 ## Files
 
 - `download/real_validation_v2_results.csv` — Hamming distances (v2)
-- `download/text_dedup_validation.csv` — Two-stage experiment results
+- `download/text_dedup_validation.csv` — Tesseract two-stage results
+- `download/ocr_results/*.json` — Raw EasyOCR outputs per image
 - `packages/scanner_fixer/src/scanner_fixer/text_dedup.py` — Two-stage pipeline implementation
 - This report: `packages/scanner_fixer/verification/REAL_DATA_VALIDATION.md`
