@@ -25,7 +25,7 @@
   <a href="https://github.com/DrAbdulmalek/omni-medical-suite"><b>GitHub</b></a> &middot;
   <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><b>Demo</b></a> &middot;
   <a href="docs/ARCHITECTURE.md"><b>Architecture</b></a> &middot;
-  <a href="ROADMAP.md"><b>Roadmap</b></a> &middot;
+  <a href="docs/ROADMAP.md"><b>Roadmap</b></a> &middot;
   <a href="CONTRIBUTING.md"><b>Contributing</b></a>
 </p>
 
@@ -183,13 +183,11 @@ See [`.env.example`](.env.example) for the full list.
 | Document | Content |
 |----------|---------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, data flow, package map |
-| [PIPELINE.md](PIPELINE.md) | Full OCR processing pipeline |
-| [MODES.md](MODES.md) | Operation modes (lite, standard, full) |
-| [DEPLOY.md](DEPLOY.md) | Deployment guide (Docker, K8s, HF) |
-| [MODEL_CARD.md](MODEL_CARD.md) | Model card with benchmarks |
-| [ROADMAP.md](ROADMAP.md) | Development roadmap & milestones |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
-| [CLEANUP_LOG.md](CLEANUP_LOG.md) | Repository consolidation history |
+| [docs/PIPELINE.md](docs/PIPELINE.md) | Full OCR processing pipeline |
+| [docs/MODES.md](docs/MODES.md) | Operation modes (lite, standard, full) |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment guide (Docker, K8s, HF) |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Development roadmap & milestones |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Version changelog & repository history |
 
 ## Deployment
 
@@ -341,7 +339,7 @@ docker-compose -f docker-compose.yml -f infra/monitoring/docker-compose.monitori
 ### Documentation
 
 - **RUNBOOK:** [docs/RUNBOOK.md](docs/RUNBOOK.md) — Operations guide
-- **Maintenance Log:** [MAINTENANCE_LOG.md](MAINTENANCE_LOG.md) — Schedule & benchmarks
+- **Maintenance Log:** [docs/MAINTENANCE.md](docs/MAINTENANCE.md) — Schedule & benchmarks
 - **API Docs:** `/docs` — Swagger UI
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
@@ -357,7 +355,7 @@ docker-compose -f docker-compose.yml -f infra/monitoring/docker-compose.monitori
 - [ ] **v1.5** — Weekly auto-retraining pipeline
 - [ ] **v2.0** — Real-time collaboration + RBAC + audit log
 
-See [ROADMAP.md](ROADMAP.md) for details.
+See [docs/ROADMAP.md](docs/ROADMAP.md) for details.
 
 ## Requirements
 
