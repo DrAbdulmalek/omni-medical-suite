@@ -182,7 +182,7 @@ def find_duplicate_clusters(
         results.append({
             "original_path": str(img_path),
             "cluster_id": cid,
-            "hamming_distance_from_representative": best_distance,
+            "hamming_distance_from_representative": 0 if best_cluster_id is None else best_distance,
             "cluster_size": cluster_sizes[cid],
         })
 
