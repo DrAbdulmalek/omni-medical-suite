@@ -1,122 +1,241 @@
 # Real-Data Validation Report: normalize + phash Dedup Pipeline
 
-**Date:** 2026-07-13
-**Pipeline:** deskew → auto_crop → resize (h=1600) → grayscale → phash (64-bit)
+**Last updated:** 2026-07-13 (v2 — canvas mode experiment)
+**Original report date:** 2026-07-13 (v1 — aspect_resize only)
 **Images:** `packages/scanner_fixer/verification/` — real Arabic medical document scans
 
 ## Test Images
 
-| Image | Description | Size | File Size |
-|-------|-------------|------|-----------|
-| `arabic_clean_reference.png` | Clean reference scan (patient report: HbA1c, medications) | 850×1200 | 1.63 MB |
-| `arabic_A_tilted.png` | Same document, ~4° tilt defect | 850×1200 | 1.19 MB |
-| `arabic_B_flipped.png` | Same document, 180° flip | 850×1200 | 1.19 MB |
-| `arabic_C_borders.png` | Same document, excess scanner borders/margins | 850×1200 | 1.35 MB |
-| `test_scan_realistic.png` | **Different document** (false positive control) | 820×1160 | 1.27 MB |
+| Image | Description | Raw Size |
+|-------|-------------|----------|
+| `arabic_clean_reference.png` | Clean reference scan (patient report: HbA1c, medications) | 850×1200 |
+| `arabic_A_tilted.png` | Same document, ~4° tilt defect | 850×1200 |
+| `arabic_B_flipped.png` | Same document, 180° flip | 850×1200 |
+| `arabic_C_borders.png` | Same document, excess scanner borders/margins | 850×1200 |
+| `test_scan_realistic.png` | **Different document** (false positive control) | 820×1160 |
 
-## Results
+---
+
+## Phase 1: aspect_resize mode (original pipeline)
+
+**Pipeline:** deskew → auto_crop → resize (h=1600, preserve aspect) → grayscale → phash
 
 ### Hamming Distances from Reference
 
-| Image | Raw (no norm) | Normalized | Δ | Notes |
-|-------|:---:|:---:|:---:|-------|
-| `clean_reference` | 0 | 0 | — | Baseline |
-| `A_tilted` | 18 | **24** | +6 | ⚠️ Worse after normalization |
-| `B_flipped` | 36 | **34** | -2 | ≈ Same (flip not correctable) |
-| `C_borders` | 6 | **8** | +2 | ≈ Same |
-| `different_doc` | 38 | **30** | -8 | ✅ Correctly far |
-
-### Clustering at Different Thresholds
-
-| Threshold | Same-doc clusters | Different doc separate? | Verdict |
-|:---------:|:-----------------:|:------------------------:|---------|
-| 5 | 4 (all separate) | ✅ Yes | False negatives |
-| 8 | 3 (ref+C_borders grouped) | ✅ Yes | False negatives |
-| 10 | 3 | ✅ Yes | False negatives |
-| 12 | 3 | ✅ Yes | False negatives |
-| 15 | 3 | ✅ Yes | False negatives |
-| 20 | 2 (A_tilt+C_borders; ref alone) | ❌ **No** | False positive |
-| 25 | 2 (all same-doc + different_doc in B cluster) | ❌ **No** | False positive |
-
-**No threshold successfully groups all 4 same-document variants while keeping the different document separate.**
-
-### Step-by-Step Normalization Analysis
-
-| Image | Skew detected | After crop (w×h) | After resize (w×h) |
+| Image | Raw (no norm) | aspect_resize | Δ |
 |-------|:---:|:---:|:---:|
-| clean_reference | +0.00° | **771×934** | **1321×1600** |
-| A_tilted | -3.95° | 850×1200 | 1133×1600 |
-| B_flipped | -4.03° | 850×1200 | 1133×1600 |
-| C_borders | +0.00° | 850×1200 | 1133×1600 |
+| `clean_reference` | 0 | 0 | — |
+| `A_tilted` | 18 | **20** | +2 |
+| `B_flipped` | 36 | **32** | -4 |
+| `C_borders` | 6 | **14** | +8 |
+| `different_doc` | 36 | **26** | -10 |
 
-## Root Cause Analysis
+### Root Cause (from v1 report)
 
-### Why A_tilted (Hamming=24) and C_borders (Hamming=8) underperform expectations
+`auto_crop()` produced different bounding boxes for same-content images (reference: ~810×960, others: 850×1200). The 16.6% width difference after resize changed the DCT grid that phash analyzes.
 
-The core issue is **asymmetric cropping**. The clean reference image has detectable whitespace around its content edges, causing `auto_crop()` to aggressively trim it to 771×934. The tilted and bordered variants, due to their defects, have different whitespace patterns — the tilt shifts the content boundaries, and the borders add uniform white space that the crop algorithm treats as content margin.
+### Clustering (aspect_resize)
 
-After cropping to different sizes and resizing to the same height (1600px), the images end up with **different widths**:
+| Threshold | Result | Verdict |
+|:---------:|--------|---------|
+| 5 | All 5 separate | False negatives |
+| 8 | ref+C_borders grouped | False negatives |
+| 20 | A_tilt+C_borders grouped; **different_doc merged** | False positive |
 
-- Reference: **1321px** wide
-- All others: **1133px** wide
-- **Difference: 188px (16.6%)**
+**No threshold works for defect-type variants.**
 
-This 16.6% width difference fundamentally changes the spatial frequency content that phash analyzes (DCT on 8×8 blocks), producing high Hamming distances even though the actual document content is identical.
+---
 
-**This is NOT a phash weakness — it's a preprocessing gap.** The normalize pipeline preserves aspect ratio (by design), but when `auto_crop` produces different aspect ratios for the same content, the downstream resize creates incompatible images.
+## Phase 2: canvas mode experiment (fit_to_canvas)
 
-### Why B_flipped (Hamming=34) fails
+**Hypothesis:** If the problem is different output widths from `auto_crop`, then letterboxing all images onto a fixed 1200×1600 canvas should make phash see the same grid, producing lower Hamming distances for same-content images.
 
-The 180° flip is correctly identified as a known limitation:
+**Pipeline:** deskew → auto_crop → fit_to_canvas (1200×1600, letterbox) → grayscale → phash
 
-1. `deskew()` uses Hough line detection for angles in [-45°, +45°]. A 180° flip is NOT a rotation in this range — it appears as near-horizontal text that happens to be upside down.
-2. The skew detector reports -4.03° (a spurious angle from the upside-down text), which gets "corrected" — making the image slightly more wrong.
-3. The known project note in `REAL_SCANS_DIAGNOSTIC.md` states: *"180° flip heuristic was harmful as default"* — so no automatic flip detection was implemented.
+### Hamming Distances from Reference
 
-**A 180° flip requires a dedicated detection step** (e.g., text orientation classification or Arabic script direction detection), not a Hamming threshold adjustment.
+| Image | Raw | aspect_resize | **canvas** | Δ (old→new) |
+|-------|:---:|:---:|:---:|:---:|
+| `clean_reference` | 0 | 0 | **0** | — |
+| `A_tilted` | 18 | 20 | **24** | **+4** (worse) |
+| `B_flipped` | 36 | 32 | **30** | -2 (slightly better) |
+| `C_borders` | 6 | 14 | **16** | **+2** (worse) |
+| `different_doc` | 36 | 26 | **30** | +4 (more distant) |
 
-### Why normalization made A_tilted WORSE (18 → 24)
+### Output Dimensions (canvas mode — all identical)
 
-The raw phash comparison (Hamming=18) operates on the original 850×1200 images — same dimensions, so the DCT blocks align similarly despite the tilt. After normalization, the crop step changes the dimensions differently for each image (771×934 vs 850×1200), creating a larger effective difference.
+| Image | After crop (w×h) | Final canvas |
+|-------|:---:|:---:|
+| clean_reference | ~810×960 | **1200×1600** |
+| A_tilted | ~850×1200 | **1200×1600** |
+| B_flipped | ~850×1200 | **1200×1600** |
+| C_borders | ~850×1200 | **1200×1600** |
+| different_doc | ~820×1160 | **1200×1600** |
 
-## Separation Analysis
+### Clustering (canvas mode)
+
+| Threshold | Result | Verdict |
+|:---------:|--------|---------|
+| 5 | All 5 separate | False negatives |
+| 8 | All 5 separate | False negatives |
+| 10 | All 5 separate | False negatives |
+| 12 | All 5 separate | False negatives |
+| 15 | A_tilted+C_borders grouped; **B_flipped+different_doc merged** | FN + FP |
+| 20 | C_borders+ref grouped; **B_flipped+different_doc merged** | FN + FP |
+
+**Canvas mode did NOT improve clustering.** In fact, it made it slightly worse — no threshold groups any same-doc variant with the reference without also pulling in the different document.
+
+### Why canvas mode failed
+
+The hypothesis was sound but incomplete. While canvas mode fixes the **output dimensions**, it does NOT fix the **content placement within those dimensions**. Here is what actually happens:
+
+1. `auto_crop` produces different bounding boxes for each image (e.g., 810×960 vs 850×1200).
+2. `fit_to_canvas` scales each cropped image independently to fit the 1200×1600 canvas.
+3. Because the crop sizes differ, the **scale factors differ**: the 810×960 crop scales by ~1.556× while the 850×1200 crop scales by ~1.333×.
+4. The content ends up at **different scales and positions** on the canvas — different amounts of letterbox padding on each side.
+5. phash analyzes the DCT of the **entire canvas**, including the white padding regions. Different padding patterns = different DCT = different hash.
+
+**The canvas mode fixed the symptom (different output widths) but not the disease (different content geometry after crop).** The white letterbox padding is itself part of the DCT analysis, so varying padding is just as bad as varying dimensions.
+
+---
+
+## Phase 3: Synthetic "second scan" simulation (40 pairs)
+
+This is the **most important experiment** — it tests the actual dedup scenario: same document, two realistic scans with slightly different margins, slight skew, and sensor noise.
+
+### Method
+
+For each of 4 source images (clean_reference, A_tilted, C_borders, different_doc), 10 synthetic "second scans" were generated by applying:
+
+1. **Random asymmetric white margins** (5–25 px per side, independently) — simulates different paper feed position
+2. **Random slight rotation** (−2° to +2°) — natural scanner wobble
+3. **Light Gaussian noise** (σ = 2–5) — sensor/CCD variation
+
+No flip or heavy borders were added — these are separate defect types, not part of the "same document, two normal scans" scenario.
+
+### Results
+
+| Source image | Min Hamming | Mean | Max | All ≤ 5? | All ≤ 10? |
+|-------------|:-----------:|:----:|:---:|:--------:|:---------:|
+| clean_reference | **2** | **9.6** | **22** | No | No |
+| A_tilted | 6 | 10.2 | 16 | No | No |
+| C_borders | 6 | 10.4 | 18 | No | No |
+| different_doc | 10 | 12.4 | 18 | No | No |
+
+### Individual Hamming distances (clean_reference → 10 synthetic copies)
+
+```
+[6, 2, 10, 22, 2, 10, 16, 18, 6, 4]
+```
+
+### Cross-document separation
 
 | Metric | Value |
 |--------|-------|
-| Max Hamming among same-doc variants (excl. flip) | 24/64 |
-| Hamming to genuinely different document | 30/64 |
-| **Separation gap** | **6 bits** |
+| Max Hamming among 30 same-doc synthetic pairs | **22** |
+| Min Hamming among 10 different-doc synthetic pairs | **10** |
+| Distance (ref → different_doc, canvas mode) | **30** |
+| Distance (ref → different_doc, aspect_resize) | **26** |
 
-A gap of only 6 bits (out of 64) is insufficient for reliable classification. Any threshold high enough to catch A_tilted (≥24) would also catch the different document (30), and even then B_flipped (34) would still be excluded.
+### Threshold analysis
+
+| Threshold | Same-doc all ≤ T? | Diff-doc all > T? | Verdict |
+|:---------:|:-----------------:|:-----------------:|---------|
+| 5 | No (max=22) | Yes | False negatives |
+| 8 | No (max=22) | Yes | False negatives |
+| 10 | No (max=22) | No (min=10) | FN + FP |
+| 12 | No (max=22) | No (min=10) | FN + FP |
+| 15 | No (max=22) | No (min=10) | FN + FP |
+| 20 | No (max=22) | No (min=10) | FN + FP |
+
+**No threshold separates same-doc from different-doc in the synthetic "second scan" scenario.**
+
+---
+
+## Root Cause Analysis (updated)
+
+### The fundamental problem
+
+The `normalize` pipeline (deskew → auto_crop → resize/canvas → grayscale) was designed for **OCR optimization**, not for **perceptual hashing stability**. Two scans of the same document produce images where:
+
+1. `auto_crop` detects different content boundaries (due to different margins, slight rotation shifting bounding boxes)
+2. The different crops are then scaled differently (either aspect-preserving or letterboxed)
+3. The final image has the **same content at a different scale and/or position**
+4. phash (DCT-based) is sensitive to **both scale and position** — it's a spatial frequency analysis, not a content-agnostic one
+
+The canvas mode experiment proved that **fixing the output dimensions alone is insufficient**. The content within those fixed dimensions must also be at a consistent scale and position.
+
+### Why the synthetic B3 benchmark (threshold=5) worked but reality doesn't
+
+The B3 experiment used `np.roll` — a perfect pixel shift that preserves all content boundaries, aspect ratio, and scale. In that idealized scenario, `auto_crop` produces identical bounding boxes (same content, same position, just shifted), so the downstream pipeline produces nearly identical images.
+
+Real scanners don't shift — they re-capture. Each scan has:
+- Different paper feed position → different initial crop area
+- Slight mechanical wobble → different post-deskew geometry
+- Different sensor calibration → different noise patterns
+
+These combine to produce different `auto_crop` results, which cascade through the pipeline.
+
+---
+
+## Honest Assessment
+
+| Claim | Status |
+|-------|--------|
+| "Threshold 5 works for same-document dedup" | **Only for synthetic pixel-shifts, NOT for realistic re-scans** |
+| "canvas mode fixes the dimension problem" | **No — it fixes dimensions but not content geometry** |
+| "phash is suitable for scanned document dedup after normalization" | **Not with the current pipeline — preprocessing doesn't produce content-aligned output** |
+
+### What would actually work
+
+The problem is not the hash algorithm or the threshold — it's that the preprocessing pipeline doesn't produce **content-aligned** images. Possible approaches:
+
+1. **Content alignment before hashing** — detect text lines or document structure, normalize to a canonical coordinate frame. Much more complex but addresses the root cause.
+
+2. **Crop-independent hashing** — instead of hashing the full image, hash only the content region detected by a robust method (e.g., MSER keypoints, text bounding boxes) that is less sensitive to exact crop boundaries.
+
+3. **Feature-based matching** — replace phash with SIFT/ORB feature matching + RANSAC, which is inherently scale and position invariant. Slower but designed for exactly this scenario.
+
+4. **Larger hash with overlap** — use `hash_size=16` (256-bit) or average multiple phash at different scales. This provides more bits for the DCT to work with, potentially absorbing some geometric variation. Worth testing but unlikely to solve a 22-bit spread.
+
+5. **Accept higher threshold + post-filter** — use a high threshold (20-25) for initial candidate generation, then apply a secondary check (e.g., OCR text similarity) to eliminate false positives.
+
+---
 
 ## Recommendation
 
-### Keep default threshold = 5
+### Default threshold = 5 (unchanged)
 
-**The verification images test a fundamentally different scenario than the dedup use case.**
+**Rationale:** The code default should remain 5 because:
+- It is validated for the original use case (synthetic pixel-shift duplicates)
+- Changing it without a proven improvement would be premature
+- The experiments show the problem is in preprocessing, not the threshold
 
-The dedup pipeline is designed for: *"same document scanned multiple times with slight positional differences (±20px shift, ±2° skew, different DPI)."* The synthetic benchmark (Task B3) validated threshold=5 for exactly this scenario, achieving 100% detection with 0 false positives.
+### For production use with real scans
 
-The verification images test: *"same document with different DEFECT TYPES (tilt, flip, borders) that change the effective crop area."* This is a defect-correction validation scenario, not a dedup scenario.
+**Do not rely on phash + current normalize pipeline alone for real scan dedup.** The pipeline needs one of:
+- A content-alignment preprocessing step, OR
+- A secondary verification (e.g., OCR text comparison), OR
+- A different matching algorithm (feature-based)
 
-### For the dedup use case (production)
+The `fit_mode="canvas"` option is available in code but should NOT be used as default — it provides no improvement over `aspect_resize` for the dedup use case.
 
-- **Threshold = 5** remains the validated default
-- Works for: shift (±30px), resolution (50%-200% DPI), minor skew
-- Fails for: 180° flip, significant aspect ratio changes from uneven cropping
+### fit_to_canvas utility
 
-### For defect-type detection (NOT the current use case)
+Despite not solving the dedup problem, `fit_to_canvas()` remains useful as a general-purpose letterboxing utility for display or for scenarios where fixed dimensions are needed regardless of hash stability.
 
-Would require additional preprocessing:
-1. **Flip detection** — dedicated orientation classifier (separate from phash)
-2. **Whitespace normalization** — pad all images to the same aspect ratio BEFORE crop, or use content-aware padding after crop to ensure consistent dimensions
-3. **Higher hash size** — `hash_size=16` (256-bit) would provide more granularity at the cost of speed
+---
 
-### Bug Fixed During Validation
+## Experiment Log
 
-`dedup.py` had a bug where the first image in each cluster (the representative) was recorded with `hamming_distance_from_representative = 64` (the max-distance initial value) instead of `0`. This has been fixed and will be committed alongside this report.
+| Phase | Date | Commit | Description |
+|-------|------|--------|-------------|
+| v1 | 2026-07-13 | (previous session) | Initial validation, identified asymmetric crop as root cause |
+| v2 | 2026-07-13 | `8f25e40` | Added `fit_to_canvas` + `fit_mode="canvas"` option |
+| v2 | 2026-07-13 | (this experiment) | Tested canvas mode on real images + 40 synthetic pairs |
+| v2 | 2026-07-13 | (this report) | Updated report with honest findings |
 
-## Files Generated
+## Files
 
-- `/home/z/my-project/download/real_validation_results.csv` — machine-readable results
+- `download/real_validation_v2_results.csv` — machine-readable Hamming distances (v2)
 - This report: `packages/scanner_fixer/verification/REAL_DATA_VALIDATION.md`
