@@ -21,13 +21,13 @@ Usage:
     samples = db.get_training_samples(min_usage=3)
 """
 
-import hashlib
 import json
 import logging
 from datetime import datetime
 
 import cv2
 import numpy as np
+from PIL import Image
 
 from packages.core.base_db import BaseDB
 
@@ -247,35 +247,34 @@ class UserPatternDB(BaseDB):
         """
         Find patterns with similar (but not exact) visual appearance.
 
-        Uses hash prefix matching for fast approximate search.
+        Uses perceptual hash (phash) with Hamming distance for comparison.
+        Fetches all patterns for the language/writer and filters by
+        similarity threshold.
 
         Args:
             image: Query image
             language: Language filter
             writer_id: Writer filter
             max_results: Maximum number of results
-            threshold: Minimum hash similarity (0-1)
+            threshold: Minimum hash similarity (0-1). With 64-bit phash,
+                0.80 = up to 12 bits Hamming distance.
 
         Returns:
             List of similar pattern dicts
         """
         img_hash = self._robust_image_hash(image)
-        prefix_len = max(len(img_hash) // 2, 8)
 
         with self.connection() as conn:
             cursor = conn.execute("""
                 SELECT image_hash, corrected_text, predicted_text,
                        confidence, usage_count, writer_id
                 FROM patterns
-                WHERE image_hash LIKE ? AND language = ? AND writer_id = ?
-                  AND usage_count >= 2
+                WHERE language = ? AND writer_id = ? AND usage_count >= 2
                 ORDER BY usage_count DESC
-                LIMIT ?
-            """, (f"{img_hash[:prefix_len]}%", language, writer_id, max_results))
+            """, (language, writer_id))
 
             results = []
             for row in cursor.fetchall():
-                # Compute hash similarity
                 similarity = self._hash_similarity(img_hash, row["image_hash"])
                 if similarity >= threshold:
                     results.append({
@@ -287,7 +286,7 @@ class UserPatternDB(BaseDB):
                         "hash_match": row["image_hash"],
                     })
 
-        return sorted(results, key=lambda x: x["similarity"], reverse=True)
+        return sorted(results, key=lambda x: x["similarity"], reverse=True)[:max_results]
 
     def get_training_samples(
         self,
@@ -433,25 +432,17 @@ class UserPatternDB(BaseDB):
     # -------------------------------------------------------------------------
 
     def _robust_image_hash(self, image: np.ndarray) -> str:
+        """Generate a perceptual hash using imagehash.phash().
+        
+        Unlike SHA256, phash is DCT-based and resistant to minor shifts,
+        noise, and contrast changes — making it suitable for comparing
+        scans of the same document at different times/settings.
         """
-        Generate a perceptual hash resistant to minor variations.
-
-        Process: resize -> normalize contrast -> Gaussian blur -> SHA256.
-        This ensures the same word written slightly differently
-        produces the same or similar hash.
-        """
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
-
-        # Resize to fixed size
-        resized = cv2.resize(gray, (64, 32), interpolation=cv2.INTER_LINEAR)
-
-        # Normalize contrast
-        normalized = cv2.normalize(resized, None, 0, 255, cv2.NORM_MINMAX)
-
-        # Light blur to reduce noise sensitivity
-        blurred = cv2.GaussianBlur(normalized, (3, 3), 0)
-
-        return hashlib.sha256(blurred.tobytes()).hexdigest()[:32]
+        import imagehash
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image.copy()
+        pil_image = Image.fromarray(gray)
+        phash = imagehash.phash(pil_image, hash_size=8)
+        return str(phash)
 
     def _compress_image(self, image: np.ndarray) -> bytes:
         """Compress image using JPEG + zlib for storage."""
@@ -475,12 +466,16 @@ class UserPatternDB(BaseDB):
             return None
 
     def _hash_similarity(self, hash1: str, hash2: str) -> float:
-        """Compute Jaccard-like similarity between two hash prefixes."""
-        if not hash1 or not hash2:
+        """Compute similarity between two phash strings using Hamming distance.
+        
+        Returns value between 0.0 (completely different) and 1.0 (identical).
+        Two phash strings of length 64 bits with Hamming distance d have
+        similarity = 1 - (d / 64).
+        """
+        if not hash1 or not hash2 or len(hash1) != len(hash2):
             return 0.0
-        common = sum(1 for a, b in zip(hash1, hash2, strict=False) if a == b)
-        total = len(hash1) + len(hash2)
-        return common / total if total > 0 else 0.0
+        hamming = sum(c1 != c2 for c1, c2 in zip(hash1, hash2))
+        return 1.0 - (hamming / len(hash1))
 
     def _update_stats(self, writer_id: str, language: str):
         """Update learning statistics for a writer."""
