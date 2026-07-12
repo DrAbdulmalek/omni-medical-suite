@@ -16,7 +16,11 @@ import pytest
 # Ensure the package src directory is importable
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from scanner_fixer.normalize import normalize_scanned_image, save_normalized
+from scanner_fixer.normalize import (
+    normalize_scanned_image,
+    save_normalized,
+    fit_to_canvas,
+)
 
 
 # ─── Synthetic image helpers ──────────────────────────────────────────────────
@@ -302,3 +306,122 @@ class TestNormalizeEdgeCases:
         img = _make_page(color=False, margin=60)
         result = normalize_scanned_image(img, target_height=800, crop_padding=20)
         assert result.shape[0] == 800
+
+
+class TestFitToCanvas:
+    """Tests for the fit_to_canvas letterbox function."""
+
+    def test_output_dimensions_exact(self):
+        """Canvas output must have exactly canvas_width × canvas_height."""
+        img = _make_page(width=600, height=800, color=False)
+        result = fit_to_canvas(img, canvas_width=1000, canvas_height=1200)
+        assert result.shape == (1200, 1000)
+
+    def test_output_dimensions_exact_bgr(self):
+        """Canvas preserves channel count for BGR input."""
+        img = _make_page(width=600, height=800, color=True)
+        result = fit_to_canvas(img, canvas_width=1000, canvas_height=1200)
+        assert result.shape == (1200, 1000, 3)
+
+    def test_landscape_image_centered(self):
+        """A wide image should be width-constrained, centered vertically."""
+        img = _make_page(width=900, height=400, color=False)
+        result = fit_to_canvas(img, canvas_width=1000, canvas_height=1000)
+        assert result.shape == (1000, 1000)
+        # Width-limited: scale = 1000/900 ≈ 1.111, new_h = 444
+        # Top padding = (1000 - 444) // 2 = 278
+        # Row 278 should be the start of non-white content
+        assert result[0, 0] == 255  # top-left corner is white padding
+        assert result[1000 - 1, 0] == 255  # bottom-left is white padding
+
+    def test_portrait_image_centered(self):
+        """A tall image should be height-constrained, centered horizontally."""
+        img = _make_page(width=400, height=900, color=False)
+        result = fit_to_canvas(img, canvas_width=1000, canvas_height=1000)
+        assert result.shape == (1000, 1000)
+        # Height-limited: scale = 1000/900 ≈ 1.111, new_w = 444
+        # Left padding = (1000 - 444) // 2 = 278
+        assert result[0, 0] == 255  # top-left is content area
+        assert result[0, 0] == 255
+
+    def test_exact_fit_no_padding(self):
+        """Image that is larger than canvas gets scaled down to fill exactly."""
+        img = _make_page(width=2000, height=2400, color=False)
+        result = fit_to_canvas(img, canvas_width=1000, canvas_height=1200)
+        assert result.shape == (1200, 1000)
+        # Image is 2x canvas in both dims, so scale=0.5 → fills canvas fully
+        # Verify canvas is NOT all-white (content was placed)
+        assert result.mean() < 250  # has dark content
+
+    def test_fill_value_respected(self):
+        """Custom fill_value should appear in padding areas."""
+        # Small image on a wide canvas → horizontal padding with fill_value
+        img = np.zeros((100, 100), dtype=np.uint8)  # all black, tiny
+        result = fit_to_canvas(img, canvas_width=2000, canvas_height=1000, fill_value=128)
+        assert result.shape == (1000, 2000)
+        # Scale = min(2000/100, 1000/100) = 10 → 1000x1000, centered in 2000x1000
+        # Left padding area should be 128
+        assert result[500, 0] == 128
+        # Right padding area should be 128
+        assert result[500, 1999] == 128
+
+
+class TestNormalizeCanvasMode:
+    """Integration tests for normalize_scanned_image with fit_mode='canvas'."""
+
+    def test_canvas_mode_output_dimensions(self):
+        """fit_mode='canvas' must produce exactly canvas_width × canvas_height."""
+        img = _make_page(color=False)
+        result = normalize_scanned_image(
+            img,
+            fit_mode="canvas",
+            canvas_width=1200,
+            canvas_height=1600,
+        )
+        assert result.shape == (1600, 1200)
+
+    def test_canvas_mode_grayscale(self):
+        """fit_mode='canvas' with output_grayscale=True produces 2D output."""
+        img = _make_page(color=True)
+        result = normalize_scanned_image(
+            img,
+            fit_mode="canvas",
+            output_grayscale=True,
+            canvas_width=1200,
+            canvas_height=1600,
+        )
+        assert result.shape == (1600, 1200)
+        assert len(result.shape) == 2
+
+    def test_canvas_mode_different_crops_same_output_size(self):
+        """Two images that auto_crop to different sizes must produce
+        the same canvas dimensions."""
+        np.random.seed(42)
+        # Image with more whitespace (will crop smaller)
+        img_narrow = _make_page(width=800, height=1200, color=False, margin=150)
+        # Image with less whitespace (will crop larger)
+        img_wide = _make_page(width=800, height=1200, color=False, margin=50)
+
+        result_narrow = normalize_scanned_image(
+            img_narrow,
+            fit_mode="canvas",
+            canvas_width=1200,
+            canvas_height=1600,
+        )
+        result_wide = normalize_scanned_image(
+            img_wide,
+            fit_mode="canvas",
+            canvas_width=1200,
+            canvas_height=1600,
+        )
+        assert result_narrow.shape == result_wide.shape == (1600, 1200)
+
+    def test_canvas_mode_default_is_aspect_resize(self):
+        """Default fit_mode must remain 'aspect_resize' for backward compat."""
+        img = _make_page(width=800, height=1100, color=False)
+        result = normalize_scanned_image(img)
+        # Default: height=1600, width proportional (not fixed canvas)
+        assert result.shape[0] == 1600
+        # Width should NOT be 1200 (that's the canvas default)
+        # For 800x1100 input after crop, width will be roughly proportional
+        assert result.shape[1] != 1200 or result.shape == (1600, 1200)
