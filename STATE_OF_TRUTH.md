@@ -1,4 +1,4 @@
-# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-11
+# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-12
 
 > **كل نموذج AI (Z.ai، Claude، Mistral، Grok، أو أي آخر) يجب أن يقرأ هذا الملف أولاً قبل أي تعديل على هذا المستودع، ويُحدِّثه بعد كل تغيير جوهري.**
 
@@ -6,20 +6,22 @@
 
 ## التطبيق الرسمي الوحيد
 
-`app/gradio_full_hitl.py` (944 سطر) — واجهة Gradio متكاملة تضم:
-- OCR بصري (PaddleOCR + Tesseract ensemble)
-- تصحيح إملائي هجين (HybridSpellChecker)
-- ترجمة طبية عربية-إنجليزية
-- حاسبة CER/WER لتقييم دقة النص المُستخرَج
-- واجهة HITL (Human-in-the-Loop) للمراجعة والتصحيح اليدوي
+`app/advanced_review_app.py` — واجهة Gradio الجديدة للمراجعة المتقدمة وتضم 3 تبويبات:
+- **Compare**: مقارنة raw vs preprocessed / printed OCR مع field-aware similarity
+- **Search**: بحث دلالي عبر Qdrant مع fallback محلي إذا لم تتوفر التبعيات
+- **Review**: إصلاح RTL + استخراج الحقول + توصية routing للمحركات
+
+`app/gradio_full_hitl.py` أصبح **compatibility shim** يوجّه للتطبيق الجديد بدل أن يحمل المنطق بنفسه.
 
 ## الحزم النشطة في packages/ (لا تكرار مضمون — لكن تكرار هيكلي موجود بحاجة مراجعة)
 
 | الحزمة | الوظيفة |
 |---|---|
-| `core` | المحرك الأساسي: engine_router, corrections_manager, base_db |
+| `core` | المحرك الأساسي: engine_router (محدّث بـ Qwen/QARI/Nougat), corrections_manager, base_db |
 | `vision` | معالجة الصور: image_preprocessor, arabic_segmenter, batch_ocr |
 | `nlp` | معالجة اللغة: spell_corrector, translation_corrector, arabic_rtl, arabic_nlp_utils |
+| `src/ocr` | الوحدات الأساسية الجديدة: rtl_utils, field_extractor, deduplication |
+| `omni_medical_suite/preprocessing` | مقارنة raw vs printed + wrappers للمعالجة المسبقة |
 | `medical` | معالجة خاصة بالطب: tmx_processor, bgl_converter |
 | `security` | أمان: archive_handler, backup_manager |
 | `audit` | تدقيق: audit_logger |
@@ -66,6 +68,9 @@
 
 | Hash | التاريخ | الوصف | المنفِّذ |
 |---|---|---|---|
+| `PENDING` | 2026-07-12 | Phase A: دمج rtl_utils + field_extractor + compare_raw_vs_printed + weighted dedup + Qdrant search + advanced_review_app | Z.ai |
+| `PENDING` | 2026-07-12 | Phase B: تحديث routing بـ Arabic-handwritten-OCR (Qwen) + QARI + Nougat + fallback chains | Z.ai |
+| `PENDING` | 2026-07-12 | Phase C: تنظيف pyproject/requirements + Git LFS لـ data/ + README/docs/tests | Z.ai |
 | `f8dab72` | 2026-07-11 | المرحلة 3: تنظيف شامل — حذف 200MB+، 85 ملف مكرر، 52 workflow، 24 Gradio، ~105 مرجع مكسور | Z.ai |
 | `f4e4393` | 2026-07-11 | المرحلة 1: 4 تقارير تحقق (تكرار، workflows، مراجع، pytest) | Z.ai |
 | `8573ddd` | 2026-07-09 | حذف manjaro-care/reset-net (مستودعات مستقلة الآن) | Z.ai |
@@ -92,7 +97,7 @@
 
 5. **91 فشل اختبار بسبب تبعيات مفقودة** — torch/transformers/interactive_learning. تحتاج إضافة `@pytest.mark.skipif` أو تثبيت التبعيات.
 
-6. **~50 ملف requirements*.txt قديمة** — يمكن حذفها بعد تحديث Dockerfiles لاستخدام pyproject.toml extras. انظر `docs/DEPENDENCY_STRATEGY.md`.
+6. **~50 ملف requirements*.txt قديمة** — تم تقليل الجذر (`requirements-dev.txt`) إلى compatibility wrapper، لكن بقية الملفات القديمة ما زالت بحاجة ترحيل تدريجي إلى `pyproject.toml` extras. انظر `docs/DEPENDENCY_STRATEGY.md`.
 
 7. **المراجع المكسورة في المستودعات البعيدة** — تم إصلاح المراجع المحلية فقط. repos البعيدة (repo-sync-toolkit، medical-ocr-trainer-hf، intelli-file-manager، sync-github) تحتاج إصلاحاً مباشراً على GitHub.
 ## ⚠️ قاعدة صارمة: فحص استيراد إلزامي بعد أي حذف جماعي
