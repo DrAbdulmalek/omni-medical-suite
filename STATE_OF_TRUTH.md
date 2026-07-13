@@ -70,6 +70,7 @@
 
 | Hash | التاريخ | الوصف | المنفِّذ |
 |---|---|---|---|
+| `c3923e8` | 2026-07-14 | Handwriting Trainer app + training data samples (10 pages, 3 languages) | Z.ai |
 | `d8c854d` | 2026-07-14 | **دمج integrate/genspark-field-dedup → main** (الخيار C: 12 commit، 34 ملف، +3390 سطر) | Z.ai |
 | `03d5f94` | 2026-07-14 | استعادة gradio_full_hitl.py + تصحيح كل المراجع (الخيار C) | Z.ai |
 | `8645576` | 2026-07-14 | LLM postprocess pipeline + active learning loop + Git LFS | Z.ai |
