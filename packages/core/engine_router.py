@@ -7,6 +7,10 @@ and structure-preserving extraction with explicit fallback chains.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from packages.core.engine_registry import EngineRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +54,11 @@ PROFILE_ENGINES = {
 
 
 class EngineRouter:
-    """Select the most appropriate OCR engines without loading everything."""
+    """Select the most appropriate OCR engines without loading everything.
+
+    Can optionally use an ``EngineRegistry`` to filter recommendations
+    by *actual runtime availability* rather than static profile strings.
+    """
 
     def __init__(
         self,
@@ -58,13 +66,24 @@ class EngineRouter:
         use_gpu: bool = False,
         max_engines: int = 2,
         available_ram_gb: float = 8.0,
+        registry: Optional["EngineRegistry"] = None,
     ) -> None:
         self.profile = profile
         self.use_gpu = use_gpu
         self.max_engines = max_engines
         self.available_ram_gb = available_ram_gb
+        self._registry = registry
         self._allowed = PROFILE_ENGINES.get(profile, PROFILE_ENGINES["balanced"])
-        logger.info("EngineRouter init: profile=%s gpu=%s max=%d", profile, use_gpu, max_engines)
+
+        # If a registry is provided, intersect allowed engines with actually available ones
+        if registry and registry._probed:
+            available_names = set(registry.available_engine_names())
+            self._allowed = [e for e in self._allowed if e in available_names]
+            if not self._allowed:
+                self._allowed = [ENGINE_TESSERACT]
+                logger.warning("No engines from profile passed availability check — falling back to Tesseract")
+
+        logger.info("EngineRouter init: profile=%s gpu=%s max=%d allowed=%s", profile, use_gpu, max_engines, self._allowed)
 
     def select(
         self,

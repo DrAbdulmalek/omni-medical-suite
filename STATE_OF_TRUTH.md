@@ -1,4 +1,4 @@
-# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-12
+# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-13
 
 > **كل نموذج AI (Z.ai، Claude، Mistral، Grok، أو أي آخر) يجب أن يقرأ هذا الملف أولاً قبل أي تعديل على هذا المستودع، ويُحدِّثه بعد كل تغيير جوهري.**
 
@@ -17,7 +17,7 @@
 
 | الحزمة | الوظيفة |
 |---|---|
-| `core` | المحرك الأساسي: engine_router (محدّث بـ Qwen/QARI/Nougat), corrections_manager, base_db |
+| `core` | المحرك الأساسي: engine_router (محدّث بـ Qwen/QARI/Nougat), **engine_registry** (runtime-aware availability checks + healthcheck), corrections_manager, base_db |
 | `vision` | معالجة الصور: image_preprocessor, arabic_segmenter, batch_ocr |
 | `nlp` | معالجة اللغة: spell_corrector, translation_corrector, arabic_rtl, arabic_nlp_utils |
 | `src/ocr` | الوحدات الأساسية الجديدة: rtl_utils, field_extractor, deduplication |
