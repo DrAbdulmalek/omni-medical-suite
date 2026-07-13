@@ -3,11 +3,15 @@
 Handwriting Trainer — Interactive Word-Level Correction UI
 ============================================================
 
-Gradio app for building ground-truth training data from scanned handwritten
-documents. Supports Arabic, English, and German.
+Enhanced with modules from the Arabic Medical OCR Pipeline Blueprint:
+  - RTL Fixer (src/ocr/rtl_utils.py): corrects reversed Arabic OCR
+  - Medical Field Extractor (src/ocr/field_extractor.py): regex-based field extraction
+  - Image Preprocessing: CLAHE + bilateral denoise for better OCR
+  - Active Learning: low-confidence words flagged for priority review
 
 Workflow:
-    PDF → pages → word segmentation → OCR → user correction → save to DB + HF
+    PDF → preprocess → pages → word segmentation → OCR → RTL fix
+          → field extraction → user correction → save to DB + HF
 
 Usage:
     python apps/handwriting-trainer/app.py
@@ -52,6 +56,35 @@ except ImportError:
     HAS_CV2 = False
 
 # ── Lazy OCR imports ─────────────────────────────────────────────────────
+
+# Try to import monorepo RTL fixer, fallback to no-op
+try:
+    from src.ocr.rtl_utils import ArabicRTLFixer as _MonorepoRTLFixer
+    _rtl = _MonorepoRTLFixer()
+    HAS_RTL = True
+except Exception:
+    HAS_RTL = False
+    _rtl = None
+
+# Try to import monorepo field extractor
+try:
+    from src.ocr.field_extractor import ArabicMedicalFieldExtractor
+    _field_extractor = ArabicMedicalFieldExtractor()
+    HAS_FIELD_EXTRACTOR = True
+except Exception:
+    HAS_FIELD_EXTRACTOR = False
+    _field_extractor = None
+
+# Try to import monorepo ActiveLearningLoop
+try:
+    from packages.ai.active_learning_loop import ActiveLearningLoop
+    _al_loop = ActiveLearningLoop()
+    HAS_ACTIVE_LEARNING = True
+except Exception:
+    HAS_ACTIVE_LEARNING = False
+    _al_loop = None
+
+
 def _get_tesseract_langs() -> list[str]:
     """Return available Tesseract language strings, always including eng."""
     base = ["eng"]
@@ -62,7 +95,8 @@ def _get_tesseract_langs() -> list[str]:
             base.append(lang)
         except Exception:
             continue
-    return list(dict.fromkeys(base))  # deduplicate preserving order
+    return list(dict.fromkeys(base))
+
 
 _AVAILABLE_LANGS = _get_tesseract_langs()
 
@@ -75,12 +109,21 @@ def _best_ocr_lang(requested: str) -> str:
             return fallback
     return "eng"
 
+
+def _apply_rtl_fix(text: str) -> str:
+    """Apply RTL fix if the module is available and text is Arabic."""
+    if HAS_RTL and _rtl and _rtl.contains_arabic(text):
+        return _rtl.fix_text(text)
+    return text
+
+
 def _run_tesseract(img: np.ndarray, lang: str = "eng") -> str:
     """Run Tesseract OCR on an image. Falls back to empty string."""
     try:
         import pytesseract
         actual_lang = _best_ocr_lang(lang)
-        return str(pytesseract.image_to_string(img, lang=actual_lang, config="--psm 6")).strip()
+        raw = str(pytesseract.image_to_string(img, lang=actual_lang, config="--psm 6")).strip()
+        return _apply_rtl_fix(raw)
     except Exception:
         return ""
 
