@@ -68,9 +68,12 @@
 
 | Hash | التاريخ | الوصف | المنفِّذ |
 |---|---|---|---|
-| `PENDING` | 2026-07-12 | Phase A: دمج rtl_utils + field_extractor + compare_raw_vs_printed + weighted dedup + Qdrant search + advanced_review_app | Z.ai |
-| `PENDING` | 2026-07-12 | Phase B: تحديث routing بـ Arabic-handwritten-OCR (Qwen) + QARI + Nougat + fallback chains | Z.ai |
-| `PENDING` | 2026-07-12 | Phase C: تنظيف pyproject/requirements + Git LFS لـ data/ + README/docs/tests | Z.ai |
+| `5b00450` | 2026-07-13 | Phase A: دمج rtl_utils + field_extractor + compare_raw_vs_printed + weighted dedup + Qdrant search + advanced_review_app | Z.ai (Genspark patch) |
+| `e7c662b` | 2026-07-13 | Phase B: تحديث routing بـ Arabic-handwritten-OCR (Qwen) + QARI + Nougat + fallback chains | Z.ai (Genspark patch) |
+| `993e0bf` | 2026-07-13 | Phase C: تنظيف pyproject/requirements + Git LFS لـ data/ + README/docs/tests | Z.ai (Genspark patch) |
+| `25171e8` | 2026-07-13 | إصلاح: إنشاء scanner_fixer_wrapper.py المفقود من الـ patch | Z.ai |
+| `c440683` | 2026-07-13 | إصلاح: نقل qdrant-client من core إلى تبعية اختيارية [search] | Z.ai |
+| `c440683` | 2026-07-13 | اختبار: Phase 5 — field-aware dedup يحل حالة الحافة (same-template/diff-patient) | Z.ai |
 | `f8dab72` | 2026-07-11 | المرحلة 3: تنظيف شامل — حذف 200MB+، 85 ملف مكرر، 52 workflow، 24 Gradio، ~105 مرجع مكسور | Z.ai |
 | `f4e4393` | 2026-07-11 | المرحلة 1: 4 تقارير تحقق (تكرار، workflows، مراجع، pytest) | Z.ai |
 | `8573ddd` | 2026-07-09 | حذف manjaro-care/reset-net (مستودعات مستقلة الآن) | Z.ai |
