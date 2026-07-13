@@ -1,0 +1,4 @@
+# DB and exports are local-only — do not commit
+*.db
+*.jsonl
+__pycache__/
