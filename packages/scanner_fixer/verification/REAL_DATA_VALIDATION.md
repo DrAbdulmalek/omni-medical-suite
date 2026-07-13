@@ -434,6 +434,7 @@ Despite not solving the dedup problem, `fit_to_canvas()` remains useful as a gen
 | v3 | 2026-07-13 | `a086edb` | Two-stage pipeline: `text_dedup.py` |
 | v3 | 2026-07-13 | `dfd3581` | Tesseract validation — architecture correct, OCR inadequate |
 | v4 | 2026-07-13 | (pending) | EasyOCR validation — 88.7% gap, partial success |
+| v5 | 2026-07-13 | `25171e8` | Phase 5 — field-aware dedup solves the edge case |
 
 ## Files
 
@@ -441,4 +442,114 @@ Despite not solving the dedup problem, `fit_to_canvas()` remains useful as a gen
 - `download/text_dedup_validation.csv` — Tesseract two-stage results
 - `download/ocr_results/*.json` — Raw EasyOCR outputs per image
 - `packages/scanner_fixer/src/scanner_fixer/text_dedup.py` — Two-stage pipeline implementation
+- `scripts/test_phase4_field_dedup.py` — Phase 5 field-aware dedup test script
 - This report: `packages/scanner_fixer/verification/REAL_DATA_VALIDATION.md`
+
+---
+
+## Phase 5 — Field-Aware Weighted Deduplication (Genspark integration)
+
+**Date:** 2026-07-13
+**Commit:** `25171e8` (wrapper fix) + pending (test results)
+**Module:** `src/ocr/deduplication.py` — `WeightedMedicalDeduplicator`
+**Test script:** `scripts/test_phase4_field_dedup.py`
+
+### Problem it solves
+
+Phase 4 concluded that `fuzz.ratio` on full OCR text **cannot** detect the same-template/different-patient edge case (98.3% similarity → false positive at any threshold ≤ 95%). The recommendation was: "Edge case requires field-level comparison."
+
+The Genspark patch introduces `WeightedMedicalDeduplicator` which extracts individual fields (patient name, patient ID, date, diagnosis, medications) and computes a **weighted similarity score** instead of a single global text ratio. Critical patient-identifying fields (name: 0.35, ID: 0.30) dominate the score, while template-level text (diagnosis, medications, template structure) contributes less.
+
+### Architecture
+
+```
+Input: two OCR text outputs
+  │
+  ├─ ArabicMedicalFieldExtractor.extract_fields()
+  │   → ExtractedMedicalFields(patient_name, patient_id, date, ...)
+  │
+  ├─ Field-level fuzz.ratio per field
+  │
+  ├─ Weighted sum (only non-empty fields count)
+  │   patient_name:   0.35
+  │   patient_id:     0.30
+  │   date:           0.15
+  │   diagnosis:      0.10
+  │   medications:    0.05
+  │   template_sig:   0.05
+  │
+  └─ Safety gate: is_same_patient requires BOTH:
+      weighted_score ≥ 0.85  AND  (patient_name ≥ 0.92  OR  patient_id ≥ 0.98)
+```
+
+### Test Results
+
+#### Test 1: Same template, different patient (THE critical edge case)
+
+Two Arabic medical forms with identical hospital header, department, doctor name, and diagnosis — only patient name, ID, and one medication differ.
+
+| Metric | Value |
+|--------|-------|
+| **raw `fuzz.ratio`** | **90.5%** (false positive at any threshold ≤ 90%) |
+| Weighted score | **0.7447** |
+| patient_name similarity | 0.5000 |
+| patient_id similarity | 0.7692 |
+| date similarity | 1.0000 |
+| diagnosis similarity | 1.0000 |
+| template_signature similarity | 1.0000 |
+| **`is_same_patient`** | **False** |
+| explanation | "Template is highly similar but patient-identifying fields diverge." |
+
+**Verdict: PASS — the edge case that defeated every previous approach is now correctly rejected.**
+
+The weighted score (0.7447) is well below the 0.85 threshold because patient_name (weight 0.35) scored only 0.50, pulling the average down. Even though diagnosis and template are identical, the critical identifying fields diverge.
+
+#### Test 2: Same patient, minor OCR noise
+
+Same patient record with typical OCR variations (ة→ه, ة→ه removal, hamza unification).
+
+| Metric | Value |
+|--------|-------|
+| Weighted score | **0.9500** |
+| patient_name similarity | **1.0000** |
+| patient_id similarity | **1.0000** |
+| **`is_same_patient`** | **True** |
+
+**Verdict: PASS — same patient correctly detected despite noise in diagnosis field.**
+
+The safety gate fires because patient_name (1.0 ≥ 0.92) and patient_id (1.0 ≥ 0.98) both pass the critical match check.
+
+#### Test 3: Completely different patient
+
+| Metric | Value |
+|--------|-------|
+| Weighted score | 0.5833 |
+| patient_name similarity | 0.3889 |
+| **`is_same_patient`** | **False** |
+
+**Verdict: PASS.**
+
+#### Test 4: Batch dedup (5 records → 3 unique patients)
+
+| Input | Expected | Actual |
+|-------|----------|--------|
+| 5 records (2 patients × 2 scans each + 1 different patient) | 3 unique, 2 duplicates | **3 unique, 2 duplicates** |
+
+**Verdict: PASS.**
+
+### Comparison: Did field-aware dedup solve what phash+fuzzy could not?
+
+| Approach | Same-doc detection | Different-doc rejection | Edge case (same-template/diff-patient) |
+|----------|:-------------------:|:------------------------:|:--------------------------------------:|
+| phash alone (Phase 1-2) | ❌ No threshold works | ❌ No threshold works | N/A |
+| phash + Tesseract text (Phase 3) | ❌ 51-62% (garbage OCR) | ✅ 1.8% | ⚠️ 88.4% FP |
+| phash + EasyOCR text (Phase 4) | ✅ 90.5% | ✅ 1.8% | ❌ 98.3% FP |
+| **Field-aware weighted (Phase 5)** | **✅ 95.0%** | **✅ 58.3%** | **✅ 74.5% → False** |
+
+**Answer: Yes.** The field-aware approach is the first to correctly handle all three scenarios simultaneously. The key insight: patient_name and patient_id have combined weight of 0.65 — even when the rest of the document is identical (template), diverging patient identifiers pull the score below threshold AND fail the critical match safety gate.
+
+### Limitations
+
+1. **Depends on field extraction quality** — if OCR garbles the patient name beyond recognition, the field extractor won't find it, and the field will be empty (excluded from scoring). In that case, the weighted score defaults to a full-text comparison, losing the field-aware advantage.
+2. **Template signature heuristic** — the `build_template_signature()` method uses regex-based value removal and digit substitution. Complex templates with embedded numbers in boilerplate text may produce inconsistent signatures.
+3. **No OCR validation was performed** — these tests used synthetic text strings, not actual OCR output from medical images. The extraction patterns assume standard Arabic medical form layouts.

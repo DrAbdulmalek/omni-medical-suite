@@ -14,6 +14,8 @@ from typing import Any
 
 import numpy as np
 
+from src.ocr.rtl_utils import ArabicRTLFixer
+
 logger = logging.getLogger(__name__)
 
 # Arabic + English messages
@@ -67,6 +69,7 @@ class EasyOCREngine:
         self.gpu = gpu
         self.reader = None
         self._available = False
+        self.rtl_fixer = ArabicRTLFixer()
 
         logger.info(_MSG_INIT.format(langs=", ".join(languages)))
 
@@ -141,8 +144,9 @@ class EasyOCREngine:
                     [int(p[0]), int(p[1])] for p in bbox_points
                 ]
 
+                cleaned_text = self.rtl_fixer.fix_text(text.strip())
                 lines.append({
-                    "text": text.strip(),
+                    "text": cleaned_text,
                     "bbox": bbox_list,
                     "confidence": round(float(confidence), 4),
                 })

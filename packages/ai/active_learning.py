@@ -6,8 +6,6 @@ from pathlib import Path
 
 from packages.core.base_db import BaseDB
 
-from .finetuning import TrOCRFineTuner
-
 logger = logging.getLogger(__name__)
 
 class ActiveLearningDB(BaseDB):
@@ -360,7 +358,7 @@ class ActiveLearner:
             db_path: مسار قاعدة البيانات.
         """
         self.db = ActiveLearningDB(db_path)
-        self.fine_tuner = TrOCRFineTuner()
+        self._fine_tuner = None  # lazy-init only when training is triggered
 
     def log_correction(
         self,
@@ -447,9 +445,13 @@ class ActiveLearner:
                 logger.warning("لا توجد بيانات صالحة للتدريب")
                 return
 
-            # تدريب النموذج
+            # تدريب النموذج (lazy import torch-dependent module)
+            from packages.ai.finetuning import TrOCRFineTuner  # noqa: WPS433
+            if self._fine_tuner is None:
+                self._fine_tuner = TrOCRFineTuner()
+
             model_name = f"trocr_{language}_v{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            output_path = self.fine_tuner.train(
+            output_path = self._fine_tuner.train(
                 train_images=train_images,
                 train_texts=train_texts,
                 epochs=3,
@@ -464,7 +466,7 @@ class ActiveLearner:
                 model_name=model_name,
                 model_path=str(output_path),
                 language=language,
-                base_model=self.fine_tuner.model_name,
+                base_model=self._fine_tuner.model_name,
                 accuracy=0.95,  # دقة افتراضية
                 version="1.0"
             )

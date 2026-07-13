@@ -109,6 +109,12 @@ nlp = [
     "sentence-transformers>=2.2.0",
     "faiss-cpu>=1.7.4",
 ]
+search = [
+    # Semantic search (Qdrant + sentence-transformers)
+    # Both are optional — QdrantMedicalSearch falls back to local fuzzy
+    "qdrant-client>=1.9.0",
+    "sentence-transformers>=2.2.0",
+]
 ai = [
     # LLM providers
     "openai>=1.0.0",

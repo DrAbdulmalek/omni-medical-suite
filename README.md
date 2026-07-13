@@ -33,14 +33,14 @@
 
 ## What It Does
 
-Omni Medical Suite extracts, corrects, and structures Arabic text from medical documents and handwritten prescriptions. It combines **4 OCR engines** with AI-powered spell correction and medical context protection.
+Omni Medical Suite extracts, corrects, and structures Arabic text from medical documents and handwritten prescriptions. It now combines a **routed multi-engine OCR stack** with AI-powered spell correction, field-aware deduplication, semantic search, and medical context protection.
 
 ```
   Prescription Image
          |
     [Scanner Fixer]         deskew, crop, CLAHE, denoise
          |
-    [OCR Ensemble]          PaddleOCR + Tesseract + EasyOCR + TrOCR
+    [OCR Router]            EasyOCR + PaddleOCR + Tesseract + TrOCR + QARI + Nougat + Qwen handwritten OCR
          |
     [Arabic NLP]            RTL handling, mixed-language detection
          |
@@ -55,12 +55,14 @@ Omni Medical Suite extracts, corrects, and structures Arabic text from medical d
 
 | Feature | Description |
 |---------|-------------|
-| **4-Engine OCR Ensemble** | PaddleOCR, Tesseract, EasyOCR, TrOCR — fused with confidence voting |
-| **Arabic Handwriting Recognition** | Custom TrOCR fine-tuned on medical handwriting |
+| **Routed OCR Stack** | EngineRouter chooses among EasyOCR, PaddleOCR, Tesseract, TrOCR, QARI, Nougat, and Arabic-handwritten-OCR (Qwen) |
+| **Arabic Handwriting Recognition** | Qwen handwritten OCR first, with TrOCR / QARI fallback |
 | **Medical Spell Checker** | HybridSpellChecker protects medical terms from false corrections |
 | **Jais LLM Proofreading** | AI-powered Arabic proofreading via Jais model |
 | **Image Preprocessing** | Deskew, CLAHE contrast, line removal, perspective correction |
 | **Named Entity Recognition** | Extracts drugs, dosages, dates, and diagnoses |
+| **Advanced Review App** | Gradio app with Compare + Search + Review tabs |
+| **Field-Aware Deduplication** | Patient-sensitive weighting prevents same-template / different-patient false positives |
 | **HITL Feedback Loop** | Human corrections feed back into training data |
 | **Multi-Page PDF + Tables** | Batch processing with table extraction |
 | **Desktop + Web + API** | PyQt6 desktop app, Gradio web UI, FastAPI REST API |
@@ -68,16 +70,22 @@ Omni Medical Suite extracts, corrects, and structures Arabic text from medical d
 
 ## Quick Start
 
-### Option 1: Gradio Web UI
+### Option 1: Official Gradio HITL UI
 ```bash
 git clone --recursive https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
 # If you cloned without --recursive:
 # git submodule update --init
-pip install -r requirements.txt
+pip install -r requirements/gradio.txt
 python app/gradio_full_hitl.py
 ```
 Open `http://localhost:7860`
+
+### Option 1b: Experimental Review UI (Compare/Search/Review tabs)
+```bash
+python app/advanced_review_app.py
+```
+> **Note:** This is an experimental app. It does not yet support image upload, Jais proofreading, HF Dataset save, medical translation, or dictionary update. Use `gradio_full_hitl.py` for production.
 
 ### Option 2: Desktop App (PyQt6)
 ```bash
@@ -115,9 +123,9 @@ docker-compose -f docker-compose.lite.yml up -d
 
 ```
 omni-medical-suite/
-├── app/                         # Main Gradio HITL application
+├── app/                         # Gradio review applications
 ├── src/                         # Core library
-│   ├── ocr/                     #   OCR engine routing & ensemble
+│   ├── ocr/                     #   OCR engine routing, RTL fixing, extraction, dedup
 │   ├── ner/                     #   Named Entity Recognition (Jais)
 │   ├── llm/                     #   LLM integration (Jais, Ollama)
 │   ├── layout/                  #   Document layout analysis
@@ -187,6 +195,7 @@ See [`.env.example`](.env.example) for the full list.
 | [docs/MODES.md](docs/MODES.md) | Operation modes (lite, standard, full) |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment guide (Docker, K8s, HF) |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Development roadmap & milestones |
+| [docs/ROADMAP_2026_Q3.md](docs/ROADMAP_2026_Q3.md) | July 2026 implementation plan for routing, review UI, and dedup |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Version changelog & repository history |
 
 ## Deployment
