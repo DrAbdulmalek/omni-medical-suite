@@ -1,4 +1,4 @@
-# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-13
+# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-14
 
 > **كل نموذج AI (Z.ai، Claude، Mistral، Grok، أو أي آخر) يجب أن يقرأ هذا الملف أولاً قبل أي تعديل على هذا المستودع، ويُحدِّثه بعد كل تغيير جوهري.**
 
@@ -12,7 +12,7 @@
 
 `app/advanced_review_app.py` — تطبيق تجريبي جديد بتبويبات Compare/Search/Review. **غير مُعتمَد للإنتاج بعد.** القيود المعروفة: لا يدعم رفع الصور، لا يملك Jais LLM proofreading، لا يحفظ في HF Dataset، لا يملك ترجمة طبية، لا يملك تحديث القاموس/إعادة تدريب NER. انظر `GRADIO_HITL_CHANGES_REVIEW.md` (الخيار C — القرار النهائي).
 
-> **ملاحظة فرع:** الوحدات القيّمة من فرع `integrate/genspark-field-dedup` دُمجت لـ `main`. `gradio_full_hitl.py` لم يُستبدَل.
+> **ملاحظة فرع:** فرع `integrate/genspark-field-dedup` دُمج لـ `main` بـ `--no-ff` في commit `d8c854d` (2026-07-14). القرار: الخيار C — `gradio_full_hitl.py` لم يُستبدَل.
 
 ## الحزم النشطة في packages/ (لا تكرار مضمون — لكن تكرار هيكلي موجود بحاجة مراجعة)
 
@@ -70,6 +70,8 @@
 
 | Hash | التاريخ | الوصف | المنفِّذ |
 |---|---|---|---|
+| `d8c854d` | 2026-07-14 | **دمج integrate/genspark-field-dedup → main** (الخيار C: 12 commit، 34 ملف، +3390 سطر) | Z.ai |
+| `03d5f94` | 2026-07-14 | استعادة gradio_full_hitl.py + تصحيح كل المراجع (الخيار C) | Z.ai |
 | `8645576` | 2026-07-14 | LLM postprocess pipeline + active learning loop + Git LFS | Z.ai |
 | `973979c` | 2026-07-14 | runtime-aware EngineRegistry + Qdrant smoke test | Z.ai |
 | `881e63e` | 2026-07-14 | إصلاح STATE_OF_TRUTH + lazy-import packages/vision | Z.ai |
@@ -92,7 +94,30 @@
 | `ccbae3d` | 2026-07-06 | Phase 6: HF Spaces deployment | Z.ai |
 | `2d97d1c` | 2026-07-05 | Phase 5: 270/332 اختبار ناجح | Z.ai |
 
-## قرارات معلَّقة تحتاج مراجعة بشرية
+## ملخص دمج integrate/genspark-field-dedup (2026-07-14)
+
+### ما دُمج (الوحدات المستقلة القيّمة):
+| الوحدة | الملفات | الوظيفة |
+|--------|---------|---------|
+| RTL fixing | `src/ocr/rtl_utils.py` | إصلاح اتجاه النص العربي بعد OCR |
+| Field extraction | `src/ocr/field_extractor.py` | استخراج الحقول الطبية (اسم المريض، التاريخ، التشخيص...) |
+| Deduplication | `src/ocr/deduplication.py` | WeightedMedicalDeduplicator بأوزان حقلية |
+| Engine registry | `packages/core/engine_registry.py` | 7 adapters + runtime probe + filter_by_ram |
+| Engine router update | `packages/core/engine_router.py` | Qwen/QARI/Nougat routing + registry integration |
+| LLM postprocess | `src/llm/postprocess_pipeline.py` | خط أنابيب ما بعد OCR (Gemma/Jais) |
+| Active learning | `packages/ai/active_learning_loop.py` | حلقة تعلم فعال من تصحيحات البشر |
+| Vision lazy imports | `packages/vision/__init__.py` | __getattr__ بدل 14 eager import |
+| Preprocessing | `omni_medical_suite/preprocessing/` | scanner_fixer_wrapper + compare_raw_vs_printed |
+| Git LFS | `.gitattributes` | تتبع الصور الطبية والبيانات الكبيرة |
+| Tests | 7 ملفات اختبار جديدة | 42 اختبار (RTL, field, dedup, router, postprocess, AL, Qdrant) |
+
+### ما لم يُدمَج / بقي كما كان:
+- `app/gradio_full_hitl.py` — 944 سطر، 10 وظائف — **لم يتغير** (الخيار C)
+
+### ما بقي "تجريبيًا منفصلًا":
+- `app/advanced_review_app.py` — تطبيق بـ 3 تبويبات (Compare/Search/Review) — غير مُعتمَد للإنتاج
+
+### قرارات معلَّقة تحتاج مراجعة بشرية
 
 1. **124 ملفاً مختلفاً جزئياً** — انظر `DUPLICATE_VERIFICATION_REPORT.md` قسم "مختلف جزئياً". يحتاج قراراً بشرياً لكل ملف: هل النسخة في packages/ الأساسية أم النسخة في الحزم المدمجة أحدث؟
 
