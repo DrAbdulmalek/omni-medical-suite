@@ -22,10 +22,10 @@
    - `QdrantMedicalSearch` uses Qdrant when configured
    - Falls back to local fuzzy retrieval when vector dependencies are unavailable
 
-5. **UI refresh**
-   - `app/advanced_review_app.py` becomes the review-oriented Gradio entrypoint
-   - Tabs: Compare / Search / Review
-   - `app/gradio_full_hitl.py` remains as a compatibility shim
+5. **New experimental review UI**
+   - `app/advanced_review_app.py` added as an experimental review app (Compare / Search / Review tabs)
+   - **Not production-ready**: missing image upload, Jais proofreading, HF Dataset save, translation, dictionary update
+   - `app/gradio_full_hitl.py` remains the official production app (944 lines, all 10 features intact)
 
 6. **Packaging and repository hygiene**
    - `pyproject.toml` keeps `setuptools.build_meta` and now includes Qdrant support

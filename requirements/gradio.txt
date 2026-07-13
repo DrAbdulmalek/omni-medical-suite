@@ -1,7 +1,8 @@
 # =============================================================================
 # OmniMedical Suite — Gradio HITL Interface Requirements
 # =============================================================================
-# Dependencies for app/advanced_review_app.py (and the legacy shim app/gradio_full_hitl.py).
+# Primary: app/gradio_full_hitl.py (official production app, 944 lines, 10 features)
+# Secondary: app/advanced_review_app.py (experimental review app — Compare/Search/Review)
 # Install: pip install -r requirements/gradio.txt
 # =============================================================================
 

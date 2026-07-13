@@ -70,16 +70,22 @@ Omni Medical Suite extracts, corrects, and structures Arabic text from medical d
 
 ## Quick Start
 
-### Option 1: Advanced Review Gradio UI
+### Option 1: Official Gradio HITL UI
 ```bash
 git clone --recursive https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
 # If you cloned without --recursive:
 # git submodule update --init
 pip install -r requirements/gradio.txt
-python app/advanced_review_app.py
+python app/gradio_full_hitl.py
 ```
 Open `http://localhost:7860`
+
+### Option 1b: Experimental Review UI (Compare/Search/Review tabs)
+```bash
+python app/advanced_review_app.py
+```
+> **Note:** This is an experimental app. It does not yet support image upload, Jais proofreading, HF Dataset save, medical translation, or dictionary update. Use `gradio_full_hitl.py` for production.
 
 ### Option 2: Desktop App (PyQt6)
 ```bash

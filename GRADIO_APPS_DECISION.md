@@ -8,14 +8,14 @@
 | Metric | Count |
 |--------|-------|
 | Total files with `import gradio` (original) | 43 |
-| **KEEP** | 2 |
+| **KEEP** | 3 |
 | **DELETE** ~~(24)~~ — **EXECUTED, confirmed** | 0 remaining |
 | **PENDING HUMAN REVIEW** (unique functionality) | 18 |
-| **Current files with `import gradio`** | **20** (verified via `find . -name "*.py" -exec grep -l "import gradio" {} \;`)|
+| **Current files with `import gradio`** | **21** (3 KEEP + 18 PENDING) |
 
 ## Decision Rules Applied
 
-1. **KEEP**: Official app (`app/gradio_full_hitl.py`) and deployed HF Space (`hf-space/app.py`)
+1. **KEEP**: Official production app (`app/gradio_full_hitl.py`), experimental review app (`app/advanced_review_app.py`), and deployed HF Space (`hf-space/app.py`)
 2. **KEEP**: Any file used in tests (none found — no test references `gradio` at all)
 3. **DELETE**: Files inside merged-remnant packages (`file_processor/`, `handwriting/`, `omnifile/`, `doc_processor/`) that are copies
 4. **DELETE**: False positives (`import gradio` only in a docstring/comment, not functional code)
@@ -23,12 +23,13 @@
 
 ## Decision Table
 
-### KEEP (2 files)
+### KEEP (3 files)
 
 | # | File | Lines | Decision | Reason |
 |---|------|------:|----------|--------|
-| 1 | `app/gradio_full_hitl.py` | 944 | **KEEP** | Official app — the single canonical Gradio interface |
-| 2 | `hf-space/app.py` | 664 | **KEEP** | Deployed on HuggingFace Space — CPU-optimized variant (no LLM, no HF upload, no dictionary update) |
+| 1 | `app/gradio_full_hitl.py` | 944 | **KEEP** | **Official production app** — the single canonical Gradio interface (all 10 features) |
+| 2 | `app/advanced_review_app.py` | — | **KEEP (experimental)** | New experimental review app (Compare/Search/Review tabs). Not production-ready: no image upload, no Jais, no HF save, no translation. See `GRADIO_HITL_CHANGES_REVIEW.md` Option C. |
+| 3 | `hf-space/app.py` | 664 | **KEEP** | Deployed on HuggingFace Space — CPU-optimized variant (no LLM, no HF upload, no dictionary update) |
 
 ### DELETE (24 files) — ✅ EXECUTED
 

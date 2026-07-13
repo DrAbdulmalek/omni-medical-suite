@@ -107,4 +107,10 @@ from app.advanced_review_app import demo
 
 ---
 
-**⏳ بانتظار قرار Malek.**
+## ✅ القرار النهائي: الخيار C (تم التنفيذ)
+
+**Malek قرر:** لا يُدمَج استبدال `gradio_full_hitl.py`. الوحدات المستقلة القيّمة تُدمَج لـ `main`، بينما `advanced_review_app.py` يبقى تطبيقًا تجريبيًا منفصلًا.
+
+- `app/gradio_full_hitl.py` — استُعيد من `main` (944 سطر، 10 وظائف سليمة)
+- `app/advanced_review_app.py` — بقي كتطبيق تجريبي جديد (غير مُعتمَد للإنتاج)
+- كل المراجع في STATE_OF_TRUTH، README، ROADMAP، GRADIO_APPS_DECISION، CONTRIBUTING، Dockerfile.review حُدِّثت لتعكس هذا القرار

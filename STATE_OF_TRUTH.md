@@ -4,14 +4,15 @@
 
 ---
 
-## التطبيق الرسمي الوحيد
+## التطبيق الرسمي
 
-`app/advanced_review_app.py` — واجهة Gradio للمراجعة المتقدمة (3 تبويبات: Compare / Search / Review).
-هذا هو **التطبيق المرجعي الحالي** لمهام المراجعة والبحث والتوجيه.
+`app/gradio_full_hitl.py` (944 سطر) — **التطبيق الرسمي المُعتمَد للإنتاج**. يحتوي 10 وظائف كاملة: رفع صورة → OCR ensemble، تصحيح HybridSpellChecker، تدقيق Jais LLM، NER طبي، حفظ HF Dataset، تحديث القاموس، إعادة تدريب Jais NER، ترجمة طبية (4 اتجاهات)، حاسبة CER/WER، Before/After comparison.
 
-`app/gradio_full_hitl.py` أصبح **compatibility shim** (10 أسطر) يوجّه للتطبيق الجديد بدل أن يحمل المنطق بنفسه. **تحذير regression:** التطبيق القديم (944 سطر) كان يحتوي ميزات إضافية (save/training/translation/metrics) لم تُنقل بعد إلى الواجهة الجديدة. انظر `GRADIO_HITL_CHANGES_REVIEW.md` للتفاصيل.
+## تطبيق تجريبي منفصل
 
-> **ملاحظة فرع:** التعديلات الحالية موجودة على فرع `integrate/genspark-field-dedup` ولم تُدمج في `main` بعد. الدمج يحتاج موافقة Malek على `GRADIO_HITL_CHANGES_REVIEW.md` أولاً.
+`app/advanced_review_app.py` — تطبيق تجريبي جديد بتبويبات Compare/Search/Review. **غير مُعتمَد للإنتاج بعد.** القيود المعروفة: لا يدعم رفع الصور، لا يملك Jais LLM proofreading، لا يحفظ في HF Dataset، لا يملك ترجمة طبية، لا يملك تحديث القاموس/إعادة تدريب NER. انظر `GRADIO_HITL_CHANGES_REVIEW.md` (الخيار C — القرار النهائي).
+
+> **ملاحظة فرع:** الوحدات القيّمة من فرع `integrate/genspark-field-dedup` دُمجت لـ `main`. `gradio_full_hitl.py` لم يُستبدَل.
 
 ## الحزم النشطة في packages/ (لا تكرار مضمون — لكن تكرار هيكلي موجود بحاجة مراجعة)
 
@@ -54,11 +55,11 @@
 
 **تقارير المرحلة 1:** DUPLICATE_VERIFICATION_REPORT.md (85 متطابق، 124 مختلف جزئياً، 122 بالاسم فقط)
 
-## تطبيقات Gradio (تم التنظيف — من 43 إلى 19)
+## تطبيقات Gradio (تم التنظيف — من 43 إلى 20)
 
-**المحتفظ بها (2):**
-- `app/advanced_review_app.py` — التطبيق المرجعي الحالي (Compare / Search / Review)
-- `app/gradio_full_hitl.py` — compatibility shim يحوّل إلى `advanced_review_app.py`
+**المحتفظ بها (3):**
+- `app/gradio_full_hitl.py` — **التطبيق الرسمي المُعتمَد** (944 سطر، 10 وظائف)
+- `app/advanced_review_app.py` — تطبيق تجريبي منفصل (Compare / Search / Review) — غير مُعتمَد للإنتاج بعد
 - `hf-space/app.py` — نسخة HF Space محسّنة للمعالجة CPU
 
 **تم حذف 24 ملفاً** (نسخ مكررة + إيجابيات كاذبة). انظر `GRADIO_APPS_DECISION.md`.
@@ -69,11 +70,17 @@
 
 | Hash | التاريخ | الوصف | المنفِّذ |
 |---|---|---|---|
-| `5b00450` | 2026-07-13 | Phase A: دمج rtl_utils + field_extractor + compare_raw_vs_printed + weighted dedup + Qdrant search + advanced_review_app | Z.ai (Genspark patch) |
-| `e7c662b` | 2026-07-13 | Phase B: تحديث routing بـ Arabic-handwritten-OCR (Qwen) + QARI + Nougat + fallback chains | Z.ai (Genspark patch) |
-| `993e0bf` | 2026-07-13 | Phase C: تنظيف pyproject/requirements + Git LFS لـ data/ + README/docs/tests | Z.ai (Genspark patch) |
-| `25171e8` | 2026-07-13 | إصلاح: إنشاء scanner_fixer_wrapper.py المفقود من الـ patch | Z.ai |
-| `c440683` | 2026-07-13 | اختبار + إصلاح: field-aware dedup يحل حالة الحافة + نقل qdrant-client لاختياري | Z.ai |
+| `8645576` | 2026-07-14 | LLM postprocess pipeline + active learning loop + Git LFS | Z.ai |
+| `973979c` | 2026-07-14 | runtime-aware EngineRegistry + Qdrant smoke test | Z.ai |
+| `881e63e` | 2026-07-14 | إصلاح STATE_OF_TRUTH + lazy-import packages/vision | Z.ai |
+| `6402fab` | 2026-07-14 | GRADIO_HITL_CHANGES_REVIEW للمراجعة | Z.ai |
+| `bca55d4` | 2026-07-14 | تحديث STATE_OF_TRUTH بـ commit hashes الفعلية | Z.ai |
+| `5dcdf9b` | 2026-07-14 | نقل qdrant-client من core لاختياري [search] | Z.ai |
+| `c440683` | 2026-07-14 | اختبار + إصلاح: field-aware dedup يحل حالة الحافة | Z.ai |
+| `25171e8` | 2026-07-14 | إصلاح: إنشاء scanner_fixer_wrapper.py المفقود | Z.ai |
+| `993e0bf` | 2026-07-14 | تنظيف pyproject/requirements/docs/tests | Z.ai |
+| `e7c662b` | 2026-07-13 | تحديث routing بـ Qwen/QARI/Nougat + fallback chains | Z.ai |
+| `5b00450` | 2026-07-13 | دمج rtl_utils + field_extractor + compare_raw_vs_printed + weighted dedup + Qdrant search + advanced_review_app | Z.ai |
 | `f8dab72` | 2026-07-11 | المرحلة 3: تنظيف شامل — حذف 200MB+، 85 ملف مكرر، 52 workflow، 24 Gradio، ~105 مرجع مكسور | Z.ai |
 | `f4e4393` | 2026-07-11 | المرحلة 1: 4 تقارير تحقق (تكرار، workflows، مراجع، pytest) | Z.ai |
 | `8573ddd` | 2026-07-09 | حذف manjaro-care/reset-net (مستودعات مستقلة الآن) | Z.ai |
