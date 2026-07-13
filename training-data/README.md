@@ -1,63 +1,92 @@
-# Training Data — Handwriting Recognition Ground Truth
+# Training Data — Handwriting OCR Ground Truth
 
-> **⚠️ هذه البيانات لأغراض التطوير والتدريب فقط.** تحتوي على مستندات مسحوبة ضوئيًا بخط اليد. لا تحتوي على بيانات طبية حقيقية لمرضى.
+This directory contains training samples and generated ground-truth data
+for improving handwriting recognition models in the Omni Medical Suite.
 
-## المصادر
-
-| الملف | الصفحات | النوع | اللغات | ملاحظات |
-|-------|---------|-------|--------|---------|
-| `290420261138pm_Scanned Document.pdf` | 166 | ملاحظات مختلطة (طب + برمجة) | عربي + إنجليزي | بعض الصفحات مطبوعة، بعضها بخط اليد |
-| `290420260118am_Scanned Document.pdf` | 282 | ملاحظات طبية تقنية | عربي (مع مصطلحات إنجليزي/لاتيني) | **صفحات مقلوبة 180°** — تم تصحيح الدوران في العينات |
-
-## المحتوى
+## Directory Structure
 
 ```
 training-data/
-├── README.md                          # هذا الملف
-├── samples/
-│   ├── medical/                       # عينات من الملف الطبي (أول 5 صفحات)
-│   │   ├── page_001.png ... page_005.png
-│   └── technical/                     # عينات من الملف التقني (أول 5 صفحات، دوران مصحح)
-│       ├── page_001.png ... page_005.png
-└── corrections/                       # يُنشَأ تلقائيًا بواسطة واجهة التدريب
-    └── handwriting_corrections.db     # SQLite — تصحيحات المستخدمين
+├── samples/                    # Raw training sample files
+│   ├── medical/                # Arabic handwritten medical documents
+│   │   └── (PDFs and extracted page images)
+│   └── technical/              # English/German technical documents
+│       └── (includes 180° rotated pages for robustness testing)
+├── corrections/                # Generated ground-truth data
+│   ├── handwriting_corrections.db   # SQLite database of word-level corrections
+│   └── handwriting_gt.jsonl         # Exported JSONL for HuggingFace Datasets
+└── README.md                   # This file
 ```
 
-## الاستخدام
+## Sample Files
 
-### واجهة التدريب التفاعلي
+### Medical Sample (Arabic Handwriting)
+- **Content**: Handwritten Arabic medical documents (prescriptions, notes, reports)
+- **Purpose**: Training OCR models for Arabic medical handwriting recognition
+- **Characteristics**: Mixed Arabic text with medical terminology, numbers, and Latin drug names
+- **Source**: Scanned at 200-300 DPI
 
+### Technical Sample (English/German)
+- **Content**: Handwritten technical documents with diagrams and formulas
+- **Special**: Some pages are rotated 180° (upside-down) to test auto-rotation
+- **Purpose**: Training robust OCR for multi-language technical handwriting
+- **Characteristics**: Mixed English/German text, technical terms, mathematical notation
+
+## How to Use
+
+### 1. Add Sample PDFs
+Place sample PDF files in the appropriate subdirectory:
 ```bash
-pip install -r requirements/gradio.txt
-python apps/handwriting-trainer/app.py
+training-data/samples/medical/sample_medical.pdf
+training-data/samples/technical/sample_technical.pdf
 ```
 
-تفتح واجهة Gradio تتيح:
-1. رفع PDF أو اختيار عينة موجودة
-2. تقسيم الصفحات لكلمات (word segmentation)
-3. عرض كل كلمة بصورتها + نص OCR المقترح
-4. تصحيح المستخدم للنص
-5. حفظ التصحيحات في SQLite + رفعها لـ HuggingFace Dataset
-6. استخدام التصحيحات لتدريب نماذج التعرف على خط اليد (عربي/إنجليزي/ألماني)
+### 2. Run the Handwriting Trainer
+```bash
+# Monorepo version
+python apps/handwriting-trainer/app.py
 
-### Active Learning Loop
+# Or deploy the standalone HF Space
+cd hf-spaces/handwriting-trainer
+python app.py
+```
 
-التصحيحات تُغذّي حلقة التعلم الفعال:
-- `ActiveLearningLoop` في `packages/ai/active_learning_loop.py` يتلقى التصحيحات
-- الكلمات ذات الثقة المنخفضة تُعرض أولاً للمستخدم
-- التصحيحات المتراكمة تُصدَّر كـ dataset للتدريب
+### 3. Correct & Export
+- Upload a sample PDF in the trainer
+- Correct OCR results word by word
+- Export to JSONL for model training
 
-## الهدف
+### 4. Train a Model
+```python
+from datasets import load_dataset
 
-هذه العينات هي **ground truth مرجعي** لتطوير وضبط:
-- نماذج OCR لخط اليد العربي والإنجليزي والألماني
-- `EngineRouter` لاختيار المحرك الأنسب حسب نوع المستند
-- `ArabicMedicalFieldExtractor` لاستخراج الحقول الطبية
-- `WeightedMedicalDeduplicator` لكشف التكرار الحساس للمرضى
+ds = load_dataset('json', data_files='training-data/corrections/handwriting_gt.jsonl')
+ds.push_to_hub('DrAbdulmalek/handwriting-corrections-ar-en-de')
+```
 
-## ملاحظات فنية
+## Data Format (JSONL)
 
-- الملف التقني يحتوي صفحات بـ rotation=180° وصفحات بـ rotation=0° — يتطلب كشف تلقائي للدوران
-- الدقة المستخدمة للعينات: 200 DPI (مناسبة لـ word segmentation)
-- الملفات الكاملة (55MB) كبيرة لـ GitHub بدون LFS — العينات هنا تمثيلية
-- للحصول على الملفات الكاملة، تواصل مع DrAbdulmalek مباشرة
+Each line in the export file:
+```json
+{
+  "ocr_text": "predicted OCR text",
+  "corrected_text": "user-provided ground truth",
+  "language": "arabic|english|german|unknown",
+  "source_file": "sample_medical.pdf",
+  "page_num": 1,
+  "confidence": 0.85,
+  "created_at": "2026-07-14T12:00:00"
+}
+```
+
+## Contributing
+
+To add new training samples:
+1. Place PDF files in `samples/<category>/`
+2. Run the Handwriting Trainer to create corrections
+3. Export and commit the JSONL file
+
+## License
+
+Training data is licensed under the same terms as the parent repository.
+Ensure you have rights to any uploaded documents before contributing.

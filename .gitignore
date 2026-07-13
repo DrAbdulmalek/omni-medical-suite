@@ -88,3 +88,7 @@ docker-compose.override.yml
 
 # Large data files (downloaded via scripts/setup_dictionaries.sh)
 data/dictionaries/*.csv
+
+# Training data database (generated at runtime)
+training-data/corrections/*.db
+training-data/corrections/*.jsonl

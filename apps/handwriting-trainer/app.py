@@ -52,11 +52,35 @@ except ImportError:
     HAS_CV2 = False
 
 # ── Lazy OCR imports ─────────────────────────────────────────────────────
-def _run_tesseract(img: np.ndarray) -> str:
+def _get_tesseract_langs() -> list[str]:
+    """Return available Tesseract language strings, always including eng."""
+    base = ["eng"]
+    for lang in ("ara", "deu", "ara+eng", "deu+eng", "ara+eng+deu"):
+        try:
+            import pytesseract
+            pytesseract.image_to_string(np.zeros((10, 10), dtype=np.uint8), lang=lang)
+            base.append(lang)
+        except Exception:
+            continue
+    return list(dict.fromkeys(base))  # deduplicate preserving order
+
+_AVAILABLE_LANGS = _get_tesseract_langs()
+
+def _best_ocr_lang(requested: str) -> str:
+    """Pick the best available Tesseract lang string for the requested combo."""
+    if requested in _AVAILABLE_LANGS:
+        return requested
+    for fallback in ("eng", "ara+eng", "deu+eng", "ara+eng+deu"):
+        if fallback in _AVAILABLE_LANGS:
+            return fallback
+    return "eng"
+
+def _run_tesseract(img: np.ndarray, lang: str = "eng") -> str:
     """Run Tesseract OCR on an image. Falls back to empty string."""
     try:
         import pytesseract
-        return str(pytesseract.image_to_string(img, lang="ara+eng+deu", config="--psm 6")).strip()
+        actual_lang = _best_ocr_lang(lang)
+        return str(pytesseract.image_to_string(img, lang=actual_lang, config="--psm 6")).strip()
     except Exception:
         return ""
 
@@ -110,15 +134,11 @@ def pdf_to_pages(pdf_path: str, max_pages: int = 50, dpi: int = 200) -> list[Pag
         page = doc[i]
         rotation = page.rotation
         
-        # Auto-rotate 180° pages
-        if rotation == 180:
-            mat = fitz.Matrix(1, 1).prerotate(180)
-        elif rotation == 90:
-            mat = fitz.Matrix(1, 1).prerotate(90)
-        elif rotation == 270:
-            mat = fitz.Matrix(1, 1).prerotate(270)
-        else:
-            mat = fitz.Matrix(1, 1)
+        # Normalize rotation: always render upright
+        # If page is rotated 180°, we render it right-side-up
+        mat = fitz.Matrix(1, 1)
+        if rotation:
+            mat = mat.prerotate(rotation)
         
         pix = page.get_pixmap(matrix=mat, dpi=dpi)
         img_data = pix.tobytes("png")
@@ -134,7 +154,7 @@ def pdf_to_pages(pdf_path: str, max_pages: int = 50, dpi: int = 200) -> list[Pag
     doc.close()
     return pages
 
-def segment_words(page: PageData, min_word_height: int = 15) -> list[WordBox]:
+def segment_words(page: PageData, min_word_height: int = 15, ocr_lang: str = "eng") -> list[WordBox]:
     """Segment a page image into word-level boxes using projection + contour."""
     img = page.image.copy()
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if HAS_CV2 else None
@@ -178,7 +198,7 @@ def segment_words(page: PageData, min_word_height: int = 15) -> list[WordBox]:
         word_img = img[y1:y2, x1:x2]
         
         # Run OCR on the word
-        ocr_text = _run_tesseract(word_img)
+        ocr_text = _run_tesseract(word_img, lang=ocr_lang)
         lang = _detect_language(ocr_text)
         
         words.append(WordBox(
@@ -204,7 +224,8 @@ def _segment_words_pil(page: PageData, min_height: int = 15) -> list[WordBox]:
     # Simple approach: use Tesseract with word-level output
     try:
         import pytesseract
-        data = pytesseract.image_to_data(img, lang="ara+eng+deu", output_type=pytesseract.Output.DICT)
+        actual_lang = _best_ocr_lang("ara+eng+deu")
+        data = pytesseract.image_to_data(img, lang=actual_lang, output_type=pytesseract.Output.DICT)
         
         words = []
         pad = 4
@@ -302,12 +323,12 @@ def save_correction(
             (img_hash, ocr_text, corrected_text, language, source_file, page_num, json.dumps(bbox), confidence),
         )
         conn.commit()
-        return True
     finally:
         conn.close()
 
     # Feed into ActiveLearningLoop (packages/ai/active_learning_loop.py)
     _feed_active_learning(ocr_text, corrected_text, language, confidence)
+    return True
 
 
 def _feed_active_learning(ocr_text: str, corrected_text: str, language: str, confidence: float):
@@ -375,33 +396,35 @@ class SessionState:
     current_page_idx: int = 0
     current_word_idx: int = 0
     source_file: str = ""
+    ocr_lang: str = "eng"
     session_corrections: int = 0
 
 _state = SessionState()
 
 # ── Gradio Callbacks ─────────────────────────────────────────────────────
 
-def load_pdf(pdf_file, max_pages: int, auto_rotate: bool) -> tuple:
+def load_pdf(pdf_file, max_pages: int, ocr_lang: str) -> tuple:
     """Load a PDF and segment first page into words."""
     if pdf_file is None:
-        return [], "", "❌ No file uploaded"
-    
+        return None, "", "No file uploaded"
+
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         tmp.write(pdf_file)
         tmp_path = tmp.name
-    
+
     try:
         _state.source_file = os.path.basename(pdf_file.name) if hasattr(pdf_file, "name") else "uploaded.pdf"
+        _state.ocr_lang = ocr_lang
         _state.pages = pdf_to_pages(tmp_path, max_pages=max_pages)
         _state.current_page_idx = 0
         _state.session_corrections = 0
-        
+
         if not _state.pages:
-            return [], "", "❌ No pages found in PDF"
-        
+            return None, "", "No pages found in PDF"
+
         return _show_page(0)
     except Exception as e:
-        return [], "", f"❌ Error: {e}"
+        return None, "", f"Error: {e}"
     finally:
         os.unlink(tmp_path)
 
@@ -412,7 +435,7 @@ def _show_page(page_idx: int) -> tuple:
     
     _state.current_page_idx = page_idx
     page = _state.pages[page_idx]
-    _state.all_words = segment_words(page)
+    _state.all_words = segment_words(page, ocr_lang=getattr(_state, 'ocr_lang', 'eng'))
     _state.current_word_idx = 0
     
     page_pil = Image.fromarray(page.image)
@@ -518,7 +541,7 @@ def load_sample(which: str) -> tuple:
     page = PageData(image=img, page_num=1, rotation=0)
     _state.pages = [page]
     _state.source_file = f"sample/{which}"
-    _state.all_words = segment_words(page)
+    _state.all_words = segment_words(page, ocr_lang="eng")
     _state.current_word_idx = 0
     _state.session_corrections = 0
     
@@ -594,6 +617,11 @@ def build_ui() -> gr.Blocks:
                             type="binary",
                         )
                         max_pages = gr.Slider(1, 100, value=20, step=1, label="Max pages to process")
+                        lang_select = gr.Dropdown(
+                            choices=["ara+eng", "eng", "deu", "deu+eng", "ara+eng+deu"],
+                            value="ara+eng",
+                            label="OCR Language(s)",
+                        )
                         load_btn = gr.Button("📄 Load PDF", variant="primary", size="lg")
                         
                         gr.Markdown("**Or load a sample:**")
@@ -642,7 +670,7 @@ def build_ui() -> gr.Blocks:
         # ── Event Bindings ──
         load_btn.click(
             fn=load_pdf,
-            inputs=[pdf_input, max_pages, gr.Checkbox(value=True, visible=False)],
+            inputs=[pdf_input, max_pages, lang_select],
             outputs=[page_image, page_info, page_status],
         )
         
