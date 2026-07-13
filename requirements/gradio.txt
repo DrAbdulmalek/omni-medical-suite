@@ -9,7 +9,7 @@
 
 # === Gradio UI ===
 gradio>=4.44.0,<7.0.0
-qdrant-client>=1.9.0
+# qdrant-client>=1.9.0  # moved to [search] extra — Search tab falls back to local fuzzy without it
 
 # === OCR Engines (primary) ===
 paddleocr>=2.7.0
