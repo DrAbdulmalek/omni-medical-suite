@@ -6,12 +6,12 @@
 
 ## التطبيق الرسمي الوحيد
 
-`app/advanced_review_app.py` — واجهة Gradio الجديدة للمراجعة المتقدمة وتضم 3 تبويبات:
-- **Compare**: مقارنة raw vs preprocessed / printed OCR مع field-aware similarity
-- **Search**: بحث دلالي عبر Qdrant مع fallback محلي إذا لم تتوفر التبعيات
-- **Review**: إصلاح RTL + استخراج الحقول + توصية routing للمحركات
+`app/advanced_review_app.py` — واجهة Gradio للمراجعة المتقدمة (3 تبويبات: Compare / Search / Review).
+هذا هو **التطبيق المرجعي الحالي** لمهام المراجعة والبحث والتوجيه.
 
-`app/gradio_full_hitl.py` أصبح **compatibility shim** يوجّه للتطبيق الجديد بدل أن يحمل المنطق بنفسه.
+`app/gradio_full_hitl.py` أصبح **compatibility shim** (10 أسطر) يوجّه للتطبيق الجديد بدل أن يحمل المنطق بنفسه. **تحذير regression:** التطبيق القديم (944 سطر) كان يحتوي ميزات إضافية (save/training/translation/metrics) لم تُنقل بعد إلى الواجهة الجديدة. انظر `GRADIO_HITL_CHANGES_REVIEW.md` للتفاصيل.
+
+> **ملاحظة فرع:** التعديلات الحالية موجودة على فرع `integrate/genspark-field-dedup` ولم تُدمج في `main` بعد. الدمج يحتاج موافقة Malek على `GRADIO_HITL_CHANGES_REVIEW.md` أولاً.
 
 ## الحزم النشطة في packages/ (لا تكرار مضمون — لكن تكرار هيكلي موجود بحاجة مراجعة)
 
@@ -57,7 +57,8 @@
 ## تطبيقات Gradio (تم التنظيف — من 43 إلى 19)
 
 **المحتفظ بها (2):**
-- `app/gradio_full_hitl.py` — التطبيق الرسمي المعتمد
+- `app/advanced_review_app.py` — التطبيق المرجعي الحالي (Compare / Search / Review)
+- `app/gradio_full_hitl.py` — compatibility shim يحوّل إلى `advanced_review_app.py`
 - `hf-space/app.py` — نسخة HF Space محسّنة للمعالجة CPU
 
 **تم حذف 24 ملفاً** (نسخ مكررة + إيجابيات كاذبة). انظر `GRADIO_APPS_DECISION.md`.
@@ -72,8 +73,7 @@
 | `e7c662b` | 2026-07-13 | Phase B: تحديث routing بـ Arabic-handwritten-OCR (Qwen) + QARI + Nougat + fallback chains | Z.ai (Genspark patch) |
 | `993e0bf` | 2026-07-13 | Phase C: تنظيف pyproject/requirements + Git LFS لـ data/ + README/docs/tests | Z.ai (Genspark patch) |
 | `25171e8` | 2026-07-13 | إصلاح: إنشاء scanner_fixer_wrapper.py المفقود من الـ patch | Z.ai |
-| `c440683` | 2026-07-13 | إصلاح: نقل qdrant-client من core إلى تبعية اختيارية [search] | Z.ai |
-| `c440683` | 2026-07-13 | اختبار: Phase 5 — field-aware dedup يحل حالة الحافة (same-template/diff-patient) | Z.ai |
+| `c440683` | 2026-07-13 | اختبار + إصلاح: field-aware dedup يحل حالة الحافة + نقل qdrant-client لاختياري | Z.ai |
 | `f8dab72` | 2026-07-11 | المرحلة 3: تنظيف شامل — حذف 200MB+، 85 ملف مكرر، 52 workflow، 24 Gradio، ~105 مرجع مكسور | Z.ai |
 | `f4e4393` | 2026-07-11 | المرحلة 1: 4 تقارير تحقق (تكرار، workflows، مراجع، pytest) | Z.ai |
 | `8573ddd` | 2026-07-09 | حذف manjaro-care/reset-net (مستودعات مستقلة الآن) | Z.ai |
@@ -98,7 +98,7 @@
    - `test_detect_medical_category_generic`: regex `test` بدون حد كلمة يطابق الكلمة العادية "test"
    - `test_export_to_json`: `{k: row[k] for k in row}` على sqlite3.Row يعطي قيماً لا أسماء أعمدة
 
-5. **91 فشل اختبار بسبب تبعيات مفقودة** — torch/transformers/interactive_learning. تحتاج إضافة `@pytest.mark.skipif` أو تثبيت التبعيات.
+5. **فشل اختبارات بسبب تبعيات ثقيلة** — `packages/vision/__init__.py` يستورد 14 وحدة بـ eager imports بما فيها `batch_ocr` (يتطلب torch) و `medical_ocr_gradio` (يتطلب gradio). تم تحويلها إلى lazy imports في commit لاحق. الاختبارات المعنية: `test_arabic_rtl.py` وغيرها.
 
 6. **~50 ملف requirements*.txt قديمة** — تم تقليل الجذر (`requirements-dev.txt`) إلى compatibility wrapper، لكن بقية الملفات القديمة ما زالت بحاجة ترحيل تدريجي إلى `pyproject.toml` extras. انظر `docs/DEPENDENCY_STRATEGY.md`.
 

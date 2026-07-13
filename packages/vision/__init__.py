@@ -13,21 +13,65 @@
 - توسيع بيانات التدريب للكتابة اليدوية (Data Augmentation)
 
 OmniFile AI Processor - وحدة معالجة الملفات الذكية
+
+.. note::
+    جميع الاستيرادات تأخيرية (lazy) لتجنب فشل الاختبارات الخفيفة
+    عند عدم توفر تبعيات ثقيلة مثل torch أو gradio.
+    استخدم ``from packages.vision.text_reconstructor import TextReconstructor``
+    (استيراد مباشر) بدلاً من ``from packages.vision import TextReconstructor``
+    في الاختبارات والسكربتات الخفيفة.
 """
-from packages.vision.batch_ocr import BatchMedicalOCR
-from packages.vision.data_augmentation import DataAugmentor
-from packages.vision.dataset_builder import DatasetBuilder
-from packages.vision.dual_ocr_verifier import DualOCRVerifier
-from packages.vision.image_preprocessor import ImagePreprocessor
-from packages.vision.layout_analyzer import LayoutAnalyzer
-from packages.vision.medical_ocr import MedicalOCRProcessor, process_medical_pdf
-from packages.vision.medical_ocr_gradio import create_medical_ocr_tab
-from packages.vision.ocr_engine import OCREngine
-from packages.vision.pdf_processor import PDFProcessor
-from packages.vision.result_fusion import FusionStrategy, ResultFusion
-from packages.vision.table_extractor import TableExtractor
-from packages.vision.text_reconstructor import TextReconstructor
-from packages.vision.video_ocr import FrameResult, VideoOCR, VideoTimeline
+
+import importlib
+import sys
+from typing import Any
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy import for all vision submodules.
+
+    This prevents ImportError cascades when only a lightweight module
+    (e.g. text_reconstructor) is needed but a heavy dependency
+    (torch, gradio, paddleocr) is not installed.
+    """
+    _LAZY_MAP = {
+        "BatchMedicalOCR": ("packages.vision.batch_ocr", "BatchMedicalOCR"),
+        "DataAugmentor": ("packages.vision.data_augmentation", "DataAugmentor"),
+        "DatasetBuilder": ("packages.vision.dataset_builder", "DatasetBuilder"),
+        "DualOCRVerifier": ("packages.vision.dual_ocr_verifier", "DualOCRVerifier"),
+        "ImagePreprocessor": ("packages.vision.image_preprocessor", "ImagePreprocessor"),
+        "LayoutAnalyzer": ("packages.vision.layout_analyzer", "LayoutAnalyzer"),
+        "MedicalOCRProcessor": ("packages.vision.medical_ocr", "MedicalOCRProcessor"),
+        "process_medical_pdf": ("packages.vision.medical_ocr", "process_medical_pdf"),
+        "create_medical_ocr_tab": ("packages.vision.medical_ocr_gradio", "create_medical_ocr_tab"),
+        "OCREngine": ("packages.vision.ocr_engine", "OCREngine"),
+        "PDFProcessor": ("packages.vision.pdf_processor", "PDFProcessor"),
+        "FusionStrategy": ("packages.vision.result_fusion", "FusionStrategy"),
+        "ResultFusion": ("packages.vision.result_fusion", "ResultFusion"),
+        "TableExtractor": ("packages.vision.table_extractor", "TableExtractor"),
+        "TextReconstructor": ("packages.vision.text_reconstructor", "TextReconstructor"),
+        "VideoOCR": ("packages.vision.video_ocr", "VideoOCR"),
+        "VideoTimeline": ("packages.vision.video_ocr", "VideoTimeline"),
+        "FrameResult": ("packages.vision.video_ocr", "FrameResult"),
+    }
+
+    entry = _LAZY_MAP.get(name)
+    if entry is None:
+        raise AttributeError(f"module 'packages.vision' has no attribute {name!r}")
+
+    module_path, attr = entry
+    try:
+        mod = importlib.import_module(module_path)
+    except ImportError as exc:
+        raise AttributeError(
+            f"Cannot import {name!r} from {module_path}: {exc}. "
+            f"Install the required extras for this module."
+        ) from exc
+
+    obj = getattr(mod, attr)
+    sys.modules[__name__].__dict__[name] = obj  # cache on first access
+    return obj
+
 
 __all__ = [
     "BatchMedicalOCR",
