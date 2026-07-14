@@ -71,6 +71,8 @@
 
 | Hash | التاريخ | الوصف | المنفِّذ |
 |---|---|---|---|
+| `46fd895` | 2026-07-14 | **دمج cleanup/final-pending-items → main** (إصلاح 3 استيراد مكسور + تنظيف 8360 سطر) | Z.ai |
+| `a35eaa1` | 2026-07-14 | إصلاح: استعادة 3 ملفات محذوفة خطأ (table_extractor, code_protector, file_scanner) | Z.ai |
 | `c3923e8` | 2026-07-14 | Handwriting Trainer app + training data samples (10 pages, 3 languages) | Z.ai |
 | `12b6cd2` | 2026-07-14 | DeduplicationPipeline (RTL→Field→Dedup + confidence scoring) | Z.ai |
 | `d8c854d` | 2026-07-14 | **دمج integrate/genspark-field-dedup → main** (الخيار C: 12 commit، 34 ملف، +3390 سطر) | Z.ai |
@@ -126,16 +128,21 @@
 
 2. **162 ملف في LEGACY_REVIEW_FINAL.md** — داخل `variants/` و `hf-space/` و `legacy/api_server.py`. لا توجد استيرادات خارجية لكنها تحتاج مراجعة محتوى قبل الحذف.
 
-3. **ruff auto-fix دفعة واحدة على 12,846 مشكلة** — تم تنفيذها بلا مراجعة بشرية فردية. قد تحتوي تغييرات سلوكية غير مقصودة.
+3. **9 استيرادات مكسورة سابقة** (من commit `12b6cd2`) — تسمية مجلدات: `data-prep` vs `data_prep` و `omni-ocr` vs `omni_ocr`. ليست ناتجة عن التنظيف.
 
-4. **3 أخطاء منطقية في tmx_processor.py** — تم توثيق الأسباب الجذرية في PYTEST_REPORT.md:
+4. **ruff auto-fix دفعة واحدة على 12,846 مشكلة** — تم تنفيذها بلا مراجعة بشرية فردية. قد تحتوي تغييرات سلوكية غير مقصودة.
+
+5. **3 أخطاء منطقية في tmx_processor.py** — تم توثيق الأسباب الجذرية في PYTEST_REPORT.md:
    - `test_detect_medical_category_fracture`: regex `CT` بدون حد كلمة يطابق "ct" داخل "fracture"
    - `test_detect_medical_category_generic`: regex `test` بدون حد كلمة يطابق الكلمة العادية "test"
    - `test_export_to_json`: `{k: row[k] for k in row}` على sqlite3.Row يعطي قيماً لا أسماء أعمدة
 
-5. **~50 ملف requirements*.txt قديمة** — تم تقليل الجذر (`requirements-dev.txt`) إلى compatibility wrapper، لكن بقية الملفات القديمة ما زالت بحاجة ترحيل تدريجي إلى `pyproject.toml` extras. انظر `docs/DEPENDENCY_STRATEGY.md`.
+6. **~50 ملف requirements*.txt قديمة** — تم تقليل الجذر (`requirements-dev.txt`) إلى compatibility wrapper، لكن بقية الملفات القديمة ما زالت بحاجة ترحيل تدريجي إلى `pyproject.toml` extras. انظر `docs/DEPENDENCY_STRATEGY.md`.
 
-6. **المراجع المكسورة في المستودعات البعيدة** — تم إصلاح المراجع المحلية فقط. repos البعيدة (repo-sync-toolkit، medical-ocr-trainer-hf، intelli-file-manager، sync-github) تحتاج إصلاحاً مباشراً على GitHub.
+7. **المراجع المكسورة في المستودعات البعيدة** — تم إصلاح المراجع المحلية فقط. repos البعيدة (repo-sync-toolkit، medical-ocr-trainer-hf، intelli-file-manager، sync-github) تحتاج إصلاحاً مباشراً على GitHub.
+
+---
+
 ## ⚠️ قاعدة صارمة: فحص استيراد إلزامي بعد أي حذف جماعي
 
 **منذ: 2026-07-11 (بعد اكتشاف 73 استيرادًا مكسورًا بسبب commit 93185df)**
