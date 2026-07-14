@@ -77,7 +77,7 @@ def _build_alt_engines_tab():
         '<div style="background:#1a1a2e;border:1px solid #30363d;border-radius:8px;'
         'padding:16px;color:#8b949e;text-align:center">'
         '<p>This tab provides EasyOCR + TrOCR ensemble and PDF OCR.</p>'
-        '<p>Enable by importing functions from <code>app.hf_app</code>.</p>'
+        '<p>Archived to <code>research/prototypes/hf_app_legacy.py</code>.</p>'
         '<p>Key functions: <code>_ocr_ensemble()</code>, '
         '<code>process_pdf()</code>, <code>detect_language()</code></p></div>'
     )
@@ -233,7 +233,7 @@ def build_extended_app():
                 tabs_info = []
                 for name, flag, desc in [
                     ("محركات بديلة", "EXTENDED_ALT_ENGINES",
-                     "EasyOCR/TrOCR ensemble + PDF support (from `app/hf_app.py`)"),
+                     "EasyOCR/TrOCR ensemble + PDF support (archived → `research/prototypes/hf_app_legacy.py`)"),
                     ("مدرّب التصحيح", "EXTENDED_TRAINER",
                      "Word-level correction trainer (from `packages/file_processor/src/correction_trainer_ui.py`)"),
                     ("خط أنابيب OCR", "EXTENDED_PIPELINE",

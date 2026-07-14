@@ -19,12 +19,11 @@ OmniFile AI Processor - وحدة معالجة الملفات الذكية
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import cv2
 import numpy as np
 
-from modules.core.structure import BBox
+from packages.core.structure import BBox
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ class TableExtractor:
 
     def __init__(
         self,
-        ocr_engine: Optional[object] = None,
+        ocr_engine: object | None = None,
         min_cell_area: int = 200,
         cell_padding: int = 2,
     ) -> None:
@@ -190,8 +189,8 @@ class TableExtractor:
         v_x_values = sorted(set(v_x_values))
 
         # إضافة حدود الصورة
-        h_y_values = [0] + h_y_values + [h]
-        v_x_values = [0] + v_x_values + [w]
+        h_y_values = [0, *h_y_values, h]
+        v_x_values = [0, *v_x_values, w]
 
         # دمج الإحداثيات المتقاربة
         h_y_values = self._merge_close_values(h_y_values, threshold=5)

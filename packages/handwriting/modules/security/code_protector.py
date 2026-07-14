@@ -15,7 +15,6 @@
 import logging
 import re
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +83,7 @@ class CodeProtector:
             "async", "await", "yield", "of", "in", "typeof", "instanceof",
             "null", "undefined", "true", "false", "console", "require",
             "module", "exports", "document", "window",
-            "function", "arrow", "=>",
+            "arrow", "=>",
         },
         "java": {
             "public", "private", "protected", "static", "final", "abstract",
@@ -518,11 +517,7 @@ class CodeProtector:
             re.DOTALL,
         )
 
-        for match in marker_pattern.finditer(text):
-            if match.start() <= position <= match.end():
-                return True
-
-        return False
+        return any(match.start() <= position <= match.end() for match in marker_pattern.finditer(text))
 
     def get_protected_ranges(self, text: str) -> list[tuple[int, int]]:
         """
@@ -547,7 +542,7 @@ class CodeProtector:
     #  أدوات مساعدة
     # ===================================================================
 
-    def get_protected_keywords(self, language: Optional[str] = None) -> dict[str, set[str]]:
+    def get_protected_keywords(self, language: str | None = None) -> dict[str, set[str]]:
         """
         يعرض الكلمات المحجوزة.
 

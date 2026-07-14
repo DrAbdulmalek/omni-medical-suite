@@ -1,6 +1,21 @@
 # CATEGORY_B_NEEDS_REVIEW.md
 # Generated: 2026-07-11
 
+## Resolution (2026-07-14)
+
+| Action | Count |
+|--------|-------|
+| Already deleted (prior cleanup) | 85 |
+| Deleted (trivial diff, no imports) | 12 |
+| Kept (has external imports) | 0 |
+| Pending (functional diff, moved to CATEGORY_B_FINAL_PENDING.md) | 18 |
+
+All 113 file pairs were checked: import grep across the full repo, then diff analysis
+counting real code changes (excluding comments/blanks/formatting). The 18 pending files
+have >10 lines of functional code differences and need human review — see CATEGORY_B_FINAL_PENDING.md.
+
+---
+
 Groups/files with meaningful code differences that need human review.
 
 ## Small Diffs in Active Paths
