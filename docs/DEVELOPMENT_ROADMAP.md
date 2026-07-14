@@ -79,4 +79,6 @@ v2.0.0 — مستقبلية (إعادة هيكلة كبرى)
 ---
 
 > **هذا المستند مقترحات فقط** — يحتاج قرارًا من Malek قبل أي تنفيذ.
-> التاريخ: 2026-07-12 | آخر تحديث: عند مراجعة Malek
+> التاريخ: 2026-07-12 | آخر تحديث: 2026-07-15
+>
+> - [ ] Link `desktop/gradio_scanner_app.py` scanning logic with `packages/scanner_fixer/normalize.py` for unified scanner preprocessing
