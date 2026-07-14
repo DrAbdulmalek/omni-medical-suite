@@ -55,22 +55,24 @@
 
 **تقارير المرحلة 1:** DUPLICATE_VERIFICATION_REPORT.md (85 متطابق، 124 مختلف جزئياً، 122 بالاسم فقط)
 
-## تطبيقات Gradio (تم التنظيف — من 43 إلى 20)
+## تطبيقات Gradio (تم التنظيف — من 43 إلى 7 محتفظ به + 1 منفصل)
 
-**المحتفظ بها (3):**
-- `app/gradio_full_hitl.py` — **التطبيق الرسمي المُعتمَد** (944 سطر، 10 وظائف)
-- `app/advanced_review_app.py` — تطبيق تجريبي منفصل (Compare / Search / Review) — غير مُعتمَد للإنتاج بعد
-- `hf-space/app.py` — نسخة HF Space محسّنة للمعالجة CPU
+| القرار | العدد | التفاصيل |
+|--------|-------|---------|
+| KEEP (إنتاجي) | 7 | gradio_full_hitl.py, advanced_review_app.py, hf-space/app.py + 4 أدوات مستقلة |
+| DELETE | 26 | نسخ مكررة + إيجابيات كاذبة |
+| ARCHIVE | 8 | نقل لـ research/prototypes/ (بما فيها hf_app.py الجديد) |
+| INTEGRATED | 2 | batch_correction_ui.py + dual_ocr_interface.py (مصدر في gradio_extended.py) |
+| STILL PENDING | 0 | جميع الـ 43 ملف حُسم |
 
-**تم حذف 24 ملفاً** (نسخ مكررة + إيجابيات كاذبة). انظر `GRADIO_APPS_DECISION.md`.
-
-**18 ملفاً معلقاً تحتاج مراجعة بشرية** — مقسمة إلى 5 مجموعات (A-E) في GRADIO_APPS_DECISION.md.
+انظر `GRADIO_APPS_DECISION.md` للجدول الكامل بالأدلة.
 
 ## آخر 10 تغييرات جوهرية
 
 | Hash | التاريخ | الوصف | المنفِّذ |
 |---|---|---|---|
 | `c3923e8` | 2026-07-14 | Handwriting Trainer app + training data samples (10 pages, 3 languages) | Z.ai |
+| `12b6cd2` | 2026-07-14 | DeduplicationPipeline (RTL→Field→Dedup + confidence scoring) | Z.ai |
 | `d8c854d` | 2026-07-14 | **دمج integrate/genspark-field-dedup → main** (الخيار C: 12 commit، 34 ملف، +3390 سطر) | Z.ai |
 | `03d5f94` | 2026-07-14 | استعادة gradio_full_hitl.py + تصحيح كل المراجع (الخيار C) | Z.ai |
 | `8645576` | 2026-07-14 | LLM postprocess pipeline + active learning loop + Git LFS | Z.ai |
@@ -120,9 +122,9 @@
 
 ### قرارات معلَّقة تحتاج مراجعة بشرية
 
-1. **124 ملفاً مختلفاً جزئياً** — انظر `DUPLICATE_VERIFICATION_REPORT.md` قسم "مختلف جزئياً". يحتاج قراراً بشرياً لكل ملف: هل النسخة في packages/ الأساسية أم النسخة في الحزم المدمجة أحدث؟
+1. **~18 ملف في CATEGORY_B_FINAL_PENDING.md** — فروقات وظيفية حقيقية (>10 أسطر) تحتاج قراراً بشرياً لكل ملف. تم تقليصها من 117.
 
-2. **18 تطبيق Gradio معلّق** — انظر `GRADIO_APPS_DECISION.md` للتوصيات المجمّعة (5 مجموعات A-E).
+2. **162 ملف في LEGACY_REVIEW_FINAL.md** — داخل `variants/` و `hf-space/` و `legacy/api_server.py`. لا توجد استيرادات خارجية لكنها تحتاج مراجعة محتوى قبل الحذف.
 
 3. **ruff auto-fix دفعة واحدة على 12,846 مشكلة** — تم تنفيذها بلا مراجعة بشرية فردية. قد تحتوي تغييرات سلوكية غير مقصودة.
 
@@ -131,11 +133,9 @@
    - `test_detect_medical_category_generic`: regex `test` بدون حد كلمة يطابق الكلمة العادية "test"
    - `test_export_to_json`: `{k: row[k] for k in row}` على sqlite3.Row يعطي قيماً لا أسماء أعمدة
 
-5. **فشل اختبارات بسبب تبعيات ثقيلة** — `packages/vision/__init__.py` يستورد 14 وحدة بـ eager imports بما فيها `batch_ocr` (يتطلب torch) و `medical_ocr_gradio` (يتطلب gradio). تم تحويلها إلى lazy imports في commit لاحق. الاختبارات المعنية: `test_arabic_rtl.py` وغيرها.
+5. **~50 ملف requirements*.txt قديمة** — تم تقليل الجذر (`requirements-dev.txt`) إلى compatibility wrapper، لكن بقية الملفات القديمة ما زالت بحاجة ترحيل تدريجي إلى `pyproject.toml` extras. انظر `docs/DEPENDENCY_STRATEGY.md`.
 
-6. **~50 ملف requirements*.txt قديمة** — تم تقليل الجذر (`requirements-dev.txt`) إلى compatibility wrapper، لكن بقية الملفات القديمة ما زالت بحاجة ترحيل تدريجي إلى `pyproject.toml` extras. انظر `docs/DEPENDENCY_STRATEGY.md`.
-
-7. **المراجع المكسورة في المستودعات البعيدة** — تم إصلاح المراجع المحلية فقط. repos البعيدة (repo-sync-toolkit، medical-ocr-trainer-hf، intelli-file-manager، sync-github) تحتاج إصلاحاً مباشراً على GitHub.
+6. **المراجع المكسورة في المستودعات البعيدة** — تم إصلاح المراجع المحلية فقط. repos البعيدة (repo-sync-toolkit، medical-ocr-trainer-hf، intelli-file-manager، sync-github) تحتاج إصلاحاً مباشراً على GitHub.
 ## ⚠️ قاعدة صارمة: فحص استيراد إلزامي بعد أي حذف جماعي
 
 **منذ: 2026-07-11 (بعد اكتشاف 73 استيرادًا مكسورًا بسبب commit 93185df)**
