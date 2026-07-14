@@ -2,6 +2,35 @@
 # Generated: 2026-07-11
 # Method: MD5 comparison + path analysis
 
+## Resolution (2026-07-14) — Category A (legacy/ subdirectory files)
+
+Import verification performed: `rg` across all `.py` files for any reference to
+`legacy/(mobile_review|ocr_unified_v2|translation_corrector)` from outside the
+`legacy/` tree. Result: **zero** external imports found. All 19 files are
+self-contained within `packages/file_processor/legacy/`.
+
+Note: These 19 files were already deleted by commit `986d7b7` (CATEGORY_B
+cleanup). This resolution confirms the deletion was correct via independent
+import verification.
+
+| Action | Count |
+|--------|-------|
+| Deleted (zero external imports, already removed by CATEGORY_B) | 19 |
+| Kept (variants/handwriting-ocr — not in legacy/, needs separate review) | 25 |
+| Kept (hf-space — not in legacy/, needs separate review) | 19 |
+| Kept (legacy/api_server.py — legacy/ root, needs separate review) | 1 |
+| Kept (merged-remnant packages — not in legacy/, needs separate review) | 117 |
+
+**Import check result (post-verification):**
+```
+packages.training: No module named 'torch'          ← pre-existing (torch not installed)
+packages.training_framework: No module named ...    ← pre-existing (module doesn't exist)
+```
+No new breakage introduced. The two errors above existed on the clean HEAD
+before any cleanup and are unrelated to legacy file removal.
+
+---
+
 ## Summary
 
 | Metric | Count |
