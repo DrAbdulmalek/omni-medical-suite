@@ -1,6 +1,16 @@
-# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-14
+# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-16
 
 > **كل نموذج AI (Z.ai، Claude، Mistral، Grok، أو أي آخر) يجب أن يقرأ هذا الملف أولاً قبل أي تعديل على هذا المستودع، ويُحدِّثه بعد كل تغيير جوهري.**
+
+---
+
+## حالة الدمج — Merge Status
+
+| الفرع | الحالة | Merge Commit |
+|---|---|---|
+| `cleanup/final-pending-items` | ✅ مُدمج في main (merge commit `46fd895`) | تم الدفع في `e6b450d` |
+
+آخر تحقق: `2026-07-16T22:46 UTC+3` — `import app.gradio_full_hitl` ناجح، صفر كسر استيراد.
 
 ---
 
