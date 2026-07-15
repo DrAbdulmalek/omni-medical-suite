@@ -53,7 +53,7 @@ jobs:
           cd hf-space-deploy
 
           # Remove old generated files
-          rm -rf src/ packages/ config/
+          rm -rf src/ packages/ config/ app_services/
 
           # Copy ALL deployment artifacts from monorepo
           cp -f ../hf-space/app.py ./app.py
@@ -62,6 +62,11 @@ jobs:
           cp -r ../hf-space/src/ ./src/
           cp -r ../hf-space/packages/ ./packages/
           cp -r ../hf-space/config/ ./config/ 2>/dev/null || mkdir -p config
+
+          # Copy shared services (for adapter imports)
+          mkdir -p app_services/services
+          cp ../app/services/*.py ./app_services/services/ 2>/dev/null || true
+          cp ../app/services/__init__.py ./app_services/services/ 2>/dev/null || true
 
           # Copy .dockerignore if present
           cp -f ../hf-space/.dockerignore ./.dockerignore 2>/dev/null || true

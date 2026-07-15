@@ -18,12 +18,12 @@
   <img src="https://img.shields.io/badge/Apps-5-2ECC71?style=flat-square" />
   <img src="https://img.shields.io/badge/Tests-50%2B-FF6B6B?style=flat-square" />
   <img src="https://img.shields.io/badge/License-MIT-3C873A?style=flat-square" />
-  <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><img src="https://img.shields.io/badge/HF%20Space-Live-FFA500?style=flat-square&logo=huggingface" /></a>
+  <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><img src="https://img.shields.io/badge/HF%20Space-Beta-yellow?style=flat-square&logo=huggingface" /></a>
 </p>
 
 <p align="center">
   <a href="https://github.com/DrAbdulmalek/omni-medical-suite"><b>GitHub</b></a> &middot;
-  <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><b>Demo</b></a> &middot;
+  <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><b>Demo (Beta)</b></a> &middot;
   <a href="docs/ARCHITECTURE.md"><b>Architecture</b></a> &middot;
   <a href="docs/ROADMAP.md"><b>Roadmap</b></a> &middot;
   <a href="CONTRIBUTING.md"><b>Contributing</b></a>

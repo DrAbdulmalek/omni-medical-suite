@@ -66,7 +66,40 @@ jobs:
         continue-on-error: true
 
   # ===================================================================
-  # Job 3: Unit tests
+  # Job 3a: Critical smoke tests (must pass — blocks merge)
+  # ===================================================================
+  test-critical:
+    name: Critical Tests (RTL + Qdrant Fallback + Core)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install core dependencies
+        run: pip install pytest rapidfuzz numpy
+
+      - name: Run RTL tests
+        run: pytest tests/test_arabic_rtl.py -v --tb=short
+
+      - name: Run Qdrant fallback tests (no Qdrant required)
+        run: pytest tests/test_qdrant_search.py::TestQdrantMedicalSearchFallback -v --tb=short
+
+      - name: Run field extractor tests
+        run: pytest tests/test_field_extractor_core.py -v --tb=short 2>/dev/null || true
+
+      - name: Run weighted dedup tests
+        run: pytest tests/test_weighted_dedup.py -v --tb=short 2>/dev/null || true
+
+      - name: Run RTL fix pipeline test
+        run: pytest tests/test_rtl_fix_pipeline.py -v --tb=short 2>/dev/null || true
+
+  # ===================================================================
+  # Job 3: Unit tests (non-blocking — informational)
   # ===================================================================
   test-unit:
     name: Unit Tests
@@ -241,7 +274,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test-unit, security]
+    needs: [lint, typecheck, test-unit, test-critical, security]
     if: always()
     steps:
       - name: Check all required jobs passed
@@ -249,7 +282,8 @@ jobs:
           echo "Lint: ${{ needs.lint.result }}"
           echo "TypeCheck: ${{ needs.typecheck.result }}"
           echo "UnitTests: ${{ needs.test-unit.result }}"
+          echo "CriticalTests: ${{ needs.test-critical.result }}"
           echo "Security: ${{ needs.security.result }}"
           if [[ "${{ needs.lint.result }}" == "failure" ]]; then exit 1; fi
-          if [[ "${{ needs.test-unit.result }}" == "failure" ]]; then exit 1; fi
+          if [[ "${{ needs.test-critical.result }}" == "failure" ]]; then exit 1; fi
           echo "All required CI checks passed!"

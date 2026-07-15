@@ -12,8 +12,57 @@
 """
 
 import logging
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+
+# ------------------------------------------------------------------
+# Canonical Arabic text contract — single normalization entry point
+# ------------------------------------------------------------------
+# Both rtl_utils.ArabicRTLFixer.normalize_presentation_forms() and
+# TextReconstructor now delegate to this function so the entire
+# codebase agrees on what "canonical Arabic" means:
+#   NFKC normalization → presentation-form mapping → return.
+#
+# Consumers that need a single import can use:
+#   from packages.vision.text_reconstructor import canonicalize_arabic
+# ------------------------------------------------------------------
+
+try:
+    from packages.nlp.arabic_rtl import ARABIC_NORMALIZATION_MAP
+except ImportError:  # pragma: no cover
+    ARABIC_NORMALIZATION_MAP: dict[str, str] = {}
+
+
+def canonicalize_arabic(text: str) -> str:
+    """Normalize Arabic text to canonical Unicode form.
+
+    This is the **single canonicalization contract** for the entire
+    project.  It applies:
+
+    1. NFKC compatibility decomposition (handles most ligatures).
+    2. Presentation-form mapping via ``ARABIC_NORMALIZATION_MAP``
+       (40+ mappings from FE8x/FB5x/FDxx/FExx ranges to 06xx).
+
+    The result contains **no Arabic presentation forms** — only
+    canonical Unicode code-points suitable for processing, searching,
+    and comparison.
+
+    Use ``arabic_reshaper`` + ``python-bidi`` (i.e.
+    ``_apply_arabic_reshaping``) **only** when rendering text visually
+    on images or PDF.
+
+    Args:
+        text: Raw Arabic text (may contain presentation forms).
+
+    Returns:
+        Canonical Arabic text (no presentation forms).
+    """
+    if not text:
+        return ""
+    normalized = unicodedata.normalize("NFKC", text)
+    return "".join(ARABIC_NORMALIZATION_MAP.get(ch, ch) for ch in normalized)
 
 
 class TextReconstructor:

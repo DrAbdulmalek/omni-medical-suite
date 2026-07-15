@@ -14,6 +14,13 @@ import unicodedata
 
 from packages.nlp.arabic_rtl import ARABIC_NORMALIZATION_MAP
 
+# Bridge: delegate to the canonical contract in text_reconstructor.
+# Both modules now agree on what "canonical Arabic" means.
+try:
+    from packages.vision.text_reconstructor import canonicalize_arabic as _canonicalize
+except ImportError:  # pragma: no cover — fallback to local impl
+    _canonicalize = None
+
 ARABIC_CHAR_RE = re.compile(r"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]")
 ARABIC_TOKEN_RE = re.compile(r"^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+$")
 PRESENTATION_FORM_RE = re.compile(r"[\uFB50-\uFDFF\uFE70-\uFEFF]")
@@ -55,6 +62,10 @@ class ArabicRTLFixer:
 
     @staticmethod
     def normalize_presentation_forms(text: str) -> str:
+        """Normalize Arabic text to canonical Unicode (delegates to canonicalize_arabic)."""
+        if _canonicalize is not None:
+            return _canonicalize(text)
+        # Local fallback (identical logic) when text_reconstructor is not importable
         if not text:
             return ""
         normalized = unicodedata.normalize("NFKC", text)
