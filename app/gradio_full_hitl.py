@@ -15,262 +15,45 @@ Features:
 Environment Variables:
   ENABLE_LLM=true       Enable Jais proofreader + NER (requires GPU)
   HF_TOKEN=hf_xxx       HuggingFace token for dataset upload
+
+Business logic is delegated to service modules under ``app/services/``.
+This file contains only the UI composition layer and thin orchestration.
 """
-import hashlib
-import json
 import logging
 import os
 import re
-import subprocess
 import time
 import traceback
-from datetime import datetime
 from pathlib import Path
 
-import cv2
 import gradio as gr
-import numpy as np
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Config ──────────────────────────────────────────────────────────────────
-ENABLE_LLM = os.getenv("ENABLE_LLM", "false").lower() == "true"
-HF_TOKEN = os.getenv("HF_TOKEN", "")
-HF_DATASET = "DrAbdulmalek/arabic-medical-ocr-corrections"
-
-# ── Conditional Imports ─────────────────────────────────────────────────────
-HAS_LLM = False
-HAS_HF = False
-
-# LLM
-if ENABLE_LLM:
-    try:
-        from src.llm.proofreader import MedicalProofreader
-        from src.ner.jais_ner import JaisNER
-        HAS_LLM = True
-        logger.info("Jais LLM modules loaded (GPU required)")
-    except ImportError as e:
-        logger.warning(f"LLM modules not available: {e}")
-
-# HuggingFace
-try:
-    import pandas as pd
-    from datasets import Dataset, load_dataset
-    HAS_HF = True
-except ImportError:
-    logger.warning("HuggingFace libs not available — save disabled")
-
-# ── Initialize OCR Engines ──────────────────────────────────────────────────
-logger.info("Initializing OCR engines...")
-
-# ImagePreprocessor (حقيقي — 582 سطر في packages/vision/)
-image_preprocessor = None
-HAS_PREPROCESSOR = False
-try:
-    from packages.vision.image_preprocessor import ImagePreprocessor
-    image_preprocessor = ImagePreprocessor(
-        apply_clahe=True, apply_denoise=True,
-        apply_deskew=True, deskew_angle_threshold=5.0,
-        apply_binarize=True,
-    )
-    HAS_PREPROCESSOR = True
-    logger.info("ImagePreprocessor loaded (CLAHE+denoise+deskew+binarize)")
-except Exception as e:
-    logger.warning(f"ImagePreprocessor not available, will use fallback: {e}")
-
-# PaddleOCR (primary — best Arabic support)
-paddle_ocr = None
-try:
-    from paddleocr import PaddleOCR
-    paddle_ocr = PaddleOCR(
-        use_angle_cls=True, lang="ar", show_log=False,
-        use_gpu=False, det_db_thresh=0.3, det_db_box_thresh=0.5,
-        det_db_unclip_ratio=1.6, max_text_length=800, use_mp=True,
-    )
-    logger.info("PaddleOCR initialized successfully")
-except Exception as e:
-    logger.error(f"PaddleOCR init failed: {e}")
-
-# Tesseract (secondary — يعمل دائماً كضمان أساسي)
-HAS_TESSERACT = False
-try:
-    import pytesseract
-    pytesseract.get_tesseract_version()
-    HAS_TESSERACT = True
-    logger.info("Tesseract initialized successfully")
-except Exception as e:
-    logger.warning(f"Tesseract not available: {e}")
-
-# Spell Checker (وحدة مُختبرة موجودة مسبقاً — v7.1)
-spell_checker = None
-try:
-    from packages.core.spell_checker import HybridSpellChecker
-    spell_checker = HybridSpellChecker()
-    logger.info("HybridSpellChecker v7.1 loaded")
-except Exception as e:
-    logger.warning(f"Spell checker not available: {e}")
-
-# Medical dictionary for NER
-MEDICAL_TERMS = {
-    # أدوية
-    "باراسيتامول": "medication", "ايبوبروفين": "medication",
-    "اموكسيسيلين": "medication", "ازيثرومايسين": "medication",
-    "سيفالكسين": "medication", "ميترونيدازول": "medication",
-    "اوجمنتين": "medication", "اوميبرازول": "medication",
-    "ديكلوفيناك": "medication", "نابروكسين": "medication",
-    "ترامادول": "medication", "كوديين": "medication",
-    "سالبوتامول": "medication", "لوراتادين": "medication",
-    "سيتيريزين": "medication", "رانيتيدين": "medication",
-    "فاموتيدين": "medication", "انالجين": "medication",
-    "بنادول": "medication", "ادفيل": "medication",
-    "كاتافلام": "medication", "فولتارين": "medication",
-    "مونتيلوكاست": "medication", "سودوافيدرين": "medication",
-    "سيفترياكسون": "medication", "دوكسيسيكلين": "medication",
-    "سيبروفلوكساسين": "medication", "لوفلوكساسين": "medication",
-    "ميفيناميك": "medication", "انديسيترون": "medication",
-    # أمراض
-    "سكري": "disease", "ضغط": "disease", "ربو": "disease",
-    "التهاب": "disease", "حساسية": "disease", "قرحة": "disease",
-    "التهاب رئوي": "disease", "التهاب شعبي": "disease",
-    "ارتفاع ضغط": "disease", "سرطان": "disease",
-    # أعراض
-    "صداع": "symptom", "حمى": "symptom", "سعال": "symptom",
-    "الم": "symptom", "غثيان": "symptom", "اقياء": "symptom",
-    "اسهال": "symptom", "دوار": "symptom", "تعب": "symptom",
-    "ضيق تنفس": "symptom", "الم بطن": "symptom",
-}
-
-# OCR common misrecognition corrections
-OCR_CORRECTIONS = {
-    "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
-    "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
-    "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
-    "ديكلوفيناك ": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
-    "اوميبرازول ": "اوميبرازول", "سيليبريكس ": "سيليبريكس",
-    "ترامادول ": "ترامادول", "كاتافلام ": "كاتافلام",
-    "نوفافين ": "نوفافين", "فلاميكس ": "فلاميكس",
-    "بنادول ": "بنادول", "ادفيل ": "ادفيل",
-}
-
-# ── Initialize Heavy Models (lazy) ──────────────────────────────────────────
-proofreader = None
-ner = None
-
-if HAS_LLM:
-    try:
-        proofreader = MedicalProofreader()
-        ner = JaisNER()
-        logger.info("Jais models loaded successfully")
-    except Exception as e:
-        logger.error(f"Failed to load Jais models: {e}")
-
-
-# ── Processing Functions ────────────────────────────────────────────────────
-
-def _preprocess_image(image: np.ndarray) -> tuple[np.ndarray, list[str]]:
-    """
-    Preprocess image using ImagePreprocessor (حقيقي — 582 سطر) if available,
-    otherwise fallback to basic CLAHE+Otsu. Returns (processed, steps_log).
-    """
-    steps = []
-    cleaned = None
-
-    # المُعالج الحقيقي (CLAHE + denoise + deskew 5°+ + binarize)
-    if HAS_PREPROCESSOR and image_preprocessor is not None:
-        try:
-            cleaned = image_preprocessor.preprocess(image, return_numpy=True)
-            if cleaned.ndim == 2:  # رمادي → RGB للعرض في Gradio
-                cleaned = cv2.cvtColor(cleaned, cv2.COLOR_GRAY2RGB)
-            steps.append("ImagePreprocessor (CLAHE+denoise+deskew+binarize)")
-        except Exception as e:
-            logger.warning(f"ImagePreprocessor failed, falling back: {e}")
-            cleaned = None
-
-    # Fallback: CLAHE + Otsu بسيطة
-    if cleaned is None:
-        try:
-            gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-            enhanced = clahe.apply(gray)
-            _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            cleaned = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
-            steps.append("Fallback CLAHE+Otsu")
-        except Exception as e:
-            logger.debug(f"Basic preprocessing fallback failed: {e}")
-            cleaned = image
-            steps.append("No preprocessing")
-
-    return cleaned, steps
-
-
-def _run_paddle_ocr(image: np.ndarray) -> tuple[str, list[dict]]:
-    """Run PaddleOCR. Returns (full_text, line_details)."""
-    if paddle_ocr is None:
-        return "", []
-    try:
-        img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        result = paddle_ocr.ocr(img_bgr, cls=True)
-        lines, details = [], []
-        if result and result[0]:
-            for idx, line in enumerate(result[0]):
-                text = line[1][0].strip()
-                conf = line[1][1]
-                if text:
-                    lines.append(text)
-                    details.append({"line": idx+1, "text": text,
-                                   "confidence": round(float(conf), 4)})
-        return "\n".join(lines), details
-    except Exception as e:
-        logger.error(f"PaddleOCR error: {e}")
-        return "", []
-
-
-def _run_tesseract(image: np.ndarray) -> tuple[str, float]:
-    """Run Tesseract. Returns (text, avg_confidence)."""
-    if not HAS_TESSERACT:
-        return "", 0.0
-    try:
-        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        text = pytesseract.image_to_string(gray, lang="ara+eng", config="--psm 6")
-        try:
-            data = pytesseract.image_to_data(gray, lang="ara+eng", output_type=pytesseract.Output.DICT)
-            confs = [int(c) for c in data["conf"] if int(c) > 0]
-            avg_conf = sum(confs) / len(confs) if confs else 0.0
-        except Exception:
-            avg_conf = 0.0
-        return text.strip(), round(avg_conf, 2)
-    except Exception as e:
-        logger.error(f"Tesseract error: {e}")
-        return "", 0.0
-
-
-def _auto_correct_ocr(text: str) -> tuple[str, list[dict]]:
-    """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
-    changes = []
-    corrected = text
-    for wrong, right in OCR_CORRECTIONS.items():
-        if wrong in corrected:
-            count = corrected.count(wrong)
-            corrected = corrected.replace(wrong, right)
-            changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
-    # Normalize whitespace
-    corrected = re.sub(r'[ \t]+', ' ', corrected)
-    corrected = re.sub(r'\n{3,}', '\n\n', corrected).strip()
-    return corrected, changes
-
-
-def _extract_ner(text: str) -> dict[str, list[str]]:
-    """Extract medical entities by dictionary matching."""
-    entities = {"medications": [], "diseases": [], "symptoms": [], "dosages": []}
-    for term, category in MEDICAL_TERMS.items():
-        if term in text:
-            entities.setdefault(f"{category}s", []).append(term)
-    dosage_re = r'(\d+(?:\.\d+)?)\s*(?:ملغ|mg|مغ|مللي|مل|حبة|كبسولة|قرص|امبول)'
-    for m in re.findall(dosage_re, text):
-        entities["dosages"].append(m)
-    return {k: list(set(v)) for k, v in entities.items() if v}
-
+# ── Service Imports ─────────────────────────────────────────────────────────
+from app.services.ocr_service import (          # noqa: E402
+    HAS_PREPROCESSOR,
+    HAS_TESSERACT,
+    _auto_correct_ocr,
+    _preprocess_image,
+    _run_paddle_ocr,
+    _run_tesseract,
+    paddle_ocr,
+    spell_checker,
+)
+from app.services.review_service import (        # noqa: E402
+    HAS_LLM,
+    _extract_ner,
+    jais_proofread_only,
+    ner,
+    proofreader,
+)
+from app.services.hf_dataset_service import (    # noqa: E402
+    retrain_now,
+    save_to_hf,
+    update_medical_dictionary,
+)
 
 # ====================================================================
 # منقول من OmniFile_Processor/hf_app.py (اندماج مؤكَّد الجودة — 6 يوليو 2026)
@@ -579,150 +362,9 @@ def full_process(image):
         return None, f"خطأ: {e!s}", "", {}, f"حدث خطأ: {e!s}"
 
 
-def jais_proofread_only(text: str) -> str:
-    """Standalone Jais LLM proofreading on raw OCR text."""
-    if not HAS_LLM or proofreader is None:
-        return ("⚠️ يتطلب تفعيل ENABLE_LLM=true و GPU\n\n"
-                "لا يمكن تشغيل تدقيق Jais بدون وحدة معالجة الرسومات (GPU) "
-                "وتفعيل متغير البيئة ENABLE_LLM=true.")
-
-    if not text or not text.strip():
-        return "⚠️ لا يوجد نص للتدقيق. الرجاء تشغيل المعالجة الكاملة أولاً."
-
-    try:
-        # Apply OCR corrections first, then spell check, then LLM proofread
-        corrected, _corrections = _auto_correct_ocr(text)
-
-        if spell_checker:
-            try:
-                corrected = spell_checker.correct_text(corrected)
-            except Exception as e:
-                logger.warning(f"Spell check failed in standalone proofread: {e}")
-
-        proof_result = proofreader.proofread(corrected)
-        corrected = proof_result["corrected"]
-        logger.info("Standalone Jais proofread applied")
-        return corrected
-    except Exception as e:
-        logger.error(f"Standalone proofread error: {e}")
-        return f"❌ خطأ في التدقيق بالذكاء الاصطناعي: {e!s}"
-
-
 def copy_to_clipboard(text: str) -> str:
     """Return text for Gradio clipboard copy via browser."""
     return text
-
-
-def save_to_hf(corrected_text: str, original_text: str, entities, category: str) -> str:
-    """Save correction pair to HuggingFace Dataset."""
-    if not HAS_HF:
-        return "❌ مكتبات HuggingFace غير متاحة"
-
-    if not corrected_text or not corrected_text.strip():
-        return "⚠️ لا يوجد نص مصحح للحفظ. الرجاء معالجة صورة أولاً."
-
-    try:
-        previous_count = 0
-        try:
-            existing = load_dataset(HF_DATASET, split="train")
-            previous_count = len(existing)
-        except Exception:
-            pass
-
-        # Image hash for deduplication hint
-        content_hash = hashlib.md5(
-            (str(original_text or "") + str(corrected_text)).encode()
-        ).hexdigest()[:12]
-
-        row = {
-            "incorrect_ocr_output": str(original_text or ""),
-            "correct_text": str(corrected_text),
-            "category": str(category),
-            "entities": json.dumps(entities, ensure_ascii=False) if isinstance(entities, dict) else str(entities),
-            "timestamp": datetime.now().isoformat(),
-            "content_hash": content_hash,
-        }
-
-        new_row = pd.DataFrame([row])
-
-        # Load existing and append
-        try:
-            existing = load_dataset(HF_DATASET, split="train").to_pandas()
-            df = pd.concat([existing, new_row], ignore_index=True)
-        except Exception:
-            df = new_row
-
-        # Upload
-        new_ds = Dataset.from_pandas(df)
-        push_kwargs = {"repo_id": HF_DATASET, "private": False}
-        if HF_TOKEN:
-            push_kwargs["token"] = HF_TOKEN
-        new_ds.push_to_hub(**push_kwargs)
-
-        total = len(df)
-        logger.info("Saved to HF: total %d samples (hash=%s)", total, content_hash)
-        return (
-            f"✅ تم الحفظ بنجاح!\n\n"
-            f"📊 التفاصيل:\n"
-            f"  • العينات السابقة: {previous_count}\n"
-            f"  • الإجمالي بعد الحفظ: {total}\n"
-            f"  • بصمة المحتوى: {content_hash}\n"
-            f"  • النوع: {category}\n"
-            f"  • الوقت: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-
-    except Exception as e:
-        logger.error(f"Save error: {e}")
-        return f"❌ خطأ في الحفظ: {e!s}"
-
-
-def update_medical_dictionary():
-    """Generator: auto-expand medical dictionary from accumulated corrections."""
-    try:
-        yield "جاري تحليل التصحيحات من HF Dataset..."
-        from src.ocr.build_medical_dict import build_and_expand_dict
-        medical_dict = build_and_expand_dict(min_freq=2)
-        yield f"تم تحديث القاموس الطبي!\nعدد المصطلحات: {len(medical_dict)}"
-        examples = list(medical_dict.keys())[:10]
-        yield f"تم التحديث بنجاح!\nالمصطلحات ({len(medical_dict)}):\n" + "\n".join(f"  - {e}" for e in examples)
-    except Exception as e:
-        logger.error(f"Dict update error: {e}")
-        yield f"خطأ في تحديث القاموس: {e!s}"
-
-
-def retrain_now():
-    """Generator: regenerate Jais NER dataset and start fine-tuning."""
-    try:
-        yield "المرحلة 1/2: جاري إنشاء dataset للتدريب..."
-
-        # 1. Generate prompt dataset
-        try:
-            from scripts.create_jais_prompt_dataset import generate_jais_dataset
-            ds = generate_jais_dataset(output_dir="jais_ner_data")
-            yield f"تم إنشاء {len(ds)} عينة\n\nالمرحلة 2/2: جاري التدريب..."
-        except Exception as e:
-            yield f"خطأ في إنشاء Dataset: {e}"
-            return
-
-        # 2. Fine-tuning (subprocess — non-blocking would need Celery in production)
-        try:
-            result = subprocess.run(
-                ["python", "src/ner/fine_tune_jais_ner.py", "--epochs", "2"],
-                capture_output=True, text=True, timeout=1800,
-            )
-            if result.returncode == 0:
-                last_lines = result.stdout[-500:] if len(result.stdout) > 500 else result.stdout
-                yield f"اكتمل التدريب بنجاح!\n\n{last_lines}"
-            else:
-                yield f"فشل التدريب (code {result.returncode}):\n{result.stderr[-500:]}"
-        except subprocess.TimeoutExpired:
-            yield "انتهت مهلة التدريب (30 دقيقة)"
-        except Exception as e:
-            yield f"خطأ في التدريب: {e}"
-
-    except Exception as e:
-        logger.error(f"Retrain error: {e}")
-        yield f"خطأ: {e!s}"
 
 
 # ── Gradio UI ───────────────────────────────────────────────────────────────
