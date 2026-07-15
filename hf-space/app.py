@@ -88,7 +88,7 @@ try:
     from paddleocr import PaddleOCR
     paddle_ocr = PaddleOCR(
         use_angle_cls=True, lang="ar", show_log=False,
-        use_gpu=False, det_db_thresh=0.3, det_db_box_thresh=0.5,
+        device="cpu", det_db_thresh=0.3, det_db_box_thresh=0.5,
         det_db_unclip_ratio=1.6, max_text_length=800, use_mp=True,
     )
     logger.info("PaddleOCR initialized successfully")

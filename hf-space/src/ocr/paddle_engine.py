@@ -42,7 +42,7 @@ DEFAULT_PARAMS = {
     "use_angle_cls": False,
     "lang": "ar",
     "show_log": False,
-    "use_gpu": True,
+    "device": "cpu",
     "enable_mkldnn": True,
 }
 
@@ -107,7 +107,7 @@ class PaddleOCREngine:
             "use_angle_cls": False,
             "lang": lang,
             "show_log": False,
-            "use_gpu": use_gpu,
+            "device": "gpu" if use_gpu else "cpu",
             "enable_mkldnn": True,
         }
 
