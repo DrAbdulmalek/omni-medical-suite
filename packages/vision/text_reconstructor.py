@@ -136,12 +136,44 @@ class TextReconstructor:
         """
         إعادة تجميع النصوص مع تحديد الاتجاه بشكل صريح.
 
+        ملاحظة مهمة: هذه الدالة تُخرج نصًا عربيًا قياسيًا (canonical Unicode)،
+        وليس أشكال العرض (presentation forms).  إعادة التشكيل مخصصة
+        لطبقة العرض فقط (rendering) وليس لخطوط معالجة النصوص.
+
+        استخدم ``reconstruct_for_display()`` إذا كنت تحتاج أشكال العرض.
+
         Args:
             words: قائمة كلمات OCR
             direction: "rtl" أو "ltr"
 
         Returns:
-            النص المُعاد تجميعه مع معالجة الاتجاه
+            النص المُعاد تجميعه — نص عربي قياسي بدون presentation forms
+        """
+        if direction not in ("rtl", "ltr"):
+            logger.warning(
+                "اتجاه غير معروف '%s' - سيتم استخدام auto", direction
+            )
+            return self.reconstruct(words, direction="auto")
+
+        return self.reconstruct(words, direction=direction)
+
+    def reconstruct_for_display(
+        self,
+        words: list[dict],
+        direction: str = "rtl",
+    ) -> str:
+        """
+        إعادة تجميع النصوص مع تطبيق إعادة التشكيل للعرض المرئي.
+
+        تستخدم arabic-reshaper + python-bidi لتحويل النص العربي
+        إلى أشكال العرض المناسبة للطباعة على الصور / PDF.
+
+        Args:
+            words: قائمة كلمات OCR
+            direction: "rtl" أو "ltr"
+
+        Returns:
+            النص المُعاد تجميعه مع أشكال العرض (presentation forms)
         """
         if direction not in ("rtl", "ltr"):
             logger.warning(
@@ -151,7 +183,6 @@ class TextReconstructor:
 
         text = self.reconstruct(words, direction=direction)
 
-        # إعادة تشكيل النص العربي إذا توفرت المكتبات
         if direction == "rtl" and self._has_reshaper and self._has_bidi:
             text = self._apply_arabic_reshaping(text)
 

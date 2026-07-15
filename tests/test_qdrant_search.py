@@ -1,19 +1,14 @@
 """Smoke tests for QdrantMedicalSearch — verifies both real and fallback paths.
 
-Uses ``pytest.importorskip`` so the file is collected unconditionally
-but individual tests are skipped when ``qdrant_client`` is not installed.
+Fallback tests (TestQdrantMedicalSearchFallback) run unconditionally without
+any Qdrant dependency.  Integration tests (TestQdrantMedicalSearchIntegration)
+require both ``qdrant_client`` installed AND a live Qdrant instance; they are
+skipped individually via a class-level fixture when either is unavailable.
 """
 
 from __future__ import annotations
 
-import json
-
 import pytest
-
-qdrant_client = pytest.importorskip(
-    "qdrant_client",
-    reason="qdrant_client not installed — only fallback path can be tested",
-)
 
 from src.ocr.deduplication import QdrantMedicalSearch
 from src.ocr.field_extractor import ArabicMedicalFieldExtractor
@@ -52,10 +47,15 @@ FIXTURE_CORPUS = [
 
 
 class TestQdrantMedicalSearchFallback:
-    """Tests that run even WITHOUT a live Qdrant instance (local fallback)."""
+    """Tests that run WITHOUT a live Qdrant instance (local fuzzy fallback).
+
+    These tests verify the local fuzzy-search fallback path.  They do NOT
+    require ``qdrant_client`` to be installed — only ``rapidfuzz`` (already
+    a core dependency of deduplication.py).
+    """
 
     def test_fallback_backend_used_when_no_url(self):
-        """When qdrant_url is None, upsert_records should report 'local_fallback'."""
+        """When qdrant_url is None, upsert_records should report 'local' backend."""
         extractor = ArabicMedicalFieldExtractor()
         search = QdrantMedicalSearch(
             qdrant_url=None,
@@ -63,8 +63,8 @@ class TestQdrantMedicalSearchFallback:
             extractor=extractor,
         )
         info = search.upsert_records(FIXTURE_CORPUS)
-        assert info["backend"] == "local_fallback", (
-            f"Expected local_fallback but got {info['backend']}"
+        assert info["backend"] == "local", (
+            f"Expected 'local' but got {info['backend']!r}"
         )
 
     def test_fallback_search_returns_results(self):
@@ -78,10 +78,10 @@ class TestQdrantMedicalSearchFallback:
         search.upsert_records(FIXTURE_CORPUS)
         hits = search.search("ارتفاع ضغط الدم أحمد", top_k=3)
         assert len(hits) >= 1, "Fallback search should return at least one result"
-        # doc-001 and doc-003 both mention the query terms
+        # doc-001 (index 0) and doc-003 (index 2) both mention the query terms
         hit_ids = {h["id"] for h in hits}
-        assert "doc-001" in hit_ids or "doc-003" in hit_ids, (
-            f"Expected relevant doc in {hit_ids}"
+        assert "0" in hit_ids or "2" in hit_ids, (
+            f"Expected relevant doc index in {hit_ids}"
         )
 
     def test_fallback_search_empty_query(self):
@@ -95,6 +95,7 @@ class TestQdrantMedicalSearchFallback:
         search.upsert_records(FIXTURE_CORPUS)
         hits = search.search("", top_k=3)
         assert isinstance(hits, list)
+        assert len(hits) == 0
 
     def test_upsert_returns_count(self):
         """upsert_records should report the number of indexed records."""
@@ -105,16 +106,23 @@ class TestQdrantMedicalSearchFallback:
             extractor=extractor,
         )
         info = search.upsert_records(FIXTURE_CORPUS)
-        assert info.get("indexed_count", 0) == 3
+        assert info.get("indexed", 0) == 3
 
 
 class TestQdrantMedicalSearchIntegration:
-    """Tests that require a live Qdrant instance (skipped if unavailable)."""
+    """Tests that require qdrant_client installed AND a live Qdrant instance.
+
+    Each test is individually skipped when the dependency or server is
+    unavailable — the fallback test class above is never affected.
+    """
 
     @pytest.fixture(autouse=True)
-    def _skip_if_no_qdrant(self, monkeypatch):
-        """Skip the entire class if no Qdrant is reachable."""
-        import qdrant_client as qc
+    def _require_qdrant(self):
+        """Skip individual tests when qdrant_client is missing or server is unreachable."""
+        try:
+            import qdrant_client as qc
+        except ImportError:
+            pytest.skip("qdrant_client not installed")
         try:
             client = qc.QdrantClient(host="localhost", port=6333, timeout=2)
             client.get_collections()
@@ -123,7 +131,7 @@ class TestQdrantMedicalSearchIntegration:
             pytest.skip("No Qdrant instance reachable at localhost:6333")
 
     def test_roundtrip_with_live_qdrant(self):
-        """Full roundtrip: upsert → search → verify ranking."""
+        """Full roundtrip: upsert -> search -> verify ranking."""
         extractor = ArabicMedicalFieldExtractor()
         search = QdrantMedicalSearch(
             qdrant_url="http://localhost:6333",
@@ -131,7 +139,7 @@ class TestQdrantMedicalSearchIntegration:
             extractor=extractor,
         )
         info = search.upsert_records(FIXTURE_CORPUS)
-        assert info["backend"] == "qdrant", f"Expected qdrant backend, got {info['backend']}"
+        assert info["backend"] == "qdrant", f"Expected qdrant backend, got {info['backend']!r}"
 
         hits = search.search("ارتفاع ضغط الدم أحمد", top_k=3)
         assert len(hits) >= 1

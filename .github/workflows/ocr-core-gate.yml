@@ -1,0 +1,60 @@
+name: CI — OCR Core & RTL Gate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ocr-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===================================================================
+  # Gate: OCR core tests (RTL, Qdrant fallback, smoke imports)
+  # ===================================================================
+  # This job validates the critical P0 test suite that must pass
+  # before any RC.  It is intentionally lightweight — no OCR engines
+  # or GPU required.
+  # ===================================================================
+  test-ocr-core:
+    name: OCR Core Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal dependencies
+        run: |
+          pip install pytest rapidfuzz numpy
+
+      - name: Smoke import tests
+        run: |
+          python -c "from packages.vision.text_reconstructor import TextReconstructor; print('OK: text_reconstructor')"
+          python -c "from src.ocr.rtl_utils import ArabicRTLFixer; print('OK: rtl_utils')"
+          python -c "from src.ocr.deduplication import WeightedMedicalDeduplicator, QdrantMedicalSearch; print('OK: deduplication')"
+          python -c "from src.ocr.field_extractor import ArabicMedicalFieldExtractor; print('OK: field_extractor')"
+          python -c "from src.ocr.normalization import arabic_strong_normalize; print('OK: normalization')"
+          python -c "from packages.core.engine_registry import EngineRegistry; print('OK: engine_registry')"
+          python -c "from packages.core.engine_router import EngineRouter; print('OK: engine_router')"
+
+      - name: RTL tests (must be 100% green)
+        run: |
+          pytest tests/test_arabic_rtl.py -v --tb=short -W error
+
+      - name: Qdrant fallback tests (run without Qdrant)
+        run: |
+          pytest tests/test_qdrant_search.py::TestQdrantMedicalSearchFallback -v --tb=short -W error
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== OCR Core Gate Complete ==="
+          echo "RTL tests: verify canonical Arabic output (no presentation forms)"
+          echo "Qdrant fallback: verify local fuzzy search without Qdrant server"
+          echo "Smoke imports: verify all critical modules are importable"
