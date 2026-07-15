@@ -334,7 +334,55 @@ cd omni-medical-ocr
 git add . && git commit -m "deploy" && git push
 ```
 
-### 4.5 Link
+### 4.5 HF Space Sync (MANDATORY after code changes)
+
+> **⚠️ IMPORTANT**: The `hf-space/` directory is a deployment snapshot, NOT the source of truth.
+> After any change to `src/ocr/`, `packages/{vision,nlp,core}/`, or `config/`, you MUST run
+> the sync script and push the updated snapshot to all live Spaces before considering the
+> feature "done". Failing to do so creates the exact gap that occurred in July 2026
+> (Spaces were 10+ days behind the monorepo).
+
+**Sync workflow (run from monorepo root):**
+
+```bash
+# 1. Sync monorepo → hf-space/ snapshot
+./scripts/sync-hf-space.sh
+
+# 2. Verify critical files match
+diff -q src/ocr/deduplication.py hf-space/src/ocr/deduplication.py
+diff -q packages/core/engine_registry.py hf-space/packages/core/engine_registry.py
+
+# 3. Test import
+cd hf-space && python3 -c "import app; print('OK')"
+
+# 4. Commit to monorepo
+cd .. && git add hf-space/ && git commit -m "sync: ..." && git push
+
+# 5. Push to each live Space
+# omni-medical-ocr (primary — mirrors hf-space/ layout):
+git clone https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr /tmp/omni-push
+rsync -av --delete --exclude='__pycache__' hf-space/src/ /tmp/omni-push/src/
+rsync -av --delete --exclude='__pycache__' hf-space/packages/ /tmp/omni-push/packages/
+cp hf-space/app.py hf-space/Dockerfile /tmp/omni-push/
+cd /tmp/omni-push && git add . && git commit -m "sync: ..." && git push
+
+# Also check and fix use_gpu → device="cpu" in independent Spaces:
+# - medical-ocr-demo (scanner fixer, independent code)
+# - medical-handwriting-ocr (flagship, independent code)
+# - medical-ocr-trainer (Streamlit trainer, independent code)
+```
+
+**Live Spaces inventory (as of 2026-07-16):**
+
+| Space | Code Source | Sync Method |
+|-------|-------------|-------------|
+| `omni-medical-ocr` | `hf-space/` snapshot | `rsync` from monorepo |
+| `medical-ocr-demo` | Independent (scanner_fixer) | Manual `use_gpu` fix only |
+| `medical-handwriting-ocr` | Independent (full platform) | Manual `use_gpu` fix only |
+| `medical-ocr-trainer` | Independent (Streamlit) | No PaddleOCR `use_gpu` — safe |
+| `mission-control` | Dashboard (no OCR code) | No sync needed |
+
+### 4.6 Link
 
 ```
 https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr
