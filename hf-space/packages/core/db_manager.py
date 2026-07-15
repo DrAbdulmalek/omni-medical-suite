@@ -2,12 +2,9 @@
 SQLite Database Manager with WAL mode for medical documents.
 """
 
-import sqlite3
-import json
-import os
 import logging
-from typing import Optional, List, Dict, Any
-from datetime import datetime
+import sqlite3
+from typing import Any
 
 from packages.core.base_db import validate_identifier
 
@@ -19,10 +16,10 @@ class DatabaseManager:
 
     def __init__(self, db_path: str = "medical_docs.db"):
         self.db_path = db_path
-        self.conn: Optional[sqlite3.Connection] = None
+        self.conn: sqlite3.Connection | None = None
         self._local = None
 
-    def initialize(self, encryption_password: Optional[str] = None) -> None:
+    def initialize(self, encryption_password: str | None = None) -> None:
         """Initialize database with WAL mode and create tables."""
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
@@ -145,7 +142,7 @@ class DatabaseManager:
             logger.error(f"Failed to add patient: {e}")
             return False
 
-    def get_patients(self, limit: int = 50, offset: int = 0) -> List[Dict]:
+    def get_patients(self, limit: int = 50, offset: int = 0) -> list[dict]:
         cursor = self.conn.execute(
             "SELECT * FROM patients ORDER BY created_at DESC LIMIT ? OFFSET ?",
             (limit, offset)
@@ -154,7 +151,7 @@ class DatabaseManager:
 
     # ---- Document Operations ----
 
-    def add_document(self, filename: str, patient_id: Optional[str] = None,
+    def add_document(self, filename: str, patient_id: str | None = None,
                       **kwargs) -> int:
         cursor = self.conn.execute(
             """INSERT INTO documents
@@ -170,11 +167,11 @@ class DatabaseManager:
         self.conn.commit()
         return cursor.lastrowid
 
-    def _row_to_dict(self, row) -> Dict:
+    def _row_to_dict(self, row) -> dict:
         return dict(row) if hasattr(row, 'keys') else row
 
-    def get_documents(self, patient_id: Optional[str] = None, status: Optional[str] = None,
-                       doc_type: Optional[str] = None, limit: int = 50) -> List[Dict]:
+    def get_documents(self, patient_id: str | None = None, status: str | None = None,
+                       doc_type: str | None = None, limit: int = 50) -> list[dict]:
         query = "SELECT d.*, p.name as patient_name FROM documents d LEFT JOIN patients p ON d.patient_id = p.id WHERE 1=1"
         params = []
 
@@ -237,7 +234,7 @@ class DatabaseManager:
 
     # ---- Processing Log Operations ----
 
-    def add_log(self, document_id: Optional[int], action: str, details: str = "",
+    def add_log(self, document_id: int | None, action: str, details: str = "",
                 quality: str = "", duration_ms: int = 0) -> int:
         cursor = self.conn.execute(
             "INSERT INTO processing_logs (document_id, action, details, quality, duration_ms) VALUES (?, ?, ?, ?, ?)",
@@ -246,7 +243,7 @@ class DatabaseManager:
         self.conn.commit()
         return cursor.lastrowid
 
-    def get_logs(self, document_id: Optional[int] = None, limit: int = 100) -> List[Dict]:
+    def get_logs(self, document_id: int | None = None, limit: int = 100) -> list[dict]:
         if document_id:
             cursor = self.conn.execute(
                 "SELECT * FROM processing_logs WHERE document_id = ? ORDER BY timestamp DESC LIMIT ?",
@@ -260,7 +257,7 @@ class DatabaseManager:
 
     # ---- Statistics ----
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         cursor = self.conn.execute("SELECT COUNT(*) FROM documents")
         total_docs = cursor.fetchone()[0]
 
@@ -295,7 +292,7 @@ class DatabaseManager:
 
     # ---- Settings Operations ----
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         cursor = self.conn.execute("SELECT * FROM app_settings WHERE id = 'main'")
         row = cursor.fetchone()
         return dict(row) if row else {"id": "main"}

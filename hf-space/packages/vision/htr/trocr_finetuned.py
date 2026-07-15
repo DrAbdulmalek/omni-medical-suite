@@ -13,7 +13,6 @@ VisionEncoderDecoderModel من مكتبة transformers مع إعدادات
 """
 
 import logging
-from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -42,7 +41,7 @@ class FineTunedTrOCR:
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
+        model_path: str | None = None,
         device: str = "cpu",
         use_fine_tuned: bool = False,
     ) -> None:
@@ -114,8 +113,8 @@ class FineTunedTrOCR:
     def recognize(
         self,
         image,
-        context: Optional[str] = None,
-    ) -> Tuple[str, float]:
+        context: str | None = None,
+    ) -> tuple[str, float]:
         """التعرف على النصّ في صورة واحدة.
 
         Args:
@@ -125,7 +124,6 @@ class FineTunedTrOCR:
         Returns:
             زوج (النصّ المُتعَرَّف عليه، مستوى_الثقة).
         """
-        import PIL.Image
 
         # تحميل الصورة
         pil_img = self._ensure_pil_image(image)
@@ -175,8 +173,8 @@ class FineTunedTrOCR:
         self,
         images: list,
         batch_size: int = 4,
-        contexts: Optional[List[Optional[str]]] = None,
-    ) -> List[Tuple[str, float]]:
+        contexts: list[str | None] | None = None,
+    ) -> list[tuple[str, float]]:
         """التعرف على النصّ في مجموعة من الصور.
 
         Args:
@@ -190,7 +188,7 @@ class FineTunedTrOCR:
         if contexts is None:
             contexts = [None] * len(images)
 
-        results: List[Tuple[str, float]] = []
+        results: list[tuple[str, float]] = []
 
         try:
             import torch
@@ -304,14 +302,14 @@ class FineTunedTrOCR:
     # ----------------------------------------------------------
     def update_generation_config(
         self,
-        max_length: Optional[int] = None,
-        num_beams: Optional[int] = None,
-        early_stopping: Optional[bool] = None,
-        no_repeat_ngram_size: Optional[int] = None,
-        length_penalty: Optional[float] = None,
-        temperature: Optional[float] = None,
-        top_k: Optional[int] = None,
-        top_p: Optional[float] = None,
+        max_length: int | None = None,
+        num_beams: int | None = None,
+        early_stopping: bool | None = None,
+        no_repeat_ngram_size: int | None = None,
+        length_penalty: float | None = None,
+        temperature: float | None = None,
+        top_k: int | None = None,
+        top_p: float | None = None,
     ) -> None:
         """تحديث إعدادات التوليد للنموذج.
 
@@ -362,8 +360,9 @@ class FineTunedTrOCR:
         Returns:
             كائن PIL.Image بصيغة RGB.
         """
-        import PIL.Image
         from pathlib import Path
+
+        import PIL.Image
 
         if isinstance(image, (str, Path)):
             image = PIL.Image.open(image)

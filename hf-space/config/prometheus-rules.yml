@@ -1,0 +1,82 @@
+groups:
+  # ── Application Alerts ────────────────────────────────────────────────
+  - name: omni_medical_app
+    rules:
+      - alert: HighErrorRate
+        expr: >
+          rate(omni_http_requests_total{http_status=~"5.."}[5m])
+          / rate(omni_http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.instance }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (>5%)"
+          runbook: "https://github.com/DrAbdulmalek/omni-medical-suite/blob/main/MAINTENANCE.md#high-error-rate"
+
+      - alert: HighLatency
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(omni_http_request_duration_seconds_bucket[5m])) by (le, endpoint)
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 latency on {{ $labels.endpoint }}"
+          description: "P95 latency is {{ $value }}s (>5s)"
+          runbook: "https://github.com/DrAbdulmalek/omni-medical-suite/blob/main/MAINTENANCE.md#high-latency"
+
+      - alert: OCRProcessingSlow
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(omni_ocr_processing_seconds_bucket[5m])) by (le)
+          ) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow OCR processing ({{ $value }}s)"
+          description: "OCR P95 processing time exceeds 30 seconds"
+
+      - alert: LowOCRConfidence
+        expr: >
+          histogram_quantile(0.5,
+            sum(rate(omni_ocr_confidence_score_bucket[10m])) by (le, engine)
+          ) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low OCR confidence (median < 50%)"
+          description: "Engine {{ $labels.engine }} median confidence is {{ $value }}"
+
+  # ── Infrastructure Alerts ─────────────────────────────────────────────
+  - name: omni_medical_infra
+    rules:
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / (1024 * 1024 * 1024) > 4
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "{{ $value }}GB RSS memory used (>4GB)"
+
+      - alert: HFSpaceBuildFailing
+        expr: up{job="hf-space"} == 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HF Space is down"
+          description: "HuggingFace Space has been unreachable for 15 minutes"
+
+      - alert: ContainerRestartLoop
+        expr: rate(container_restarts_total[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container restart loop on {{ $labels.container }}"
+          description: "Container restarting more than once per 10 minutes"

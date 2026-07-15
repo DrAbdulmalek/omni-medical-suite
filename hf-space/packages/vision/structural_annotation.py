@@ -5,14 +5,17 @@
 يدعم: التحقق الآلي، التوثيق الذاتي، والتصدير لـ JSON/CSV
 """
 
-from pydantic import BaseModel, Field, validator, root_validator
-from typing import List, Optional, Dict, Union, Literal
-from enum import Enum
-import re, json
+import json
+import re
 from datetime import datetime
+from enum import StrEnum
+from typing import Literal
+
+from pydantic import BaseModel, Field, root_validator, validator
+
 
 # 🔹 أنواع الكتل المدعومة
-class BlockType(str, Enum):
+class BlockType(StrEnum):
     TITLE = "title"
     PARAGRAPH = "paragraph"
     TABLE = "table"
@@ -26,7 +29,7 @@ class BlockType(str, Enum):
     UNKNOWN = "unknown"
 
 # 🔹 لغات المدخلات
-class Language(str, Enum):
+class Language(StrEnum):
     AR = "ar"
     EN = "en"
     DE = "de"
@@ -40,30 +43,30 @@ class TextBlock(BaseModel):
     text: str = Field(..., min_length=1, description="النص المستخرج")
 
     # الإحداثيات: [x1, y1, x2, y2] أو 4 نقاط مضلع
-    bbox: List[float] = Field(..., min_items=4, max_items=4, description="مربع محدد [x1,y1,x2,y2]")
-    polygon: Optional[List[List[float]]] = Field(None, description="4 نقاط للمضلع: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]")
+    bbox: list[float] = Field(..., min_items=4, max_items=4, description="مربع محدد [x1,y1,x2,y2]")
+    polygon: list[list[float]] | None = Field(None, description="4 نقاط للمضلع: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]")
 
     # جودة الاستخراج
     confidence: float = Field(0.0, ge=0.0, le=1.0, description="ثقة النموذج في هذا النص")
 
     # التحليل اللغوي
     language: Language = Field(Language.UNKNOWN, description="اللغة المكتشفة")
-    rtl: Optional[bool] = Field(None, description="هل النص من اليمين لليسار؟ يُحسب تلقائياً إذا لم يُحدد")
+    rtl: bool | None = Field(None, description="هل النص من اليمين لليسار؟ يُحسب تلقائياً إذا لم يُحدد")
 
     # مصادر متعددة (للدمج)
     source: str = Field(..., description="اسم محرك OCR المصدر: paddle/easyocr/surya/...")
-    source_confidences: Optional[Dict[str, float]] = Field(None, description="ثقة كل محرك إذا تم الدمج")
+    source_confidences: dict[str, float] | None = Field(None, description="ثقة كل محرك إذا تم الدمج")
 
     # محتوى غني (للجداول والعناصر المركبة)
-    children: Optional[List['TextBlock']] = Field(None, description="كتل فرعية: خلايا جدول، عناصر قائمة، إلخ")
-    metadata: Optional[Dict[str, Union[str, int, float]]] = Field(None, description="بيانات إضافية: رقم الصفحة، اسم الملف، إلخ")
+    children: list['TextBlock'] | None = Field(None, description="كتل فرعية: خلايا جدول، عناصر قائمة، إلخ")
+    metadata: dict[str, str | int | float] | None = Field(None, description="بيانات إضافية: رقم الصفحة، اسم الملف، إلخ")
 
     # روابط هيكلية
-    references: Optional[List[str]] = Field(None, description="معرفات الكتل المرتبطة: تسمية ⇄ شكل، جدول ⇄ شرح")
-    reading_order: Optional[int] = Field(None, description="ترتيب القراءة المنطقي (1,2,3...)")
+    references: list[str] | None = Field(None, description="معرفات الكتل المرتبطة: تسمية ⇄ شكل، جدول ⇄ شرح")
+    reading_order: int | None = Field(None, description="ترتيب القراءة المنطقي (1,2,3...)")
 
     @validator('bbox')
-    def validate_bbox_coordinates(cls, v):
+    def validate_bbox_coordinates(self, v):
         """تأكد أن الإحداثيات منطقية: x1<x2 و y1<y2"""
         if len(v) == 4:
             x1, y1, x2, y2 = v
@@ -72,7 +75,7 @@ class TextBlock(BaseModel):
         return v
 
     @validator('text')
-    def normalize_arabic_text(cls, v):
+    def normalize_arabic_text(self, v):
         """تطبيع النص العربي: إزالة التشكيل الزائد، توحيد الألف"""
         if not v:
             return v
@@ -83,7 +86,7 @@ class TextBlock(BaseModel):
         return v.strip()
 
     @root_validator(pre=True)
-    def auto_detect_rtl(cls, values):
+    def auto_detect_rtl(self, values):
         """كشف تلقائي لاتجاه النص إذا لم يُحدد"""
         if values.get('rtl') is None and 'text' in values:
             text = values['text']
@@ -110,19 +113,19 @@ class TextBlock(BaseModel):
 # 🔹 صفحة كاملة مع علاقتها الهيكلية
 class PageAnnotation(BaseModel):
     page_id: str = Field(..., description="معرف الصفحة: doc001_p3")
-    image_size: List[int] = Field(..., min_items=2, max_items=2, description="[width, height] بالبكسل")
+    image_size: list[int] = Field(..., min_items=2, max_items=2, description="[width, height] بالبكسل")
 
-    blocks: List[TextBlock] = Field(..., description="جميع الكتل النصية في الصفحة")
+    blocks: list[TextBlock] = Field(..., description="جميع الكتل النصية في الصفحة")
 
     # رسم بياني للعلاقات المنطقية (اختياري لكن موصى به)
-    layout_graph: Optional[Dict[str, List[Dict]]] = Field(None, description={
+    layout_graph: dict[str, list[dict]] | None = Field(None, description={
         "edges": [
             {"from": "blk_002", "to": "fig_003", "relation": "describes"},
             {"from": "blk_001", "to": "blk_003", "relation": "precedes"}
         ]
     })
 
-    metadata: Dict[str, Union[str, int, float]] = Field(default_factory=dict, description={
+    metadata: dict[str, str | int | float] = Field(default_factory=dict, description={
         "source_file": "medical_report_ar.pdf",
         "page_number": 3,
         "dpi": 300,
@@ -130,7 +133,7 @@ class PageAnnotation(BaseModel):
     })
 
     @validator('blocks')
-    def ensure_unique_ids(cls, v):
+    def ensure_unique_ids(self, v):
         """منع تكرار معرفات الكتل في نفس الصفحة"""
         ids = [b.id for b in v if hasattr(b, 'id')]
         if len(ids) != len(set(ids)):
@@ -159,7 +162,7 @@ class PageAnnotation(BaseModel):
 
         return "\n\n".join(lines)
 
-    def to_correction_dict_entry(self) -> Dict:
+    def to_correction_dict_entry(self) -> dict:
         """تحويل الصفحة إلى مدخلات قابلة للإضافة لـ correction_dict"""
         return {
             "page_id": self.page_id,
@@ -178,11 +181,11 @@ class PageAnnotation(BaseModel):
 # 🔹 وثيقة كاملة (عدة صفحات)
 class DocumentAnnotation(BaseModel):
     doc_id: str = Field(..., description="معرف فريد للوثيقة")
-    title: Optional[str] = Field(None, description="عنوان الوثيقة إن وُجد")
-    pages: List[PageAnnotation] = Field(..., description="صفحات الوثيقة مرتبة")
+    title: str | None = Field(None, description="عنوان الوثيقة إن وُجد")
+    pages: list[PageAnnotation] = Field(..., description="صفحات الوثيقة مرتبة")
 
     # قاموس تصحيحات مدمج
-    correction_dict: Dict[str, str] = Field(default_factory=dict, description={
+    correction_dict: dict[str, str] = Field(default_factory=dict, description={
         "الجرعه": "الجرعة",
         "مستشفي": "مستشفى"
     })
@@ -197,7 +200,7 @@ class DocumentAnnotation(BaseModel):
                     block.metadata["auto_corrected"] = True
         return self
 
-    def export_for_training(self, format: Literal["json", "tsv", "hf_dataset"] = "json") -> Union[str, bytes]:
+    def export_for_training(self, format: Literal["json", "tsv", "hf_dataset"] = "json") -> str | bytes:
         """تصدير البيانات كمدخلات لتدريب نموذج ترجمة أو تحسين OCR"""
         if format == "json":
             return self.json(indent=2, ensure_ascii=False)
@@ -231,7 +234,7 @@ class DocumentAnnotation(BaseModel):
 # 🔹 دوال مساعدة للتصدير/الاستيراد
 def load_annotation(json_path: str) -> DocumentAnnotation:
     """تحميل هيكلية من ملف JSON مع التحقق من الصحة"""
-    with open(json_path, "r", encoding="utf-8") as f:
+    with open(json_path, encoding="utf-8") as f:
         data = json.load(f)
     return DocumentAnnotation(**data)
 

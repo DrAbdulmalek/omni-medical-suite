@@ -1,0 +1,32 @@
+# OmniMedical Suite — Alertmanager Configuration
+# Routes alerts to appropriate receivers based on severity.
+# Customize webhook URLs for Slack/Discord/email before use.
+
+route:
+  group_by: ["alertname", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: "default"
+
+routes:
+  - match:
+      severity: critical
+    receiver: "critical"
+    group_wait: 10s
+    group_interval: 1m
+    repeat_interval: 1h
+
+receivers:
+  - name: "default"
+    # Replace with your webhook URL
+    # webhook_configs:
+    #   - url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    #     send_resolved: true
+
+  - name: "critical"
+    # Replace with your critical channel webhook
+    # webhook_configs:
+    #   - url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+    #     channel: "#omni-medical-critical"
+    #     send_resolved: true

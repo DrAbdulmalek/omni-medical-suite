@@ -14,17 +14,19 @@ database_manager.py — نظام قاعدة البيانات المحسّن لـ
     results = db.search_text("كسر عنق الفخذ")
 """
 
-from packages.core.base_db import BaseDB
 import hashlib
 import os
+from collections.abc import Callable
 from datetime import datetime
-from typing import Optional, Tuple, List, Dict, Any, Callable
+from typing import Any
+
+from packages.core.base_db import BaseDB
 
 
 class OmniDatabase(BaseDB):
     """
     نظام إدارة قاعدة البيانات لمعالجة الملفات والأرشفة الرقمية.
-    
+
     يجمع بين ثلاثة أنظمة:
     1. Hash-based Cache — تجنب إعادة المعالجة
     2. Full-Text Search (FTS5) — بحث دلالي فوري
@@ -34,7 +36,7 @@ class OmniDatabase(BaseDB):
     def __init__(self, db_name: str = "omni_processor.db"):
         """
         تهيئة قاعدة البيانات.
-        
+
         Args:
             db_name: مسار ملف قاعدة البيانات SQLite
         """
@@ -67,25 +69,25 @@ class OmniDatabase(BaseDB):
 
         # 2. فهرس لتحسين البحث حسب التصنيف
         conn.execute('''
-            CREATE INDEX IF NOT EXISTS idx_category 
+            CREATE INDEX IF NOT EXISTS idx_category
             ON processed_files(category)
         ''')
 
         # 3. فهرس لتحسين البحث حسب التاريخ
         conn.execute('''
-            CREATE INDEX IF NOT EXISTS idx_date 
+            CREATE INDEX IF NOT EXISTS idx_date
             ON processed_files(process_date)
         ''')
 
         # 4. فهرس للبحث حسب نسبة الثقة
         conn.execute('''
-            CREATE INDEX IF NOT EXISTS idx_confidence 
+            CREATE INDEX IF NOT EXISTS idx_confidence
             ON processed_files(confidence_score)
         ''')
 
         # 5. جدول البحث النصي الكامل (FTS5) — محرك البحث السريع
         conn.execute('''
-            CREATE VIRTUAL TABLE IF NOT EXISTS files_fts 
+            CREATE VIRTUAL TABLE IF NOT EXISTS files_fts
             USING fts5(
                 content,
                 file_name,
@@ -111,10 +113,10 @@ class OmniDatabase(BaseDB):
     def calculate_file_hash(file_path: str) -> str:
         """
         توليد بصمة فريدة للملف بناءً على محتواه (SHA-256).
-        
+
         Args:
             file_path: مسار الملف
-            
+
         Returns:
             سلسلة hex تمثل البصمة الفريدة (64 حرف)
         """
@@ -124,13 +126,13 @@ class OmniDatabase(BaseDB):
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
 
-    def check_file_exists(self, file_hash: str) -> Optional[Tuple]:
+    def check_file_exists(self, file_hash: str) -> tuple | None:
         """
         التحقق مما إذا كان الملف قد تمت معالجته سابقاً.
-        
+
         Args:
             file_hash: بصمة الملف
-            
+
         Returns:
             tuple (category, extracted_text, confidence_score) أو None
         """
@@ -159,7 +161,7 @@ class OmniDatabase(BaseDB):
     ) -> bool:
         """
         حفظ سجل معالجة جديد في قاعدة البيانات.
-        
+
         Args:
             file_hash: بصمة الملف الفريدة
             file_name: اسم الملف الأصلي
@@ -173,7 +175,7 @@ class OmniDatabase(BaseDB):
             subcategory: التصنيف الفرعي
             page_count: عدد الصفحات
             processing_time: زمن المعالجة بالثواني
-            
+
         Returns:
             True إذا تم الحفظ بنجاح، False إذا كان الملف موجوداً
         """
@@ -183,7 +185,7 @@ class OmniDatabase(BaseDB):
 
             with self.connection() as conn:
                 cursor = conn.execute('''
-                    INSERT INTO processed_files 
+                    INSERT INTO processed_files
                     (file_hash, file_name, file_path, file_extension, file_size,
                      category, subcategory, tags, extracted_text, process_date,
                      confidence_score, ocr_engine, language, page_count, processing_time)
@@ -205,23 +207,23 @@ class OmniDatabase(BaseDB):
         except Exception:
             return False
 
-    def search_text(self, query: str, limit: int = 50) -> List[Dict[str, Any]]:
+    def search_text(self, query: str, limit: int = 50) -> list[dict[str, Any]]:
         """
         البحث السريع جداً عن أي كلمة أو جملة داخل الملفات المعالجة.
-        
+
         يستخدم محرك FTS5 للاسترجاع الفوري مع تمييز السياق.
-        
+
         Args:
             query: كلمة أو جملة البحث
             limit: الحد الأقصى للنتائج
-            
+
         Returns:
             قائمة من القواميس تحتوي على تفاصيل كل نتيجة
         """
         search_query = """
-            SELECT 
-                p.file_name, 
-                p.file_path, 
+            SELECT
+                p.file_name,
+                p.file_path,
                 p.category,
                 p.confidence_score,
                 p.process_date,
@@ -241,10 +243,10 @@ class OmniDatabase(BaseDB):
         except Exception:
             return []
 
-    def search_by_category(self, category: str, limit: int = 100) -> List[Dict[str, Any]]:
+    def search_by_category(self, category: str, limit: int = 100) -> list[dict[str, Any]]:
         """
         البحث حسب التصنيف الرئيسي.
-        
+
         Args:
             category: اسم التصنيف
             limit: الحد الأقصى للنتائج
@@ -256,10 +258,10 @@ class OmniDatabase(BaseDB):
             )
             return [dict(row) for row in cursor.fetchall()]
 
-    def get_low_confidence_files(self, threshold: float = 0.7, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_low_confidence_files(self, threshold: float = 0.7, limit: int = 50) -> list[dict[str, Any]]:
         """
         الحصول على الملفات التي حصلت على نسبة ثقة منخفضة — تحتاج مراجعة يدوية.
-        
+
         Args:
             threshold: حد الثقة الأدنى
             limit: الحد الأقصى للنتائج
@@ -276,7 +278,7 @@ class OmniDatabase(BaseDB):
     def log_correction(self, file_id: int, original_text: str, corrected_text: str):
         """
         تسجيل تصحيح يدوي للنص المستخرج.
-        
+
         Args:
             file_id: معرف الملف في قاعدة البيانات
             original_text: النص الأصلي (قبل التصحيح)
@@ -288,10 +290,10 @@ class OmniDatabase(BaseDB):
                 VALUES (?, ?, ?, ?)
             ''', (file_id, original_text, corrected_text, datetime.now()))
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         الحصول على إحصائيات شاملة عن قاعدة البيانات.
-        
+
         Returns:
             قاموس يحتوي على الإحصائيات
         """
@@ -336,17 +338,17 @@ class OmniDatabase(BaseDB):
         file_path: str,
         ai_engine: Callable,
         force_reprocess: bool = False
-    ) -> Tuple[str, str, float]:
+    ) -> tuple[str, str, float]:
         """
         معالجة ملف كامل مع نظام الكاش التلقائي.
-        
+
         هذه هي الدالة الرئيسية التي تربط قاعدة البيانات بمحرك المعالجة.
-        
+
         Args:
             file_path: مسار الملف
             ai_engine: دالة المعالجة يجب أن ترجع (category, text, confidence, engine, lang)
             force_reprocess: إعادة المعالجة حتى لو كان الملف موجوداً في الكاش
-            
+
         Returns:
             tuple (category, extracted_text, confidence_score)
         """

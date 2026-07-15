@@ -16,8 +16,8 @@ OmniFile AI Processor v5.0 — Dr. Abdulmalek Tamer Al-husseini
 
 import json
 import logging
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 logger = logging.getLogger(__name__)
 

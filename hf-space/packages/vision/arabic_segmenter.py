@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 modules/vision/arabic_segmenter.py
 ======================================
@@ -17,18 +16,17 @@ Designed for medical translation handwriting with ABBYY FineReader-style workflo
 Author: Dr. Abdulmalek Al-husseini
 """
 
+import logging
+from dataclasses import dataclass
+from enum import StrEnum
+
 import cv2
 import numpy as np
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
-from enum import Enum
-
-import logging
 
 logger = logging.getLogger(__name__)
 
 
-class SegmentType(str, Enum):
+class SegmentType(StrEnum):
     """Type of segmented text unit."""
     WORD = "word"
     SUBWORD = "subword"
@@ -41,7 +39,7 @@ class SegmentType(str, Enum):
 class Segment:
     """A segmented text unit with bounding box and metadata."""
     image: np.ndarray
-    bbox: Tuple[int, int, int, int]  # x1, y1, x2, y2
+    bbox: tuple[int, int, int, int]  # x1, y1, x2, y2
     segment_type: SegmentType = SegmentType.WORD
     confidence: float = 0.0
     language: str = "auto"  # 'ar', 'en', 'mixed'
@@ -81,7 +79,7 @@ class ArabicWordSegmenter:
         self.gap_threshold_factor = gap_threshold_factor
         self.padding = padding
 
-    def segment_line(self, line_image: np.ndarray) -> List[Segment]:
+    def segment_line(self, line_image: np.ndarray) -> list[Segment]:
         """
         Segment a text line image into word-level segments.
 
@@ -139,7 +137,7 @@ class ArabicWordSegmenter:
 
         return segments
 
-    def segment_word_to_chars(self, word_image: np.ndarray) -> List[Segment]:
+    def segment_word_to_chars(self, word_image: np.ndarray) -> list[Segment]:
         """
         Segment a word image into individual characters/subwords.
 
@@ -213,7 +211,7 @@ class ArabicWordSegmenter:
 
         return binary
 
-    def _find_word_gaps(self, projection: np.ndarray) -> List[Tuple[int, int]]:
+    def _find_word_gaps(self, projection: np.ndarray) -> list[tuple[int, int]]:
         """
         Find significant gaps in vertical projection (between words).
 
@@ -358,7 +356,7 @@ class ArabicWordSegmenter:
         page_image: np.ndarray,
         dilation_kernel_size: int = 3,
         min_line_height: int = 15,
-    ) -> List[List[Segment]]:
+    ) -> list[list[Segment]]:
         """
         Segment a full page into lines, then words within each line.
 
@@ -383,7 +381,7 @@ class ArabicWordSegmenter:
 
         # Find line boundaries
         line_boundaries = self._find_word_gaps(h_proj)
-        line_boundaries = [(0, gray.shape[0])] + line_boundaries + [(len(h_proj), gray.shape[0])]
+        line_boundaries = [(0, gray.shape[0]), *line_boundaries, (len(h_proj), gray.shape[0])]
 
         lines = []
         for i in range(len(line_boundaries) - 1):

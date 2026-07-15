@@ -5,15 +5,15 @@
 #        Handles: rotation, dense lines, strike-through, complex references
 # ══════════════════════════════════════════════════════════╝
 
-import re
 import json
-import torch
+import re
+from difflib import SequenceMatcher
+from pathlib import Path
+
 import cv2
 import numpy as np
-from pathlib import Path
+import torch
 from PIL import Image
-from typing import Dict, List, Optional, Tuple
-from difflib import SequenceMatcher
 
 # Lazy imports to avoid circular dependency
 _trocr_processor = None
@@ -32,7 +32,7 @@ class DualOCRVerifier:
     - extract_references_v3: Handles #, *, arrows, Arabic numerals, parentheses
     """
 
-    def __init__(self, model_path: Optional[str] = None, device: Optional[str] = None):
+    def __init__(self, model_path: str | None = None, device: str | None = None):
         global _trocr_processor, _trocr_model, _easyocr_reader
 
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
@@ -67,7 +67,7 @@ class DualOCRVerifier:
         }
 
         # ─── 4. Load Protected Terms ───
-        self.protected_terms: List[str] = []
+        self.protected_terms: list[str] = []
         terms_paths = [
             Path(__file__).parent.parent.parent / 'data' / 'audit_logs' / 'protected_terms.json',
         ]
@@ -103,7 +103,7 @@ class DualOCRVerifier:
     # Critical Content Detection
     # ────────────────────────────────────────────────────────
 
-    def detect_critical_content(self, text: str) -> List[Dict]:
+    def detect_critical_content(self, text: str) -> list[dict]:
         """
         يكشف إذا كان النص يحتوي على معلومات طبية حساسة.
         Returns list of dicts with 'category' and 'matches'.
@@ -134,7 +134,7 @@ class DualOCRVerifier:
     # Image Preprocessing v3.1 (Handles Rotation, Density, Strike-through)
     # ────────────────────────────────────────────────────────
 
-    def preprocess_for_ocr_v3(self, img: np.ndarray) -> Tuple[np.ndarray, Tuple[int, int]]:
+    def preprocess_for_ocr_v3(self, img: np.ndarray) -> tuple[np.ndarray, tuple[int, int]]:
         """
         معالجة محسّنة v3.1: تصحيح الميل/القلب، فلترة الرسوم، تحسين التباين.
 
@@ -186,8 +186,8 @@ class DualOCRVerifier:
         mask = np.zeros_like(thresh)
         for i in range(1, num_labels):
             area = stats[i, cv2.CC_STAT_AREA]
-            x = stats[i, cv2.CC_STAT_LEFT]
-            y = stats[i, cv2.CC_STAT_TOP]
+            stats[i, cv2.CC_STAT_LEFT]
+            stats[i, cv2.CC_STAT_TOP]
             cw = stats[i, cv2.CC_STAT_WIDTH]
             ch = stats[i, cv2.CC_STAT_HEIGHT]
             aspect = cw / max(1, ch)
@@ -264,7 +264,7 @@ class DualOCRVerifier:
     # ────────────────────────────────────────────────────────
 
     @staticmethod
-    def extract_references_v3(text: str) -> Tuple[str, List[str]]:
+    def extract_references_v3(text: str) -> tuple[str, list[str]]:
         """
         عزل المراجع والرموز الطرفية بدقة أعلى.
 
@@ -303,7 +303,7 @@ class DualOCRVerifier:
     # ────────────────────────────────────────────────────────
 
     def verify_line(self, img: np.ndarray, line_idx: int = 0,
-                    use_v3: bool = False) -> Dict:
+                    use_v3: bool = False) -> dict:
         """
         التحقق المزدوج لسطر واحد.
         Returns dict with: trocr_text, easyocr_text, similarity,
@@ -340,7 +340,7 @@ class DualOCRVerifier:
 
         # ─── Detect Critical Mismatches ───
         has_critical_mismatch = False
-        critical_warnings: List[str] = []
+        critical_warnings: list[str] = []
 
         if critical_trocr or critical_easy:
             if len(critical_trocr) != len(critical_easy):
@@ -394,7 +394,7 @@ class DualOCRVerifier:
 
     def extract_lines(self, img: np.ndarray,
                       min_height: int = 8,
-                      percentile_threshold: float = 20) -> List[Tuple[int, int]]:
+                      percentile_threshold: float = 20) -> list[tuple[int, int]]:
         """
         تقسيم الصفحة إلى أسطر عبر تحليل الإسقاط الرأسي.
         Returns list of (y_start, y_end) tuples.
@@ -424,7 +424,7 @@ class DualOCRVerifier:
     # Line Segmentation v3.1 (Dense Packing + Strike-through)
     # ────────────────────────────────────────────────────────
 
-    def segment_lines_v3(self, img: np.ndarray) -> List[Dict]:
+    def segment_lines_v3(self, img: np.ndarray) -> list[dict]:
         """
         تقسيم محسّن للنصوص الكثيفة مع كشف المشطوب.
 
@@ -505,7 +505,7 @@ class DualOCRVerifier:
     # Page Verification (v1 - Original)
     # ────────────────────────────────────────────────────────
 
-    def verify_page(self, img: np.ndarray) -> List[Dict]:
+    def verify_page(self, img: np.ndarray) -> list[dict]:
         """التحقق المزدوج لصفحة كاملة - يُرجع نتائج كل الأسطر (الإصدار الأصلي)."""
         lines = self.extract_lines(img)
         results = []
@@ -519,7 +519,7 @@ class DualOCRVerifier:
     # Page Verification v3.1 (with strike-through + references)
     # ────────────────────────────────────────────────────────
 
-    def verify_page_v3(self, img: np.ndarray) -> Tuple[List[Dict], List[Dict]]:
+    def verify_page_v3(self, img: np.ndarray) -> tuple[list[dict], list[dict]]:
         """
         التحقق المزدوج لصفحة كاملة v3.1.
 
@@ -538,7 +538,7 @@ class DualOCRVerifier:
             gray = img
 
         # Apply v3.1 preprocessing
-        enhanced_page, margins = self.preprocess_for_ocr_v3(gray)
+        _enhanced_page, _margins = self.preprocess_for_ocr_v3(gray)
 
         # Segment with v3.1 (includes strike-through detection)
         lines_data = self.segment_lines_v3(gray)
@@ -547,7 +547,7 @@ class DualOCRVerifier:
         rejected = []
 
         for line_info in lines_data:
-            y1, y2 = line_info['bbox']
+            _y1, _y2 = line_info['bbox']
             crop = line_info['image']
 
             if line_info['is_crossed']:

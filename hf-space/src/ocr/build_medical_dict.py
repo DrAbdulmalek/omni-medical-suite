@@ -7,11 +7,10 @@ by frequency, and merges with existing medical_terms.json.
 Can be called manually or integrated into weekly_retrain pipeline.
 """
 import json
-import re
 import logging
-from pathlib import Path
+import re
 from collections import Counter
-from typing import Optional
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ def extract_medical_terms(text: str) -> list[str]:
 def build_and_expand_dict(
     dataset_name: str = "DrAbdulmalek/arabic-medical-ocr-corrections",
     min_freq: int = 3,
-    output_path: str = None,
+    output_path: str | None = None,
 ) -> dict:
     """
     Build/expand medical dictionary from HF dataset.

@@ -14,7 +14,7 @@ and support for custom handwriting models.
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 import numpy as np
 
@@ -42,7 +42,7 @@ DEFAULT_PARAMS = {
     "use_angle_cls": False,
     "lang": "ar",
     "show_log": False,
-    "device": "cpu",
+    "use_gpu": True,
     "enable_mkldnn": True,
 }
 
@@ -107,7 +107,7 @@ class PaddleOCREngine:
             "use_angle_cls": False,
             "lang": lang,
             "show_log": False,
-            "device": "gpu" if use_gpu else "cpu",
+            "use_gpu": use_gpu,
             "enable_mkldnn": True,
         }
 
@@ -162,7 +162,7 @@ class PaddleOCREngine:
         """Check if PaddleOCR engine is available."""
         return self._available
 
-    def extract_text(self, image: np.ndarray) -> Dict[str, Any]:
+    def extract_text(self, image: np.ndarray) -> dict[str, Any]:
         """
         Extract text from an image using PaddleOCR.
 
@@ -202,7 +202,7 @@ class PaddleOCREngine:
                 logger.info("لم يتم العثور على نص | No text found")
                 return self._empty_result()
 
-            lines: List[Dict] = []
+            lines: list[dict] = []
             for item in raw_results[0]:
                 # PaddleOCR format: [bbox, (text, confidence)]
                 bbox_points = item[0]
@@ -213,7 +213,7 @@ class PaddleOCREngine:
 
                 # Normalize bounding box to integer coordinates
                 bbox_list = [
-                    [int(round(p[0])), int(round(p[1]))] for p in bbox_points
+                    [round(p[0]), round(p[1])] for p in bbox_points
                 ]
 
                 lines.append({
@@ -247,7 +247,7 @@ class PaddleOCREngine:
             )
             return self._empty_result()
 
-    def _find_custom_model_dir(self) -> Optional[str]:
+    def _find_custom_model_dir(self) -> str | None:
         """
         Search for a custom PaddleOCR model directory.
 
@@ -309,7 +309,7 @@ class PaddleOCREngine:
         return image
 
     @staticmethod
-    def _empty_result() -> Dict[str, Any]:
+    def _empty_result() -> dict[str, Any]:
         """Return an empty extraction result."""
         return {
             "text": "",

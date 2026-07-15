@@ -49,8 +49,8 @@ import re
 import time
 import unicodedata
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 # ======================================================================
 
 
-class PipelineStage(str, Enum):
+class PipelineStage(StrEnum):
     """Enumerates the four processing stages."""
 
     PREPROCESSING = "preprocessing"
@@ -83,8 +83,8 @@ class StageResult:
 
     stage: str
     success: bool = True
-    data: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    data: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
     duration_sec: float = 0.0
 
 
@@ -111,14 +111,14 @@ class NLPPipelineResult:
     corrected_text: str = ""
     language: str = "unknown"
     direction: str = "ltr"
-    entities: List[Dict[str, Any]] = field(default_factory=list)
-    pii_entities: List[Dict[str, Any]] = field(default_factory=list)
+    entities: list[dict[str, Any]] = field(default_factory=list)
+    pii_entities: list[dict[str, Any]] = field(default_factory=list)
     summary: str = ""
-    classification: Dict[str, Any] = field(default_factory=dict)
+    classification: dict[str, Any] = field(default_factory=dict)
     study_guide_markdown: str = ""
-    stage_results: Dict[str, StageResult] = field(default_factory=dict)
+    stage_results: dict[str, StageResult] = field(default_factory=dict)
     total_duration_sec: float = 0.0
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
     # ---- convenience helpers ----
 
@@ -127,11 +127,11 @@ class NLPPipelineResult:
         """Return ``True`` if no stage raised an error."""
         return len(self.errors) == 0
 
-    def get_stage(self, stage: str) -> Optional[StageResult]:
+    def get_stage(self, stage: str) -> StageResult | None:
         """Retrieve the :class:`StageResult` for a given stage name."""
         return self.stage_results.get(stage)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialise the result to a plain dictionary."""
         return {
             "original_text": self.original_text,
@@ -243,7 +243,7 @@ class MedicalNLPPipeline:
         device: str = "cpu",
         summarizer_max_length: int = 130,
         summarizer_min_length: int = 30,
-        ner_model_name: Optional[str] = None,
+        ner_model_name: str | None = None,
     ) -> None:
         """Initialise the pipeline and lazily load sub-components."""
 
@@ -305,7 +305,7 @@ class MedicalNLPPipeline:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_env_stages() -> Optional[List[str]]:
+    def _parse_env_stages() -> list[str] | None:
         """Parse ``NLP_STAGES`` environment variable.
 
         Returns:
@@ -445,8 +445,8 @@ class MedicalNLPPipeline:
     def process(
         self,
         text: str,
-        language_hint: Optional[str] = None,
-        context: Optional[str] = None,
+        language_hint: str | None = None,
+        context: str | None = None,
         *,
         skip_preprocessing: bool = False,
         skip_correction: bool = False,
@@ -585,7 +585,7 @@ class MedicalNLPPipeline:
             A :class:`StageResult` with detection / normalisation data.
         """
         t0 = time.monotonic()
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
 
         try:
             # --- Language detection ---
@@ -642,7 +642,7 @@ class MedicalNLPPipeline:
         self,
         text: str,
         language: str = "unknown",
-        context: Optional[str] = None,
+        context: str | None = None,
     ) -> StageResult:
         """Execute Stage 2: spell check, AI correction, protected words.
 
@@ -662,19 +662,19 @@ class MedicalNLPPipeline:
             A :class:`StageResult` with the corrected text and metadata.
         """
         t0 = time.monotonic()
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
         current_text = text
-        corrections: List[Dict[str, str]] = []
+        corrections: list[dict[str, str]] = []
 
         try:
             # --- Protected-word preservation ---
-            protected_mapping: Dict[str, str] = {}
+            protected_mapping: dict[str, str] = {}
             pwm = self.protected_words
             if pwm is not None:
                 current_text, protected_mapping = pwm.protect_text(current_text)
 
             # --- Spell correction ---
-            spell_data: Dict[str, Any] = {
+            spell_data: dict[str, Any] = {
                 "corrected_text": current_text,
                 "corrections": [],
                 "total_corrections": 0,
@@ -706,7 +706,7 @@ class MedicalNLPPipeline:
                         current_text = mixed_result
 
             # --- AI correction (optional) ---
-            ai_data: Dict[str, Any] = {"applied": False}
+            ai_data: dict[str, Any] = {"applied": False}
             if self.enable_ai_correction:
                 aic = self.ai_corrector
                 if aic is not None and aic.is_available():
@@ -784,11 +784,11 @@ class MedicalNLPPipeline:
             A :class:`StageResult` with entities and PII data.
         """
         t0 = time.monotonic()
-        data: Dict[str, Any] = {"entities": [], "pii_entities": []}
+        data: dict[str, Any] = {"entities": [], "pii_entities": []}
 
         try:
             # --- Named-entity extraction ---
-            entities: List[Dict[str, Any]] = []
+            entities: list[dict[str, Any]] = []
             ee = self.entity_extractor
             if ee is not None:
                 entity_doc = ee.extract_from_document(text)
@@ -797,7 +797,7 @@ class MedicalNLPPipeline:
                 logger.warning("EntityExtractor not available — skipping NER")
 
             # --- PII / sensitive-data scanning ---
-            pii_entities: List[Dict[str, Any]] = []
+            pii_entities: list[dict[str, Any]] = []
             scanner = self.sensitive_scanner
             if scanner is not None:
                 scan_result = scanner.scan_text(text, language=language)
@@ -851,12 +851,12 @@ class MedicalNLPPipeline:
             optional study guide.
         """
         t0 = time.monotonic()
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
 
         try:
             # --- Summarisation ---
             summary = ""
-            summary_data: Dict[str, Any] = {"generated": False}
+            summary_data: dict[str, Any] = {"generated": False}
             summ = self.summarizer
             if summ is not None:
                 summ_result = summ.summarize(text, language=language)
@@ -873,7 +873,7 @@ class MedicalNLPPipeline:
                 logger.debug("TextSummarizer not available — skipping")
 
             # --- Classification ---
-            classification: Dict[str, Any] = {}
+            classification: dict[str, Any] = {}
             tc = self.text_classifier
             if tc is not None:
                 classification = tc.classify(text)
@@ -1000,8 +1000,8 @@ class MedicalNLPPipeline:
 
     @staticmethod
     def _group_entities_by_type(
-        entities: List[Dict[str, Any]],
-    ) -> Dict[str, List[Dict[str, Any]]]:
+        entities: list[dict[str, Any]],
+    ) -> dict[str, list[dict[str, Any]]]:
         """Group entity dicts by their ``type`` key.
 
         Args:
@@ -1010,7 +1010,7 @@ class MedicalNLPPipeline:
         Returns:
             Dict mapping entity type to list of entity dicts.
         """
-        grouped: Dict[str, List[Dict[str, Any]]] = {}
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for ent in entities:
             etype = ent.get("type", "UNKNOWN")
             grouped.setdefault(etype, []).append(ent)
@@ -1018,7 +1018,7 @@ class MedicalNLPPipeline:
 
     @staticmethod
     def _compute_overall_risk(
-        pii_entities: List[Dict[str, Any]],
+        pii_entities: list[dict[str, Any]],
     ) -> str:
         """Compute an overall risk level from PII entities.
 
@@ -1052,7 +1052,7 @@ class MedicalNLPPipeline:
     # Utility / introspection
     # ------------------------------------------------------------------
 
-    def get_available_components(self) -> Dict[str, bool]:
+    def get_available_components(self) -> dict[str, bool]:
         """Report which sub-components loaded successfully.
 
         Returns:
@@ -1072,7 +1072,7 @@ class MedicalNLPPipeline:
             "study_guide_generator": self.study_guide_generator is not None,
         }
 
-    def get_active_stages(self) -> List[str]:
+    def get_active_stages(self) -> list[str]:
         """Return the list of currently active stage names.
 
         Returns:

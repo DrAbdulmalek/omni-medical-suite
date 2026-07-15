@@ -26,7 +26,7 @@ import json
 import logging
 import os
 import re
-from typing import Optional, Dict, Any, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class MedicalClassifier:
     """
 
     # التصنيفات الافتراضية مع الكلمات المفتاحية وأوزانها
-    _DEFAULT_CATEGORIES: Dict[str, Dict[str, List[str]]] = {
+    _DEFAULT_CATEGORIES: dict[str, dict[str, list[str]]] = {
         "orthopedic": {
             "critical": [
                 "كسر", " fracture", "عظم", " bone", "مفصل", " joint",
@@ -289,14 +289,14 @@ class MedicalClassifier:
         },
     }
 
-    def __init__(self, lexicon_path: Optional[str] = None):
+    def __init__(self, lexicon_path: str | None = None):
         """
         تهيئة مصنف المحتوى الطبي.
 
         Args:
             lexicon_path: مسار ملف المعجم الإضافي (JSON)
         """
-        self.categories: Dict[str, Dict[str, List[str]]] = {}
+        self.categories: dict[str, dict[str, list[str]]] = {}
 
         # تحميل التصنيفات الافتراضية
         for cat, data in self._DEFAULT_CATEGORIES.items():
@@ -319,7 +319,7 @@ class MedicalClassifier:
             self._load_lexicon(default_lexicon)
 
         # تجميع أنماط regex لكل فئة
-        self._patterns: Dict[str, Dict[str, List[re.Pattern]]] = {}
+        self._patterns: dict[str, dict[str, list[re.Pattern]]] = {}
         self._compile_patterns()
 
         logger.info("تم تهيئة مصنف المحتوى الطبي (%d تصنيف)", len(self.categories))
@@ -327,7 +327,7 @@ class MedicalClassifier:
     def _load_lexicon(self, path: str):
         """تحميل معجم إضافي من ملف JSON."""
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
 
             if isinstance(data, dict):
@@ -360,7 +360,7 @@ class MedicalClassifier:
                         continue
                 self._patterns[category][level] = patterns
 
-    def classify(self, text: str) -> Dict[str, Any]:
+    def classify(self, text: str) -> dict[str, Any]:
         """
         تصنيف النص إلى فئة طبية/علمية.
 
@@ -385,15 +385,15 @@ class MedicalClassifier:
             }
 
         text_lower = text.lower()
-        scores: Dict[str, float] = {}
-        found_keywords: Dict[str, List[str]] = {}
+        scores: dict[str, float] = {}
+        found_keywords: dict[str, list[str]] = {}
 
         # الأوزان لكل مستوى أهمية
         weights = {"critical": 3.0, "important": 2.0, "supporting": 1.0}
 
         for category, levels in self._patterns.items():
             cat_score = 0.0
-            cat_keywords: List[str] = []
+            cat_keywords: list[str] = []
 
             for level, patterns in levels.items():
                 for pattern in patterns:
@@ -443,7 +443,7 @@ class MedicalClassifier:
         self,
         text: str,
         min_confidence: float = 0.15
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         تصنيف مع مستوى ثقة أدنى. إذا كان أقل من الحد، يُصنف كـ "general".
 
@@ -459,16 +459,16 @@ class MedicalClassifier:
             result["category"] = "general"
         return result
 
-    def get_categories(self) -> List[str]:
+    def get_categories(self) -> list[str]:
         """عرض قائمة التصنيفات المتاحة."""
-        return list(self.categories.keys()) + ["general"]
+        return [*list(self.categories.keys()), "general"]
 
     def add_category(
         self,
         category: str,
-        critical: List[str] = None,
-        important: List[str] = None,
-        supporting: List[str] = None
+        critical: list[str] | None = None,
+        important: list[str] | None = None,
+        supporting: list[str] | None = None
     ):
         """
         إضافة تصنيف جديد.
@@ -498,10 +498,10 @@ class MedicalClassifier:
 
     def organize_files(
         self,
-        files: List[Dict[str, str]],
+        files: list[dict[str, str]],
         base_folder: str,
         move_files: bool = False
-    ) -> Dict[str, List[str]]:
+    ) -> dict[str, list[str]]:
         """
         تنظيم الملفات في مجلدات حسب التصنيف.
 
@@ -514,7 +514,7 @@ class MedicalClassifier:
             قاموس {تصنيف: [مسارات الملفات]}
         """
         import shutil
-        organized: Dict[str, List[str]] = {}
+        organized: dict[str, list[str]] = {}
 
         for file_info in files:
             filepath = file_info.get("path", "")

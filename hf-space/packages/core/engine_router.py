@@ -1,63 +1,63 @@
-"""
-modules/core/engine_router.py
-══════════════════════════════
-الموجّه الذكي للمحركات — Engine Router
-========================================
-بدلاً من تشغيل كل محركات OCR معاً (يستهلك كل الذاكرة)،
-يختار هذا الموجّه المحركَين الأمثلَين بناءً على:
-  - جودة الصورة (image_quality)
-  - اللغة المكتشفة (language)
-  - نوع الكتلة (block_type: paragraph, table, handwriting, header, footer)
-  - البروفايل المحدد (low | balanced | high)
+"""Smart OCR engine routing for Omni Medical Suite.
 
-اقتراح من: QWEN (Smart Engine Selector) + Claude (Resource Optimization)
-
-OmniFile AI Processor v5.0 — Dr. Abdulmalek Tamer Al-husseini
+This router now supports printed OCR, handwritten Arabic OCR, vocalized Arabic,
+and structure-preserving extraction with explicit fallback chains.
 """
+
+from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from packages.core.engine_registry import EngineRegistry
 
 logger = logging.getLogger(__name__)
 
-# ── ثوابت المحركات ───────────────────────────────────────────────────
-ENGINE_EASYOCR   = "EasyOCR"
-ENGINE_TROCR     = "TrOCR"
+ENGINE_EASYOCR = "EasyOCR"
+ENGINE_TROCR = "TrOCR"
 ENGINE_TESSERACT = "Tesseract"
-ENGINE_PADDLE    = "PaddleOCR"
+ENGINE_PADDLE = "PaddleOCR"
+ENGINE_QWEN_HANDWRITTEN = "Arabic-handwritten-OCR (Qwen)"
+ENGINE_QARI = "QARI"
+ENGINE_NOUGAT = "Nougat"
 
-# ── متطلبات ذاكرة كل محرك (GB تقريبية) ─────────────────────────────
 ENGINE_RAM_REQUIREMENTS = {
     ENGINE_TESSERACT: 0.5,
-    ENGINE_EASYOCR:   1.5,
-    ENGINE_TROCR:     3.5,
-    ENGINE_PADDLE:    4.0,
+    ENGINE_EASYOCR: 1.5,
+    ENGINE_TROCR: 3.5,
+    ENGINE_PADDLE: 4.0,
+    ENGINE_QWEN_HANDWRITTEN: 5.5,
+    ENGINE_QARI: 4.5,
+    ENGINE_NOUGAT: 4.5,
 }
 
-# ── بروفايلات المحركات (اقتراح QWEN: Progressive Enhancement) ────────
 PROFILE_ENGINES = {
-    "low":      [ENGINE_TESSERACT],
-    "balanced": [ENGINE_EASYOCR, ENGINE_TESSERACT, ENGINE_TROCR],
-    "high":     [ENGINE_EASYOCR, ENGINE_TESSERACT, ENGINE_TROCR, ENGINE_PADDLE],
+    "low": [ENGINE_TESSERACT, ENGINE_EASYOCR],
+    "balanced": [
+        ENGINE_EASYOCR,
+        ENGINE_TESSERACT,
+        ENGINE_TROCR,
+        ENGINE_QWEN_HANDWRITTEN,
+        ENGINE_QARI,
+    ],
+    "high": [
+        ENGINE_EASYOCR,
+        ENGINE_TESSERACT,
+        ENGINE_TROCR,
+        ENGINE_PADDLE,
+        ENGINE_QWEN_HANDWRITTEN,
+        ENGINE_QARI,
+        ENGINE_NOUGAT,
+    ],
 }
 
 
 class EngineRouter:
-    """
-    الموجّه الذكي لمحركات OCR.
+    """Select the most appropriate OCR engines without loading everything.
 
-    يختار المحركين الأمثلَين بناءً على سياق الصورة
-    دون تشغيل كل المحركات — يوفر ~60% من الذاكرة.
-
-    مثال:
-        router = EngineRouter(profile="balanced", use_gpu=True)
-        engines, reasons = router.select(
-            image_quality=0.85,
-            language="ar",
-            block_type="paragraph"
-        )
-        # engines = ["EasyOCR", "Tesseract"]
-        # reasons = ["Arabic language detected", "high quality fallback"]
+    Can optionally use an ``EngineRegistry`` to filter recommendations
+    by *actual runtime availability* rather than static profile strings.
     """
 
     def __init__(
@@ -66,170 +66,164 @@ class EngineRouter:
         use_gpu: bool = False,
         max_engines: int = 2,
         available_ram_gb: float = 8.0,
+        registry: Optional["EngineRegistry"] = None,
     ) -> None:
-        """
-        تهيئة الموجّه.
-
-        Args:
-            profile:          بروفايل الجهاز — "low" | "balanced" | "high"
-            use_gpu:          هل GPU متاح
-            max_engines:      أقصى عدد محركات تُشغَّل معاً (الافتراضي 2)
-            available_ram_gb: الذاكرة المتاحة بالجيجابايت
-        """
-        self.profile          = profile
-        self.use_gpu          = use_gpu
-        self.max_engines      = max_engines
+        self.profile = profile
+        self.use_gpu = use_gpu
+        self.max_engines = max_engines
         self.available_ram_gb = available_ram_gb
-        self._allowed         = PROFILE_ENGINES.get(profile, PROFILE_ENGINES["balanced"])
-        logger.info("EngineRouter init: profile=%s, gpu=%s, max=%d", profile, use_gpu, max_engines)
+        self._registry = registry
+        self._allowed = PROFILE_ENGINES.get(profile, PROFILE_ENGINES["balanced"])
 
-    # ── الواجهة الرئيسية ────────────────────────────────────────────
+        # If a registry is provided, intersect allowed engines with actually available ones
+        if registry and registry._probed:
+            available_names = set(registry.available_engine_names())
+            self._allowed = [e for e in self._allowed if e in available_names]
+            if not self._allowed:
+                self._allowed = [ENGINE_TESSERACT]
+                logger.warning("No engines from profile passed availability check — falling back to Tesseract")
+
+        logger.info("EngineRouter init: profile=%s gpu=%s max=%d allowed=%s", profile, use_gpu, max_engines, self._allowed)
 
     def select(
         self,
         image_quality: float = 0.80,
         language: str = "ar",
         block_type: str = "paragraph",
+        *,
+        has_diacritics: bool = False,
+        document_type: str = "generic",
+        prefer_structured_output: bool = False,
     ) -> tuple[list[str], list[str]]:
-        """
-        اختيار المحركات الأمثل بناءً على السياق.
-
-        Args:
-            image_quality: جودة الصورة 0.0–1.0 (مستمدة من ImagePreprocessor)
-            language:      "ar" | "en" | "de" | "mixed"
-            block_type:    "paragraph" | "table" | "handwriting" | "header" | "footer"
-
-        Returns:
-            (engines, reasons) حيث engines قائمة أسماء المحركات المختارة
-        """
         recommendations: list[str] = []
-        reasons:          list[str] = []
+        reasons: list[str] = []
 
-        # ── بروفايل منخفض: محرك واحد فقط ──────────────────────────
         if self.profile == "low":
-            return [ENGINE_TESSERACT], ["low-end profile — single engine mode"]
+            fallback = [engine for engine in [ENGINE_TESSERACT, ENGINE_EASYOCR] if engine in self._allowed]
+            return fallback[:1], ["low-end profile — single engine mode"]
 
-        # ── خط يدوي → TrOCR الأول ──────────────────────────────────
-        if block_type == "handwriting" and ENGINE_TROCR in self._allowed:
-            if image_quality >= 0.65:
-                recommendations.append(ENGINE_TROCR)
-                reasons.append("handwriting block detected")
+        if block_type == "handwriting":
+            for engine, reason in [
+                (ENGINE_QWEN_HANDWRITTEN, "handwriting detected — Qwen handwritten OCR first"),
+                (ENGINE_QARI, "handwriting fallback for Arabic forms"),
+                (ENGINE_TROCR, "legacy handwriting fallback"),
+            ]:
+                if engine in self._allowed and engine not in recommendations:
+                    recommendations.append(engine)
+                    reasons.append(reason)
+                if len(recommendations) >= self.max_engines:
+                    break
 
-        # ── عربي أو مختلط → EasyOCR ────────────────────────────────
-        if language in ("ar", "mixed") and ENGINE_EASYOCR in self._allowed:
+        if has_diacritics and language in {"ar", "mixed"} and ENGINE_QARI in self._allowed:
+            if ENGINE_QARI not in recommendations:
+                recommendations.append(ENGINE_QARI)
+                reasons.append("vocalized Arabic / tashkeel detected")
+
+        if (
+            prefer_structured_output
+            or block_type in {"table", "form"}
+            or document_type in {"report", "article", "book", "markdown"}
+        ) and ENGINE_NOUGAT in self._allowed:
+            if ENGINE_NOUGAT not in recommendations:
+                recommendations.append(ENGINE_NOUGAT)
+                reasons.append("structure-preserving extraction requested")
+
+        if language in {"ar", "mixed"} and ENGINE_EASYOCR in self._allowed:
             if ENGINE_EASYOCR not in recommendations:
                 recommendations.append(ENGINE_EASYOCR)
                 reasons.append(f"Arabic/mixed language ({language})")
 
-        # ── جودة منخفضة → Tesseract (أكثر تسامحاً مع الضجيج) ──────
-        if image_quality < 0.60 and ENGINE_TESSERACT in self._allowed:
-            if ENGINE_TESSERACT not in recommendations:
-                recommendations.append(ENGINE_TESSERACT)
-                reasons.append("low image quality — noise-tolerant engine")
+        if image_quality < 0.60 and ENGINE_TESSERACT in self._allowed and ENGINE_TESSERACT not in recommendations:
+            recommendations.append(ENGINE_TESSERACT)
+            reasons.append("low image quality — conservative fallback")
 
-        # ── إنجليزي/ألماني جودة عالية → TrOCR ──────────────────────
-        if language in ("en", "de") and image_quality >= 0.75:
-            if ENGINE_TROCR in self._allowed and ENGINE_TROCR not in recommendations:
-                recommendations.append(ENGINE_TROCR)
-                reasons.append(f"Latin script + high quality ({language})")
-            elif ENGINE_EASYOCR in self._allowed and ENGINE_EASYOCR not in recommendations:
-                recommendations.append(ENGINE_EASYOCR)
-                reasons.append(f"Latin script — EasyOCR fallback ({language})")
-
-        # ── جداول → Tesseract (أفضل للبنية الشبكية) ─────────────────
-        if block_type == "table" and ENGINE_TESSERACT in self._allowed:
-            if ENGINE_TESSERACT not in recommendations:
-                recommendations.append(ENGINE_TESSERACT)
-                reasons.append("table block — structure-aware engine")
-
-        # ── بروفايل high + عربي → PaddleOCR كبديل ─────────────────
-        if (self.profile == "high"
-                and language in ("ar", "mixed")
-                and ENGINE_PADDLE in self._allowed
-                and len(recommendations) < self.max_engines):
+        if self.profile == "high" and language in {"ar", "mixed"} and ENGINE_PADDLE in self._allowed:
             if ENGINE_PADDLE not in recommendations:
                 recommendations.append(ENGINE_PADDLE)
-                reasons.append("high profile — PaddleOCR for Arabic")
+                reasons.append("high profile — PaddleOCR fallback for printed Arabic")
 
-        # ── fallback إذا لم يُختَر شيء ──────────────────────────────
+        if language in {"en", "de"} and image_quality >= 0.75:
+            for engine, reason in [
+                (ENGINE_TROCR, f"Latin script + high quality ({language})"),
+                (ENGINE_EASYOCR, f"Latin fallback ({language})"),
+            ]:
+                if engine in self._allowed and engine not in recommendations:
+                    recommendations.append(engine)
+                    reasons.append(reason)
+
         if not recommendations:
-            fallback = [e for e in [ENGINE_EASYOCR, ENGINE_TESSERACT] if e in self._allowed]
-            recommendations = fallback[:self.max_engines]
-            reasons = ["default fallback — no specific signal"]
+            fallback = [engine for engine in [ENGINE_EASYOCR, ENGINE_TESSERACT] if engine in self._allowed]
+            recommendations = fallback[: self.max_engines]
+            reasons = ["default fallback — no specific signal"] * len(recommendations)
 
-        # ── تحقق من الذاكرة المتاحة ─────────────────────────────────
         recommendations, reasons = self._filter_by_ram(recommendations, reasons)
 
-        # ── إزالة التكرار والحد بـ max_engines ──────────────────────
-        seen, unique = set(), []
-        for e in recommendations:
-            if e not in seen:
-                seen.add(e)
-                unique.append(e)
-        final = unique[: self.max_engines]
-
-        logger.debug("EngineRouter.select → %s (reasons: %s)", final, reasons)
-        return final, reasons[: len(final)]
+        seen: set[str] = set()
+        deduped_engines: list[str] = []
+        deduped_reasons: list[str] = []
+        for engine, reason in zip(recommendations, reasons, strict=False):
+            if engine not in seen:
+                seen.add(engine)
+                deduped_engines.append(engine)
+                deduped_reasons.append(reason)
+            if len(deduped_engines) >= self.max_engines:
+                break
+        return deduped_engines, deduped_reasons
 
     def estimate_time(self, engines: list[str]) -> float:
-        """تقدير وقت المعالجة بالثواني بناءً على المحركات المختارة."""
-        TIME_EST = {
+        estimates = {
             ENGINE_TESSERACT: 0.4,
-            ENGINE_EASYOCR:   1.5,
-            ENGINE_TROCR:     2.5,
-            ENGINE_PADDLE:    2.0,
+            ENGINE_EASYOCR: 1.5,
+            ENGINE_TROCR: 2.5,
+            ENGINE_PADDLE: 2.0,
+            ENGINE_QWEN_HANDWRITTEN: 3.4,
+            ENGINE_QARI: 2.8,
+            ENGINE_NOUGAT: 3.2,
         }
-        total = sum(TIME_EST.get(e, 1.0) for e in engines)
+        total = sum(estimates.get(engine, 1.0) for engine in engines)
         if not self.use_gpu:
-            total *= 1.8  # CPU أبطأ بـ 80%
+            total *= 1.8
         return round(total, 1)
 
-    def summary(self) -> dict:
-        """ملخص إعدادات الموجّه."""
+    def summary(self) -> dict[str, object]:
         return {
-            "profile":          self.profile,
-            "use_gpu":          self.use_gpu,
-            "max_engines":      self.max_engines,
+            "profile": self.profile,
+            "use_gpu": self.use_gpu,
+            "max_engines": self.max_engines,
             "available_ram_gb": self.available_ram_gb,
-            "allowed_engines":  self._allowed,
+            "allowed_engines": self._allowed,
         }
-
-    # ── مساعدات داخلية ──────────────────────────────────────────────
 
     def _filter_by_ram(
         self,
         engines: list[str],
         reasons: list[str],
     ) -> tuple[list[str], list[str]]:
-        """إزالة المحركات التي تتجاوز الذاكرة المتاحة."""
         total_ram = 0.0
-        filtered_engines, filtered_reasons = [], []
-        for engine, reason in zip(engines, reasons):
-            req = ENGINE_RAM_REQUIREMENTS.get(engine, 1.0)
-            if total_ram + req <= self.available_ram_gb:
+        filtered_engines: list[str] = []
+        filtered_reasons: list[str] = []
+        for engine, reason in zip(engines, reasons, strict=False):
+            requirement = ENGINE_RAM_REQUIREMENTS.get(engine, 1.0)
+            if total_ram + requirement <= self.available_ram_gb:
                 filtered_engines.append(engine)
                 filtered_reasons.append(reason)
-                total_ram += req
+                total_ram += requirement
             else:
                 logger.warning(
-                    "EngineRouter: skipping %s (needs %.1fGB, available %.1fGB)",
-                    engine, req, self.available_ram_gb - total_ram,
+                    "Skipping %s (needs %.1fGB, available %.1fGB)",
+                    engine,
+                    requirement,
+                    self.available_ram_gb - total_ram,
                 )
-        return filtered_engines or [ENGINE_TESSERACT], filtered_reasons or ["RAM-constrained fallback"]
+        if filtered_engines:
+            return filtered_engines, filtered_reasons
+        return [ENGINE_TESSERACT], ["RAM-constrained fallback"]
 
     @classmethod
     def from_config(cls, config) -> "EngineRouter":
-        """
-        إنشاء EngineRouter من OmniFileConfig.
-
-        Args:
-            config: OmniFileConfig instance
-
-        Returns:
-            EngineRouter مُعَدّ وفق الإعدادات
-        """
         try:
             import psutil
+
             ram_gb = psutil.virtual_memory().available / 1e9
         except ImportError:
             ram_gb = 8.0

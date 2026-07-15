@@ -4,12 +4,12 @@
 # ══════════════════════════════════════════════════════════╝
 
 import re
+from pathlib import Path
+
 import cv2
 import numpy as np
 import torch
-from pathlib import Path
 from PIL import Image
-from typing import Dict, List, Optional, Tuple
 
 # Lazy imports
 _fitz = None
@@ -29,7 +29,7 @@ class BatchMedicalOCR:
     - حفظ نتائج خام للمراجعة اللاحقة
     """
 
-    def __init__(self, model_path: Optional[str] = None):
+    def __init__(self, model_path: str | None = None):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         src = model_path if model_path and Path(model_path).exists() else "microsoft/trocr-base-handwritten"
         self.model_path = src
@@ -72,7 +72,7 @@ class BatchMedicalOCR:
     # PDF to Images
     # ────────────────────────────────────────────────────────
 
-    def pdf_to_images(self, pdf_path: str, dpi: int = 300) -> List[Tuple[str, np.ndarray]]:
+    def pdf_to_images(self, pdf_path: str, dpi: int = 300) -> list[tuple[str, np.ndarray]]:
         """
         تحويل PDF لصور عالية الدقة.
 
@@ -108,7 +108,7 @@ class BatchMedicalOCR:
         يزيل الكتل الصغيرة الكثيفة (الشطب) مع الحفاظ على النص.
         """
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary, connectivity=8)
+        num_labels, _labels, stats, _ = cv2.connectedComponentsWithStats(binary, connectivity=8)
         mask = np.ones_like(gray) * 255
 
         for i in range(1, num_labels):
@@ -130,7 +130,7 @@ class BatchMedicalOCR:
     # Line Segmentation
     # ────────────────────────────────────────────────────────
 
-    def segment_lines(self, img: np.ndarray, min_h: int = 10) -> List[Tuple[int, int]]:
+    def segment_lines(self, img: np.ndarray, min_h: int = 10) -> list[tuple[int, int]]:
         """
         تقسيم الصورة إلى أسطر عبر تحليل الإسقاط الرأسي.
 
@@ -212,7 +212,7 @@ class BatchMedicalOCR:
     # ────────────────────────────────────────────────────────
 
     @staticmethod
-    def extract_refs(text: str) -> Tuple[str, List[str]]:
+    def extract_refs(text: str) -> tuple[str, list[str]]:
         """
         عزل المراجع والأرقام الطرفية.
 
@@ -242,7 +242,7 @@ class BatchMedicalOCR:
         self,
         input_dir: str,
         output_dir: str,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         معالجة مجلد كامل من الصور وملفات PDF.
 
@@ -316,7 +316,7 @@ class BatchMedicalOCR:
     # Process Single File
     # ────────────────────────────────────────────────────────
 
-    def process_single_file(self, file_path: str) -> List[Dict]:
+    def process_single_file(self, file_path: str) -> list[dict]:
         """
         معالجة ملف واحد (صورة أو PDF).
 

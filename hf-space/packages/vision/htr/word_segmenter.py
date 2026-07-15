@@ -9,7 +9,6 @@
 """
 
 import logging
-from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -70,7 +69,7 @@ class ArabicWordSegmenter:
         self._use_profile = use_vertical_profile
         self._binary_threshold = binary_threshold
 
-    def segment(self, line_image) -> List["PIL.Image.Image"]:
+    def segment(self, line_image) -> list["PIL.Image.Image"]:
         """تقسيم صورة سطر إلى صور كلمات.
 
         Args:
@@ -85,7 +84,7 @@ class ArabicWordSegmenter:
 
     def segment_with_spaces(
         self, line_image, predicted_text: str
-    ) -> List[Tuple["PIL.Image.Image", str]]:
+    ) -> list[tuple["PIL.Image.Image", str]]:
         """تقسيم صورة السطر باستخدام النصّ المُتنبَّأ به للتوجيه.
 
         يُستخدم طول كل كلمة في النصّ المُتنبَّأ لتقدير عرضها المتوقّع
@@ -102,7 +101,7 @@ class ArabicWordSegmenter:
 
         gray = _ensure_gray(line_image)
         binary = _to_binary(gray, self._binary_threshold)
-        h, w = binary.shape
+        _h, w = binary.shape
 
         if not predicted_text.strip():
             return [(PIL.Image.fromarray(gray).convert("RGB"), predicted_text)]
@@ -121,7 +120,7 @@ class ArabicWordSegmenter:
         if total_chars == 0:
             return [(PIL.Image.fromarray(gray).convert("RGB"), predicted_text)]
 
-        word_boundaries: List[Tuple[int, int]] = []
+        word_boundaries: list[tuple[int, int]] = []
         margin = 2  # هامش بكسل إضافي
 
         if n_words == 2:
@@ -163,7 +162,7 @@ class ArabicWordSegmenter:
             word_boundaries.append((prev_x, w))
 
         # اقتطاع صور الكلمات
-        results: List[Tuple["PIL.Image.Image", str]] = []
+        results: list[tuple[PIL.Image.Image, str]] = []
         for i, (x_start, x_end) in enumerate(word_boundaries):
             x_start = max(0, x_start - margin)
             x_end = min(w, x_end + margin)
@@ -179,7 +178,7 @@ class ArabicWordSegmenter:
     # ----------------------------------------------------------
     # _segment_by_profile — المسقط الرأسي
     # ----------------------------------------------------------
-    def _segment_by_profile(self, line_image) -> List["PIL.Image.Image"]:
+    def _segment_by_profile(self, line_image) -> list["PIL.Image.Image"]:
         """تقسيم السطر باستخدام تحليل المسقط الرأسي.
 
         يبحث عن الوديان في المسقط الرأسي (أعمدة فارغة) ويستخدمها
@@ -215,7 +214,7 @@ class ArabicWordSegmenter:
         in_word = False
         x_start = 0
         gap_counter = 0
-        regions: List[Tuple[int, int]] = []
+        regions: list[tuple[int, int]] = []
 
         for x in range(w):
             if v_profile[x] > gap_threshold:
@@ -236,7 +235,7 @@ class ArabicWordSegmenter:
             regions.append((x_start, w))
 
         # اقتطاع صور الكلمات
-        results: List["PIL.Image.Image"] = []
+        results: list[PIL.Image.Image] = []
         for x_start, x_end in regions:
             word_img = PIL.Image.fromarray(gray[:, x_start:x_end]).convert("RGB")
             results.append(word_img)
@@ -249,7 +248,7 @@ class ArabicWordSegmenter:
     # ----------------------------------------------------------
     # _segment_by_contours — المكونات المتصلة
     # ----------------------------------------------------------
-    def _segment_by_contours(self, line_image) -> List["PIL.Image.Image"]:
+    def _segment_by_contours(self, line_image) -> list["PIL.Image.Image"]:
         """تقسيم السطر باستخدام تحليل المكونات المتصلة.
 
         يكتشف المكونات المتصلة في الصورة الثنائية ويجمع المكونات
@@ -261,21 +260,21 @@ class ArabicWordSegmenter:
         Returns:
             قائمة من صور الكلمات.
         """
-        import PIL.Image
         import cv2
+        import PIL.Image
 
         gray = _ensure_gray(line_image)
         binary = _to_binary(gray, self._binary_threshold)
         h, w = binary.shape
 
         # كشف المكونات المتصلة
-        num_labels, labels, stats, _centroids = cv2.connectedComponentsWithStats(
+        num_labels, _labels, stats, _centroids = cv2.connectedComponentsWithStats(
             binary, connectivity=8
         )
 
         # تجميع المكونات (استبعاد الخلفية — label 0)
         merge_threshold = h * 0.3  # عتبة الدمج الرأسي
-        components: List[dict] = []
+        components: list[dict] = []
 
         for i in range(1, num_labels):
             x = stats[i, cv2.CC_STAT_LEFT]
@@ -304,8 +303,8 @@ class ArabicWordSegmenter:
         components.sort(key=lambda c: c["x"])
 
         # دمج المكونات المتقاربة
-        word_groups: List[List[dict]] = []
-        current_group: List[dict] = [components[0]]
+        word_groups: list[list[dict]] = []
+        current_group: list[dict] = [components[0]]
 
         for comp in components[1:]:
             prev = current_group[-1]
@@ -322,7 +321,7 @@ class ArabicWordSegmenter:
         word_groups.append(current_group)
 
         # اقتطاع صور الكلمات
-        results: List["PIL.Image.Image"] = []
+        results: list[PIL.Image.Image] = []
         for group in word_groups:
             x_min = min(c["x"] for c in group)
             x_max = max(c["x"] + c["w"] for c in group)

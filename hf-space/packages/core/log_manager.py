@@ -15,6 +15,7 @@ modules/core/log_manager.py
 OmniFile AI Processor v5.0 — Dr. Abdulmalek Tamer Al-husseini
 """
 
+import contextlib
 import json
 import logging
 import os
@@ -23,7 +24,6 @@ import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class AppLogger:
             "hostname": platform.node(),
         })
 
-    def log(self, event: str, data: Optional[dict] = None) -> None:
+    def log(self, event: str, data: dict | None = None) -> None:
         """تسجيل حدث."""
         entry = {
             "ts":    datetime.now().isoformat(),
@@ -117,7 +117,7 @@ class AppLogger:
         except Exception:
             pass
 
-    def get_local_log_path(self) -> Optional[str]:
+    def get_local_log_path(self) -> str | None:
         log_file = LOGS_DIR / f"app_{datetime.now():%Y%m%d}.log"
         return str(log_file) if log_file.exists() else None
 
@@ -138,7 +138,6 @@ class AppLogger:
             return {"status": "skipped", "reason": "no_token"}
 
         try:
-            import urllib.request
             content  = self._build_log_content()
             gist_id  = self._load_gist_id()
             filename = f"omnifile_log_{datetime.now():%Y%m}.txt"
@@ -173,7 +172,8 @@ class AppLogger:
 
     def _api_call(self, method: str, url: str, data: dict) -> dict:
         """استدعاء GitHub API."""
-        import urllib.request, urllib.error
+        import urllib.error
+        import urllib.request
         body = json.dumps(data).encode("utf-8")
         req  = urllib.request.Request(
             url, data=body, method=method,
@@ -209,7 +209,7 @@ class AppLogger:
             "url":     resp.get("html_url", ""),
         }
 
-    def _load_gist_id(self) -> Optional[str]:
+    def _load_gist_id(self) -> str | None:
         try:
             if GIST_ID_FILE.exists():
                 return GIST_ID_FILE.read_text().strip()
@@ -218,15 +218,13 @@ class AppLogger:
         return None
 
     def _save_gist_id(self, gist_id: str) -> None:
-        try:
+        with contextlib.suppress(Exception):
             GIST_ID_FILE.write_text(gist_id)
-        except Exception:
-            pass
 
 
 # ── Singleton للاستخدام المباشر ────────────────────────────────────
 
-_default_logger: Optional[AppLogger] = None
+_default_logger: AppLogger | None = None
 
 
 def get_app_logger(token: str = "") -> AppLogger:

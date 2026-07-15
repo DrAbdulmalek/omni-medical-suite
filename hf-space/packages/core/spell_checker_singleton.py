@@ -6,25 +6,24 @@ Prevents duplicate instances across modules.
 
 Usage:
     from packages.core.spell_checker_singleton import get_spell_checker
-    
+
     checker = get_spell_checker()
     corrected = checker.correct_text("النص المراد تصحيحه")
 """
 
 import threading
-from typing import Optional
 
 _instance = None
 _lock = threading.Lock()
 
 
-def get_spell_checker(arabic_fixes_path: Optional[str] = None) -> "HybridSpellChecker":
+def get_spell_checker(arabic_fixes_path: str | None = None) -> "HybridSpellChecker":
     """
     Get the global HybridSpellChecker singleton.
-    
+
     Args:
         arabic_fixes_path: Only used on first call (subsequent calls ignore it)
-    
+
     Returns:
         HybridSpellChecker instance
     """

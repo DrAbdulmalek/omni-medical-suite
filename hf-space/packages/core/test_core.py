@@ -3,17 +3,15 @@ Comprehensive unit tests for Medical Document Processor Core.
 Tests: Image Processing, Encryption, DB Manager, Segmentation.
 """
 
-import sys
 import os
-import unittest
+import sys
 import tempfile
-import json
+import unittest
 
 # Add packages/core to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import numpy as np
-from PIL import Image
 
 
 class TestFindPageBounds(unittest.TestCase):
@@ -38,7 +36,7 @@ class TestFindPageBounds(unittest.TestCase):
     def test_all_white_image(self):
         from image_processor import find_page_bounds
         img = np.full((400, 600, 3), 255, dtype=np.uint8)
-        left, top, right, bottom = find_page_bounds(img)
+        left, top, _right, _bottom = find_page_bounds(img)
         # Should return bounds with padding
         self.assertGreaterEqual(left, 0)
         self.assertGreaterEqual(top, 0)
@@ -64,8 +62,8 @@ class TestAutoDetectSkew(unittest.TestCase):
                                msg=f"Straight image should give ~0 degrees, got {angle}")
 
     def test_skewed_image_detection(self):
-        from image_processor import auto_detect_skew
         import cv2
+        from image_processor import auto_detect_skew
         # Create a straight image
         img = np.ones((400, 600, 3), dtype=np.uint8) * 255
         for y in range(50, 350, 30):
@@ -120,8 +118,8 @@ class TestBlurDetection(unittest.TestCase):
     """Test blur detection with normalization."""
 
     def test_size_independence(self):
-        from image_processor import detect_blur_laplacian
         import cv2
+        from image_processor import detect_blur_laplacian
         # Create random noise pattern with clear structure
         np.random.seed(42)
         small = np.random.randint(50, 200, (300, 300, 3), dtype=np.uint8)
@@ -138,8 +136,8 @@ class TestBlurDetection(unittest.TestCase):
         # The normalization helps but interpolation introduces smoothing
 
     def test_sharp_vs_blurry(self):
-        from image_processor import detect_blur_laplacian
         import cv2
+        from image_processor import detect_blur_laplacian
         # Sharp image
         sharp = np.zeros((200, 200, 3), dtype=np.uint8)
         cv2.rectangle(sharp, (20, 20), (180, 180), (255, 255, 255), 2)
@@ -242,8 +240,8 @@ class TestApplyProcessing(unittest.TestCase):
     """Test the full processing pipeline."""
 
     def test_full_pipeline(self):
-        from image_processor import apply_processing
         import cv2
+        from image_processor import apply_processing
         img = np.ones((400, 600, 3), dtype=np.uint8) * 255
         cv2.putText(img, "TEST", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 3)
 

@@ -18,11 +18,12 @@
 """
 
 import hashlib
-import os
-from packages.core.base_db import BaseDB
 import logging
+import os
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Any
+
+from packages.core.base_db import BaseDB
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +149,7 @@ class FileFingerprintManager(BaseDB):
             logger.error("خطأ في فحص الملف %s: %s", file_path, e)
             return True
 
-    def get_file_info(self, file_path: str) -> Optional[Dict[str, Any]]:
+    def get_file_info(self, file_path: str) -> dict[str, Any] | None:
         """
         الحصول على معلومات ملف سبق معالجته.
 
@@ -232,7 +233,7 @@ class FileFingerprintManager(BaseDB):
                 logger.debug("الملف مسجل مسبقاً: %s", file_path)
             return False
 
-    def find_duplicates(self, directory: str) -> List[List[Dict[str, Any]]]:
+    def find_duplicates(self, directory: str) -> list[list[dict[str, Any]]]:
         """
         البحث عن الملفات المكررة في مجلد.
 
@@ -242,7 +243,7 @@ class FileFingerprintManager(BaseDB):
         Returns:
             قائمة مجموعات الملفات المكررة
         """
-        hash_map: Dict[str, List[Dict[str, Any]]] = {}
+        hash_map: dict[str, list[dict[str, Any]]] = {}
 
         for root, _, files in os.walk(directory):
             for filename in files:
@@ -264,7 +265,7 @@ class FileFingerprintManager(BaseDB):
         logger.info("تم العثور على %d مجموعة مكررة في %s", len(duplicates), directory)
         return duplicates
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         الحصول على إحصائيات شاملة عن الأرشيف.
 
@@ -327,7 +328,7 @@ class FileFingerprintManager(BaseDB):
 
         return stats
 
-    def get_pending_files(self, directory: str, extensions: List[str] = None) -> List[str]:
+    def get_pending_files(self, directory: str, extensions: list[str] | None = None) -> list[str]:
         """
         الحصول على قائمة الملفات التي لم تتم معالجتها بعد في مجلد.
 

@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "OmniMedical Dev",
+      "Group": "Development",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "omnimedical",
+      "Username": "postgres",
+      "SSLMode": "prefer",
+      "Shared": true
+    }
+  }
+}

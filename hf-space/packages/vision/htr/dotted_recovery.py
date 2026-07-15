@@ -12,9 +12,6 @@
 """
 
 import logging
-import re
-from typing import Dict, List, Optional, Tuple
-from unicodedata import normalize
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +21,7 @@ logger = logging.getLogger(__name__)
 # ============================================================
 # المفتاح هو الحرف بدون نقاط، والقيمة هي الحروف المُنقَّطة المحتملة.
 # يُستخدم في توليد المتغيرات المُنقَّطة للاسترداد.
-DOTTED_PAIRS: Dict[str, str] = {
+DOTTED_PAIRS: dict[str, str] = {
     "ب": "تث",
     "ت": "بث",
     "ث": "بت",
@@ -50,7 +47,7 @@ DOTTED_PAIRS: Dict[str, str] = {
 }
 
 # الأزواج العكسية: من الحروف الأساسية إلى جميع المتغيرات
-UNDOT_TO_DOTTED: Dict[str, List[str]] = {}
+UNDOT_TO_DOTTED: dict[str, list[str]] = {}
 for _dotted, _base_variants in DOTTED_PAIRS.items():
     _undotted = _dotted  # الحرف نفسه
     for _ch in _base_variants:
@@ -61,7 +58,7 @@ for _dotted, _base_variants in DOTTED_PAIRS.items():
 # ============================================================
 # الأنماط الشائعة (Common Patterns)
 # ============================================================
-COMMON_PATTERNS: Dict[str, str] = {
+COMMON_PATTERNS: dict[str, str] = {
     # عبارات دينية شائعة
     "بسم الله الرحمن الرحيم": "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ",
     "الحمد لله": "الْحَمْدُ لِلَّهِ",
@@ -126,11 +123,11 @@ class ArabicDottedRecovery:
 
     def __init__(
         self,
-        dictionary_path: Optional[str] = None,
+        dictionary_path: str | None = None,
         use_lm: bool = False,
     ) -> None:
         self._use_lm = use_lm
-        self._dictionary: Dict[str, float] = {}  # كلمة ← تكرار/وزن
+        self._dictionary: dict[str, float] = {}  # كلمة ← تكرار/وزن
 
         # تحميل القاموس
         if dictionary_path:
@@ -139,13 +136,13 @@ class ArabicDottedRecovery:
             self._load_builtin_dictionary()
 
         # بناء قاموس بدون حركات (للبحث السريع)
-        self._dict_no_diacritics: Dict[str, List[str]] = {}
-        for word, weight in self._dictionary.items():
+        self._dict_no_diacritics: dict[str, list[str]] = {}
+        for word, _weight in self._dictionary.items():
             stripped = self._remove_diacritics(word)
             self._dict_no_diacritics.setdefault(stripped, []).append(word)
 
         # تحضير الأنماط بدون حركات
-        self._pattern_keys: Dict[str, str] = {}
+        self._pattern_keys: dict[str, str] = {}
         for pattern, replacement in COMMON_PATTERNS.items():
             stripped = self._remove_diacritics(pattern)
             self._pattern_keys[stripped] = replacement
@@ -175,7 +172,7 @@ class ArabicDottedRecovery:
 
         # ثانيًا: معالجة كلمة بكلمة
         words = text.split()
-        recovered_words: List[str] = []
+        recovered_words: list[str] = []
 
         for word in words:
             recovered = self._recover_word(word)
@@ -347,7 +344,7 @@ class ArabicDottedRecovery:
     # ----------------------------------------------------------
     # _generate_dotted_variants — توليد المتغيرات
     # ----------------------------------------------------------
-    def _generate_dotted_variants(self, word: str) -> List[str]:
+    def _generate_dotted_variants(self, word: str) -> list[str]:
         """توليد جميع المتغيرات المُنقَّطة الممكنة لكلمة.
 
         لكل حرف في الكلمة، يُنشئ نسخة بكل بديل مُنقَّط محتمل.
@@ -363,7 +360,7 @@ class ArabicDottedRecovery:
 
         # بناء المتغيرات تدريجيًا
         # لكل حرف، نحصل على البدائل
-        char_alternatives: List[List[str]] = []
+        char_alternatives: list[list[str]] = []
         for ch in word:
             alternatives = list(UNDOT_TO_DOTTED.get(ch, [ch]))
             # إزالة التكرارات مع الحفاظ على الترتيب
@@ -406,8 +403,8 @@ class ArabicDottedRecovery:
     # _rank_variants — ترتيب المتغيرات
     # ----------------------------------------------------------
     def _rank_variants(
-        self, variants: List[str], original_word: str
-    ) -> List[str]:
+        self, variants: list[str], original_word: str
+    ) -> list[str]:
         """ترتيب المتغيرات المُنقَّطة حسب مدى ملاءمتها.
 
         معايير الترتيب:
@@ -423,7 +420,7 @@ class ArabicDottedRecovery:
         Returns:
             المتغيرات مُرتَّبة من الأفضل إلى الأسوأ.
         """
-        def score(variant: str) -> Tuple[int, int, float, float]:
+        def score(variant: str) -> tuple[int, int, float, float]:
             # 1. تواجد في القاموس مباشرة
             if variant in self._dictionary:
                 dict_score = 2
@@ -450,7 +447,7 @@ class ArabicDottedRecovery:
     # ----------------------------------------------------------
     # batch_recover — استرداد دفعة
     # ----------------------------------------------------------
-    def batch_recover(self, texts: List[str]) -> List[str]:
+    def batch_recover(self, texts: list[str]) -> list[str]:
         """استرداد النقاط لمجموعة من النصوص.
 
         Args:
@@ -465,7 +462,7 @@ class ArabicDottedRecovery:
     # ----------------------------------------------------------
     # add_to_dictionary — إضافة كلمات للقاموس
     # ----------------------------------------------------------
-    def add_to_dictionary(self, words: List[str], weight: float = 1.0) -> None:
+    def add_to_dictionary(self, words: list[str], weight: float = 1.0) -> None:
         """إضافة كلمات إلى القاموس في وقت التشغيل.
 
         Args:
@@ -495,8 +492,8 @@ class ArabicDottedRecovery:
             path: مسار ملف القاموس.
         """
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                for line_no, line in enumerate(f, 1):
+            with open(path, encoding="utf-8") as f:
+                for _line_no, line in enumerate(f, 1):
                     line = line.strip()
                     if not line or line.startswith("#"):
                         continue
@@ -580,7 +577,7 @@ class ArabicDottedRecovery:
 
         # إعادة بناء القاموس بدون حركات
         self._dict_no_diacritics.clear()
-        for word, weight in self._dictionary.items():
+        for word, _weight in self._dictionary.items():
             stripped = self._remove_diacritics(word)
             self._dict_no_diacritics.setdefault(stripped, []).append(word)
 

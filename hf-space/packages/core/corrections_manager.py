@@ -19,11 +19,9 @@ OmniFile AI Processor v5.0 — Dr. Abdulmalek Tamer Al-husseini
 
 import json
 import logging
-import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +196,7 @@ class CorrectionsDictManager:
 
     # ── نسخ احتياطية ───────────────────────────────────────────────
 
-    def _backup(self) -> Optional[str]:
+    def _backup(self) -> str | None:
         """نسخة احتياطية تلقائية من القاموس الحالي."""
         if not self.corrections_path.exists():
             return None

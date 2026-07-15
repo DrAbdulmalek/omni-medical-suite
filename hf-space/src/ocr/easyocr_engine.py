@@ -10,9 +10,11 @@ with optimized settings for Arabic and English medical documents.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 import numpy as np
+
+from src.ocr.rtl_utils import ArabicRTLFixer
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +50,7 @@ class EasyOCREngine:
 
     def __init__(
         self,
-        languages: Optional[List[str]] = None,
+        languages: list[str] | None = None,
         gpu: bool = True,
     ) -> None:
         """
@@ -67,6 +69,7 @@ class EasyOCREngine:
         self.gpu = gpu
         self.reader = None
         self._available = False
+        self.rtl_fixer = ArabicRTLFixer()
 
         logger.info(_MSG_INIT.format(langs=", ".join(languages)))
 
@@ -96,7 +99,7 @@ class EasyOCREngine:
         """Check if EasyOCR reader is available."""
         return self._available
 
-    def extract_text(self, image: np.ndarray) -> Dict[str, Any]:
+    def extract_text(self, image: np.ndarray) -> dict[str, Any]:
         """
         Extract text from an image using EasyOCR.
 
@@ -134,15 +137,16 @@ class EasyOCREngine:
             )
 
             # Parse results
-            lines: List[Dict] = []
+            lines: list[dict] = []
             for bbox_points, text, confidence in raw_results:
                 # bbox_points is [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
                 bbox_list = [
                     [int(p[0]), int(p[1])] for p in bbox_points
                 ]
 
+                cleaned_text = self.rtl_fixer.fix_text(text.strip())
                 lines.append({
-                    "text": text.strip(),
+                    "text": cleaned_text,
                     "bbox": bbox_list,
                     "confidence": round(float(confidence), 4),
                 })
@@ -230,7 +234,7 @@ class EasyOCREngine:
         return image
 
     @staticmethod
-    def _empty_result() -> Dict[str, Any]:
+    def _empty_result() -> dict[str, Any]:
         """Return an empty extraction result."""
         return {
             "text": "",

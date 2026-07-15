@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 LoRA Fine-tuning for TrOCR — Handwriting Recognition
 =====================================================
@@ -27,14 +26,11 @@ Author:  Dr Abdulmalek Tamer Al-husseini
 License: MIT
 """
 
-import io
 import json
 import logging
 import os
 import time
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -88,20 +84,20 @@ class TrOCRFinetuner:
         train_jsonl: str,
         images_dir: str,
         output_dir: str,
-        val_jsonl: Optional[str] = None,
+        val_jsonl: str | None = None,
         epochs: int = 5,
         batch_size: int = 4,
         learning_rate: float = 1e-5,
         lora_r: int = 16,
         lora_alpha: int = 32,
         lora_dropout: float = 0.1,
-        lora_target_modules: Optional[List[str]] = None,
+        lora_target_modules: list[str] | None = None,
         max_label_length: int = 64,
         enable_augmentation: bool = True,
         augment_rotation: float = 3.0,
         augment_brightness: float = 0.2,
         min_samples: int = 10,
-    ) -> Dict:
+    ) -> dict:
         """
         Fine-tune TrOCR with LoRA.
 
@@ -149,10 +145,10 @@ class TrOCRFinetuner:
         # Import dependencies
         try:
             import torch
+            from peft import LoraConfig, TaskType, get_peft_model
             from torch.optim import AdamW
-            from torch.utils.data import Dataset, DataLoader
-            from transformers import VisionEncoderDecoderModel, TrOCRProcessor
-            from peft import get_peft_model, LoraConfig, TaskType
+            from torch.utils.data import DataLoader, Dataset
+            from transformers import TrOCRProcessor, VisionEncoderDecoderModel
         except ImportError as e:
             return {"status": "error", "reason": f"Missing dependency: {e}"}
 
@@ -327,15 +323,15 @@ class TrOCRFinetuner:
     # Hot-Reload & Inference
     # ----------------------------------------------------------------
 
-    def hot_reload(self, model_path: str) -> Dict:
+    def hot_reload(self, model_path: str) -> dict:
         """
         Load fine-tuned LoRA adapters and return the model ready for inference.
         This allows immediate use of the fine-tuned model without restarting.
         """
         try:
             import torch
-            from transformers import VisionEncoderDecoderModel
             from peft import PeftModel
+            from transformers import VisionEncoderDecoderModel
         except ImportError:
             return {"status": "error", "reason": "Missing dependencies"}
 
@@ -361,14 +357,12 @@ class TrOCRFinetuner:
             "message": "Model loaded and ready for inference",
         }
 
-    def predict(self, image, model_path: str = None) -> str:
+    def predict(self, image, model_path: str | None = None) -> str:
         """
         Run inference on a single image using the fine-tuned model.
         Falls back to the hot-loaded model if model_path is not provided.
         """
         import torch
-        from transformers import VisionEncoderDecoderModel, TrOCRProcessor
-        from peft import PeftModel
 
         model = getattr(self, '_loaded_model', None)
         if model is None and model_path:
@@ -389,10 +383,10 @@ class TrOCRFinetuner:
     # Data Loading
     # ----------------------------------------------------------------
 
-    def _load_jsonl(self, jsonl_path: str, images_dir: str) -> List[Dict]:
+    def _load_jsonl(self, jsonl_path: str, images_dir: str) -> list[dict]:
         """Load JSONL training data with images."""
         records = []
-        with open(jsonl_path, "r", encoding="utf-8") as f:
+        with open(jsonl_path, encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
                 if not line:
@@ -413,12 +407,12 @@ class TrOCRFinetuner:
 
         return records
 
-    def evaluate(self, model_path: str, test_jsonl: str, images_dir: str) -> Dict:
+    def evaluate(self, model_path: str, test_jsonl: str, images_dir: str) -> dict:
         """Evaluate fine-tuned model on test data. Returns WER/CER metrics."""
         try:
             import torch
-            from transformers import VisionEncoderDecoderModel, TrOCRProcessor
             from peft import PeftModel
+            from transformers import TrOCRProcessor, VisionEncoderDecoderModel
         except ImportError:
             return {"status": "error", "reason": "Missing dependencies"}
 
@@ -467,11 +461,11 @@ class TrOCRFinetuner:
         }
 
     @staticmethod
-    def _manual_cer(references: List[str], predictions: List[str]) -> float:
+    def _manual_cer(references: list[str], predictions: list[str]) -> float:
         """Simple Character Error Rate computation."""
         total_chars = 0
         total_errors = 0
-        for ref, pred in zip(references, predictions):
+        for ref, pred in zip(references, predictions, strict=False):
             total_chars += len(ref)
             # Levenshtein distance
             m, n = len(ref), len(pred)

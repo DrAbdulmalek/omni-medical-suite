@@ -20,7 +20,8 @@ import logging
 import threading
 import time
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from collections.abc import Callable
+from typing import Any
 
 # --- إعداد المسجل — Logger Setup ---
 logger = logging.getLogger(__name__)
@@ -56,13 +57,13 @@ class _ModelEntry:
     """
 
     __slots__ = (
-        "model",
         "device",
-        "memory_mb",
-        "loaded_at",
+        "is_on_gpu",
         "last_accessed",
         "load_time_ms",
-        "is_on_gpu",
+        "loaded_at",
+        "memory_mb",
+        "model",
     )
 
     def __init__(
@@ -132,10 +133,10 @@ class ModelCache:
         >>> cache.unload_model("ocr_model")
     """
 
-    _instance: Optional["ModelCache"] = None
+    _instance: ModelCache | None = None
     _lock: threading.Lock = threading.Lock()
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> "ModelCache":
+    def __new__(cls, *args: Any, **kwargs: Any) -> ModelCache:
         """
         تطبيق نمط Singleton — ضمان وجود نسخة واحدة فقط.
         Ensure only one instance exists (Singleton pattern).
@@ -178,7 +179,7 @@ class ModelCache:
         self._total_memory_used_mb: float = 0.0
 
         # دالة إعادة التحميل لكل نموذج (لإعادة التحميل من المعالج إلى كرت الشاشة)
-        self._reload_fns: Dict[str, Callable[..., Any]] = {}
+        self._reload_fns: dict[str, Callable[..., Any]] = {}
 
         # التحقق من توفر torch
         self._torch_available: bool = self._check_torch()
@@ -355,8 +356,9 @@ class ModelCache:
         """
         # محاولة استخدام psutil لقياس الذاكرة
         try:
-            import psutil
             import sys
+
+            import psutil
 
             # تقدير مبني على حجم الكائن في الذاكرة
             size_bytes = sys.getsizeof(model)
@@ -435,7 +437,7 @@ class ModelCache:
         model_key: str,
         load_fn: Callable[..., Any],
         device: str = "auto",
-        memory_mb: Optional[float] = None,
+        memory_mb: float | None = None,
     ) -> Any:
         """
         تحميل نموذج أو إرجاع النسخة المخزنة مؤقتًا.
@@ -618,7 +620,6 @@ class ModelCache:
             return
 
         try:
-            import torch
 
             if hasattr(entry.model, "to"):
                 entry.model.to("cuda")
@@ -647,7 +648,7 @@ class ModelCache:
 
     def offload_to_cpu(
         self,
-        model_key: Optional[str] = None,
+        model_key: str | None = None,
     ) -> bool:
         """
         إزاحة نموذج (أو جميع النماذج) إلى المعالج لتحرير ذاكرة كرت الشاشة.
@@ -707,7 +708,7 @@ class ModelCache:
 
     def reload_to_gpu(
         self,
-        model_key: Optional[str] = None,
+        model_key: str | None = None,
     ) -> bool:
         """
         إعادة تحميل نموذج (أو جميع النماذج) إلى كرت الشاشة.
@@ -877,7 +878,7 @@ class ModelCache:
     # تقرير الذاكرة — Memory Report
     # -----------------------------------------------------------------
 
-    def get_memory_report(self) -> Dict[str, Any]:
+    def get_memory_report(self) -> dict[str, Any]:
         """
         الحصول على تقرير شامل باستخدام الذاكرة.
         Get a comprehensive memory usage report.
@@ -903,7 +904,7 @@ class ModelCache:
             }
         """
         with self._cache_lock:
-            models_info: List[Dict[str, Any]] = []
+            models_info: list[dict[str, Any]] = []
             for key, entry in self._cache.items():
                 models_info.append({
                     "key": key,
@@ -915,7 +916,7 @@ class ModelCache:
                     "last_accessed": entry.last_accessed,
                 })
 
-            report: Dict[str, Any] = {
+            report: dict[str, Any] = {
                 "total_models": len(self._cache),
                 "total_memory_mb": round(self._total_memory_used_mb, 2),
                 "total_memory_gb": round(self._total_memory_used_mb / 1024, 2),
@@ -943,7 +944,7 @@ class ModelCache:
     def instance(
         cls,
         max_memory_gb: float = DEFAULT_MAX_MEMORY_GB,
-    ) -> "ModelCache":
+    ) -> ModelCache:
         """
         الحصول على النسخة الوحيدة من مخزن النماذج.
         Get the singleton instance of the model cache.

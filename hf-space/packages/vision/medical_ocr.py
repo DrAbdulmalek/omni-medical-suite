@@ -14,15 +14,15 @@ Medical Handwriting OCR - Offline Pipeline v12.0
 OmniFile AI Processor - وحدة معالجة النصوص الطبية المكتوبة بخط اليد
 """
 
-import os
-import re
 import json
-import cv2
-import numpy as np
-import fitz  # PyMuPDF
-import easyocr
+import re
 from pathlib import Path
-from typing import List, Dict, Any, Union
+from typing import Any
+
+import cv2
+import easyocr
+import fitz  # PyMuPDF
+import numpy as np
 
 
 class MedicalOCRProcessor:
@@ -36,7 +36,7 @@ class MedicalOCRProcessor:
         ocr.generate_html_review(results, "./output/review.html")
     """
 
-    def __init__(self, use_gpu: bool = False, dict_path: Union[str, Path] = None):
+    def __init__(self, use_gpu: bool = False, dict_path: str | Path | None = None):
         self.device = "cuda" if use_gpu and cv2.cuda.getCudaEnabledDeviceCount() else "cpu"
         print(f"[MedicalOCR] تحميل النماذج على {self.device}...")
         self.reader = easyocr.Reader(
@@ -51,7 +51,7 @@ class MedicalOCRProcessor:
         self.corrections = self._load_dict()
         print(f"[MedicalOCR] تم تحميل {len(self.corrections)} تصحيحاً طبياً")
 
-    def _load_dict(self) -> Dict[str, str]:
+    def _load_dict(self) -> dict[str, str]:
         """تحميل القاموس الطبي مع دمج القاموس الافتراضي مع القاموس المخصص."""
         default = {
             r'\bHkstovy\b': 'History',
@@ -68,7 +68,7 @@ class MedicalOCRProcessor:
 
         if self.dict_path and self.dict_path.exists():
             try:
-                with open(self.dict_path, 'r', encoding='utf-8') as f:
+                with open(self.dict_path, encoding='utf-8') as f:
                     user = json.load(f)
                     default.update({re.escape(k): v for k, v in user.items()})
             except Exception as e:
@@ -82,7 +82,7 @@ class MedicalOCRProcessor:
             text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
         return re.sub(r'\s+', ' ', text).strip()
 
-    def process_image(self, image_path: Union[str, Path]) -> List[Dict[str, Any]]:
+    def process_image(self, image_path: str | Path) -> list[dict[str, Any]]:
         """
         معالجة صورة واحدة واستخراج النصوص.
 
@@ -102,7 +102,7 @@ class MedicalOCRProcessor:
 
         return self._extract_lines(img, page_num=1)
 
-    def process_pdf(self, pdf_path: Union[str, Path], max_pages: int = None) -> List[Dict[str, Any]]:
+    def process_pdf(self, pdf_path: str | Path, max_pages: int | None = None) -> list[dict[str, Any]]:
         """
         معالجة ملف PDF واستخراج النصوص من كل صفحة.
 
@@ -133,7 +133,7 @@ class MedicalOCRProcessor:
         doc.close()
         return results
 
-    def _extract_lines(self, img: np.ndarray, page_num: int = 1) -> List[Dict[str, Any]]:
+    def _extract_lines(self, img: np.ndarray, page_num: int = 1) -> list[dict[str, Any]]:
         """
         استخراج الأسطر من صورة مع المعالجة المسبقة والتعرف على النصوص.
 
@@ -189,7 +189,7 @@ class MedicalOCRProcessor:
 
         return page_lines
 
-    def save_results(self, results: List[Dict], output_dir: Union[str, Path]) -> Path:
+    def save_results(self, results: list[dict], output_dir: str | Path) -> Path:
         """
         حفظ النتائج بتنسيق JSON.
 
@@ -210,7 +210,7 @@ class MedicalOCRProcessor:
         print(f"[MedicalOCR] حفظ JSON: {json_path}")
         return json_path
 
-    def generate_html_review(self, results: List[Dict], output_html: Union[str, Path]) -> Path:
+    def generate_html_review(self, results: list[dict], output_html: str | Path) -> Path:
         """
         إنشاء صفحة HTML تفاعلية لمراجعة وتصحيح النصوص المستخرجة.
 
@@ -323,9 +323,9 @@ render();
 
 
 def process_medical_pdf(
-    pdf_path: Union[str, Path],
+    pdf_path: str | Path,
     output_dir: str = "./medical_ocr_output",
-    max_pages: int = None,
+    max_pages: int | None = None,
     use_gpu: bool = False,
 ) -> tuple:
     """
