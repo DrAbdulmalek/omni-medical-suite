@@ -7,6 +7,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234f46e5'/><text x='50' y='65' text-anchor='middle' fill='white' font-size='50'>O</text></svg>">
     <title>OmniFile OCR Review</title>
     <style>
         :root {
@@ -613,6 +615,19 @@
         function clearAllData() { if(confirm('مسح جميع البيانات؟')){localStorage.clear();state.history=[];state.corrections={};state.evalHistory=[];renderHistory();updateEvalStats();showToast('تم المسح','success');} }
 
         document.addEventListener('DOMContentLoaded', function(){ loadSettings(); updateEvalStats(); });
+
+        // ── PWA: register service worker for offline support ──────────────
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js', {scope: '/'})
+                    .then(function(reg) {
+                        console.log('[PWA] service worker registered, scope:', reg.scope);
+                    })
+                    .catch(function(err) {
+                        console.warn('[PWA] service worker registration failed:', err);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
