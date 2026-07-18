@@ -853,8 +853,14 @@ class PDFOCRProcessor:
         engine = self.ocr_engine.lower()
 
         # Text-extraction engines short-circuit (no real OCR happens).
+        # Inline the warning instead of calling _run_ocr to avoid infinite
+        # recursion (_run_ocr delegates back to this method).
         if engine in ("fitz", "pdfplumber"):
-            self._run_ocr(bgr)  # emits the same warning as before
+            logger.warning(
+                "%s is a text-extraction engine, not image OCR. "
+                "Use process_pdf() which handles text extraction separately.",
+                engine,
+            )
             return "", 0.0, engine
 
         if self._is_engine_available(engine):
@@ -950,8 +956,15 @@ class PDFOCRProcessor:
         fix applied in ``hf-space/app.py`` (commit a379f26).
         ``show_log=False`` is still supported by PaddleOCR 2.7.x and 3.x;
         we keep it to silence the noisy paddlepaddle startup banner.
+
+        The ``PaddleOCR`` class is imported lazily inside this method so
+        that tests can patch ``sys.modules['paddleocr']`` with a mock
+        without needing the real package installed.
         """
         if self._paddle_reader is None:
+            # Lazy import — don't rely on the module-level PaddleOCR name,
+            # which may be unbound when the package isn't installed.
+            from paddleocr import PaddleOCR  # type: ignore
             self._paddle_reader = PaddleOCR(
                 use_angle_cls=True,
                 lang="ar",  # Arabic
