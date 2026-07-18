@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+*.egg-info/
+build/
+dist/
+_fixed/
+batch_report_*.json
+batch_fixed_*.zip
+fixed_*.png
+fixed_*.jpg
