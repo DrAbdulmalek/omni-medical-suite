@@ -34,6 +34,7 @@ import io
 import json
 import logging
 import os
+import re
 import tempfile
 import time
 from collections.abc import Callable
@@ -155,6 +156,19 @@ OCR_ENGINES = {
 
 SUPPORTED_IMAGE_EXT = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
 
+# Auto-tune search space (Tesseract PSM × DPI). Lifted verbatim from the
+# legacy scripts/pdf_ocr_processor.py so existing CLI behaviour is preserved.
+PSM_MODES: list[int] = [3, 4, 6, 11]
+DPI_OPTIONS: list[int] = [200, 300, 400]
+
+# Glossary extraction patterns (Arabic-Latin bilingual pairs).
+GLOSSARY_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r'(.+?)\s*[=ـ]\s*(.+?)$'),           # العربية = English
+    re.compile(r'(.+?)\s*[-–—]\s*(.+?)$'),            # العربية - English
+    re.compile(r'(.+?)\s*[:：]\s*(.+?)$'),             # العربية : English
+    re.compile(r'(.+?)\t+(.+?)$'),                     # العربية\tEnglish
+]
+
 # Mapping from PDFOCRProcessor engine names (lowercase) to EngineRegistry
 # adapter names (capitalized). Used to bridge the two naming conventions
 # when delegating engine availability checks to EngineRegistry.
@@ -214,6 +228,8 @@ class PDFOCRProcessor:
         language: str = "ara+eng",
         tesseract_config: str = "--psm 6",
         password: Optional[str] = None,
+        auto_tune: bool = False,
+        extract_glossary: bool = False,
     ) -> None:
         """
         Initialize the PDF OCR processor.
@@ -228,6 +244,19 @@ class PDFOCRProcessor:
             language: Language for OCR engines (tesseract: "ara+eng").
             tesseract_config: Tesseract config string.
             password: Default password for encrypted PDFs.
+            auto_tune: When True, run a PSM × DPI search on the first page
+                of each PDF and pick the configuration that yields the
+                highest-quality OCR text (longest, most-Arabic, most
+                consistent). Only effective when ``ocr_engine`` resolves
+                to Tesseract. Previously this lived only in
+                ``scripts/pdf_ocr_processor.py``; it has been moved here
+                so the CLI can become a thin wrapper.
+            extract_glossary: When True, scan OCR text for bilingual
+                Arabic-English glossary entries (patterns like
+                ``عربي = English``, ``عربي - English``, ``عربي : English``,
+                ``عربi\\tEnglish``) and attach them to each page result
+                under the ``glossary_entries`` key. Also see
+                ``export_glossary()``.
         """
         self.dpi = dpi
         self.ocr_engine = ocr_engine
@@ -237,6 +266,19 @@ class PDFOCRProcessor:
         self.language = language
         self.tesseract_config = tesseract_config
         self.default_password = password
+        self.auto_tune = auto_tune
+        self.extract_glossary = extract_glossary
+
+        # Best PSM/DPI config found by ``_auto_tune_psm_dpi``. Updated lazily.
+        self.best_config: dict[str, Any] = {
+            "psm": 6,
+            "dpi": dpi,
+            "language": language,
+        }
+
+        # Accumulated glossary entries across all processed pages/PDFs.
+        # Each entry: {"term_arabic": str, "term_english": str, "source": str}
+        self.combined_glossary: list[dict[str, str]] = []
 
         # Lazy-initialized OCR engine instances
         self._paddle_reader: Any = None
@@ -397,14 +439,48 @@ class PDFOCRProcessor:
         logger.info("Processing %d pages from PDF (engine=%s, normalize=%s)",
                      total, self.ocr_engine, self.normalize_images)
 
+        # Optional: auto-tune PSM × DPI on the first page (Tesseract only).
+        # The chosen config is stored in self.best_config and re-used for
+        # every subsequent page in this PDF (and any future PDFs until the
+        # user constructs a new PDFOCRProcessor or calls _auto_tune again).
+        if self.auto_tune and total > 0:
+            self._auto_tune_psm_dpi(page_images[0][1])
+            logger.info(
+                "Auto-tune picked PSM=%s, DPI=%s (score=%.3f)",
+                self.best_config.get("psm"),
+                self.best_config.get("dpi"),
+                self.best_config.get("auto_tune_score", 0.0),
+            )
+
         # Step 2: Process each page
         results: list[dict[str, Any]] = []
+
+        # When auto_tune is on, we update the tesseract_config to use the
+        # tuned PSM. This is read by _ocr_tesseract.
+        if self.auto_tune:
+            tuned_psm = self.best_config.get("psm", 6)
+            tuned_dpi = self.best_config.get("dpi", self.dpi)
+            self.tesseract_config = f"--psm {tuned_psm} --dpi {tuned_dpi}"
+
+        # Source label for glossary extraction
+        source_label = (
+            Path(pdf_source).name if isinstance(pdf_source, (str, Path)) else "bytes"
+        )
 
         for idx, (page_num, pil_image) in enumerate(page_images):
             if progress_callback:
                 progress_callback(idx + 1, total, f"صفحة {page_num + 1}")
 
             page_result = self._process_page(page_num, pil_image)
+
+            # Optional: extract bilingual glossary entries from this page's text
+            if self.extract_glossary and page_result.get("text"):
+                entries = self._extract_glossary_entries(
+                    page_result["text"], source=source_label
+                )
+                page_result["glossary_entries"] = entries
+                self.combined_glossary.extend(entries)
+
             results.append(page_result)
 
         elapsed = (time.perf_counter() - start_total) * 1000
@@ -1003,6 +1079,221 @@ class PDFOCRProcessor:
 
         return results
 
+    # ------------------------------------------------------------------
+    # Auto-tuning (Tesseract PSM × DPI search)
+    # ------------------------------------------------------------------
+    def _auto_tune_psm_dpi(self, pil_image: Image.Image) -> None:
+        """Search PSM × DPI space on a sample image and pick the best config.
+
+        Lifted from ``scripts/pdf_ocr_processor.py`` (now removed) and
+        preserved verbatim in scoring logic so existing CLI behaviour is
+        unchanged. Updates ``self.best_config`` in place.
+
+        Only effective when Tesseract is the OCR engine — for other engines
+        this is a no-op (the DPI search still runs but has no effect on
+        engine selection, since PaddleOCR/EasyOCR ignore ``tesseract_config``).
+
+        Scoring criteria (weighted):
+          - Text length (longer is better, capped at 2000 chars)        30%
+          - Arabic character ratio vs Latin                              25%
+          - Word count (more is better, capped at 200)                  25%
+          - Line-length consistency (lower variance is better)          20%
+        """
+        if not _HAS_TESSERACT:
+            logger.debug("auto_tune: pytesseract not installed — skipping")
+            return
+
+        best_score = -1.0
+        best_psm = 6
+        best_dpi = self.dpi
+        original_w, original_h = pil_image.size
+
+        for psm in PSM_MODES:
+            for dpi in DPI_OPTIONS:
+                try:
+                    scale = dpi / 300
+                    new_w = max(1, int(original_w * scale))
+                    new_h = max(1, int(original_h * scale))
+                    resized = pil_image.resize((new_w, new_h), Image.LANCZOS)
+
+                    text = pytesseract.image_to_string(
+                        resized,
+                        lang=self.language,
+                        config=f"--psm {psm}",
+                    )
+                    score = self._evaluate_ocr_text(text)
+                    logger.debug(
+                        "auto_tune: PSM=%s DPI=%s -> score=%.3f len=%d words=%d",
+                        psm, dpi, score, len(text), len(text.split()),
+                    )
+                    if score > best_score:
+                        best_score = score
+                        best_psm = psm
+                        best_dpi = dpi
+                except Exception as exc:
+                    logger.debug("auto_tune: PSM=%s DPI=%s failed: %s", psm, dpi, exc)
+                    continue
+
+        self.best_config = {
+            "psm": best_psm,
+            "dpi": best_dpi,
+            "language": self.language,
+            "auto_tune_score": round(best_score, 3),
+        }
+
+    @staticmethod
+    def _evaluate_ocr_text(text: str) -> float:
+        """Score OCR text quality (0.0-1.0). Used by ``_auto_tune_psm_dpi``.
+
+        Publicised from the legacy script verbatim so scoring is reproducible.
+        """
+        if not text.strip():
+            return 0.0
+
+        # Length score (normalize to 0-1, cap at 2000 chars)
+        length_score = min(len(text) / 2000, 1.0)
+
+        # Arabic character ratio
+        arabic_chars = len(re.findall(r'[\u0600-\u06FF]', text))
+        total_alpha = len(re.findall(r'[a-zA-Z\u0600-\u06FF]', text))
+        arabic_ratio = arabic_chars / max(total_alpha, 1)
+
+        # Word count score
+        words = text.split()
+        word_score = min(len(words) / 200, 1.0)
+
+        # Consistency: variance of line lengths (lower = more consistent)
+        lines = [ln for ln in text.split("\n") if ln.strip()]
+        if lines:
+            line_lengths = [len(ln) for ln in lines]
+            avg_len = sum(line_lengths) / len(line_lengths)
+            variance = sum((ln - avg_len) ** 2 for ln in line_lengths) / len(line_lengths)
+            consistency = 1.0 / (1.0 + variance / 1000)
+        else:
+            consistency = 0.0
+
+        return (
+            0.30 * length_score
+            + 0.25 * arabic_ratio
+            + 0.25 * word_score
+            + 0.20 * consistency
+        )
+
+    # ------------------------------------------------------------------
+    # Glossary extraction
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _extract_glossary_entries(
+        text: str,
+        source: str = "unknown",
+    ) -> list[dict[str, str]]:
+        """Extract bilingual Arabic-English glossary entries from OCR text.
+
+        Recognised patterns (one per line, first match wins):
+          - ``العربية = English``
+          - ``العربية - English``
+          - ``العربية : English``
+          - ``العربية\\tEnglish``
+
+        Returns a list of dicts with keys:
+          - ``term_arabic``
+          - ``term_english``
+          - ``source``
+        """
+        entries: list[dict[str, str]] = []
+        seen: set[tuple[str, str]] = set()
+
+        for line in text.split("\n"):
+            line = line.strip()
+            if not line or len(line) < 3:
+                continue
+
+            for pattern in GLOSSARY_PATTERNS:
+                match = pattern.match(line)
+                if not match:
+                    continue
+
+                left = match.group(1).strip()
+                right = match.group(2).strip()
+
+                has_arabic_left = bool(re.search(r'[\u0600-\u06FF]', left))
+                has_arabic_right = bool(re.search(r'[\u0600-\u06FF]', right))
+                has_english_left = bool(re.search(r'[a-zA-Z]', left))
+                has_english_right = bool(re.search(r'[a-zA-Z]', right))
+
+                # Must have one Arabic and one English side
+                if has_arabic_left and has_english_right:
+                    term_ar, term_en = left, right
+                elif has_arabic_right and has_english_left:
+                    term_ar, term_en = right, left
+                else:
+                    continue
+
+                # Strip leading/trailing separators
+                term_ar = re.sub(r'^[\s\-=:]+|[\s\-=:]+$', '', term_ar)
+                term_en = re.sub(r'^[\s\-=:]+|[\s\-=:]+$', '', term_en)
+
+                if len(term_ar) < 2 or len(term_en) < 2:
+                    continue
+
+                key = (term_ar, term_en)
+                if key in seen:
+                    continue
+                seen.add(key)
+                entries.append({
+                    "term_arabic": term_ar,
+                    "term_english": term_en,
+                    "source": source,
+                })
+                break  # don't double-match the same line
+
+        return entries
+
+    def export_glossary(
+        self,
+        output_path: str | Path,
+        fmt: Optional[str] = None,
+    ) -> str:
+        """Export ``self.combined_glossary`` to CSV or JSON.
+
+        Args:
+            output_path: Destination file path. If ``fmt`` is None, the
+                format is inferred from the file extension (``.csv`` or
+                ``.json``).
+            fmt: Force format. One of ``"csv"`` or ``"json"``.
+
+        Returns:
+            Absolute path to the written file.
+        """
+        output_path = Path(output_path).resolve()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if fmt is None:
+            fmt = "csv" if output_path.suffix.lower() == ".csv" else "json"
+
+        if fmt == "csv":
+            with open(output_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=["term_arabic", "term_english", "source"],
+                )
+                writer.writeheader()
+                writer.writerows(self.combined_glossary)
+        elif fmt == "json":
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(
+                    self.combined_glossary, f,
+                    ensure_ascii=False, indent=2, default=str,
+                )
+        else:
+            raise ValueError(f"Unsupported glossary format: {fmt!r}")
+
+        logger.info(
+            "Glossary exported: %s (%d entries, %s)",
+            output_path, len(self.combined_glossary), fmt,
+        )
+        return str(output_path)
+
 
 # ---------------------------------------------------------------------------
 # CLI entry point
@@ -1037,6 +1328,13 @@ Examples:
                         help="Skip Arabic RTL fixing")
     parser.add_argument("--fields", action="store_true",
                         help="Extract medical fields")
+    parser.add_argument("--auto-tune", action="store_true",
+                        help="Search PSM × DPI on first page and use the best config")
+    parser.add_argument("--extract-glossary", action="store_true",
+                        help="Extract bilingual Arabic-English glossary entries")
+    parser.add_argument("--glossary-output", default=None,
+                        help="Output path for glossary (.csv or .json). "
+                             "Default: <input-stem>_glossary.csv next to --output")
     parser.add_argument("--password", default=None,
                         help="Password for encrypted PDFs")
     parser.add_argument("--verbose", "-v", action="store_true",
@@ -1056,6 +1354,8 @@ Examples:
         fix_rtl=not args.no_rtl,
         extract_fields=args.fields,
         password=args.password,
+        auto_tune=args.auto_tune,
+        extract_glossary=args.extract_glossary,
     )
 
     input_path = Path(args.input)
@@ -1080,6 +1380,10 @@ Examples:
     print(f"  Input:  {input_path.name}")
     print(f"  Engine: {args.engine}")
     print(f"  Pages:  {len(results)}")
+    if args.auto_tune:
+        print(f"  Auto-tune: PSM={proc.best_config.get('psm')}, "
+              f"DPI={proc.best_config.get('dpi')}, "
+              f"score={proc.best_config.get('auto_tune_score', 0.0):.3f}")
     print()
 
     for r in results:
@@ -1087,8 +1391,11 @@ Examples:
         text_preview = r["text"][:100].replace("\n", " ") if r["text"] else "(empty)"
         conf = r.get("confidence", 0)
         norm = "✓" if r.get("normalized") else "✗"
+        used = r.get("ocr_engine_used") or r.get("ocr_engine", "?")
         err = r.get("error", "")
-        print(f"  Page {pn}: conf={conf:.0%} norm={norm} | {text_preview}...")
+        glossary_count = len(r.get("glossary_entries", []))
+        extra = f" glossary={glossary_count}" if args.extract_glossary else ""
+        print(f"  Page {pn}: engine={used} conf={conf:.0%} norm={norm}{extra} | {text_preview}...")
         if err:
             print(f"    ⚠ Error: {err}")
 
@@ -1102,6 +1409,19 @@ Examples:
             [{k: v for k, v in r.items() if k != "page_image"} for r in results],
             ensure_ascii=False, indent=2, default=str,
         ))
+
+    # Glossary export
+    if args.extract_glossary and proc.combined_glossary:
+        if args.glossary_output:
+            glossary_path = args.glossary_output
+        else:
+            # Default: next to results file (or input stem)
+            base = Path(args.output).parent if args.output else input_path.parent
+            stem = input_path.stem
+            glossary_path = base / f"{stem}_glossary.csv"
+        gp = proc.export_glossary(glossary_path)
+        print(f"  Glossary exported to: {gp} ({len(proc.combined_glossary)} entries)")
+
 
 
 if __name__ == "__main__":
