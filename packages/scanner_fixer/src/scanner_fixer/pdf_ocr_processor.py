@@ -130,6 +130,17 @@ try:
 except ImportError:
     _HAS_FIELD_EXTRACTOR = False
 
+# ---------------------------------------------------------------------------
+# Engine registry (optional — used for runtime-aware engine selection)
+# ---------------------------------------------------------------------------
+try:
+    from packages.core.engine_registry import EngineRegistry  # type: ignore
+    _HAS_ENGINE_REGISTRY = True
+except ImportError:
+    _HAS_ENGINE_REGISTRY = False
+    logger.debug("packages.core.engine_registry not available — falling back to "
+                 "manual engine checks")
+
 
 # ---------------------------------------------------------------------------
 # Engine constants
@@ -143,6 +154,20 @@ OCR_ENGINES = {
 }
 
 SUPPORTED_IMAGE_EXT = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
+
+# Mapping from PDFOCRProcessor engine names (lowercase) to EngineRegistry
+# adapter names (capitalized). Used to bridge the two naming conventions
+# when delegating engine availability checks to EngineRegistry.
+_REGISTRY_NAME_MAP: dict[str, str] = {
+    "tesseract": "Tesseract",
+    "paddleocr": "PaddleOCR",
+    "easyocr": "EasyOCR",
+}
+
+# Reverse map for fallback ordering: when the requested engine is unavailable,
+# we walk the registry's available list in this preferred order (matches the
+# previous hard-coded fallback chain to preserve backwards behaviour).
+_FALLBACK_PREFERENCE: list[str] = ["tesseract", "paddleocr", "easyocr"]
 
 
 # ---------------------------------------------------------------------------
@@ -219,13 +244,15 @@ class PDFOCRProcessor:
         self._rtl_fixer: Any = None
         self._field_extractor: Any = None
 
-        # Validate engine availability
-        if ocr_engine == "tesseract" and not _HAS_TESSERACT:
-            logger.warning("pytesseract not installed — Tesseract OCR unavailable")
-        if ocr_engine == "paddleocr" and not _HAS_PADDLEOCR:
-            logger.warning("paddleocr not installed — PaddleOCR unavailable")
-        if ocr_engine == "easyocr" and not _HAS_EASYOCR:
-            logger.warning("easyocr not installed — EasyOCR unavailable")
+        # EngineRegistry — probed lazily on first OCR call so that import-time
+        # failures of packages.core don't break scanner_fixer. When the
+        # registry is unavailable we transparently fall back to the legacy
+        # _HAS_TESSERACT / _HAS_PADDLEOCR / _HAS_EASYOCR flags.
+        self._engine_registry: Any = None
+        self._registry_probed: bool = False
+
+        # Validate engine availability (use registry if possible, else flags)
+        self._warn_if_engine_unavailable(ocr_engine)
 
         # At least one PDF library is needed
         if not _HAS_FITZ and not _HAS_PDF2IMAGE:
@@ -234,6 +261,101 @@ class PDFOCRProcessor:
                 "  pip install PyMuPDF\n"
                 "  pip install pdf2image  # also requires poppler-utils"
             )
+
+    # ------------------------------------------------------------------
+    # EngineRegistry integration
+    # ------------------------------------------------------------------
+    def _ensure_registry(self) -> Any:
+        """Lazily probe the EngineRegistry once and cache the result.
+
+        Returns the registry instance, or ``None`` if it's unavailable.
+        Subsequent calls are O(1).
+        """
+        if self._registry_probed:
+            return self._engine_registry
+        self._registry_probed = True
+
+        if not _HAS_ENGINE_REGISTRY:
+            return None
+
+        try:
+            self._engine_registry = EngineRegistry()
+            self._engine_registry.discover()
+            logger.debug(
+                "EngineRegistry probed — available: %s",
+                self._engine_registry.available_engine_names(),
+            )
+        except Exception as exc:
+            logger.debug("EngineRegistry probe failed: %s", exc)
+            self._engine_registry = None
+        return self._engine_registry
+
+    def _is_engine_available(self, engine_name: str) -> bool:
+        """Check engine availability, preferring EngineRegistry over flags.
+
+        Falls back to the legacy ``_HAS_*`` module-level flags when the
+        registry is unavailable. This keeps backwards compatibility for
+        environments where ``packages.core`` is not installed.
+        """
+        registry = self._ensure_registry()
+        if registry is not None:
+            registry_name = _REGISTRY_NAME_MAP.get(engine_name.lower())
+            if registry_name is None:
+                # Non-OCR engines (fitz, pdfplumber) — defer to flags
+                return engine_name.lower() in ("fitz",) and _HAS_FITZ \
+                    or engine_name.lower() == "pdfplumber" and _HAS_PDFPLUMBER
+            info = registry.get_info(registry_name)
+            return bool(info and info.available and info.healthy)
+
+        # Legacy flag fallback
+        return {
+            "tesseract": _HAS_TESSERACT,
+            "paddleocr": _HAS_PADDLEOCR,
+            "easyocr": _HAS_EASYOCR,
+            "fitz": _HAS_FITZ,
+            "pdfplumber": _HAS_PDFPLUMBER,
+        }.get(engine_name.lower(), False)
+
+    def _warn_if_engine_unavailable(self, engine_name: str) -> None:
+        """Warn at construction time if the requested engine is not usable.
+
+        Mirrors the previous hard-coded warnings so logs stay informative.
+        """
+        if engine_name.lower() in ("fitz", "pdfplumber"):
+            return  # these are text-extraction engines; not OCR
+        if not self._is_engine_available(engine_name):
+            logger.warning(
+                "%s not available via EngineRegistry — will fall back at OCR time",
+                engine_name,
+            )
+
+    def _pick_fallback_engine(self) -> Optional[str]:
+        """Pick the best available fallback engine.
+
+        Order of preference (preserves previous behaviour):
+          1. Walk ``_FALLBACK_PREFERENCE`` and return first available.
+          2. If none of those are available, ask the registry for *any*
+             healthy engine within a 4 GB RAM budget.
+          3. Return ``None`` if nothing is available.
+        """
+        for name in _FALLBACK_PREFERENCE:
+            if self._is_engine_available(name):
+                return name
+
+        registry = self._ensure_registry()
+        if registry is not None:
+            try:
+                healthy = registry.available_engine_names()
+                # Filter by RAM budget (default 4 GB — same as PaddleOCR)
+                within_budget = registry.filter_by_ram(healthy, 4.0)
+                for h in within_budget:
+                    # Reverse-map registry name back to our engine name
+                    for eng, reg_name in _REGISTRY_NAME_MAP.items():
+                        if reg_name == h:
+                            return eng
+            except Exception as exc:
+                logger.debug("Registry fallback lookup failed: %s", exc)
+        return None
 
     # ------------------------------------------------------------------
     # Public API
@@ -371,7 +493,7 @@ class PDFOCRProcessor:
     def _export_csv(results: list[dict[str, Any]], path: Path) -> str:
         """Export results to CSV (text and metadata only)."""
         fieldnames = [
-            "page_num", "text", "ocr_engine", "confidence",
+            "page_num", "text", "ocr_engine", "ocr_engine_used", "confidence",
             "normalized", "skew_angle", "phash",
             "processing_time_ms", "error",
         ]
@@ -548,6 +670,7 @@ class PDFOCRProcessor:
             "page_num": page_num,
             "text": "",
             "ocr_engine": self.ocr_engine,
+            "ocr_engine_used": None,  # actually-used engine (may differ from ocr_engine after fallback)
             "confidence": 0.0,
             "normalized": False,
             "skew_angle": None,
@@ -567,10 +690,11 @@ class PDFOCRProcessor:
             elif self.normalize_images and not _HAS_SCANNER_FIXER:
                 logger.debug("scanner_fixer unavailable — skipping normalization")
 
-            # Step 2: OCR
-            text, confidence = self._run_ocr(bgr)
+            # Step 2: OCR (records which engine was actually used)
+            text, confidence, used_engine = self._run_ocr_with_tracking(bgr)
             result["text"] = text
             result["confidence"] = confidence
+            result["ocr_engine_used"] = used_engine
 
             # Step 3: RTL fix
             if self.fix_rtl and _HAS_RTL_FIXER and text:
@@ -643,43 +767,75 @@ class PDFOCRProcessor:
     # ------------------------------------------------------------------
     # OCR engines
     # ------------------------------------------------------------------
-    def _run_ocr(self, bgr: np.ndarray) -> tuple[str, float]:
-        """
-        Run OCR on a BGR image using the configured engine.
+    def _run_ocr_with_tracking(self, bgr: np.ndarray) -> tuple[str, float, Optional[str]]:
+        """Run OCR and report which engine was actually used.
 
-        Returns:
-            (text, confidence) — confidence is 0.0-1.0
+        Wraps ``_run_ocr`` so that callers (e.g. ``_process_page``) can
+        record the *actually-used* engine in the result dict, which may
+        differ from ``self.ocr_engine`` when a fallback was triggered.
         """
         engine = self.ocr_engine.lower()
 
-        if engine == "tesseract" and _HAS_TESSERACT:
-            return self._ocr_tesseract(bgr)
-        elif engine == "paddleocr" and _HAS_PADDLEOCR:
-            return self._ocr_paddle(bgr)
-        elif engine == "easyocr" and _HAS_EASYOCR:
-            return self._ocr_easy(bgr)
-        elif engine in ("fitz", "pdfplumber"):
-            # These engines extract text directly — no image OCR
-            logger.warning(
-                "%s is a text-extraction engine, not image OCR. "
-                "Use process_pdf() which handles text extraction separately.",
-                engine,
+        # Text-extraction engines short-circuit (no real OCR happens).
+        if engine in ("fitz", "pdfplumber"):
+            self._run_ocr(bgr)  # emits the same warning as before
+            return "", 0.0, engine
+
+        if self._is_engine_available(engine):
+            text, conf = self._dispatch_ocr(engine, bgr)
+            return text, conf, engine
+
+        fallback = self._pick_fallback_engine()
+        if fallback is None:
+            logger.error("No OCR engine available (requested=%s)", engine)
+            return "", 0.0, None
+
+        if fallback != engine:
+            logger.info(
+                "Primary OCR engine %s unavailable — falling back to %s",
+                engine, fallback,
             )
-            return "", 0.0
-        else:
-            # Fallback chain: tesseract → paddleocr → easyocr
-            if _HAS_TESSERACT:
-                logger.info("Primary OCR unavailable, falling back to Tesseract")
-                return self._ocr_tesseract(bgr)
-            elif _HAS_PADDLEOCR:
-                logger.info("Primary OCR unavailable, falling back to PaddleOCR")
-                return self._ocr_paddle(bgr)
-            elif _HAS_EASYOCR:
-                logger.info("Primary OCR unavailable, falling back to EasyOCR")
-                return self._ocr_easy(bgr)
-            else:
-                logger.error("No OCR engine available")
-                return "", 0.0
+        text, conf = self._dispatch_ocr(fallback, bgr)
+        return text, conf, fallback
+
+    def _run_ocr(self, bgr: np.ndarray) -> tuple[str, float]:
+        """Run OCR on a BGR image using the configured engine.
+
+        Engine selection flow (unified with ``packages.core.engine_registry``):
+
+        1. If the user-requested engine (``self.ocr_engine``) is reported
+           available by the registry (or by the legacy ``_HAS_*`` flags when
+           the registry is missing), use it directly.
+        2. Otherwise, ask ``_pick_fallback_engine()`` to choose the best
+           available engine, respecting the previous hard-coded preference
+           order (tesseract → paddleocr → easyocr) plus a RAM budget.
+        3. If no engine is available at all, return ("", 0.0).
+
+        Returns:
+            (text, confidence) — confidence is 0.0-1.0
+
+        Note: this method preserves its original (text, conf) signature for
+        backwards compatibility. ``_process_page`` calls
+        ``_run_ocr_with_tracking`` instead to also learn which engine was
+        actually used after a potential fallback.
+        """
+        text, conf, _used = self._run_ocr_with_tracking(bgr)
+        return text, conf
+
+    def _dispatch_ocr(self, engine: str, bgr: np.ndarray) -> tuple[str, float]:
+        """Dispatch to the per-engine OCR method.
+
+        Centralises the engine → method mapping so ``_run_ocr`` stays
+        readable and the fallback path can reuse the same dispatch.
+        """
+        if engine == "tesseract":
+            return self._ocr_tesseract(bgr)
+        if engine == "paddleocr":
+            return self._ocr_paddle(bgr)
+        if engine == "easyocr":
+            return self._ocr_easy(bgr)
+        logger.error("Unknown OCR engine: %s", engine)
+        return "", 0.0
 
     def _ocr_tesseract(self, bgr: np.ndarray) -> tuple[str, float]:
         """Run Tesseract OCR on BGR image."""
