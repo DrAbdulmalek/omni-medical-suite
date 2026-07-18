@@ -33,7 +33,7 @@ langdetect>=1.0.9
 rapidfuzz>=3.0.0
 
 # === Monitoring ===
-opentelemetry-api>=1.22.0
+opentelemetry-api>=1.44.0
 opentelemetry-sdk>=1.22.0
 opentelemetry-exporter-otlp-proto-http>=1.22.0
 prometheus-fastapi-instrumentator>=7.0.0
