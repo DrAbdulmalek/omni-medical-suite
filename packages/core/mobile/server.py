@@ -473,9 +473,48 @@ def stats() -> Response:
     # 3. ActiveLearner stats
     try:
         al_stats = active_learner.get_training_stats(language="ar")
+        # Augment with last-trained-model info if available
+        last_model = None
+        try:
+            models = active_learner.db.get_fine_tuned_models(language="ar", limit=1)
+            if models:
+                m = models[0]
+                last_model = {
+                    "model_name": m.get("model_name") or m.get("name"),
+                    "created_at": m.get("created_at"),
+                    "metrics": m.get("metrics"),
+                }
+        except Exception:
+            pass
+
+        # Compute an estimated accuracy improvement: compare accuracy
+        # of the first model vs. the latest, if both exist.
+        improvement_estimate = None
+        try:
+            all_models = active_learner.db.get_fine_tuned_models(language="ar", limit=20)
+            if len(all_models) >= 2:
+                first_metrics = all_models[-1].get("metrics") or {}
+                last_metrics = all_models[0].get("metrics") or {}
+                # CER is "Character Error Rate" — lower is better, so
+                # improvement = first_cer - last_cer (positive = better)
+                if "cer" in first_metrics and "cer" in last_metrics:
+                    improvement_estimate = {
+                        "metric": "cer",
+                        "first": first_metrics["cer"],
+                        "latest": last_metrics["cer"],
+                        "delta": round(
+                            float(first_metrics["cer"]) - float(last_metrics["cer"]), 4),
+                        "direction": "improved" if float(first_metrics["cer"]) >= float(last_metrics["cer"]) else "regressed",
+                    }
+        except Exception:
+            pass
+
         out["active_learning"] = {
             "training_stats_ar": al_stats,
-            "retrain_threshold": "see packages.ai.active_learning defaults",
+            "last_trained_model": last_model,
+            "improvement_estimate": improvement_estimate,
+            "retrain_threshold": "see packages.ai.active_learning defaults "
+                                 "(correction_threshold setting, default=2)",
         }
     except Exception as exc:
         out["active_learning"] = {"error": str(exc)}
