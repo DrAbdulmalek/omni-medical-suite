@@ -711,12 +711,20 @@ class PDFOCRProcessor:
         return text.strip(), round(avg_conf, 3)
 
     def _ocr_paddle(self, bgr: np.ndarray) -> tuple[str, float]:
-        """Run PaddleOCR on BGR image."""
+        """Run PaddleOCR on BGR image.
+
+        Note: ``device="cpu"`` is required for PaddlePaddle 3.x compatibility
+        (the old ``use_gpu=False`` flag was removed in 3.x). This mirrors the
+        fix applied in ``hf-space/app.py`` (commit a379f26).
+        ``show_log=False`` is still supported by PaddleOCR 2.7.x and 3.x;
+        we keep it to silence the noisy paddlepaddle startup banner.
+        """
         if self._paddle_reader is None:
             self._paddle_reader = PaddleOCR(
                 use_angle_cls=True,
                 lang="ar",  # Arabic
                 show_log=False,
+                device="cpu",  # PaddlePaddle 3.x compat (was implicit before)
             )
 
         result = self._paddle_reader.ocr(bgr, cls=True)
