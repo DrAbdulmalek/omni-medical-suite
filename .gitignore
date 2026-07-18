@@ -92,3 +92,10 @@ data/dictionaries/*.csv
 # Training data database (generated at runtime)
 training-data/corrections/*.db
 training-data/corrections/*.jsonl
+data/ocr_corrected.json
+data/ocr_result.json
+data/correction_dict.json
+data/corrections.db
+data/active_learning.db
+data/backups/
+data/mobile_images/
