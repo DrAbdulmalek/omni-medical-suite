@@ -1,0 +1,56 @@
+# =============================================================================
+# OmniMedical Suite — Mobile Review Server Docker Compose
+# =============================================================================
+# Standalone compose file for the mobile PWA + Flask learning-loop server.
+#
+# Usage:
+#   docker compose -f docker-compose.mobile.yml up --build
+#   docker compose -f docker-compose.mobile.yml down
+#
+# Then open http://localhost:5000 (or http://<your-ip>:5000 from a phone
+# on the same network).
+#
+# To expose publicly: `ngrok http 5000` or put behind a reverse proxy.
+# =============================================================================
+
+services:
+  mobile:
+    build:
+      context: .
+      dockerfile: Dockerfile.mobile
+    image: omni-medical-suite:mobile
+    container_name: omni-mobile
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - OMNI_MOBILE_DB_DIR=/app/data
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      # Set ENABLE_LLM=true to enable Jais proofreading (requires GPU)
+      - ENABLE_LLM=${ENABLE_LLM:-false}
+    volumes:
+      # Persist the learning-loop SQLite DBs and JSON dictionaries
+      - mobile-data:/app/data
+      # Mount the source tree for development (comment out for prod)
+      - ./packages:/app/packages:ro
+      - ./app:/app/app:ro
+      - ./src:/app/src:ro
+      - ./medical_terms.json:/app/medical_terms.json:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - omni-mobile-net
+
+volumes:
+  mobile-data:
+    name: omni-mobile-data
+
+networks:
+  omni-mobile-net:
+    name: omni-mobile-net
+    driver: bridge

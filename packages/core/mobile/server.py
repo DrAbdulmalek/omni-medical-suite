@@ -134,13 +134,24 @@ except Exception as exc:
     )
 
 # ── Flask app ────────────────────────────────────────────────────────────
-app = Flask(__name__, template_folder="templates")
+# Disable Flask's built-in /static route so our /static/<path:filename>
+# handler below is the only one (otherwise Flask's default static folder
+# at <cwd>/static takes precedence and returns 404 for our files).
+app = Flask(
+    __name__,
+    template_folder="templates",
+    static_folder=None,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 STATIC_DIR.mkdir(exist_ok=True)
 IMAGE_FOLDER = DB_DIR / "mobile_images"
 IMAGE_FOLDER.mkdir(parents=True, exist_ok=True)
+
+# Make sure Flask can find templates/ relative to this file, regardless of
+# the current working directory at server startup.
+app.template_folder = str(BASE_DIR / "templates")
 
 # Default OCR result file (for the simple /load endpoint, kept for backwards
 # compatibility with the old JSON-only workflow).
@@ -196,7 +207,12 @@ def service_worker() -> Response:
 
 @app.route("/static/<path:filename>")
 def serve_static(filename: str) -> Response:
-    return send_from_directory(STATIC_DIR, filename)
+    """Serve static assets (service-worker.js, offline.html, icons, etc.).
+
+    Uses ``safe_join`` internally via ``send_from_directory`` to prevent
+    path traversal. The ``path:`` converter allows subdirectories.
+    """
+    return send_from_directory(STATIC_DIR, filename, as_attachment=False)
 
 
 @app.route("/mobile/ocr-review.html")
