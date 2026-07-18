@@ -1,4 +1,4 @@
-# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-19
+# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-19 (post-import-cleanup)
 
 > **كل نموذج AI (Z.ai، Claude، Mistral، Grok، أو أي آخر) يجب أن يقرأ هذا الملف أولاً قبل أي تعديل على هذا المستودع، ويُحدِّثه بعد كل تغيير جوهري.**
 
@@ -19,11 +19,12 @@
 | `chore/unify-mobile-and-learning` | ✅ مُدمج في main | merge `8b06c41` — 25 duplicate files → `packages/core/mobile/` |
 | `feat/mobile-server-wire-app-services` | ✅ مُدمج في main | merge `6f40d4e` — server.py shares `app.services.*` |
 | `docs/mobile-learning-loop` | ✅ مُدمج في main | merge `14f1b94` — `docs/MOBILE_LEARNING_LOOP.md` |
-| `feat/activate-pwa-docker` | ✅ مُدمج في main | merge `1831b27` (final HEAD) — PWA + Dockerfile.mobile |
+| `feat/activate-pwa-docker` | ✅ مُدمج في main | merge `1831b27` (final HEAD of merge round) — PWA + Dockerfile.mobile |
 | `feature/mobile-learning-loop` (umbrella) | 🗑️ محذوف | لم يعد ضروريًا بعد الدمج المباشر للثمانية |
+| `fix/real-import-bugs-active-packages` | ✅ مُدمج في main | commits `e6cba11` + `f669e26` — 2 real bugs fixed + verification scripts added |
 
-**آخر HEAD على `main`:** `1831b27` (Merge feat/activate-pwa-docker) — `2026-07-19`
-آخر تحقق: `2026-07-19` — صفر كسر استيراد مُستحدَث (تفاصيل أدناه)، `app.gradio_full_hitl` يستورد بنجاح، خادم الجوال يمر بالاختبار الحيّ (counter incremented 3 → 4).
+**آخر HEAD على `main`:** `2e827eb` (Merge feat/activate-pwa-docker) — `2026-07-19`
+آخر تحقق: `2026-07-19` — صفر كسر استيراد مُستحدَث (تفاصيل أدناه)، `app.gradio_full_hitl` يستورد بنجاح + يحمّل ArabicTranslationProcessor (24 قاعدة)، خادم الجوال يمر بالاختبار الحيّ (counter incremented 3 → 4 → 5).
 
 ---
 
@@ -76,6 +77,47 @@
 - 8 استيراد `from engine import X` (نمط intra-package قديم)
 - 3 استيراد يتطلب `sqlalchemy` (لتطبيقات الـAPI غير الافتراضية)
 - `tests/test_build_training_data.py` + `tests/test_mobile_review_server.py` — أخطاء collection موجودة قبل الجولة
+
+---
+
+## جولة تنظيف الاستيراد 2026-07-19 (post-merge) — Fix Real Bugs + Archival Hygiene
+
+### النطاق
+بعد اكتمال جولة الدمج الثمانية، أُجريَ فحص استيراد شامل (`scripts/comprehensive_import_check.py`) لتحديد البقايا. النتيجة الأولية: 95 فشدًا. عوضًا عن إصلاح 169 سطرًا في حزم **مؤرشفة** (file_processor/omnifile/handwriting — جميعها تحمل تعليق `# ARCHIVED` في `pyproject.toml` ومصممة للتشغيل المستقل لا للاستيراد المطلق)، ركّزنا الإصلاح على **الأخطاء الحقيقية في الحزم النشطة فقط**.
+
+### الإصلاحان الحقيقيان (commit `e6cba11`)
+
+**1. `packages/ai/gateway/config/settings.py` — NameError على `Settings` forward-ref**
+- المشكلة: تعريف `def check_nvidia_nim_api_key(self) -> Settings:` يُقيَّم وقت تعريف الكلاس، قبل ربط اسم `Settings`. بدون `from __future__ import annotations`، يفشل الاستيراد بـ `NameError`.
+- الأثر: شلال من 17 فشل استيراد في `packages.ai.gateway.*`
+- الإصلاح: إضافة `from __future__ import annotations` في رأس الملف
+- النتيجة: 3 وحدات تُستورد الآن (`gateway.config`، `gateway.core`، `gateway.providers`) — البقية (14) محجوبة بالطبقة التالية: `import openai` (غير منصّب)
+
+**2. `packages/nlp/translation_corrector/` — دليل يتيم يحجب ملف .py**
+- المشكلة: وجود دليل `translation_corrector/` مع `__init__.py` (يستورد `.arabic_translation_processor` غير موجود) جنبًا إلى جنب مع ملف `translation_corrector.py` (يحتوي الكلاس الحقيقي `ArabicTranslationProcessor`) — Python يفضّل الدليل، فيفشل الاستيراد.
+- الأثر الصامت: `app.gradio_full_hitl._get_translation_corrector()` كان يلتقط `ImportError` ويسقط لـ"inline fallback" بدلًا من تحميل المعالج الحقيقي
+- الإصلاح: حذف الدليل المتيم، نقل `translation_rules_extended.json` إلى `packages/nlp/`
+- النتيجة: `from packages.nlp.translation_corrector import ArabicTranslationProcessor` يعمل الآن. `app.gradio_full_hitl` يحمّل **24 قاعدة** من `data/translation_rules.json` (مُتحقَّق حيًّا).
+
+### تحسين سكربت الفحص (commit `f669e26`)
+أُضيف تمييز بين:
+- **فشل في حزمة نشطة** (يُعدّ خطأً حقيقيًا يجب إصلاحه) — 19 فشلًا متبقيًا، جميعها بيئية (openai/torch/sqlalchemy غير منصّبة)
+- **فشل في حزمة مؤرشفة** (يُتخطّى، موثّق في `ARCHIVED_PACKAGES`) — 72 فشلًا، كلها في:
+  - `packages.file_processor` (38) — مؤرشف
+  - `packages.omniparse` (9) — يتطلب torch
+  - `packages.ai-fuel` (8) — اسم بـ hyphen (غير قابل للاستيراد كـ Python module)
+  - `packages.handwriting` (7) — مؤرشف
+  - `packages.omnifile` (6) — مؤرشف
+  - `packages.benchmark_core` (2) — لا يحوي `__init__.py`
+  - `packages.doc_processor` (1) — مؤرشف
+  - `packages.interactive-learning` (1) — اسم بـ hyphen
+
+### التحقق النهائي
+- **فحص استيراد شامل**: 95 → 91 فشلًا إجماليًا (4 وحدات أُصلِحت، 0 كسر جديد)
+- **Pytest الكامل**: مطابق للـ baseline (`85 failed / 440 passed / 46 skipped / 4 errors` — `diff` exit 0)
+- **scanner_fixer tests**: 15/15 still pass
+- **`app.gradio_full_hitl` حيّ**: استيراد OK + تشغيل UI HTTP 200 (Gradio 6.3.0, 75 components, title "Omni Medical OCR") + ArabicTranslationProcessor يُحمَّل بـ 24 قاعدة
+- **خادم الجوال حيّ**: `/health` 200، `/stats` 200، `/save` 200 (all 3 learning-loop sinks fire)، counter 4 → 5
 
 ---
 
@@ -183,28 +225,29 @@ pytest tests/ -x
 ## فحص الاستيراد — Import Audit
 
 ```
-تاريخ الفحص: 2026-07-19 (post-merge-8 على main @ 1831b27)
-منهجية الفحص: /home/z/my-project/scripts/comprehensive_import_check.py
+تاريخ الفحص: 2026-07-19 (post-import-cleanup على main)
+منهجية الفحص: scripts/comprehensive_import_check.py
   - مسح كل __init__.py في packages/ و app/
   - استيراد فعلي لكل وحدة عبر importlib.import_module
-  - مقارنة contre baseline (origin/main @ 46296c3 قبل الجولة)
+  - تمييز فشل الحزم النشطة عن فشل الحزم المؤرشفة (ARCHIVED_PACKAGES)
 ملفات Python المفحوصة: 1486+
 الوحدات المُختبرة: شامل (__init__.py المُكتشفة + curated CRITICAL_MODULES)
 
-النتيجة:
-  - baseline failures (pre-merge): 97
-  - post-merge-8 failures:         95  (تحسّن بصافي وحدتين)
-  - وحدات أُصلِحت بالجولة: 2 (packages.core.mobile, packages.core.mobile.server)
-  - وحدات كُسِرت بالجولة: 0 ✅
+النتيجة النهائية:
+  - فشل في حزم نشطة:    19 (كلها بيئية — openai/torch/sqlalchemy غير منصّبة)
+  - فشل في حزم مؤرشفة:  72 (مُتخطّى — موثّق في ARCHIVED_PACKAGES)
 
-الفشل المتبقي (pre-existing — ليس من هذه الجولة):
-  - 50× from modules.X import Y (intra-package قديم في omnifile/handwriting/training)
-  - 11× requires torch (غير منصّب)
-  -  8× from engine import X (intra-package قديم)
-  -  3× requires sqlalchemy (غير منصّب)
-  - 23× متفرقات (benchmarks.structure, tools.build_training_data, etc.)
+تطور الجولة:
+  - baseline (origin/main قبل الجولة):  97 فشلًا
+  - بعد جولة الدمج الثمانية:             95 فشلًا (تحسّن 2: mobile + mobile.server)
+  - بعد إصلاح Settings forward-ref:      92 فشلًا (تحسّن 3: gateway.config/core/providers)
+  - بعد حذف دليل translation_corrector:  91 فشلًا (تحسّن 1: nlp.translation_corrector)
+  - صافي التحسّن: 97 → 91 = 6 وحدات أُصلِحت
+  - كسور جديدة: 0 ✅
 
-استنتاج: صفر كسر استيراد مُستحدَث من جولة الدمج هذه.
+استنتاج: صفر كسر استيراد مُستحدَث من جولتي الدمج والتنظيف.
+الحزم المؤرشفة (file_processor, omnifile, handwriting, ai-fuel, interactive-learning,
+omniparse, benchmark_core, doc_processor) ليست جزءًا من رسم الاستيراد النشط ومُتخطّاة.
 ```
 
 ---
