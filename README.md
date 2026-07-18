@@ -188,6 +188,48 @@ See [`.env.example`](.env.example) for the full list.
 
 ## Documentation
 
+## 📄 PDF OCR Processor
+
+نظام متكامل لاستخراج النص والمسارد من ملفات PDF الطبية باستخدام OCR متقدم مع ضبط تلقائي.
+
+### الميزات
+- **ضبط تلقائي** لمعاملات OCR (PSM + DPI) — يختار أفضل إعداد
+- **معالجة مسبقة** للصور عبر scanner_fixer (deskew, crop, normalize, enhance)
+- **استخراج المسارد** الثنائية اللغة (عربي = إنجليزي) تلقائياً
+- **حفظ متعدد** (TXT, CSV, JSON) + مسرد موحد
+- **تكامل** مع نظام التسجيل المتقدم (advanced_logger)
+
+### الاستخدام
+```bash
+# تثبيت الحزم
+sudo pacman -S tesseract tesseract-data-ara tesseract-data-eng poppler
+pip install -r requirements/ml.txt
+
+# معالجة مجلد PDF
+python3 scripts/pdf_ocr_processor.py
+
+# ملف واحد مع ضبط تلقائي
+python3 scripts/pdf_ocr_processor.py --input report.pdf --auto-tune
+
+# باستخدام سكربت التشغيل
+./scripts/run_ocr.sh [GITHUB_TOKEN] [INPUT_PATH]
+```
+
+### المخرجات
+```
+~/glossaries_output/
+├── <filename>.txt          # النص الكامل المستخرج
+├── <filename>.csv          # المسارد (term_arabic, term_english)
+├── <filename>.json         # النتيجة الكاملة (JSON)
+├── combined_glossary.csv   # مسارد موحدة
+├── combined_glossary.json  # مسارد موحدة (JSON)
+└── OCR_PROCESSING_LOG.md   # سجل المعالجة
+```
+
+📖 [توثيق مفصل](docs/PDF_OCR_PROCESSOR.md)
+
+## Documentation
+
 | Document | Content |
 |----------|---------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, data flow, package map |
