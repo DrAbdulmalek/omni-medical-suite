@@ -69,8 +69,13 @@ class DocumentPreprocessor:
         else:
             # Fallback: minAreaRect on text pixels
             _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            coords = np.column_stack(np.where(thresh > 0))
-            if len(coords) == 0:
+            # cv2.minAreaRect expects points as (x, y). np.where returns
+            # (rows, cols) = (y, x), so np.column_stack(np.where(...)) would
+            # pass columns in the wrong order, producing a 90°-shifted angle.
+            # cv2.findNonZero returns points as (x, y) directly — the canonical
+            # OpenCV pattern (matches crop.py).
+            coords = cv2.findNonZero(thresh)
+            if coords is None or len(coords) == 0:
                 logger.warning("No text pixels found for deskew, skipping")
                 return image
             rect = cv2.minAreaRect(coords)
