@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════
-# uninstall_mobile_pwa.sh — Remove OmniMedical PWA shortcuts/icons
+# uninstall_mobile_pwa.sh — Uninstall OmniMedical PWA service + shortcuts
 # ═══════════════════════════════════════════════════════════════════════════
-# يزيل أي اختصارات وأيقونات أنشأها install_mobile_pwa.sh.
+# يزيل تثبيت OmniMedical PWA بالكامل:
+#   - إيقاف وتعطيل systemd user service
+#   - حذف ملف الخدمة + venv
+#   - حذف اختصارات سطح المكتب
+#   - افتراضياً: يحفظ data/ (قاعدة البيانات والتعلم)
+#   - مع --purge-data: يحذف data/ أيضًا (بعد تأكيد)
 #
 # الاستخدام:
-#   bash scripts/uninstall_mobile_pwa.sh             # إزالة فقط
-#   bash scripts/uninstall_mobile_pwa.sh --purge     # إزالة + حذف أيقونة مولّدة
-#   bash scripts/uninstall_mobile_pwa.sh --adb        # إزالة WebAPK من أندرويد موصول
+#   bash scripts/uninstall_mobile_pwa.sh                # إزالة مع حفظ data/
+#   bash scripts/uninstall_mobile_pwa.sh --purge-data   # إزالة + حذف data/
+#   bash scripts/uninstall_mobile_pwa.sh --yes          # تخطّي التأكيدات التفاعلية
 #
-# ملاحظة: لا يحذف المستودع أو خادم mobile — فقط الاختصارات.
+# Exit codes:
+#   0 — نجاح
+#   1 — خطأ
 # ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -21,189 +28,254 @@ else
     RED=''; GREEN=''; YELLOW=''; BLUE=''; CYAN=''; NC=''
 fi
 log()  { echo -e "${BLUE}[$(date +%H:%M:%S)]${NC} $*"; }
-ok()   { echo -e "${GREEN}✓${NC} $*"; }
-warn() { echo -e "${YELLOW}⚠${NC} $*"; }
-err()  { echo -e "${RED}✗${NC} $*" >&2; }
+ok()   { echo -e "${GREEN}[OK]${NC} $*"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
+err()  { echo -e "${RED}[ERR]${NC} $*" >&2; }
 step() { echo -e "\n${CYAN}━━━ $* ━━━${NC}"; }
 
-# ── Args ────────────────────────────────────────────────────────────────────
-PURGE=false
-DO_ADB=false
+# ── Defaults ────────────────────────────────────────────────────────────────
+SERVICE_NAME="omni-mobile-pwa"
+VENV_DIR="${HOME}/.omni-mobile-venv"
+PURGE_DATA=false
+AUTO_YES=false
+DATA_DIR=""
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+DATA_DIR="${REPO_ROOT}/data"
+
+# ── Parse CLI args ──────────────────────────────────────────────────────────
 for arg in "$@"; do
     case "$arg" in
-        --purge) PURGE=true ;;
-        --adb)   DO_ADB=true ;;
+        --purge-data)
+            PURGE_DATA=true
+            ;;
+        --yes|-y)
+            AUTO_YES=true
+            ;;
         --help|-h)
             sed -n '1,/^set -euo/p' "$0" | sed 's/^# \?//'
             exit 0
             ;;
-        *) warn "Unknown arg: $arg (ignored)" ;;
+        *)
+            warn "وسيط غير معروف: $arg (تجاهل)"
+            ;;
     esac
 done
 
-# ── Detect platform ────────────────────────────────────────────────────────
-detect_platform() {
-    case "$(uname -s)" in
-        Linux*)  echo "linux" ;;
-        Darwin*) echo "macos" ;;
-        MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
-        *)       echo "unknown" ;;
-    esac
-}
-PLATFORM="$(detect_platform)"
-log "Platform: ${PLATFORM}"
+step "إزالة تثبيت OmniMedical PWA"
 
-# ── Desktop dir locator (mirror of install script) ─────────────────────────
-desktop_dir() {
-    case "$PLATFORM" in
-        linux)
-            local xdg="${XDG_DESKTOP_DIR:-}"
-            if [ -n "$xdg" ] && [ -d "$xdg" ]; then echo "$xdg"
-            elif [ -d "${HOME}/Desktop" ]; then echo "${HOME}/Desktop"
-            else echo "${HOME}"; fi
-            ;;
-        macos)   echo "${HOME}/Desktop" ;;
-        windows) echo "${USERPROFILE:-${HOME}}/Desktop" ;;
-        *)       echo "${HOME}" ;;
+# ── Confirmation ────────────────────────────────────────────────────────────
+confirm_action() {
+    local message="$1"
+    if $AUTO_YES; then
+        return 0
+    fi
+    echo ""
+    echo -e "${YELLOW}⚠ ${message}${NC}"
+    read -r -p "أمتأكد؟ (yes/N): " response
+    case "$response" in
+        [yY][eE][sS]) return 0 ;;
+        *) echo "أُلغِيَت العملية."; exit 0 ;;
     esac
 }
 
-# ── Linux uninstall ────────────────────────────────────────────────────────
-uninstall_linux() {
-    step "إزالة اختصارات Linux"
-    local desktop; desktop="$(desktop_dir)"
-    local apps_dir="${HOME}/.local/share/applications"
-    local removed=0
-
-    for f in \
-        "${desktop}/omni-medical-pwa.desktop" \
-        "${apps_dir}/omni-medical-pwa.desktop"; do
-        if [ -f "$f" ]; then
-            rm -f "$f"
-            ok "Removed: $f"
-            removed=$((removed+1))
-        fi
-    done
-
-    if command -v xdg-desktop-icon &>/dev/null; then
-        xdg-desktop-icon uninstall "${desktop}/omni-medical-pwa.desktop" 2>/dev/null || true
-    fi
-    if command -v update-desktop-database &>/dev/null; then
-        update-desktop-database "$apps_dir" 2>/dev/null || true
-    fi
-
-    if $PURGE; then
-        local icon="${HOME}/.local/share/icons/omni-medical-pwa.png"
-        if [ -f "$icon" ]; then
-            rm -f "$icon"
-            ok "Purged generated icon: $icon"
-            removed=$((removed+1))
+if $PURGE_DATA; then
+    echo ""
+    echo -e "${RED}════════════════════════════════════════════════════════════${NC}"
+    echo -e "${RED}  تحذير: سيتم حذف data/ بشكل دائم!${NC}"
+    echo -e "${RED}  هذا يشمل قاعدة البيانات ونماذج التعلم والتصحيحات.${NC}"
+    echo -e "${RED}════════════════════════════════════════════════════════════${NC}"
+    confirm_action "اكتب YES (بحروف كبيرة) لحذف data/:"
+    # Second confirmation for data purge (must type YES in capitals)
+    if ! $AUTO_YES; then
+        read -r -p "اكتب YES (بحروف كبيرة) للتأكيد النهائي: " final_confirm
+        if [ "$final_confirm" != "YES" ]; then
+            echo "أُلغِيَ حذف data/. سيتم الإزالة مع حفظ data/."
+            PURGE_DATA=false
         fi
     fi
+fi
 
-    if [ "$removed" -eq 0 ]; then
-        warn "لم يُعثر على اختصارات — لا شيء للإزالة"
-    else
-        ok "تمت إزالة ${removed} عنصر"
-    fi
-}
+# ═══════════════════════════════════════════════════════════════════════════
+# 1. إيقاف systemd service
+# ═══════════════════════════════════════════════════════════════════════════
+stop_service() {
+    step "إيقاف الخدمة"
 
-# ── macOS uninstall ────────────────────────────────────────────────────────
-uninstall_macos() {
-    step "إزالة اختصارات macOS"
-    local desktop; desktop="$(desktop_dir)"
-    local removed=0
-    for f in \
-        "${desktop}/OmniMedical PWA.webloc" \
-        "${desktop}/OmniMedical PWA" \
-        "${desktop}/OmniMedical PWA.applescript"; do
-        if [ -e "$f" ]; then
-            rm -rf "$f"
-            ok "Removed: $f"
-            removed=$((removed+1))
+    if ! command -v systemctl &>/dev/null; then
+        warn "systemctl غير متوفر — تخطّي إيقاف الخدمة"
+        # Try to kill any running server process manually
+        local pids
+        pids="$(pgrep -f "packages.core.mobile.server" 2>/dev/null || true)"
+        if [ -n "$pids" ]; then
+            log "عمليات خادم قيد التشغيل: $pids"
+            for pid in $pids; do
+                kill "$pid" 2>/dev/null && ok "أُوقِفت العملية $pid" || warn "تعذّر إيقاف العملية $pid"
+            done
+        else
+            log "لا توجد عمليات خادم قيد التشغيل"
         fi
-    done
-    if [ "$removed" -eq 0 ]; then
-        warn "لم يُعثر على اختصارات — لا شيء للإزالة"
-    else
-        ok "تمت إزالة ${removed} عنصر"
-    fi
-}
-
-# ── Windows uninstall ──────────────────────────────────────────────────────
-uninstall_windows() {
-    step "إزالة اختصارات Windows"
-    local desktop; desktop="$(desktop_dir)"
-    local removed=0
-    for f in \
-        "${desktop}/OmniMedical PWA.url" \
-        "${desktop}/OmniMedical PWA.lnk"; do
-        if [ -e "$f" ]; then
-            rm -f "$f"
-            ok "Removed: $f"
-            removed=$((removed+1))
-        fi
-    done
-    if [ "$removed" -eq 0 ]; then
-        warn "لم يُعثر على اختصارات — لا شيء للإزالة"
-    else
-        ok "تمت إزالة ${removed} عنصر"
-    fi
-}
-
-# ── Android WebAPK uninstall via adb ───────────────────────────────────────
-uninstall_android_webapk() {
-    step "إزالة WebAPK من أندرويد عبر adb"
-    if ! command -v adb &>/dev/null; then
-        err "adb غير مثبت"
-        exit 1
-    fi
-    local devices
-    devices="$(adb devices 2>/dev/null | grep -E '^[0-9A-Za-z]+\s+device$' || true)"
-    if [ -z "$devices" ]; then
-        err "لا يوجد جهاز أندرويد موصول"
-        adb devices
-        exit 1
-    fi
-    ok "تم اكتشاف جهاز أندرويد"
-
-    # WebAPK package names follow: com.google.android.webapk.<hash>
-    # We list packages and uninstall ones matching our origin.
-    log "البحث عن WebAPKs مثبتة من Chrome…"
-    local webapks
-    webapks="$(adb shell pm list packages 'webapk' 2>/dev/null || true)"
-    if [ -z "$webapks" ]; then
-        warn "لا توجد WebAPKs مثبتة عبر Chrome"
         return 0
     fi
 
-    log "WebAPKs المثبتة:"
-    echo "$webapks"
-    echo ""
-    warn "لا يمكن تحديد أي WebAPK يخص OmniMedical تلقائيًا (أسماؤها مجزّأة)."
-    echo "  للحذف يدويًا على الجهاز:"
-    echo "    الإعدادات → التطبيقات → ابحث عن \"OmniFile\" أو \"OmniMedical\" → إلغاء التثبيت"
-    echo ""
-    echo "  أو للحذف عبر adb (استبدل الحزمة):"
-    echo "$webapks" | sed 's/^package:/    adb uninstall /'
+    # Stop the service
+    if systemctl --user is-active "${SERVICE_NAME}.service" &>/dev/null; then
+        systemctl --user stop "${SERVICE_NAME}.service" 2>/dev/null && ok "تم إيقاف الخدمة" || warn "تعذّر إيقاف الخدمة"
+    else
+        log "الخدمة غير نشطة أصلاً"
+    fi
+
+    # Disable the service
+    if systemctl --user is-enabled "${SERVICE_NAME}.service" &>/dev/null; then
+        systemctl --user disable "${SERVICE_NAME}.service" 2>/dev/null && ok "تم تعطيل الخدمة" || warn "تعذّر تعطيل الخدمة"
+    else
+        log "الخدمة غير مفعّلة أصلاً"
+    fi
+
+    # Also kill any lingering processes (manual launches)
+    local pids
+    pids="$(pgrep -f "packages.core.mobile.server" 2>/dev/null || true)"
+    if [ -n "$pids" ]; then
+        for pid in $pids; do
+            kill "$pid" 2>/dev/null || true
+        done
+        ok "أُوقِفت العمليات المتبقية: $pids"
+    fi
 }
 
-# ── Main ────────────────────────────────────────────────────────────────────
-step "إزالة OmniMedical PWA"
+stop_service
 
-case "$PLATFORM" in
-    linux)   uninstall_linux ;;
-    macos)   uninstall_macos ;;
-    windows) uninstall_windows ;;
-    *)
-        err "نظام غير مدعوم: $(uname -s)"
-        exit 2
-        ;;
-esac
+# ═══════════════════════════════════════════════════════════════════════════
+# 2. حذف ملف الخدمة
+# ═══════════════════════════════════════════════════════════════════════════
+remove_service_file() {
+    step "حذف ملف الخدمة"
 
-if $DO_ADB; then
-    uninstall_android_webapk
-fi
+    local service_file="${HOME}/.config/systemd/user/${SERVICE_NAME}.service"
+    if [ -f "$service_file" ]; then
+        rm -f "$service_file"
+        ok "حُذف: ${service_file}"
 
+        # Reload systemd daemon (best-effort)
+        if command -v systemctl &>/dev/null; then
+            systemctl --user daemon-reload 2>/dev/null || true
+        fi
+    else
+        log "ملف الخدمة غير موجود — تخطّي"
+    fi
+}
+
+remove_service_file
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 3. حذف virtual environment
+# ═══════════════════════════════════════════════════════════════════════════
+remove_venv() {
+    step "حذف virtual environment"
+
+    if [ -d "${VENV_DIR}" ]; then
+        rm -rf "${VENV_DIR}"
+        ok "حُذف: ${VENV_DIR}"
+    else
+        log "venv غير موجود — تخطّي"
+    fi
+}
+
+remove_venv
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 4. حذف اختصارات سطح المكتب
+# ═══════════════════════════════════════════════════════════════════════════
+remove_shortcuts() {
+    step "حذف اختصارات سطح المكتب"
+
+    local removed=0
+
+    # Desktop directory
+    local DESKTOP_DIR="${XDG_DESKTOP_DIR:-}"
+    if [ -z "$DESKTOP_DIR" ] || [ ! -d "$DESKTOP_DIR" ]; then
+        DESKTOP_DIR="${HOME}/Desktop"
+    fi
+
+    # Linux .desktop file
+    for f in \
+        "${DESKTOP_DIR}/omni-medical-pwa.desktop" \
+        "${HOME}/.local/share/applications/omni-medical-pwa.desktop"; do
+        if [ -f "$f" ]; then
+            rm -f "$f"
+            ok "حُذف: $f"
+            removed=$((removed+1))
+        fi
+    done
+
+    # Generated icon
+    local icon="${HOME}/.local/share/icons/omni-medical-pwa.png"
+    if [ -f "$icon" ]; then
+        rm -f "$icon"
+        ok "حُذفت الأيقونة المولّدة: $icon"
+        removed=$((removed+1))
+    fi
+
+    # Try xdg-desktop-icon uninstall (best-effort)
+    if command -v xdg-desktop-icon &>/dev/null; then
+        xdg-desktop-icon uninstall "${DESKTOP_DIR}/omni-medical-pwa.desktop" 2>/dev/null || true
+    fi
+
+    # Refresh desktop database (best-effort)
+    if command -v update-desktop-database &>/dev/null; then
+        update-desktop-database "${HOME}/.local/share/applications" 2>/dev/null || true
+    fi
+
+    if [ "$removed" -eq 0 ]; then
+        log "لم يُعثر على اختصارات — تخطّي"
+    else
+        ok "حُذف ${removed} اختصار/عنصر"
+    fi
+}
+
+remove_shortcuts
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 5. حذف data/ (اختياري — مع --purge-data فقط)
+# ═══════════════════════════════════════════════════════════════════════════
+purge_data() {
+    if ! $PURGE_DATA; then
+        step "حفظ data/"
+        if [ -d "${DATA_DIR}" ]; then
+            ok "data/ محفوظة في: ${DATA_DIR}"
+            log "لحذفها يدويًا لاحقًا: rm -rf ${DATA_DIR}"
+        else
+            log "data/ غير موجودة — تخطّي"
+        fi
+        return 0
+    fi
+
+    step "حذف data/ (--purge-data)"
+    if [ -d "${DATA_DIR}" ]; then
+        rm -rf "${DATA_DIR}"
+        ok "حُذفت: ${DATA_DIR}"
+    else
+        log "data/ غير موجودة — تخطّي"
+    fi
+}
+
+purge_data
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 6. ملخص الإزالة
+# ═══════════════════════════════════════════════════════════════════════════
 step "اكتملت الإزالة"
-ok "تم تنظيف اختصارات OmniMedical PWA"
+echo ""
+ok "تم تنظيف:"
+echo "  ├── systemd service  : أُوقِف + حُذف"
+echo "  ├── venv             : حُذف (${VENV_DIR})"
+echo "  ├── desktop shortcuts: حُذفت"
+if $PURGE_DATA; then
+    echo "  └── data/            : حُذفت (--purge-data)"
+else
+    echo "  └── data/            : محفوظة (${DATA_DIR})"
+fi
+echo ""
+echo "  لإعادة التثبيت:"
+echo "    bash scripts/install_mobile_pwa.sh"
