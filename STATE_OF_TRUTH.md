@@ -36,6 +36,7 @@ snapshot and add a parity check in CI.
 | `review_service.py` | Jais proofreader, JaisNER (when `ENABLE_LLM=true`) | **Yes (since P0)** — `get_proofreader()`, `get_ner()` | `_extract_ner`, `jais_proofread_only`, `MEDICAL_TERMS`, `ENABLE_LLM` |
 | `translation_service.py` | MarianMT (transformers), torch | **Yes (since P0)** — `load_translator()`, `get_translation_corrector()` | `translate_text`, `correct_translation`, `TRANSLATION_MODELS`, `DEVICE` |
 | `hf_dataset_service.py` | `datasets`, `pandas`, `huggingface_hub` | Conditional import (gated by `HAS_HF`); staging file works without them | `save_to_hf`, `flush_queue`, `count_pending`, `update_medical_dictionary`, `retrain_now` |
+| `app/scanner_tab.py` | `scanner_fixer`, OpenCV | Optional (graceful fallback to `process_single_image` legacy path) | `apply_manual_crop`, `apply_advanced_edges`, `process_with_options`, `save_processed_image`, `build_zip_from_dir`, `pick_random_from_gallery` |
 
 **Import-time contract (since P0):**
 Importing any service module is O(1) and must not trigger network I/O,
@@ -175,23 +176,34 @@ above (63 passed, 1 skipped on a no-OCR-engine environment).
 
 ## 6. What is NOT yet done (P1/P2 roadmap)
 
+### Done in P0-1 / P0-2 (this patch set)
+1. ✅ **Deploy source-of-truth unification.** `scripts/sync-hf-space.sh`
+   now has `--verify` mode; `docs/DEPLOYMENT.md` has a "Source of
+   Truth" section. `hf-space/` is documented as an explicit deploy
+   snapshot (option (b) from the original P1 list).
+2. ✅ **Scanner fixer Gradio tab enhancement.**
+   `app/advanced_review_app.py` Tab 1 now offers interactive manual
+   crop (4 number inputs: x/y/w/h), advanced edge detection options
+   (Canny + Adaptive Threshold + Morphology + Hough Lines), and a
+   manual save button backed by `app/scanner_tab.py`.
+3. ✅ **Lazy loading, translation extraction, HF staging, decision log,
+   pytest unification** — done in commit `6a23c52` (P0 hardening patch).
+
 ### P1 — should-do before final RC
-1. **Deploy source-of-truth unification.** `hf-space/app.py` is currently
-   a divergent copy of `app/services/*`. Either:
-   - (a) make `hf-space/app.py` a thin wrapper that imports from
-     `app/services/*` (preferred), or
-   - (b) document `hf-space/` as an explicit deploy snapshot and add a
-     parity CI check that diffs the two implementations.
-2. **Field extractor hardening** (`src/ocr/field_extractor.py`):
+1. **Field extractor hardening** (`src/ocr/field_extractor.py`):
    multi-line value support, broader bilingual labels, optional
    confidence scoring, safe `template_signature` (current
    `text.replace(value, " ")` corrupts output when a value is a
    substring of another).
-3. **Benchmark reporter** (`omni_medical_suite/preprocessing/compare_raw_vs_printed.py`):
+2. **Benchmark reporter** (`omni_medical_suite/preprocessing/compare_raw_vs_printed.py`):
    add `to_csv()`, `to_json()`, `aggregate_metrics()` to
    `OCRComparisonPipeline`.
-4. **RTL/dedup/backend decision logging** (instrument the sites listed
-   in section 4).
+3. **RTL/dedup/backend decision logging** — instrument the sites listed
+   in section 4 (currently only `app.core.decision_log` itself is
+   wired; callsites are not yet emitting decisions).
+4. **Deploy parity CI check.** Add a CI job that runs
+   `./scripts/sync-hf-space.sh --verify` on every PR touching
+   `hf-space/**`, `src/ocr/**`, `packages/**`, or `config/**`.
 
 ### P2 — post-RC polish
 5. **Git LFS audit.** Verify `.gitattributes` covers all binary artifacts

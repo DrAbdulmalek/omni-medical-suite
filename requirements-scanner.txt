@@ -1,0 +1,39 @@
+# requirements-scanner.txt
+# Optional dependencies for the scanner fixer Gradio tab in app/advanced_review_app.py
+# and the underlying packages/scanner_fixer pipeline.
+#
+# Install with:
+#   pip install -r requirements-scanner.txt
+#
+# Or install scanner_fixer as editable + extras:
+#   pip install -e packages/scanner_fixer[pdf,ocr]
+
+# Core scanner_fixer (image preprocessing pipeline)
+# Install the package itself from the monorepo:
+#   pip install -e packages/scanner_fixer
+# Or rely on the deps it pulls in:
+numpy>=1.23
+opencv-python>=4.7
+Pillow>=9.0
+imagehash>=4.0
+click>=8.0
+
+# PDF support (for multi-page batch + ZIP export)
+PyMuPDF>=1.22
+pdf2image>=1.16
+pdfplumber>=0.9
+img2pdf>=0.5.0      # optional but preferred for image->PDF
+
+# OCR support (for text-aware auto-crop)
+pytesseract>=0.3
+# Tesseract binary must also be installed via system package manager:
+#   Debian/Ubuntu: sudo apt install tesseract-ocr tesseract-ocr-ara
+#   Arch/Manjaro:  sudo pacman -S tesseract tesseract-data-ara
+#   macOS:         brew install tesseract tesseract-lang
+
+# Optional advanced OCR engines (heavy — install only if needed)
+# paddleocr>=2.6
+# easyocr>=1.6
+
+# Gradio (UI runtime) — usually already installed via requirements.txt
+gradio>=5.0

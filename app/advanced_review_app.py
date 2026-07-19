@@ -46,6 +46,26 @@ except ImportError:
     SCANNER_FIXER_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
+# scanner_tab: enhanced scanner UI helpers (manual crop + advanced edges)
+# ---------------------------------------------------------------------------
+try:
+    from app.scanner_tab import (
+        process_with_options as _process_with_options,
+        save_processed_image as _save_processed_image,
+        apply_manual_crop as _apply_manual_crop,
+        apply_advanced_edges as _apply_advanced_edges,
+        build_zip_from_dir as _build_zip_from_dir,
+    )
+    SCANNER_TAB_AVAILABLE = True
+except ImportError:
+    SCANNER_TAB_AVAILABLE = False
+    _process_with_options = None  # type: ignore
+    _save_processed_image = None  # type: ignore
+    _apply_manual_crop = None  # type: ignore
+    _apply_advanced_edges = None  # type: ignore
+    _build_zip_from_dir = None  # type: ignore
+
+# ---------------------------------------------------------------------------
 # Original app imports (with fallback)
 # ---------------------------------------------------------------------------
 try:
@@ -153,7 +173,7 @@ def _render_json(data: Any) -> str:
 
 
 # ===========================================================================
-# Tab 1: Scanner Fixer — Single Image Before/After
+# Tab 1: Scanner Fixer — Single Image Before/After (with manual crop + edges)
 # ===========================================================================
 def process_single_image(
     input_image: Optional[np.ndarray],
@@ -163,15 +183,47 @@ def process_single_image(
     do_rotate: bool,
     binarize: bool,
     crop_padding: int,
-) -> tuple[Optional[np.ndarray], Optional[np.ndarray], str]:
-    """Process a single image through scanner_fixer pipeline and return before/after."""
+    crop_box: Optional[Any] = None,
+    use_canny: bool = False,
+    use_adaptive: bool = False,
+    use_morphology: bool = False,
+    use_hough: bool = False,
+) -> tuple[Optional[np.ndarray], Optional[np.ndarray], str, Optional[np.ndarray]]:
+    """Process a single image through scanner_fixer + advanced edges.
+
+    Returns (before_pil, after_pil, report_md, after_rgb_ndarray).
+    The 4th return value is the after-image as a numpy RGB array, used by
+    the manual-save button downstream.
+    """
     if input_image is None:
-        return None, None, "⚠️ لم يتم تحميل صورة"
+        return None, None, "⚠️ لم يتم تحميل صورة", None
 
+    # Delegate to scanner_tab.process_with_options when available
+    if SCANNER_TAB_AVAILABLE:
+        before_pil, after_pil, report = _process_with_options(
+            input_image,
+            crop_box=crop_box,
+            do_crop=do_crop,
+            do_deskew=do_deskew,
+            do_enhance=do_enhance,
+            do_rotate=do_rotate,
+            binarize=binarize,
+            crop_padding=crop_padding,
+            use_canny=use_canny,
+            use_adaptive=use_adaptive,
+            use_morphology=use_morphology,
+            use_hough=use_hough,
+        )
+        # Convert after_pil back to numpy RGB for the save button
+        after_rgb = None
+        if after_pil is not None:
+            after_rgb = np.array(after_pil)
+        return before_pil, after_pil, report, after_rgb
+
+    # Fallback: original behavior (no manual crop / advanced edges)
     if not SCANNER_FIXER_AVAILABLE:
-        return None, None, "❌ scanner_fixer غير متاح — ثبّت الحزمة أولاً"
+        return None, None, "❌ scanner_fixer غير متاح — ثبّت الحزمة أولاً", None
 
-    # input_image from Gradio is RGB numpy, convert to BGR for OpenCV
     bgr = cv2.cvtColor(input_image, cv2.COLOR_RGB2BGR)
     before_pil = Image.fromarray(input_image)
 
@@ -205,10 +257,28 @@ def process_single_image(
             l, t, r, b = report["crop_box"]
             lines.append(f"- **حدود القص:** يسار={l}, أعلى={t}, يمين={r}, أسفل={b}")
 
-        return before_pil, after_pil, "\n".join(lines)
+        return before_pil, after_pil, "\n".join(lines), after_rgb
 
     except Exception as exc:
-        return before_pil, None, f"❌ خطأ في المعالجة: {exc}"
+        return before_pil, None, f"❌ خطأ في المعالجة: {exc}", None
+
+
+def save_current_after_image(
+    after_rgb: Optional[np.ndarray],
+    output_dir: str,
+    filename: Optional[str] = None,
+) -> str:
+    """Save the current 'after' image to disk. Returns a status message."""
+    if after_rgb is None:
+        return "⚠️ لا توجد صورة معالَجة للحفظ — شغّل المعالجة أولًا"
+    if not SCANNER_TAB_AVAILABLE:
+        return "❌ scanner_tab غير متاح — لا يمكن الحفظ"
+    try:
+        bgr = cv2.cvtColor(after_rgb, cv2.COLOR_RGB2BGR)
+        path = _save_processed_image(bgr, output_dir, filename)
+        return f"✅ تم الحفظ: `{path}`"
+    except Exception as exc:
+        return f"❌ فشل الحفظ: {exc}"
 
 
 # ===========================================================================
@@ -528,10 +598,10 @@ def build_app() -> gr.Blocks:
         )
 
         # ----------------------------------------------------------------
-        # Tab 1: Scanner Fixer — Single Image
+        # Tab 1: Scanner Fixer — Single Image (with manual crop + advanced edges)
         # ----------------------------------------------------------------
         with gr.Tab("🔬 معالج الصور"):
-            gr.Markdown("### معالجة صورة واحدة — قبل وبعد")
+            gr.Markdown("### معالجة صورة واحدة — قبل وبعد (مع قص يدوي وكشف حواف متقدم)")
             with gr.Row():
                 with gr.Column(scale=1):
                     scanner_input = gr.Image(
@@ -551,7 +621,30 @@ def build_app() -> gr.Blocks:
                             minimum=0, maximum=50, value=10, step=1,
                             label="هامش القص (بكسل)",
                         )
-                    scanner_btn = gr.Button("🚀 معالجة الصورة", variant="primary")
+                    with gr.Accordion("✂️ قص يدوي (اختياري — اترك 0 لتخطّيه)", open=False):
+                        gr.Markdown("أدخل إحداثيات مربع القص يدويًا (بالبكسل):")
+                        with gr.Row():
+                            sc_crop_x = gr.Number(label="X (يسار)", value=0, minimum=0, precision=0)
+                            sc_crop_y = gr.Number(label="Y (أعلى)", value=0, minimum=0, precision=0)
+                        with gr.Row():
+                            sc_crop_w = gr.Number(label="العرض", value=0, minimum=0, precision=0)
+                            sc_crop_h = gr.Number(label="الارتفاع", value=0, minimum=0, precision=0)
+                    with gr.Accordion("⚙️ كشف الحواف المتقدم", open=False):
+                        gr.Markdown("خيارات إضافية تُطبَّق بعد scanner_fixer الأساسي:")
+                        with gr.Row():
+                            sc_use_canny = gr.Checkbox(label="Canny", value=False)
+                            sc_use_adaptive = gr.Checkbox(label="Adaptive Threshold", value=False)
+                        with gr.Row():
+                            sc_use_morphology = gr.Checkbox(label="Morphology", value=False)
+                            sc_use_hough = gr.Checkbox(label="Hough Lines", value=False)
+                    with gr.Row():
+                        scanner_btn = gr.Button("🚀 معالجة الصورة", variant="primary")
+                        scanner_save_btn = gr.Button("💾 حفظ النتيجة", variant="secondary")
+                    sc_output_dir = gr.Textbox(
+                        label="مجلد الحفظ",
+                        value=os.path.expanduser("~/.omni/scanner_outputs"),
+                    )
+                    sc_save_status = gr.Markdown(elem_classes=["omni-card"])
 
                 with gr.Column(scale=1):
                     scanner_before = gr.Image(
@@ -566,18 +659,38 @@ def build_app() -> gr.Blocks:
                     )
                     scanner_report = gr.Markdown(elem_classes=["omni-card"])
 
+            # State for after-image numpy (used by save button)
+            sc_after_state = gr.State(value=None)
+
+            # Build crop_box dict from the 4 number inputs at click time
+            def _build_crop_box(x, y, w, h):
+                if not x or not y or not w or not h:
+                    return None
+                if w <= 0 or h <= 0:
+                    return None
+                return {"x": int(x), "y": int(y), "width": int(w), "height": int(h)}
+
             scanner_btn.click(
-                fn=process_single_image,
+                fn=lambda img, dc, dd, de, dr, bi, cp, cx, cy, cw, ch, uc, ua, um, uh: (
+                    process_single_image(
+                        img, dc, dd, de, dr, bi, cp,
+                        _build_crop_box(cx, cy, cw, ch),
+                        uc, ua, um, uh,
+                    )
+                ),
                 inputs=[
                     scanner_input,
-                    sc_do_crop,
-                    sc_do_deskew,
-                    sc_do_enhance,
-                    sc_do_rotate,
-                    sc_binarize,
-                    sc_crop_padding,
+                    sc_do_crop, sc_do_deskew, sc_do_enhance, sc_do_rotate,
+                    sc_binarize, sc_crop_padding,
+                    sc_crop_x, sc_crop_y, sc_crop_w, sc_crop_h,
+                    sc_use_canny, sc_use_adaptive, sc_use_morphology, sc_use_hough,
                 ],
-                outputs=[scanner_before, scanner_after, scanner_report],
+                outputs=[scanner_before, scanner_after, scanner_report, sc_after_state],
+            )
+            scanner_save_btn.click(
+                fn=save_current_after_image,
+                inputs=[sc_after_state, sc_output_dir],
+                outputs=[sc_save_status],
             )
 
         # ----------------------------------------------------------------

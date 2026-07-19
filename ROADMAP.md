@@ -28,11 +28,12 @@
 - [x] batch_pipeline: parallel processing + previews + manifest + quarantine
 - [x] CLI: scanner-fixer command-line tool
 - [x] تكامل Gradio: Before/After + Batch + PDF + ZIP + Random Preview
+- [x] **تكامل متقدم (P0-2):** Manual Crop (x/y/w/h) + Canny/Adaptive/Morphology/Hough + حفظ يدوي (app/scanner_tab.py)
 - [x] تكامل Desktop: deskew + crop + normalize + dedup مع fallback
 
 ### واجهات المستخدم
 - [x] gradio_full_hitl.py — 10 وظائف إنتاجية
-- [x] advanced_review_app.py — 6 تبويبات متكاملة مع scanner_fixer
+- [x] advanced_review_app.py — 6 تبويبات متكاملة مع scanner_fixer (+ Manual Crop + كشف حواف متقدم + حفظ يدوي في P0-2)
 - [x] medical_doc_gui_final.py — Desktop PySide6 (3231 سطر)
 - [x] PyInstaller ELF build script
 - [x] AppImage build script (Manjaro)
