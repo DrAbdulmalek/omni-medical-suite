@@ -247,7 +247,7 @@ Comment[ar]=معالجة تفاعلية للوثائق الطبية والتعر
 Exec=medical-doc-processor
 Icon=com.omnimedical.docprocessor
 Terminal=false
-Categories=Office;Graphics;Scanning;MedicalSoftware;
+Categories=Office;Graphics;Scanning;Science;
 Keywords=OCR;medical;scanner;document;Arabic;
 StartupWMClass=medical-doc-processor
 EOF
@@ -272,11 +272,18 @@ img.save('${APPDIR}/usr/share/icons/hicolor/256x256/apps/com.omnimedical.docproc
     echo "⚠️  PIL icon generation failed — using fallback"
     cp /usr/share/icons/hicolor/256x256/apps/*.png "${APPDIR}/usr/share/icons/hicolor/256x256/apps/com.omnimedical.docprocessor.png" 2>/dev/null || true
 }
-# Mirror icon to AppDir root (appimagetool requirement) + .DirIcon symlink
+# Mirror icon to AppDir root (appimagetool requirement) + .DirIcon symlink.
+# IMPORTANT: appimagetool looks for AppDir/<Icon-field>.png where <Icon-field>
+# is the value of Icon= in the .desktop file. Our desktop file uses
+# Icon=com.omnimedical.docprocessor, so the root icon MUST be named
+# com.omnimedical.docprocessor.png (not MedicalDocProcessor.png).
 ICON_SRC="${APPDIR}/usr/share/icons/hicolor/256x256/apps/com.omnimedical.docprocessor.png"
 if [ -f "$ICON_SRC" ]; then
+    cp "$ICON_SRC" "${APPDIR}/com.omnimedical.docprocessor.png"
+    # Also place a copy under AppName.png for findable naming
     cp "$ICON_SRC" "${APPDIR}/${APP_NAME}.png"
-    ln -sf "${APP_NAME}.png" "${APPDIR}/.DirIcon"
+    # .DirIcon is what file managers display; symlink to the canonical name
+    ln -sf "com.omnimedical.docprocessor.png" "${APPDIR}/.DirIcon"
 fi
 
 # ── 7. Create AppRun (Qt platform abstraction) ───────────────────
