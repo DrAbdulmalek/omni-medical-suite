@@ -266,4 +266,32 @@ class ArabicMedicalFieldExtractor:
                 else 0.0
             ),
         }
+        # P1-3: instrument decision
+        try:
+            from app.core.decision_log import log_decision
+
+            extracted_count = sum(
+                1 for v in (
+                    fields.patient_name, fields.patient_id, fields.date,
+                    fields.doctor_name, fields.diagnosis,
+                ) if v
+            ) + (1 if fields.medications else 0)
+            log_decision(
+                decision="field_extraction",
+                outcome={
+                    "extracted_count": extracted_count,
+                    "has_medications": bool(fields.medications),
+                    "medications_count": len(fields.medications),
+                },
+                reasons=[
+                    f"text_len={len(raw_text)}",
+                    f"avg_confidence={sum(fields.confidence.values()) / max(len(fields.confidence), 1):.3f}",
+                ],
+                inputs={
+                    "label_pattern_count": sum(len(p) for p in self.patterns.values()),
+                },
+                skipped=[] if extracted_count > 0 else ["no_labels_matched"],
+            )
+        except ImportError:
+            pass  # app.core.decision_log not available
         return fields

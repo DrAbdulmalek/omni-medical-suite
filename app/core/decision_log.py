@@ -144,11 +144,16 @@ def log_decision(
 def _coerce_outcome(value: Any) -> Any:
     """Normalize outcome to a JSON-friendly shape.
 
-    Lists/tuples/sets become lists; scalars pass through; dataclasses
-    are converted via ``__dict__``; other objects become their ``str()``.
+    Lists/tuples/sets become lists; dicts become JSON-safe dicts;
+    scalars pass through; dataclasses are converted via ``__dict__``;
+    other objects become their ``str()``.
     """
     if isinstance(value, (list, tuple, set, frozenset)):
         return [_json_default(v) if not _is_jsonable(v) else v for v in value]
+    if isinstance(value, dict):
+        # P1-3: dicts should pass through as dicts (not be stringified)
+        # so downstream JSON consumers can query outcome fields directly.
+        return _safe_jsonable(value)
     if _is_jsonable(value):
         return value
     return _json_default(value)
@@ -158,12 +163,33 @@ def _is_jsonable(value: Any) -> bool:
     return isinstance(value, (str, int, float, bool, type(None)))
 
 
-def _safe_jsonable(obj: dict[str, Any]) -> dict[str, Any]:
-    """Coerce a dict's values to JSON-friendly types, preserving scalars."""
+def _safe_jsonable(obj: dict[str, Any], _seen: set[int] | None = None) -> dict[str, Any]:
+    """Coerce a dict's values to JSON-friendly types, preserving scalars.
+
+    P1-3: handles nested lists and dicts recursively (previously
+    stringified any non-scalar value, which broke dict outcomes
+    containing lists of strings). Uses a `_seen` set to break
+    circular references (falls back to str() for already-seen objects).
+    """
+    if _seen is None:
+        _seen = set()
+    obj_id = id(obj)
+    if obj_id in _seen:
+        return "<circular>"
+    _seen.add(obj_id)
+
     out: dict[str, Any] = {}
     for k, v in obj.items():
         if _is_jsonable(v):
             out[k] = v
+        elif isinstance(v, (list, tuple, set, frozenset)):
+            out[k] = [
+                item if _is_jsonable(item)
+                else (_safe_jsonable(item, _seen) if isinstance(item, dict) else _json_default(item))
+                for item in v
+            ]
+        elif isinstance(v, dict):
+            out[k] = _safe_jsonable(v, _seen)
         else:
             out[k] = _json_default(v)
     return out
