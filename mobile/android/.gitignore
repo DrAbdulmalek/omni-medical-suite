@@ -1,0 +1,39 @@
+# Build artifacts
+build/
+bin/
+.buildozer/
+.buildozer_android/
+~/.buildozer/
+
+# Models (downloaded on demand)
+assets/models/*
+!assets/models/.gitkeep
+assets/models/_hub/
+
+# Virtualenvs
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+user_data/
