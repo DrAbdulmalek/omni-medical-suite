@@ -145,6 +145,21 @@ docker-compose -f docker-compose.lite.yml up -d
 
 Portable single-file AppImage — no install required, runs on Manjaro/KDE Plasma 6 (Wayland) and most modern Linux distros.
 
+**⬇️ Pre-built binary (recommended):**
+Download `MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage` (177 MB) directly from the
+[GitHub Release v1.1.0-rc1](https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0-rc1):
+
+```bash
+# Download + verify + run
+wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0-rc1/MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage
+wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0-rc1/MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage.sha256
+sha256sum -c MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage.sha256
+chmod +x MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage
+./MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage
+```
+
+**🔧 Build from source (advanced):**
+
 ```bash
 git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
