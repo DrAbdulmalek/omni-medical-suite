@@ -1,15 +1,42 @@
-# Release Candidate Checklist — v1.1.0-rc1
+# Release Candidate Checklist — v1.1.0 (stable)
 
-**Branch:** `feat/rc-hardening-p0`
-**Latest commit:** `5e2e45f` (2026-07-19) — P2-2 complete
-**Test status:** 161/161 P0+P1 tests pass (3.02s) + 11 AppImage smoke tests (skipped without AppImage)
+**Branch:** `main` (merged from `feat/rc-hardening-p0` via PR #66 + 4 post-merge fixes)
+**Latest stable commit:** v1.1.0 tag points to the head after final doc updates
+**Test status:** 174/174 tests pass (163 unit + 11 AppImage smoke) in <3s
 - P0: 95 tests (scanner_tab + decision_log + translation + hf_dataset_staging + lazy_ocr_service)
 - P1: 66 tests (field_extractor + benchmark_reporter + decision_instrumentation)
-- P2: 11 AppImage smoke tests (conditional on `MEDICAL_DOC_APPIMAGE` env var)
+- P2: 11 AppImage smoke tests (now run with `MEDICAL_DOC_APPIMAGE` env var pointing to v1.1.0 AppImage)
+- Additional: 28 P0-extra tests (field_extractor_core + other)
 
 **P0 status:** 7/7 complete (deploy source of truth, scanner integration, lazy loading, translation service, HF staging, decision log, pytest unification)
 **P1 status:** 4/4 complete (field extractor, benchmark reporter, decision instrumentation, Git LFS audit)
 **P2 status:** 4/4 complete (AppImage hardening, CI matrix, RC checklist + release notes, LFS migration plan)
+**Stable promotion:** ✅ rc1 → stable after 4 AppImage build fixes (desktop file at AppDir root, ARCH env var, icon naming, README direct-download link)
+
+---
+
+## ✅ v1.1.0 Stable Release — Verified
+
+### Final verification (run before tagging v1.1.0)
+
+- [x] `bash scripts/sync-hf-space.sh --force` — clean, 5 directories synced
+- [x] `bash scripts/sync-hf-space.sh --verify` — ✅ in sync
+- [x] 163/163 P0+P1+P0-extra tests pass in 1.92s
+- [x] 11/11 AppImage smoke tests pass in 1.28s (using v1.1.0-rc1 AppImage artifact)
+- [x] No real tokens leaked in git history (filter-repo placeholders only)
+- [x] Remote URL cleaned (no embedded PAT)
+- [x] Credential helper uses `$GH_TOKEN` env var (not hardcoded)
+- [x] Backup branch `backup/before-v1.1.0-stable` pushed
+- [x] All 4 AppImage build fixes verified in CI (run 29681501968 ✅ green)
+- [x] HF Space drift intentionally documented in STATE_OF_TRUTH.md
+
+### Stable release assets
+
+- **Tag:** `v1.1.0` (annotated)
+- **GitHub Release:** https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0
+- **AppImage asset** (177 MB): `MedicalDocProcessor-v1.1.0-x86_64.AppImage`
+- **SHA256 asset:** `MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256`
+- **Release Notes:** `RELEASE_NOTES_v1.1.0.md`
 
 ---
 
@@ -153,7 +180,22 @@
 
 ---
 
-## 🚀 Run commands
+## 🚀 Run commands (v1.1.0 stable)
+
+### HuggingFace Space (live demo)
+
+Direct URL: https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr
+
+```bash
+# Sync monorepo → hf-space/ (idempotent)
+./scripts/sync-hf-space.sh --force
+./scripts/sync-hf-space.sh --verify
+
+# Push to trigger deploy-to-hf.yml workflow
+git add hf-space/
+git commit -m "chore(hf-space): sync from monorepo"
+git push origin main
+```
 
 ### Local Gradio (advanced_review_app with new scanner tab)
 
@@ -178,30 +220,13 @@ python app/advanced_review_app.py
 # → Tab "🔬 معالج الصور" → expand "✂️ قص يدوي" + "⚙️ كشف الحواف المتقدم"
 ```
 
-### HuggingFace Space deployment
-
-```bash
-# 1. Sync monorepo → hf-space/
-./scripts/sync-hf-space.sh
-
-# 2. Verify drift (should be clean)
-./scripts/sync-hf-space.sh --verify
-
-# 3. Commit + push to main (triggers deploy-to-hf.yml workflow)
-git add hf-space/
-git commit -m "chore(hf-space): sync from monorepo"
-git push origin main
-
-# 4. Watch deployment
-# https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr
-```
-
 ### Google Colab
 
 ```python
 # In a Colab cell:
 !git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
 %cd omni-medical-suite
+!git checkout v1.1.0  # stable release
 !pip install -e packages/scanner_fixer
 !pip install -r requirements-scanner.txt
 !apt-get install -y tesseract-ocr tesseract-ocr-ara
@@ -212,6 +237,23 @@ from app.advanced_review_app import build_app, demo
 build_app().launch(share=True, debug=True)
 ```
 
+### Desktop AppImage (Manjaro / Linux x86_64)
+
+```bash
+# Pre-built binary (recommended) — direct from GitHub Release
+wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0/MedicalDocProcessor-v1.1.0-x86_64.AppImage
+wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0/MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256
+sha256sum -c MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256
+chmod +x MedicalDocProcessor-v1.1.0-x86_64.AppImage
+./MedicalDocProcessor-v1.1.0-x86_64.AppImage
+
+# Build from source (advanced)
+cd packages/desktop
+bash build_appimage.sh --version-from-git --smoke-test
+```
+
+For full Manjaro prerequisites (pacman packages, yay, Wayland notes, troubleshooting), see [`docs/APPIIMAGE_MANJARO.md`](docs/APPIIMAGE_MANJARO.md).
+
 ### Mobile (Telegram/PWA)
 
 ```bash
@@ -220,30 +262,9 @@ build_app().launch(share=True, debug=True)
 # https://DrAbdulmalek-omni-medical-ocr.hf.space
 ```
 
-### Desktop AppImage (Manjaro / Linux x86_64)
-
-```bash
-# 1. Build the AppImage (from repo root)
-cd packages/desktop
-bash build_appimage.sh --version-from-git --smoke-test
-
-# 2. Run it (KDE Plasma 6 on Wayland auto-detected)
-chmod +x MedicalDocProcessor-*.AppImage
-./MedicalDocProcessor-*.AppImage
-
-# 3. Verify checksum
-sha256sum -c MedicalDocProcessor-*.AppImage.sha256
-
-# 4. (Optional) Install system-wide
-sudo mv MedicalDocProcessor-*.AppImage /usr/local/bin/medical-doc-processor.AppImage
-sudo mv MedicalDocProcessor-*.AppImage.sha256 /usr/local/bin/
-```
-
-For full Manjaro prerequisites (pacman packages, yay, Wayland notes, troubleshooting), see [`docs/APPIIMAGE_MANJARO.md`](docs/APPIIMAGE_MANJARO.md).
-
 ---
 
-## 📋 Migration notes (v1.0.0 → v1.1.0-rc)
+## 📋 Migration notes (v1.0.0 → v1.1.0 stable)
 
 ### Breaking changes
 **None.** All P0 changes are backward-compatible:
@@ -284,17 +305,25 @@ The verification step in `scripts/sync-hf-space.sh --verify` revealed:
 
 ### Rollback procedure
 
-If v1.1.0-rc1 introduces a regression, roll back by checking out the previous main:
+If v1.1.0 stable introduces a regression, roll back by checking out the previous main:
 
 ```bash
 git checkout main
-git reset --hard origin/main  # f98e2f9 (pre-P0)
+git reset --hard v1.0.0   # legacy stable
+git push --force-with-lease origin main
 ```
 
 Or revert individual P0/P1/P2 commits:
 
 ```bash
-# P2 reverts (latest first)
+# Post-rc1 AppImage fixes (latest first)
+git revert 25a6198  # docs(readme): direct download link
+git revert a121b8c  # fix(appimage): root icon naming
+git revert 9225884  # fix(appimage): ARCH env var
+git revert bf34b84  # fix(appimage): .desktop + icon at AppDir root
+
+# P2 reverts
+git revert ecb150c  # P2-3 + P2-4: RC Checklist + LFS migration plan
 git revert 5e2e45f  # P2-2: CI matrix
 git revert 63c58cd  # P2-1: AppImage hardening
 
@@ -314,3 +343,4 @@ Backup branches available:
 - `backup/before-p0-1-p0-2-work` → points at `6a23c52` (post-P0 patch, pre-P0-1/P0-2)
 - `backup/before-p1-work` → points at `d4a170f` (post-P0, pre-P1)
 - `backup/before-p2-work` → points at `22d0aff` (post-P1, pre-P2)
+- `backup/before-v1.1.0-stable` → points at `098e9b9` (post-rc1, pre-stable promotion)

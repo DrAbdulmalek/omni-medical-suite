@@ -1,11 +1,25 @@
 # STATE_OF_TRUTH.md
 
-**Last updated:** 2026-07-19 — v1.1.0-rc (P0 hardening)
+**Last updated:** 2026-07-19 — v1.1.0 stable (P0+P1+P2 hardening complete)
 
 This document is the **single authoritative answer** to "what is the
 current state of the omni-medical-suite runtime?". It is updated every
-time a P0/P1 patch lands. If anything in this file disagrees with the
+time a P0/P1/P2 patch lands. If anything in this file disagrees with the
 code, the code wins — fix this file.
+
+---
+
+## 0. Release status
+
+| Tag | Date | Status | Tests |
+|-----|------|--------|-------|
+| **v1.1.0** (stable) | 2026-07-19 | ✅ Released — GitHub Release with AppImage + SHA256 | 174 pass (163 unit + 11 AppImage smoke) |
+| v1.1.0-rc1 | 2026-07-19 | ✅ Merged into v1.1.0 | 161 pass + 11 conditional |
+| v1.0.0 | 2026-07-05 | ✅ Stable (legacy) | Pre-hardening baseline |
+
+**Main HEAD:** points at v1.1.0 stable commit (after final doc + tag push).
+**Backup branches:** `backup/before-p0-1-p0-2-work`, `backup/before-p1-work`,
+`backup/before-p2-work`, `backup/before-v1.1.0-stable` (last pre-stable snapshot).
 
 ---
 
@@ -19,12 +33,26 @@ code, the code wins — fix this file.
 | Docker (Gradio) | `Dockerfile.gradio` | Multi-stage build; copies `hf-space/app.py` and `hf-space/{src,packages,config}`. |
 | Docker (FastAPI) | `Dockerfile.api` | Not in scope for this patch set. |
 
-**Known drift:** `hf-space/app.py` (664 LOC) duplicates the OCR / NER /
-translation / HF-dataset logic that lives in `app/services/*`. The two
-implementations have already diverged (e.g. `hf-space/app.py` uses
-`device="cpu"` hardcoded; `app/services/ocr_service.py` uses
-`use_gpu=False`). P1-1 will document `hf-space/` as an explicit deploy
-snapshot and add a parity check in CI.
+**Known drift (intentional, documented):** `hf-space/app.py` (306 LOC,
+frozen snapshot for HF Spaces CPU tier) duplicates the OCR / NER /
+translation / HF-dataset logic that lives in `app/services/*` (refactored
+canonical version, ~466 LOC + service modules). The two implementations
+have **structural divergence only** — same public API surface
+(`full_process`, `save_to_hf`, `translate_text`, `calculate_metrics`),
+same behavioral contract.
+
+| Aspect | `hf-space/app.py` (snapshot) | `app/gradio_full_hitl.py` (canonical) |
+|--------|------------------------------|--------------------------------------|
+| Imports | All logic inline (cv2, numpy, gradio) | Delegates to `app/services/{ocr,review,translation,hf_dataset}_service.py` |
+| Lazy loading | Manual `try/except` per import | PEP 562 `__getattr__` on service modules |
+| HF dataset | Direct `datasets.load_dataset()` per save | Staging queue → batched flush at 25 rows |
+| Device | Hardcoded `device="cpu"` | `use_gpu=False` (configurable) |
+| Sync | NOT auto-overwritten by `sync-hf-space.sh` | Source of truth for `app/services/*` |
+
+`sync-hf-space.sh --verify` confirms 5 directories in sync: `src/ocr`,
+`packages/{vision,nlp,core}`, `config`. HF-specific files (`app.py`,
+`Dockerfile`, `requirements.txt`) are intentionally NOT overwritten —
+they are deploy-snapshot files tuned for the HF Spaces CPU environment.
 
 ---
 

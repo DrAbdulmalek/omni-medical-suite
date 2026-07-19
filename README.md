@@ -16,8 +16,9 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/Packages-31-4B8BBE?style=flat-square" />
   <img src="https://img.shields.io/badge/Apps-5-2ECC71?style=flat-square" />
-  <img src="https://img.shields.io/badge/Tests-161%2B-FF6B6B?style=flat-square" />
-  <img src="https://img.shields.io/badge/Version-v1.1.0--rc1-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/Tests-174%2B-FF6B6B?style=flat-square" />
+  <img src="https://img.shields.io/badge/Version-v1.1.0-blue?style=flat-square" />
+  <a href="https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/Release-v1.1.0-brightgreen?style=flat-square" /></a>
   <img src="https://img.shields.io/badge/License-MIT-3C873A?style=flat-square" />
   <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><img src="https://img.shields.io/badge/HF%20Space-Beta-yellow?style=flat-square&logo=huggingface" /></a>
 </p>
@@ -69,9 +70,9 @@ Omni Medical Suite extracts, corrects, and structures Arabic text from medical d
 | **Desktop + Web + API** | PyQt6 desktop app, Gradio web UI, FastAPI REST API |
 | **Continuous Retraining** | Weekly model improvement from accumulated corrections |
 
-## 🆕 What's New in v1.1.0-rc1
+## 🆕 What's New in v1.1.0 (stable)
 
-The v1.1.0-rc1 hardening sprint consolidates **12 commits** across three phases (P0 + P1 + P2), adding **161 passing tests**, structured decision logging, an AppImage build pipeline, and a multi-platform CI matrix.
+The v1.1.0 hardening sprint consolidates **16 commits** across three phases (P0 + P1 + P2) plus 4 post-rc1 AppImage build fixes. It adds **174 passing tests** (163 unit + 11 AppImage smoke), structured decision logging, an AppImage build pipeline, and a multi-platform CI matrix.
 
 ### Highlights
 
@@ -89,9 +90,22 @@ The v1.1.0-rc1 hardening sprint consolidates **12 commits** across three phases 
 | **P2** | **AppImage build pipeline** | `bash build_appimage.sh --version-from-git --smoke-test` |
 | **P2** | CI matrix | Python 3.10/3.11/3.12 × Ubuntu + Manjaro/Arch container + HF smoke + Colab smoke + LFS audit |
 | **P2** | LFS migration plan | Staged approach (no forced history rewrite on `main`) |
+| **stable** | AppImage pre-built binary (177 MB) | Direct download from GitHub Release — no build step required |
+| **stable** | `ARCH=x86_64` + `.desktop`/icon at AppDir root | `appimagetool` build fully green in CI |
+| **stable** | Backup branches + RC1 → stable promotion | `backup/before-v1.1.0-stable` for rollback safety |
 
-📖 **Full release notes:** [`RELEASE_NOTES_v1.1.0-rc1.md`](RELEASE_NOTES_v1.1.0-rc1.md)
+### Migration notes (v1.0.0 → v1.1.0)
+
+- **Breaking changes:** None. All public APIs preserved via PEP 562 `__getattr__`.
+- **Behavioral changes:**
+  1. `save_to_hf()` now appends to local JSONL by default; flushes batch of 25 rows. Set `OMNI_HF_FLUSH_THRESHOLD=1` for legacy per-save behavior.
+  2. OCR engines construct on first use (not at import). Failed constructions are cached (no retry storm).
+  3. Decision log emits to stderr by default. Attach a JSON-lines file handler to ship to your log aggregator.
+- **New env vars:** `OMNI_HF_QUEUE_DIR`, `OMNI_HF_FLUSH_THRESHOLD`, `OMNI_APPIMAGE_OFFSCREEN`, `APPIMAGETOOL_SIGN_KEY`, `MEDICAL_DOC_APPIMAGE`.
+
+📖 **Full release notes:** [`RELEASE_NOTES_v1.1.0.md`](RELEASE_NOTES_v1.1.0.md)
 📋 **Release candidate checklist:** [`RELEASE_CANDIDATE_CHECKLIST.md`](RELEASE_CANDIDATE_CHECKLIST.md)
+🔄 **Previous RC:** [`RELEASE_NOTES_v1.1.0-rc1.md`](RELEASE_NOTES_v1.1.0-rc1.md)
 
 ## Quick Start
 
@@ -141,21 +155,21 @@ docker-compose up -d
 docker-compose -f docker-compose.lite.yml up -d
 ```
 
-### Option 5: Desktop AppImage (Manjaro / Linux x86_64) — NEW in v1.1.0-rc1
+### Option 5: Desktop AppImage (Manjaro / Linux x86_64) — Stable in v1.1.0
 
 Portable single-file AppImage — no install required, runs on Manjaro/KDE Plasma 6 (Wayland) and most modern Linux distros.
 
 **⬇️ Pre-built binary (recommended):**
-Download `MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage` (177 MB) directly from the
-[GitHub Release v1.1.0-rc1](https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0-rc1):
+Download `MedicalDocProcessor-v1.1.0-x86_64.AppImage` (177 MB) directly from the
+[GitHub Release v1.1.0](https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0):
 
 ```bash
 # Download + verify + run
-wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0-rc1/MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage
-wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0-rc1/MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage.sha256
-sha256sum -c MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage.sha256
-chmod +x MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage
-./MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage
+wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0/MedicalDocProcessor-v1.1.0-x86_64.AppImage
+wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0/MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256
+sha256sum -c MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256
+chmod +x MedicalDocProcessor-v1.1.0-x86_64.AppImage
+./MedicalDocProcessor-v1.1.0-x86_64.AppImage
 ```
 
 **🔧 Build from source (advanced):**
@@ -163,7 +177,7 @@ chmod +x MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage
 ```bash
 git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
 cd omni-medical-suite
-git checkout v1.1.0-rc1   # or main after merge
+git checkout v1.1.0   # stable release
 
 # Install scanner_fixer editable + desktop deps
 pip install -e packages/scanner_fixer
