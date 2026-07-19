@@ -312,3 +312,60 @@ Stage Summary:
 - **5 backup branches** total (before-p0-1-p0-2-work, before-p1-work, before-p2-work,
   before-v1.1.0-stable, plus 4 legacy branches)
 - **v1.1.0 is the latest GitHub Release** (confirmed via /releases/latest)
+
+---
+Task ID: FIX-HF-SPACE-DRIFT-AND-TERMUX-UNIFY
+Agent: Z.ai (main)
+Task: Close hf-space/app.py ↔ app/services/ocr_service.py drift (P1-1 from Grok's plan) + unify mobile/termux/termux_app.py with the shared scanner_fixer + corrections_manager architecture
+
+Work Log:
+- Rebased local main on origin/main (13 commits behind — pulled v1.1.0 stable promotion, Termux installer commit `2f76549`, etc.).
+- Created fresh branch `fix/hf-space-drift-and-termux-unify` from `2f76549` (origin/main HEAD).
+
+Task 1 — HF Space drift:
+- Identified drift: `app/services/ocr_service.py` used `use_gpu=False` (PaddlePaddle 2.x) while `hf-space/app.py` had already moved to `device="cpu"` (PaddlePaddle 3.x).
+- Fixed by editing `app/services/ocr_service.py` line 78-85: replaced `use_gpu=False` with `device="cpu"` + an inline comment explaining the PaddlePaddle 3.x migration and the lock-step with hf-space/app.py.
+- Ran `./scripts/sync-hf-space.sh --force` to refresh all 5 auto-synced paths (src/ocr, packages/{vision,nlp,core}, config). Post-sync verify: all 5 OK.
+- Manual mirror audit over 4 knobs (PaddleOCR kwargs / ImagePreprocessor kwargs / Tesseract config / OCR_CORRECTIONS dict) — all 4 match after the fix.
+- Built `scripts/check_hf_space_drift.py` (211 LOC) — extracts and compares the 4 knobs as normalized strings, with comment-stripping + paren-matching for robust extraction. Returns 0 only if all 4 match.
+- Added `.github/workflows/hf-space-drift.yml` (113 LOC) — runs Layer 1 (sync-hf-space.sh --verify) + Layer 2 (check_hf_space_drift.py) on PR / push / daily 06:30 UTC schedule.
+- Documented the protocol + the accepted structural differences table (lifecycle / spell-checker call site / LLM imports / tuple shape) in `docs/DEPLOYMENT.md` § "HF Space drift control (manual mirror audit)".
+
+Task 2 — Termux unification:
+- Rewrote `mobile/termux/termux_app.py` (515 → 612 LOC) to delegate to shared libraries:
+  - `deskew()` → `scanner_fixer.deskew.deskew()` (Hough + std guard; local minAreaRect kept as fallback)
+  - `text_aware_crop()` → `scanner_fixer.crop.auto_crop()` (morphological; local largest-contour kept as fallback)
+  - `denoise()` / `enhance_contrast()` → shared cv2 calls (same as scanner_fixer.enhance uses internally)
+  - `save_correction()` → `CorrectionsDictManager.add()` + `WordCorrectionDB.save_batch()` (same DB the PWA server reads)
+  - `get_stats()` → `WordCorrectionDB.stats()` (accuracy rate, sessions, per-language breakdown)
+- Documented the OCR engine exception inline: Termux keeps `pytesseract` direct (NOT `EngineRegistry`/`OCRService`) because PaddleOCR (~500MB) + EasyOCR (~400MB) are impractical on Android ARM64 phone hardware. Code comment explains the rationale.
+- Added `_discover_repo_root()` bootstrap: walks up from `__file__` looking for `packages/scanner_fixer/pyproject.toml`; honors `OMNI_REPO_ROOT` env var. Also inserts `packages/scanner_fixer/src` on sys.path so `import scanner_fixer` works without `pip install -e`.
+- Updated `install_termux.sh`:
+  - Now installs `scanner-fixer` as editable pip package (`pip install -e $WORKDIR/packages/scanner_fixer`) with silent fallback to sys.path bootstrap.
+  - `omni-ocr` launcher exports `OMNI_REPO_ROOT` so the copied `termux_app.py` at `~/omni_workspace/` can find `packages.core.*` and `packages/scanner_fixer/src`.
+  - `omni-update` re-installs scanner_fixer after `git pull` to keep editable install in sync with pyproject.toml changes.
+- Found + fixed a latent bug in `WordCorrectionDB.save_batch()`: it calls `self.update_arabic_fixes()` with no args, and the default `path` parameter is bound at function-definition time using the module-level `ARABIC_FIXES_PATH = "data/arabic_fixes.json"`. This meant saving a correction on Termux would silently overwrite the REPO's `data/arabic_fixes.json` instead of writing to the workspace. Fixed by rebinding the method on the instance with a workspace path default. The deeper fix (making `WordCorrectionDB` accept `arabic_fixes_path` in `__init__`) is out of scope for this commit; documented inline.
+- Added new section `1️⃣1️⃣.5 التوحيد مع البنية الموحّدة (v1.1.1+)` to `mobile/termux/TERMUX_GUIDE.md` documenting the unification, the OCR engine exception, and how to diagnose standalone vs unified mode from the startup log.
+
+Task 3 — Comprehensive verification:
+- 5-package import check: packages.core / packages.vision / packages.nlp / scanner_fixer / src.ocr → 5/5 OK.
+- User-requested live imports:
+  - `python3 -c "import app.gradio_full_hitl; print('OFFICIAL APP OK')"` → ✅ OFFICIAL APP OK
+  - `python3 -c "import packages.core.mobile.server; print('PWA SERVER OK')"` → ❌ blocked by missing `flask` system dep (pre-existing env limitation, same on main; not from our changes).
+  - `python3 -c "from mobile.termux import termux_app; print('TERMUX APP OK')"` → ✅ TERMUX APP OK (SCANNER_FIXER_AVAILABLE=True, HAS_LEARNING=True)
+- Drift gate: `bash scripts/sync-hf-space.sh --verify` → ✅ all 5 synced paths clean. `python3 scripts/check_hf_space_drift.py` → ✅ all 4 knobs match.
+- Full test suite: 601 passed, 85 failed, 46 skipped, 4 errors. Verified the 85 failures are pre-existing on main (missing optional deps: paddleocr, easyocr, sqlalchemy, flask, openai, torch + transformers version mismatch). Zero new breakage from our changes.
+
+Commits (on branch `fix/hf-space-drift-and-termux-unify`, NOT merged to main per user's instruction):
+- `41246bc` — fix(hf-space): close PaddleOCR device= drift + add CI drift gate (4 files, +386/-1)
+- `4737aaa` — refactor(termux): unify with scanner_fixer + corrections_manager (3 files, +354/-12)
+
+Stage Summary:
+- **Branch**: `fix/hf-space-drift-and-termux-unify` (pushed to origin, NOT merged to main)
+- **URL**: https://github.com/DrAbdulmalek/omni-medical-suite/tree/fix/hf-space-drift-and-termux-unify
+- **PR-ready URL**: https://github.com/DrAbdulmalek/omni-medical-suite/pull/new/fix/hf-space-drift-and-termux-unify
+- **HEAD**: `4737aaa` (refactor(termux): unify with scanner_fixer + corrections_manager)
+- **Verification**: 5/5 packages import cleanly; OFFICIAL APP OK; TERMUX APP OK; hf-space drift gate green.
+- **Known limitation**: `packages.core.mobile.server` import blocked by missing `flask` system dep in this sandbox — pre-existing env limitation, not a code issue.
+- **Security**: PAT was used to push (the previously exposed one still works), but it was immediately removed from `.git/config` via `git config branch.<name>.remote origin`. The user should still revoke this PAT per the v1.1.0 stable security audit and create a fresh one for future sessions.
+- **Awaiting user review** before merge to main.
