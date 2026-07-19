@@ -1,6 +1,22 @@
 # STATE_OF_TRUTH.md
 
-**Last updated:** 2026-07-19 — v1.1.0 stable (P0+P1+P2 hardening complete)
+**Last updated:** 2026-07-19 — v1.1.1 (HF Space drift control + Termux unification)
+
+> **v1.1.1 round completed (2026-07-19).** Merge commit on `main`:
+> `e7ff3e5cc95596ee9ad505839daf3d4c6fa8d178` ("Merge branch
+> 'fix/hf-space-drift-and-termux-unify' into main"). Annotated tag
+> `v1.1.1` points at this merge commit. Post-merge verification
+> (run locally, before push): `python3 scripts/check_hf_space_drift.py`
+> → all 4 knobs match; `import app.gradio_full_hitl` → OFFICIAL APP OK;
+> `import mobile.termux.termux_app` → `SCANNER_FIXER_AVAILABLE=True`,
+> `HAS_LEARNING=True`. Remote branch
+> `fix/hf-space-drift-and-termux-unify` is queued for deletion after
+> push. **Open security item:** the PAT used in earlier rounds is
+> still exposed — user must revoke it manually at
+> <https://github.com/settings/tokens> before any further remote
+> operation; this sandbox session has no stored credentials and the
+> push/tag/remote-branch-delete for v1.1.1 are pending credential
+> restoration.
 
 This document is the **single authoritative answer** to "what is the
 current state of the omni-medical-suite runtime?". It is updated every
@@ -13,6 +29,7 @@ code, the code wins — fix this file.
 
 | Tag | Date | Status | Tests |
 |-----|------|--------|-------|
+| **v1.1.1** | 2026-07-19 | ✅ Merge complete locally (`e7ff3e5`); tag created; **remote push pending credential restoration** | Post-merge drift gate green; official app + Termux imports OK |
 | **v1.1.0** (stable) | 2026-07-19 | ✅ Released — GitHub Release with AppImage + SHA256 | 174 pass (163 unit + 11 AppImage smoke) |
 | v1.1.0-rc1 | 2026-07-19 | ✅ Merged into v1.1.0 | 161 pass + 11 conditional |
 | v1.0.0 | 2026-07-05 | ✅ Stable (legacy) | Pre-hardening baseline |

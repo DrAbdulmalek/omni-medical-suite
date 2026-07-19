@@ -369,3 +369,72 @@ Stage Summary:
 - **Known limitation**: `packages.core.mobile.server` import blocked by missing `flask` system dep in this sandbox — pre-existing env limitation, not a code issue.
 - **Security**: PAT was used to push (the previously exposed one still works), but it was immediately removed from `.git/config` via `git config branch.<name>.remote origin`. The user should still revoke this PAT per the v1.1.0 stable security audit and create a fresh one for future sessions.
 - **Awaiting user review** before merge to main.
+
+---
+Task ID: MERGE-V1.1.1-TO-MAIN
+Agent: Z.ai (main)
+Task: Merge `fix/hf-space-drift-and-termux-unify` to main, verify, tag v1.1.1, push, delete remote branch
+
+Work Log:
+- Verified clean linear history: branch `fix/hf-space-drift-and-termux-unify`
+  was 3 commits ahead of `origin/main` (`41246bc` hf-space drift fix,
+  `4737aaa` termux unify, `fd64931` worklog), 0 commits behind.
+- Switched to main, fetched origin, pulled main (already up to date).
+- Performed `git merge --no-ff origin/fix/hf-space-drift-and-termux-unify`
+  with a 12-line merge message enumerating all 5 changes (drift fix,
+  CI workflow, termux unify, arabic_fixes.json guard, docs).
+- Merge commit created: `e7ff3e5cc95596ee9ad505839daf3d4c6fa8d178`.
+- **Post-merge verification (BEFORE push, all 3 commands as specified):**
+  1. `python3 scripts/check_hf_space_drift.py` → EXIT 0
+     - ✅ PaddleOCR kwargs: match
+     - ✅ ImagePreprocessor kwargs: match
+     - ✅ Tesseract calls: match
+     - ✅ OCR_CORRECTIONS dict: match
+     - ✅ All knobs match — no drift.
+  2. `python3 -c "import sys; sys.path.insert(0,'.'); import app.gradio_full_hitl; print('OFFICIAL APP OK')"`
+     → EXIT 0, prints `OFFICIAL APP OK` (with expected Gradio 6.0
+     theme/css deprecation warning, not an error).
+  3. `python3 -c "import sys; sys.path.insert(0,'.'); import mobile.termux.termux_app as ta; print('SCANNER_FIXER_AVAILABLE:', ta.SCANNER_FIXER_AVAILABLE); print('HAS_LEARNING:', ta.HAS_LEARNING)"`
+     → EXIT 0, prints:
+       `SCANNER_FIXER_AVAILABLE: True`
+       `HAS_LEARNING: True`
+     Startup log confirms:
+       - "scanner_fixer loaded — image processing delegated to unified library"
+       - "Learning loop wired: CorrectionsDictManager + WordCorrectionDB (shared with PWA server)"
+- All 3 checks match the pre-merge independent verification Claude
+  confirmed earlier. Zero drift introduced by the merge.
+- Created annotated tag `v1.1.1` locally pointing at merge commit
+  `e7ff3e5cc95596ee9ad505839daf3d4c6fa8d178` with the exact release
+  message specified by the user (4 bullet points: drift fix, CI workflow,
+  termux unify, arabic_fixes.json corruption risk).
+- **BLOCKER encountered on push:** No GitHub credentials available
+  in this sandbox session. Checked: `git config credential.helper`
+  (empty), `GH_TOKEN`/`GITHUB_TOKEN`/`GIT_PASS` env vars (none),
+  `~/.git-credentials` (absent), `~/.netrc` (absent),
+  `~/.config/git/credentials` (absent), `gh` CLI (not installed).
+  The previously exposed PAT was used in a prior session via inline
+  URL push and was never persisted to a credential store.
+- Updated `STATE_OF_TRUTH.md`:
+  - Bumped "Last updated" header to v1.1.1.
+  - Added a top-of-file banner documenting the v1.1.1 round completion
+    (merge hash, tag pointer, post-merge verification results, open
+    security item, pending remote operations).
+  - Added a v1.1.1 row to the Release status table.
+- Push, tag push, and remote-branch-delete are pending credential
+  restoration. Cannot proceed without user action.
+
+Stage Summary:
+- **Merge commit (local main HEAD):** `e7ff3e5cc95596ee9ad505839daf3d4c6fa8d178`
+- **Tag (local):** `v1.1.1` → `e7ff3e5`
+- **Post-merge verification:** 3/3 green (drift / official app / termux flags)
+- **PENDING (blocked on credentials):**
+  - `git push origin main`
+  - `git push origin v1.1.1`
+  - `git push origin --delete fix/hf-space-drift-and-termux-unify`
+- **MANDATORY USER ACTION (security):** Revoke the exposed PAT at
+  <https://github.com/settings/tokens> before creating a fresh PAT.
+  The PAT was previously leaked in plain text in this conversation;
+  Claude flagged this in the prior round; the user's pre-confirmation
+  message also acknowledged the same PAT being exposed.
+- **Cannot revoke PAT on behalf of user** — no GitHub web UI access
+  from this sandbox.
