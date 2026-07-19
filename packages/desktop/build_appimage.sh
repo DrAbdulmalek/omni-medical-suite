@@ -335,6 +335,12 @@ echo ""
 echo "📦 Building AppImage..."
 OUTPUT_NAME="${APP_NAME}-${VERSION}-$(uname -m).AppImage"
 
+# appimagetool needs ARCH env var when the AppDir contains libraries from
+# multiple architectures (e.g. PyInstaller bundles some noarch Python files
+# alongside x86_64 ELF binaries). Force ARCH to host architecture.
+export ARCH="${ARCH:-$(uname -m)}"
+echo "   ARCH=${ARCH}"
+
 cd "$SCRIPT_DIR"
 # Optional signing (if APPIMAGETOOL_SIGN_KEY env var is set)
 if [ -n "${APPIMAGETOOL_SIGN_KEY:-}" ]; then
