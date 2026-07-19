@@ -270,3 +270,45 @@ Stage Summary:
 - **AppImage artifact**: MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage (177 MB) — will be re-uploaded as v1.1.0 to the new Release
 - **Token security**: ✅ No leaked tokens; remote URL cleaned; credential helper uses env var
 - **Backup branches**: 4 total (before-p0-1-p0-2-work, before-p1-work, before-p2-work, before-v1.1.0-stable)
+
+---
+Task ID: RELEASE-V1.1.0-STABLE-COMPLETE
+Agent: Z.ai (main)
+Task: Complete v1.1.0 stable — tag, GitHub Release, AppImage asset upload
+
+Work Log:
+- Created annotated tag `v1.1.0` on commit `e9ca6ad` with full release message
+  (~25 lines summarizing P0/P1/P2/stable-promotion)
+- Pushed tag to origin: `git push origin v1.1.0`
+- Created GitHub Release v1.1.0 (stable, prerelease=False, make_latest=true)
+  via REST API:
+  - Release ID: 356310200
+  - URL: https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0
+  - Body: 117-line markdown with highlights, rc1→stable diff table,
+    migration notes, download instructions, known issues, roadmap
+- Triggered fresh AppImage build on v1.1.0 tag (workflow_dispatch):
+  - Run ID 29682848201 → completed ✅ success
+  - All 4 AppImage build fixes from rc1 are now in the build script
+- Downloaded fresh v1.1.0 AppImage artifact (185 MB ZIP) via GitHub API
+- Extracted: MedicalDocProcessor-v1.1.0-x86_64.AppImage (177 MB, ELF)
+- New SHA256: 196dfdf97233215e8720cc4753088bb8f9431dea2004ed97266a1d8069ad3a94
+- Uploaded both files to Release 356310200 as release assets:
+  - MedicalDocProcessor-v1.1.0-x86_64.AppImage (177 MB)
+  - MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256 (109 B)
+- Marked v1.1.0 as `make_latest=true` via PATCH /releases/356310200
+- Verified via GET /releases/latest → confirms v1.1.0 is latest
+
+Stage Summary:
+- **Tag v1.1.0**: https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0
+- **GitHub Release** (stable, latest): https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0
+- **AppImage asset** (177 MB): https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0/MedicalDocProcessor-v1.1.0-x86_64.AppImage
+- **SHA256 asset**: https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0/MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256
+- **SHA256**: 196dfdf97233215e8720cc4753088bb8f9431dea2004ed97266a1d8069ad3a94
+- **Main HEAD**: e9ca6ad (docs(worklog): append RELEASE-V1.1.0-STABLE entry)
+- **Tag points to**: e9ca6ad (same as main HEAD)
+- **Tests**: 174/174 pass (163 unit + 11 AppImage smoke)
+- **HF Space sync**: ✅ clean
+- **Token security**: ✅ No leaks; remote URL cleaned; credential helper uses env var
+- **5 backup branches** total (before-p0-1-p0-2-work, before-p1-work, before-p2-work,
+  before-v1.1.0-stable, plus 4 legacy branches)
+- **v1.1.0 is the latest GitHub Release** (confirmed via /releases/latest)
