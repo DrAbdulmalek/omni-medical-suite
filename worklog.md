@@ -226,3 +226,47 @@ Stage Summary:
 - **HF Space sync**: ✅ clean (sync-hf-space --verify passes)
 - **All required CI checks pass**: Python 3.10/3.11/3.12 + LFS audit + Colab notebooks + AppImage build
 - **Total commits added on main post-merge**: 4 (3 appimage fixes + 1 README update)
+
+---
+Task ID: RELEASE-V1.1.0-STABLE
+Agent: Z.ai (main)
+Task: Promote v1.1.0-rc1 to v1.1.0 stable — final verification, doc updates, tag, release
+
+Work Log:
+- Pre-flight backup: created `backup/before-v1.1.0-stable` (098e9b9) and pushed to origin
+- Final verification:
+  - `sync-hf-space.sh --force` → clean (5 dirs synced, 0 drift)
+  - `sync-hf-space.sh --verify` → ✅ all paths in sync
+  - 163/163 unit tests pass in 1.92s (P0+P1+P0-extra)
+  - 11/11 AppImage smoke tests pass in 1.28s (using v1.1.0-rc1 AppImage artifact)
+  - Total: 174/174 tests pass
+- HF Space drift analysis:
+  - `hf-space/app.py` (306 LOC) is a frozen snapshot for HF Spaces CPU tier
+  - `app/gradio_full_hitl.py` (~466 LOC + service modules) is canonical refactored version
+  - Same public API surface (full_process, save_to_hf, translate_text, calculate_metrics)
+  - Same behavioral contract — drift is structural, NOT functional
+  - Documented full drift table in STATE_OF_TRUTH.md §1
+- Token security audit:
+  - Scanned git history for `ghp_[A-Za-z0-9]{36}` and `hf_[A-Za-z0-9]{30,}` patterns
+  - No real tokens leaked (only `[REDACTED:github_token]` filter-repo placeholders)
+  - Found PAT embedded in remote URL → cleaned: `git remote set-url origin https://github.com/DrAbdulmalek/omni-medical-suite.git`
+  - Set up credential helper using `$GH_TOKEN` env var (no hardcoded tokens)
+  - Verified push works without URL-embedded token
+- Documentation updates (5 files, 416 insertions, 69 deletions):
+  - README.md: v1.1.0-rc1 → v1.1.0 badges; rewrote 'What's New' with migration notes + 3 stable-only rows; AppImage Quick Start uses v1.1.0 URLs
+  - STATE_OF_TRUTH.md: added §0 Release status table (v1.0.0/rc1/v1.1.0); expanded drift section into full comparison table
+  - docs/ROADMAP.md: added Release History table at top + post-v1.1.0 P3 roadmap (5 items)
+  - RELEASE_CANDIDATE_CHECKLIST.md: renamed to v1.1.0 (stable); added "Stable Release — Verified" section with 10-item final verification checklist; expanded rollback procedure with 4 post-rc1 fix commits + new backup branch
+  - RELEASE_NOTES_v1.1.0.md: new ~280-line stable release notes with rc1→stable diff table
+- Commit `394bc08`: docs(release): v1.1.0 stable promotion
+- Pushed to main (098e9b9 → 394bc08)
+
+Stage Summary:
+- **Main HEAD**: 394bc08 (docs(release): v1.1.0 stable promotion)
+- **Tag v1.1.0** (pending): will be created on 394bc08
+- **GitHub Release v1.1.0** (pending): stable release with AppImage + SHA256 + Release Notes
+- **Total tests**: 174/174 pass (163 unit + 11 AppImage smoke)
+- **HF Space**: ✅ in sync (sync-hf-space --verify clean)
+- **AppImage artifact**: MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage (177 MB) — will be re-uploaded as v1.1.0 to the new Release
+- **Token security**: ✅ No leaked tokens; remote URL cleaned; credential helper uses env var
+- **Backup branches**: 4 total (before-p0-1-p0-2-work, before-p1-work, before-p2-work, before-v1.1.0-stable)
