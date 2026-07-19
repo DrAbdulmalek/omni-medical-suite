@@ -265,21 +265,55 @@ full = [
 ]
 
 # ===================================================================
-# pytest — configuration is in pytest.ini for compatibility
+# pytest — single authoritative source (since v1.1.0-rc P0 hardening)
 # ===================================================================
+# Previous versions kept a duplicate minimal config here alongside
+# pytest.ini. pytest.ini took precedence, so the [tool.pytest.ini_options]
+# table here was effectively dead weight that misled IDE plugins and
+# editors. We now consolidate everything under pyproject.toml (the
+# modern PEP 518 / PEP 621 convention) and delete pytest.ini.
 [tool.pytest.ini_options]
-# Minimal config here; full config in pytest.ini
+minversion = "8.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+python_classes = ["Test*"]
 python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers -p no:warnings"
+asyncio_mode = "auto"
+pythonpath = [".", "src", "packages"]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "benchmark: marks tests as benchmarks",
     "integration: marks integration tests",
-    "ocr: tests requiring OCR engines",
+    "ocr: tests requiring OCR engines (tesseract, paddleocr)",
     "nlp: tests requiring NLP models",
     "gpu: tests requiring GPU",
     "requires_api_key: tests that call external APIs",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::ResourceWarning",
+]
+norecursedirs = [
+    ".git",
+    ".github",
+    "node_modules",
+    "__pycache__",
+    "*.egg-info",
+    "uploads",
+    "data",
+    "hf-space",
+    "benchmarks",
+    "notebooks",
+    "legacy",
+    "packages/omniparse",
+    "packages/omni-ocr",
+    "packages/ocr_postprocess/vendor",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
 ]
 
 # ===================================================================

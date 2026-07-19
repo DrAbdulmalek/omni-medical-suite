@@ -152,8 +152,29 @@ class ArabicRTLFixer:
         ratio = self.reversal_ratio(normalized)
         changed = force or self.should_fix(normalized)
         fixed = self.fix_text(normalized, force=force)
-        return fixed, RTLFixStats(
+        stats = RTLFixStats(
             reversal_ratio=ratio,
             had_presentation_forms=bool(PRESENTATION_FORM_RE.search(text or "")),
             changed=changed and fixed != normalized,
         )
+        # P1-3: instrument decision
+        try:
+            from app.core.decision_log import log_decision
+
+            log_decision(
+                decision="rtl_fix",
+                outcome="fixed" if stats.changed else "unchanged",
+                reasons=[
+                    f"reversal_ratio={ratio:.3f}",
+                    f"force={force}",
+                    f"had_presentation_forms={stats.had_presentation_forms}",
+                ],
+                inputs={
+                    "reversal_threshold": self.reversal_threshold,
+                    "text_len": len(text or ""),
+                },
+                skipped=[] if stats.changed else ["below_reversal_threshold"],
+            )
+        except ImportError:
+            pass  # app.core.decision_log not available
+        return fixed, stats

@@ -1,256 +1,251 @@
-# STATE_OF_TRUTH.md — آخر تحديث: 2026-07-19 (post-import-cleanup)
+# STATE_OF_TRUTH.md
 
-> **كل نموذج AI (Z.ai، Claude، Mistral، Grok، أو أي آخر) يجب أن يقرأ هذا الملف أولاً قبل أي تعديل على هذا المستودع، ويُحدِّثه بعد كل تغيير جوهري.**
+**Last updated:** 2026-07-19 — v1.1.0-rc (P0 hardening)
 
----
-
-## حالة الدمج — Merge Status
-
-| الفرع | الحالة | تفاصيل |
-|---|---|---|
-| `cleanup/final-pending-items` | ✅ مُدمج في main | merge commit `46fd895` |
-| `feature/desktop-scanner-unify-package` | ✅ مُدمج في main | scanner_fixer integration + PyInstaller + QShortcut fix |
-| `backup/lost-monorepo-work-0273fc2` | ✅ فرع احتياطي | 275 التزام — يتطابق مع main HEAD |
-| `backup/current-main-dictionaries` | ✅ فرع احتياطي | القواميس المنفصلة (قُلبت إلى omni-medical-dictionaries) |
-| `fix/pdf-ocr-processor-paddle-device` | ✅ مُدمج في main | merge `6d46e62` — PaddleOCR `device='cpu'` (PaddleOCR 3.x compat) |
-| `unify/pdf-ocr-processor-engine-registry` | ✅ مُدمج في main | merge `5f979fd` — `_run_ocr()` via `EngineRegistry` |
-| `refactor/scripts-pdf-ocr-thin-wrapper` | ✅ مُدمج في main | merge `3af9b9a` — `scripts/pdf_ocr_processor.py` thin wrapper |
-| `test/pdf-ocr-processor-suite` | ✅ مُدمج في main | merge `38fdd60` — 15/15 tests pass |
-| `chore/unify-mobile-and-learning` | ✅ مُدمج في main | merge `8b06c41` — 25 duplicate files → `packages/core/mobile/` |
-| `feat/mobile-server-wire-app-services` | ✅ مُدمج في main | merge `6f40d4e` — server.py shares `app.services.*` |
-| `docs/mobile-learning-loop` | ✅ مُدمج في main | merge `14f1b94` — `docs/MOBILE_LEARNING_LOOP.md` |
-| `feat/activate-pwa-docker` | ✅ مُدمج في main | merge `1831b27` (final HEAD of merge round) — PWA + Dockerfile.mobile |
-| `feature/mobile-learning-loop` (umbrella) | 🗑️ محذوف | لم يعد ضروريًا بعد الدمج المباشر للثمانية |
-| `fix/real-import-bugs-active-packages` | ✅ مُدمج في main | commits `e6cba11` + `f669e26` — 2 real bugs fixed + verification scripts added |
-
-**آخر HEAD على `main`:** `2e827eb` (Merge feat/activate-pwa-docker) — `2026-07-19`
-آخر تحقق: `2026-07-19` — صفر كسر استيراد مُستحدَث (تفاصيل أدناه)، `app.gradio_full_hitl` يستورد بنجاح + يحمّل ArabicTranslationProcessor (24 قاعدة)، خادم الجوال يمر بالاختبار الحيّ (counter incremented 3 → 4 → 5).
+This document is the **single authoritative answer** to "what is the
+current state of the omni-medical-suite runtime?". It is updated every
+time a P0/P1 patch lands. If anything in this file disagrees with the
+code, the code wins — fix this file.
 
 ---
 
-## جولة الدمج الكبيرة 2026-07-19 — pdf_ocr_processor + Mobile Learning Loop
+## 1. What runs in production
 
-### النطاق
-دمج 8 فروع متسلسلًا في `main` بترتيب الاعتماد المنطقي (عمل الجوال مبني على عمل pdf_ocr_processor). كل دمج بـ`--no-ff` لضمان commit منفصل لكل فرع في تاريخ `main`.
+| Surface | Source of truth | Notes |
+|---------|-----------------|-------|
+| HuggingFace Space (live) | `hf-space/app.py` + `hf-space/Dockerfile` | Synced by `.github/workflows/deploy-to-hf.yml` on every push to `main` that touches `hf-space/**` or `Dockerfile.gradio`. |
+| Local Gradio HITL app | `app/gradio_full_hitl.py` | Thin orchestration layer over `app/services/*`. |
+| Local advanced review/QA | `app/advanced_review_app.py` | Tabbed UI; includes the observability "📊 السجلات" tab added in observability patch. |
+| Docker (Gradio) | `Dockerfile.gradio` | Multi-stage build; copies `hf-space/app.py` and `hf-space/{src,packages,config}`. |
+| Docker (FastAPI) | `Dockerfile.api` | Not in scope for this patch set. |
 
-### التحقق بعد كل دمج (8/8 نجح)
-
-| # | الفرع | التحقق المباشر | النتيجة |
-|---|---|---|---|
-| 1 | `fix/pdf-ocr-processor-paddle-device` | `from scanner_fixer.pdf_ocr_processor import PDFOCRProcessor` | OK-1 ✅ |
-| 2 | `unify/pdf-ocr-processor-engine-registry` | نفس الاستيراد بعد توحيد `EngineRegistry` | OK-2 ✅ |
-| 3 | `refactor/scripts-pdf-ocr-thin-wrapper` | `python3 scripts/pdf_ocr_processor.py --help` | OK-3 ✅ |
-| 4 | `test/pdf-ocr-processor-suite` | `pytest packages/scanner_fixer/tests/test_pdf_ocr_processor.py -v` | 15/15 passed ✅ |
-| 5 | `chore/unify-mobile-and-learning` | فحص استيراد شامل (25 ملف محذوف) | 1 fix (`packages.core.mobile` created)، 0 regression ✅ |
-| 6 | `feat/mobile-server-wire-app-services` | فحص استيراد شامل + `import packages.core.mobile.server` | 1 fix (`packages.core.mobile.server` يعمل عبر `app.services.*`)، 0 regression ✅ |
-| 7 | `docs/mobile-learning-loop` | فحص استيراد شامل | 0 fix، 0 regression ✅ |
-| 8 | `feat/activate-pwa-docker` | فحص استيراد شامل | 0 fix، 0 regression ✅ |
-
-### التحقق النهائي الشامل (post-merge-8)
-
-**فحص الاستيراد الشامل** (`/home/z/my-project/scripts/comprehensive_import_check.py`):
-- ملفات `__init__.py` مُكتشفة في `packages/` و`app/`: شامل
-- الوحدات المُختبرة: شامل (curated + discovered)
-- **النتيجة: 95 فشل، 0 مُستحدَث** (كلها موجودة سابقًا على `origin/main` — `torch`/`sqlalchemy`/`streamlit` غير منصّبة + 50 استيراد intra-package `modules.` لكل الحزم القديمة)
-- فرق الـSHA-failures بين `origin/main` (pre-merge) و`main` (post-merge-8): **0 جديد، 0 محذوف**
-
-**`app.gradio_full_hitl` استيراد حيّ**: ✅ يعمل (`IMPORT_OK`)
-- المكونات المحمَّلة: OCR engines (Tesseract OK، PaddleOCR skip — paddleocr غير منصّب)، HybridSpellChecker v7.1، ImagePreprocessor، HF Dataset save (مُعطّل لعدم توفر HF libs)
-- التحذير الوحيد: `JWT_SECRET_KEY is using default value` — إعداد إنتاجي، لا يؤثر على الاستيراد
-
-**`pytest` الكامل** (`--ignore=tests/test_build_training_data.py --ignore=tests/test_mobile_review_server.py`):
-- **Baseline (`origin/main`):** 85 failed, 440 passed, 46 skipped, 4 errors
-- **Post-merge (`main` @ `1831b27`):** 85 failed, 440 passed, 46 skipped, 4 errors
-- **الفرق:** 0 — نفس أسماء الاختبارات الفاشلة byte-for-byte (verified via `diff` exit 0)
-- الملفان المُتجاهلان: لديهما أخطاء استيراد موجودة سابقًا (`tools.build_training_data` غير موجود، `from mobile_review import server` لا يعمل من `origin/main` نفسه قبل هذه الجولة)
-
-**الاختبار الحيّ لخادم الجوال** (`/home/z/my-project/scripts/live_mobile_server_test.py`):
-- بدء Flask server على port عشوائي → `/health` 200 (`app_services_loaded: true`, `learning_loop_loaded: true`)
-- GET `/stats` (initial) → `active_learning.total_corrections: 3`
-- POST `/save` بقائمة تصحيح واحد (Shape A) → 200، استجابة: `corrections_dict_added: 1`, `word_trainer_added: 1`, `active_learning_added: 1` — كل ثلاثة sinks في learning loop اشتعلت
-- GET `/stats` (after) → `active_learning.total_corrections: 4`
-- **النتيجة: counter ازداد 3 → 4 ✅** — learning loop حيّ ويعمل فعليًا
-
-### بقايا معروفة (pre-existing — ليست من هذه الجولة)
-- 50 استيراد `from modules.X import Y` داخل الحزم القديمة (omnifile, handwriting, training, etc.) — نمط استيراد intra-package قديم، لا يكسر `app.gradio_full_hitl`
-- 11 استيراد يتطلب `torch` (غير منصّب في بيئة Z.ai)
-- 8 استيراد `from engine import X` (نمط intra-package قديم)
-- 3 استيراد يتطلب `sqlalchemy` (لتطبيقات الـAPI غير الافتراضية)
-- `tests/test_build_training_data.py` + `tests/test_mobile_review_server.py` — أخطاء collection موجودة قبل الجولة
+**Known drift:** `hf-space/app.py` (664 LOC) duplicates the OCR / NER /
+translation / HF-dataset logic that lives in `app/services/*`. The two
+implementations have already diverged (e.g. `hf-space/app.py` uses
+`device="cpu"` hardcoded; `app/services/ocr_service.py` uses
+`use_gpu=False`). P1-1 will document `hf-space/` as an explicit deploy
+snapshot and add a parity check in CI.
 
 ---
 
-## جولة تنظيف الاستيراد 2026-07-19 (post-merge) — Fix Real Bugs + Archival Hygiene
+## 2. Service layer (`app/services/`)
 
-### النطاق
-بعد اكتمال جولة الدمج الثمانية، أُجريَ فحص استيراد شامل (`scripts/comprehensive_import_check.py`) لتحديد البقايا. النتيجة الأولية: 95 فشدًا. عوضًا عن إصلاح 169 سطرًا في حزم **مؤرشفة** (file_processor/omnifile/handwriting — جميعها تحمل تعليق `# ARCHIVED` في `pyproject.toml` ومصممة للتشغيل المستقل لا للاستيراد المطلق)، ركّزنا الإصلاح على **الأخطاء الحقيقية في الحزم النشطة فقط**.
+| Module | Heavy deps | Lazy? | Public API |
+|--------|-----------|-------|------------|
+| `ocr_service.py` | PaddleOCR, ImagePreprocessor, Tesseract, HybridSpellChecker | **Yes (since P0)** — `get_paddle_ocr()`, `get_image_preprocessor()`, `has_tesseract()`, `get_spell_checker()` | `_preprocess_image`, `_run_paddle_ocr`, `_run_tesseract`, `_auto_correct_ocr`, `OCR_CORRECTIONS` |
+| `review_service.py` | Jais proofreader, JaisNER (when `ENABLE_LLM=true`) | **Yes (since P0)** — `get_proofreader()`, `get_ner()` | `_extract_ner`, `jais_proofread_only`, `MEDICAL_TERMS`, `ENABLE_LLM` |
+| `translation_service.py` | MarianMT (transformers), torch | **Yes (since P0)** — `load_translator()`, `get_translation_corrector()` | `translate_text`, `correct_translation`, `TRANSLATION_MODELS`, `DEVICE` |
+| `hf_dataset_service.py` | `datasets`, `pandas`, `huggingface_hub` | Conditional import (gated by `HAS_HF`); staging file works without them | `save_to_hf`, `flush_queue`, `count_pending`, `update_medical_dictionary`, `retrain_now` |
+| `app/scanner_tab.py` | `scanner_fixer`, OpenCV | Optional (graceful fallback to `process_single_image` legacy path) | `apply_manual_crop`, `apply_advanced_edges`, `process_with_options`, `save_processed_image`, `build_zip_from_dir`, `pick_random_from_gallery` |
 
-### الإصلاحان الحقيقيان (commit `e6cba11`)
+**Import-time contract (since P0):**
+Importing any service module is O(1) and must not trigger network I/O,
+model loading, or subprocess execution. All heavy construction is
+deferred to the first call of the corresponding getter. Failures are
+cached so a missing dependency is not retried on every call.
 
-**1. `packages/ai/gateway/config/settings.py` — NameError على `Settings` forward-ref**
-- المشكلة: تعريف `def check_nvidia_nim_api_key(self) -> Settings:` يُقيَّم وقت تعريف الكلاس، قبل ربط اسم `Settings`. بدون `from __future__ import annotations`، يفشل الاستيراد بـ `NameError`.
-- الأثر: شلال من 17 فشل استيراد في `packages.ai.gateway.*`
-- الإصلاح: إضافة `from __future__ import annotations` في رأس الملف
-- النتيجة: 3 وحدات تُستورد الآن (`gateway.config`، `gateway.core`، `gateway.providers`) — البقية (14) محجوبة بالطبقة التالية: `import openai` (غير منصّب)
-
-**2. `packages/nlp/translation_corrector/` — دليل يتيم يحجب ملف .py**
-- المشكلة: وجود دليل `translation_corrector/` مع `__init__.py` (يستورد `.arabic_translation_processor` غير موجود) جنبًا إلى جنب مع ملف `translation_corrector.py` (يحتوي الكلاس الحقيقي `ArabicTranslationProcessor`) — Python يفضّل الدليل، فيفشل الاستيراد.
-- الأثر الصامت: `app.gradio_full_hitl._get_translation_corrector()` كان يلتقط `ImportError` ويسقط لـ"inline fallback" بدلًا من تحميل المعالج الحقيقي
-- الإصلاح: حذف الدليل المتيم، نقل `translation_rules_extended.json` إلى `packages/nlp/`
-- النتيجة: `from packages.nlp.translation_corrector import ArabicTranslationProcessor` يعمل الآن. `app.gradio_full_hitl` يحمّل **24 قاعدة** من `data/translation_rules.json` (مُتحقَّق حيًّا).
-
-### تحسين سكربت الفحص (commit `f669e26`)
-أُضيف تمييز بين:
-- **فشل في حزمة نشطة** (يُعدّ خطأً حقيقيًا يجب إصلاحه) — 19 فشلًا متبقيًا، جميعها بيئية (openai/torch/sqlalchemy غير منصّبة)
-- **فشل في حزمة مؤرشفة** (يُتخطّى، موثّق في `ARCHIVED_PACKAGES`) — 72 فشلًا، كلها في:
-  - `packages.file_processor` (38) — مؤرشف
-  - `packages.omniparse` (9) — يتطلب torch
-  - `packages.ai-fuel` (8) — اسم بـ hyphen (غير قابل للاستيراد كـ Python module)
-  - `packages.handwriting` (7) — مؤرشف
-  - `packages.omnifile` (6) — مؤرشف
-  - `packages.benchmark_core` (2) — لا يحوي `__init__.py`
-  - `packages.doc_processor` (1) — مؤرشف
-  - `packages.interactive-learning` (1) — اسم بـ hyphen
-
-### التحقق النهائي
-- **فحص استيراد شامل**: 95 → 91 فشلًا إجماليًا (4 وحدات أُصلِحت، 0 كسر جديد)
-- **Pytest الكامل**: مطابق للـ baseline (`85 failed / 440 passed / 46 skipped / 4 errors` — `diff` exit 0)
-- **scanner_fixer tests**: 15/15 still pass
-- **`app.gradio_full_hitl` حيّ**: استيراد OK + تشغيل UI HTTP 200 (Gradio 6.3.0, 75 components, title "Omni Medical OCR") + ArabicTranslationProcessor يُحمَّل بـ 24 قاعدة
-- **خادم الجوال حيّ**: `/health` 200، `/stats` 200، `/save` 200 (all 3 learning-loop sinks fire)، counter 4 → 5
+`reset_lazy_cache()` is provided on each service for tests.
 
 ---
 
----
+## 3. Persistence model (HF dataset corrections)
 
-## التطبيقات الرسمية
+**Pre-P0 (broken):** `save_to_hf()` loaded the entire HF dataset,
+appended one row, and pushed the whole thing back. O(N) per save in
+network and memory; a single upload failure loses the correction.
 
-### 1. `app/gradio_full_hitl.py` — HITL الإنتاج
-944 سطر. 10 وظائف كاملة: رفع صورة → OCR ensemble، تصحيح HybridSpellChecker، تدقيق Jais LLM، NER طبي، حفظ HF Dataset، تحديث القاموس، إعادة تدريب Jais NER، ترجمة طبية (4 اتجاهات)، حاسبة CER/WER، Before/After comparison.
+**Post-P0 (current):**
+```
+user calls save_to_hf()
+    │
+    ▼
+row appended to <OMNI_HF_QUEUE_DIR>/pending.jsonl   ← atomic append, never fails
+    │
+    ▼
+if pending_count >= OMNI_HF_FLUSH_THRESHOLD (default 25)
+    │
+    ▼
+flush_queue()                                        ← single batched push
+    │                                                ← on failure: rows stay staged
+    ▼
+HF Dataset updated, staged rows archived to <OMNI_HF_QUEUE_DIR>/uploaded/<ts>.jsonl
+```
 
-### 2. `app/advanced_review_app.py` — Advanced Review (محدّث)
-6 تبويبات متكاملة مع scanner_fixer:
-- **🔬 معالج الصور**: Before/After لصورة واحدة عبر scanner_fixer pipeline (deskew + crop + enhance + rotate)
-- **📦 معالجة دفعية**: Batch processing لدليل كامل + ZIP + PDF + معاينة عشوائية
-- **🔍 كشف التكرار**: phash dedup detection + تقرير CSV
-- **⚖️ مقارنة**: مقارنة نص خام/معالج/مرجعي
-- **🔎 بحث**: Qdrant semantic search + local fallback
-- **📋 مراجعة**: RTL fix + field extraction + engine routing
-
-يستخدم `gr.State` فقط (لا `self.`). يدعم Manjaro (poppler + tesseract).
-
-### 3. `packages/desktop/medical_doc_gui_final.py` — Desktop (PySide6)
-3231 سطر. تكامل scanner_fixer مع fallback:
-- `auto_detect_skew()`: scanner_fixer.deskew أولاً، ثم projection profile
-- `smart_auto_crop()`: scanner_fixer.crop أولاً، ثم two-phase method
-- `_do_full_normalize()`: تنسيق كامل عبر scanner_fixer.normalize
-- `_do_dedup()`: كشف مكررات عبر scanner_fixer.dedup phash
-- QShortcut مُصلح (من QtGui بدل QtWidgets — PySide6 6.11+)
-
----
-
-## الحزم النشطة في packages/
-
-| الحزمة | الوظيفة |
-|---|---|
-| `core` | المحرك الأساسي: engine_router (محدّث بـ Qwen/QARI/Nougat), **engine_registry** (runtime-aware availability checks + healthcheck), corrections_manager, base_db, **mobile/server.py** (Flask + PWA + Docker — يشارك `app.services.*` ويغذّي learning loop) |
-| `vision` | معالجة الصور: image_preprocessor, arabic_segmenter, batch_ocr |
-| `nlp` | معالجة اللغة: spell_corrector, translation_corrector, arabic_rtl, arabic_nlp_utils |
-| `src/ocr` | الوحدات الأساسية الجديدة: rtl_utils, field_extractor, deduplication |
-| `omni_medical_suite/preprocessing` | مقارنة raw vs printed + wrappers للمعالجة المسبقة |
-| `medical` | معالجة خاصة بالطب: tmx_processor, bgl_converter |
-| `security` | أمان: archive_handler, backup_manager |
-| `audit` | تدقيق: audit_logger |
-| `ai` | بوابة LLM: gateway/providers, account_pool |
-| `ai-fuel` | أنظمة AI إضافية: classifier, segmenter, dedup, active_learning |
-| `bilingual` | دعم ثنائي اللغة |
-| `evaluation` | مقاييس التقييم (CER/WER) |
-| `export` | تصدير النتائج |
-| `data_prep` | تجهيز البيانات (كان data-prep، أُعيدت تسميته) |
-| `segmentation` | تقسيم المستندات |
-| `training` / `training-framework` / `training_hub` | أنابيب تدريب النماذج |
-| `learning` / `interactive-learning` | تعلم تفاعلي |
-| `benchmark_core` | إطار قياس الأداء |
-| `ocr_postprocess` | معالجة ما بعد OCR |
-| `omni_ocr` | OCR شامل (كان omni-ocr، أُعيدت تسميته) |
-| `scanner_fixer` | إصلاح الصور الممسوحة: deskew, crop, normalize, dedup, enhance, batch, pipeline |
-| `desktop` | تطبيق سطح المكتب PySide6 + PyInstaller + AppImage |
-| `config` | إعدادات المشروع |
-| `gt_core` | بيانات الحقيقة الأرضية (ground truth) |
-| `doc_processor` | معالج الوثائق (كان doc-processor، أُعيدت تسميته) |
-
----
-
-## الميزات الجاهزة — Feature Checklist
-
-| الميزة | الحالة | التفاصيل |
-|---|---|---|
-| scanner_fixer integration (Gradio) | ✅ جاهز | Before/After + Batch + PDF + ZIP + Dedup + Random Preview |
-| scanner_fixer integration (Desktop) | ✅ جاهز | deskew + crop + normalize + dedup مع fallback |
-| PyInstaller ELF build | ✅ جاهز | `packages/desktop/build.sh` → `dist/medical-doc-processor` |
-| AppImage build | ✅ جاهز | `packages/desktop/build_appimage.sh` → `MedicalDocProcessor.AppImage` |
-| QShortcut fix (PySide6 6.11+) | ✅ جاهز | منقول من QtWidgets إلى QtGui |
-| Import cleanup (hyphen→underscore) | ✅ جاهز | data-prep→data_prep, omni-ocr→omni_ocr, doc-processor→doc_processor |
-| Git history restored | ✅ جاهز | 275 التزام محفوظ، backup branches على remote |
-| Dictionary separation | ✅ جاهز | omni-medical-dictionaries مستودع منفصل |
-
----
-
-## أوامر التشغيل على مانجارو
-
+**Operational commands:**
 ```bash
-# ═══ التثبيت ═══
-sudo pacman -S poppler tesseract tesseract-data-ara python-pip
-pip install -e packages/scanner_fixer
-pip install -r packages/desktop/requirements.txt
+# Inspect queued rows
+OMNI_HF_QUEUE_DIR=~/.omni/hf_dataset_queue \
+  python -c "from app.services.hf_dataset_service import count_pending; print(count_pending())"
 
-# ═══ تشغيل Gradio ═══
-python app/advanced_review_app.py          # http://localhost:7860
+# Manually flush (e.g. after network outage)
+python -c "from app.services.hf_dataset_service import flush_queue; print(flush_queue())"
 
-# ═══ تشغيل Desktop ═══
-python packages/desktop/medical_doc_gui_final.py
-
-# ═══ بناء ELF ═══
-cd packages/desktop && bash build.sh       # → dist/medical-doc-processor
-
-# ═══ بناء AppImage ═══
-cd packages/desktop && bash build_appimage.sh  # → MedicalDocProcessor-1.0.0-x86_64.AppImage
-
-# ═══ الاختبارات ═══
-pytest tests/ -x
+# Override threshold (e.g. flush on every save for debugging)
+OMNI_HF_FLUSH_THRESHOLD=1 python app/gradio_full_hitl.py
 ```
+
+Dedup is enforced at flush time: rows whose `content_hash` already
+exists in the live HF dataset are skipped and archived without
+re-upload.
 
 ---
 
-## فحص الاستيراد — Import Audit
+## 4. Structured decision logging
 
+**Module:** `app/core/decision_log.py` (new in P0)
+
+**Logger:** `app.decision_log` (separate from root logger; configure a
+JSON-lines file handler in production to ship decisions to your log
+aggregator).
+
+**Schema:**
+```json
+{
+  "ts": "2026-07-19T00:30:00+00:00",
+  "decision": "engine_selection",
+  "outcome": ["EasyOCR"],
+  "reasons": ["Arabic/mixed language (ar)"],
+  "inputs": {"profile": "balanced", "language": "ar", "image_quality": 0.8},
+  "skipped": ["PaddleOCR", "Nougat"],
+  "duration_ms": 0.42,
+  "session_id": "abc123"
+}
 ```
-تاريخ الفحص: 2026-07-19 (post-import-cleanup على main)
-منهجية الفحص: scripts/comprehensive_import_check.py
-  - مسح كل __init__.py في packages/ و app/
-  - استيراد فعلي لكل وحدة عبر importlib.import_module
-  - تمييز فشل الحزم النشطة عن فشل الحزم المؤرشفة (ARCHIVED_PACKAGES)
-ملفات Python المفحوصة: 1486+
-الوحدات المُختبرة: شامل (__init__.py المُكتشفة + curated CRITICAL_MODULES)
 
-النتيجة النهائية:
-  - فشل في حزم نشطة:    19 (كلها بيئية — openai/torch/sqlalchemy غير منصّبة)
-  - فشل في حزم مؤرشفة:  72 (مُتخطّى — موثّق في ARCHIVED_PACKAGES)
+**Currently instrumented sites:**
+- `EngineRouter.select()` — emits one `engine_selection` decision per call
+  (with the full input vector + skipped alternatives + timing).
 
-تطور الجولة:
-  - baseline (origin/main قبل الجولة):  97 فشلًا
-  - بعد جولة الدمج الثمانية:             95 فشلًا (تحسّن 2: mobile + mobile.server)
-  - بعد إصلاح Settings forward-ref:      92 فشلًا (تحسّن 3: gateway.config/core/providers)
-  - بعد حذف دليل translation_corrector:  91 فشلًا (تحسّن 1: nlp.translation_corrector)
-  - صافي التحسّن: 97 → 91 = 6 وحدات أُصلِحت
-  - كسور جديدة: 0 ✅
+**Sites to instrument in P1:**
+- `ArabicRTLFixer.fix_text()` — emit `rtl_reversal` decision when a
+  reversal is applied.
+- `WeightedMedicalDeduplicator` — emit `dedup_decision` when duplicates
+  are merged.
+- `QdrantMedicalSearch` — emit `backend_selection` when falling back from
+  Qdrant to local fuzzy.
 
-استنتاج: صفر كسر استيراد مُستحدَث من جولتي الدمج والتنظيف.
-الحزم المؤرشفة (file_processor, omnifile, handwriting, ai-fuel, interactive-learning,
-omniparse, benchmark_core, doc_processor) ليست جزءًا من رسم الاستيراد النشط ومُتخطّاة.
-```
+**Session id:** set via `OMNI_SESSION_ID` env var or
+`app.core.decision_log.set_session_id()` at request middleware time.
 
 ---
 
-> **للتاريخ الكامل للدمجات والتنظيف:** انظر `MERGE_HISTORY.md`
-> **للمشاكل المفتوحة والقرارات المعلقة:** انظر `OPEN_ISSUES.md`
+## 5. Test configuration
+
+**Single source of truth:** `pyproject.toml` → `[tool.pytest.ini_options]`
+(consolidated in P0; `pytest.ini` was deleted).
+
+**Markers:** `slow`, `benchmark`, `integration`, `ocr`, `nlp`, `gpu`,
+`requires_api_key`.
+
+**Python path:** `["."`, `"src"`, `"packages"]` — matches the runtime
+layout.
+
+**Excluded from recursion:** `hf-space/`, `packages/omniparse/`,
+`packages/omni-ocr/`, `legacy/`, `node_modules/`, `.venv/`, `build/`,
+`dist/`, etc.
+
+**Async:** `asyncio_mode = "auto"`.
+
+**Focused core test suite (must remain green):**
+- `tests/test_arabic_rtl.py`
+- `tests/test_qdrant_search.py`
+- `tests/test_rtl_fix_pipeline.py`
+- `tests/test_field_extractor_core.py`
+- `tests/test_weighted_dedup.py`
+- `tests/test_engine_router.py`
+- `tests/test_engine_router_advanced.py`
+
+Run them with:
+```bash
+python -m pytest tests/test_arabic_rtl.py tests/test_qdrant_search.py \
+  tests/test_rtl_fix_pipeline.py tests/test_field_extractor_core.py \
+  tests/test_weighted_dedup.py tests/test_engine_router.py \
+  tests/test_engine_router_advanced.py
+```
+
+**New tests added in P0:**
+- `tests/test_decision_log.py` (12 tests)
+- `tests/test_lazy_ocr_service.py` (14 tests)
+- `tests/test_translation_service.py` (14 tests)
+- `tests/test_hf_dataset_staging.py` (15 tests)
+
+Total: **55 new tests, all passing.** Plus the 7 focused core suites
+above (63 passed, 1 skipped on a no-OCR-engine environment).
+
+---
+
+## 6. What is NOT yet done (P1/P2 roadmap)
+
+### Done in P0-1 / P0-2 (this patch set)
+1. ✅ **Deploy source-of-truth unification.** `scripts/sync-hf-space.sh`
+   now has `--verify` mode; `docs/DEPLOYMENT.md` has a "Source of
+   Truth" section. `hf-space/` is documented as an explicit deploy
+   snapshot (option (b) from the original P1 list).
+2. ✅ **Scanner fixer Gradio tab enhancement.**
+   `app/advanced_review_app.py` Tab 1 now offers interactive manual
+   crop (4 number inputs: x/y/w/h), advanced edge detection options
+   (Canny + Adaptive Threshold + Morphology + Hough Lines), and a
+   manual save button backed by `app/scanner_tab.py`.
+3. ✅ **Lazy loading, translation extraction, HF staging, decision log,
+   pytest unification** — done in commit `6a23c52` (P0 hardening patch).
+
+### P1 — should-do before final RC
+1. **Field extractor hardening** (`src/ocr/field_extractor.py`):
+   multi-line value support, broader bilingual labels, optional
+   confidence scoring, safe `template_signature` (current
+   `text.replace(value, " ")` corrupts output when a value is a
+   substring of another).
+2. **Benchmark reporter** (`omni_medical_suite/preprocessing/compare_raw_vs_printed.py`):
+   add `to_csv()`, `to_json()`, `aggregate_metrics()` to
+   `OCRComparisonPipeline`.
+3. **RTL/dedup/backend decision logging** — instrument the sites listed
+   in section 4 (currently only `app.core.decision_log` itself is
+   wired; callsites are not yet emitting decisions).
+4. **Deploy parity CI check.** Add a CI job that runs
+   `./scripts/sync-hf-space.sh --verify` on every PR touching
+   `hf-space/**`, `src/ocr/**`, `packages/**`, or `config/**`.
+
+### P2 — post-RC polish
+5. **Git LFS audit.** Verify `.gitattributes` covers all binary artifacts
+   currently tracked. Run `git lfs ls-files` on a fresh clone and
+   diff against `find . -type f -size +1M`.
+6. **CI hardening.** Add a `focused-core-tests` job (the 7 tests above)
+   that runs on every PR. Add an `optional-extras-matrix` job that
+   tests `pip install -e ".[ocr]"`, `.[nlp]`, `.[search]` etc. Add a
+   `deploy-smoke-check` job that hits the HF Space URL after deploy.
+
+---
+
+## 7. Migration notes (v1.0.0 → v1.1.0-rc)
+
+See `MIGRATION_NOTES_v1.1.0-rc.md` for the full diff. Summary:
+
+- **No breaking API changes.** All pre-P0 module-level names
+  (`paddle_ocr`, `spell_checker`, `HAS_TESSERACT`, `proofreader`, `ner`,
+  `HAS_LLM`, `paddle_ocr`, `image_preprocessor`, `HAS_PREPROCESSOR`,
+  `DEVICE`, `TRANSLATION_MODELS`, `translate_text`) continue to resolve
+  via PEP 562 module `__getattr__`. Existing call sites keep working.
+- **Behavior change:** `app/services/ocr_service.py` no longer
+  initializes any engine at import time. Code that depended on
+  `paddle_ocr is not None` immediately after `import` will now see
+  `None` until the first OCR call. This is the intended fix.
+- **`save_to_hf()` return string format changed slightly.** The success
+  message now reports staged count + (if applicable) flush result,
+  rather than just the new HF total. Gradio bindings display the string
+  verbatim, so no UI changes needed.
+- **`pytest.ini` deleted.** All config moved to `pyproject.toml`. IDE
+  plugins that pointed at `pytest.ini` need to be repointed (most do
+  this automatically).
+- **`HF_TOKEN` env var still respected.** No change to auth.
+
+### Operational caveats
+- The staging directory defaults to `~/.omni/hf_dataset_queue/`. On
+  shared deployments, set `OMNI_HF_QUEUE_DIR` to a persistent location
+  (e.g. a mounted volume) so queued rows survive container restarts.
+- The auto-flush threshold defaults to 25. For low-traffic deployments
+  set `OMNI_HF_FLUSH_THRESHOLD=1` to flush on every save (higher
+  network cost, lower latency). For high-traffic deployments set it to
+  100+ to amortize push cost.
+- `flush_queue()` is safe to call concurrently — it holds a lock for
+  the duration of the read+push+archive+clear sequence. Concurrent
+  `save_to_hf()` calls during a flush will block briefly.
