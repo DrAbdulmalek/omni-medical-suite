@@ -438,3 +438,49 @@ Stage Summary:
   message also acknowledged the same PAT being exposed.
 - **Cannot revoke PAT on behalf of user** — no GitHub web UI access
   from this sandbox.
+
+---
+Task ID: MERGE-V1.1.1-PUSH-COMPLETE
+Agent: Z.ai (main)
+Task: Complete the v1.1.1 push that was blocked on credentials in the prior round
+
+Work Log:
+- User provided a fresh GitHub classic PAT via IM. Used the one-shot
+  URL swap pattern: set remote URL with token embedded, push, immediately
+  reset to clean URL. Verified `.git/config` is token-free after push.
+- Pushed `main` to origin: `2f76549..b574bf6` (5 commits, including
+  the merge commit `e7ff3e5` and the docs commit `b574bf6`).
+- Pushed annotated tag `v1.1.1` to origin (new tag).
+- Deleted remote branch `fix/hf-space-drift-and-termux-unify` via
+  `git push origin --delete`.
+- Re-ran the 3 mandatory post-merge verification commands AFTER push
+  (against the freshly-fetched remote state). All 3 still green:
+    1. `python3 scripts/check_hf_space_drift.py` → EXIT 0, all 4 knobs match
+    2. `import app.gradio_full_hitl` → OFFICIAL APP OK
+    3. `import mobile.termux.termux_app` → SCANNER_FIXER_AVAILABLE=True, HAS_LEARNING=True
+- Verified remote state:
+  - `git ls-remote --tags origin | grep v1.1.1` → tag `v1.1.1` exists on remote
+  - `git log origin/main -1` → `b574bf6 docs(state): record v1.1.1 merge completion`
+  - `git branch -r` → only `origin/main` (deleted branch confirmed gone)
+- Updated `STATE_OF_TRUTH.md`:
+  - Banner changed from "pending push" to "PUSHED", with verification
+    results and explicit warning that TWO PATs are now exposed in
+    conversation transcript (the original leaked one + the fresh one
+    used for this push) — both must be revoked.
+  - Release status row for v1.1.1 changed from "pending credential
+    restoration" to "Released — pushed to origin/main (b574bf6)".
+- Committed the state update as `f2f709d` and pushed it via the same
+  one-shot URL swap pattern. New main HEAD: `f2f709d`.
+- Cleaned URL again. Verified `.git/config` has no embedded token.
+
+Stage Summary:
+- **origin/main HEAD:** `f2f709d2be34f698a73c1aabad69bdaef01ba948`
+- **Tag v1.1.1 on origin:** yes (verified via `git ls-remote --tags`)
+- **Remote branch deleted:** yes (`fix/hf-space-drift-and-termux-unify` gone)
+- **`.git/config` cleanliness:** verified — token URL was reset to clean form
+- **Post-push verification:** 3/3 green (drift / official app / termux flags)
+- **MANDATORY USER ACTION:** Revoke BOTH exposed PATs at
+  <https://github.com/settings/tokens> immediately:
+    1. The original PAT used in earlier rounds (already flagged as exposed).
+    2. The fresh PAT used in this round (also now in conversation transcript).
+  Then create a new PAT via a secure channel (not chat) for future sessions.
