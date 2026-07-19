@@ -78,6 +78,60 @@ docker cp omnimedical-api:/data/corrections_v2.db ./backups/
 
 ---
 
+## 🎯 Source of Truth — What Deploys Where
+
+> Read this first. Every deploy path is defined here.
+
+| Surface | Source of truth | Synced by | Notes |
+|---------|-----------------|-----------|-------|
+| **Local Gradio HITL** | `app/gradio_full_hitl.py` | — (canonical) | Thin orchestration over `app/services/*` (lazy-loaded). |
+| **Local advanced review/QA** | `app/advanced_review_app.py` | — (canonical) | Tabbed UI: scanner fixer, batch, dedup, compare, search, review. |
+| **HuggingFace Space (live)** | `hf-space/app.py` + `hf-space/Dockerfile` | `scripts/sync-hf-space.sh` + `.github/workflows/deploy-to-hf.yml` | **Snapshot only** — `hf-space/app.py` is frozen; shared modules are synced in by the script. |
+| **Docker (Gradio)** | `Dockerfile.gradio` | — | Multi-stage build; copies `hf-space/app.py` and `hf-space/{src,packages,config}`. |
+| **Docker (FastAPI)** | `Dockerfile.api` | — | Not in scope for v1.1.0-rc. |
+
+### Synced paths (monorepo → `hf-space/`)
+
+```
+src/ocr/          → hf-space/src/ocr/         (OCR engines, RTL, dedup, fields)
+packages/vision/  → hf-space/packages/vision/ (text reconstructor, preprocessor)
+packages/nlp/     → hf-space/packages/nlp/    (Arabic RTL + NLP utils)
+packages/core/    → hf-space/packages/core/   (engine_registry, engine_router)
+config/           → hf-space/config/          (config files)
+```
+
+**NOT synced (HF-specific overrides):**
+- `hf-space/app.py` — standalone HF entrypoint (frozen, intentionally diverges from `app/gradio_full_hitl.py`)
+- `hf-space/Dockerfile` — HF-optimized Docker build
+- `hf-space/requirements.txt` — HF-specific dependency list
+
+### Sync commands
+
+```bash
+# Sync monorepo → hf-space/ (default mode: copy + verify)
+./scripts/sync-hf-space.sh
+
+# Verify only — check for drift without copying (exit 2 if drift)
+./scripts/sync-hf-space.sh --verify
+
+# CI integration: fail build if hf-space/ is out of sync
+./scripts/sync-hf-space.sh --verify || {
+  echo "ERROR: hf-space/ out of sync. Run ./scripts/sync-hf-space.sh locally."
+  exit 1
+}
+```
+
+### Workflow
+
+1. Develop locally against `app/gradio_full_hitl.py` and `app/services/*`.
+2. Before commit: `./scripts/sync-hf-space.sh` to refresh the snapshot.
+3. CI runs `--verify` on PRs touching `hf-space/**` or shared paths.
+4. On push to `main`, `.github/workflows/deploy-to-hf.yml` pushes `hf-space/` to the HF Space.
+
+> See `STATE_OF_TRUTH.md` for the full runtime state matrix (services, persistence, observability).
+
+---
+
 ## 📋 Table of Contents
 
 1. [Quick Deploy to Hugging Face Spaces](#quick-deploy-to-hugging-face-spaces)
