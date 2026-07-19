@@ -1,0 +1,174 @@
+name: AppImage Freshness Check
+
+# ══════════════════════════════════════════════════════════════════
+# WARNING-ONLY job: detects when the AppImage needs rebuilding because
+# the 4 scanner_fixer modules (deskew, crop, normalize, dedup) or the
+# desktop GUI entry (medical_doc_gui_final.py) changed since the last
+# successful build recorded in packages/desktop/.last_build_commit.
+#
+# This job NEVER fails the workflow — it only surfaces a warning
+# annotation on the commit/PR so maintainers know a rebuild is needed.
+#
+# Triggers:
+#   - push to main or feature/* (paths-filtered to the tracked files)
+#   - pull_request targeting main (paths-filtered)
+#   - manual workflow_dispatch
+#
+# Exit codes from check_appimage_freshness.py:
+#   0 = fresh   (no rebuild needed)
+#   1 = stale   (rebuild needed — surfaces warning annotation)
+#   2 = no_build (no previous .last_build_commit — informational only)
+#   3 = error   (config problem — surfaces error annotation, but still
+#                doesn't fail the job)
+# ══════════════════════════════════════════════════════════════════
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+      - 'feat/**'
+      - 'fix/**'
+    paths:
+      # Only run when the tracked surface changes (or the script itself)
+      - 'packages/scanner_fixer/src/scanner_fixer/deskew.py'
+      - 'packages/scanner_fixer/src/scanner_fixer/crop.py'
+      - 'packages/scanner_fixer/src/scanner_fixer/normalize.py'
+      - 'packages/scanner_fixer/src/scanner_fixer/dedup.py'
+      - 'packages/desktop/medical_doc_gui_final.py'
+      - 'packages/desktop/build_appimage.sh'
+      - 'packages/desktop/.last_build_commit'
+      - 'scripts/check_appimage_freshness.py'
+      - '.github/workflows/appimage-freshness.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/scanner_fixer/src/scanner_fixer/deskew.py'
+      - 'packages/scanner_fixer/src/scanner_fixer/crop.py'
+      - 'packages/scanner_fixer/src/scanner_fixer/normalize.py'
+      - 'packages/scanner_fixer/src/scanner_fixer/dedup.py'
+      - 'packages/desktop/medical_doc_gui_final.py'
+      - 'packages/desktop/build_appimage.sh'
+      - 'scripts/check_appimage_freshness.py'
+      - '.github/workflows/appimage-freshness.yml'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  freshness-check:
+    name: Check AppImage Freshness (warning-only)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    # Always allow this job to complete — even if some upstream step
+    # sets a failure, we want the warning annotation, not a red X.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so git log can find tracked-file commits
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Verify git + tracked files
+        id: sanity
+        run: |
+          set -e
+          echo "git version: $(git --version)"
+          echo "HEAD: $(git rev-parse HEAD)"
+          echo ""
+          echo "Tracked files presence:"
+          for f in \
+            packages/scanner_fixer/src/scanner_fixer/deskew.py \
+            packages/scanner_fixer/src/scanner_fixer/crop.py \
+            packages/scanner_fixer/src/scanner_fixer/normalize.py \
+            packages/scanner_fixer/src/scanner_fixer/dedup.py \
+            packages/desktop/medical_doc_gui_final.py; do
+            if [ -f "$f" ]; then
+              echo "  ✓ $f"
+            else
+              echo "  ✗ $f MISSING"
+              exit 3
+            fi
+          done
+
+      - name: Run freshness check
+        id: check
+        # Capture exit code without failing the step
+        continue-on-error: true
+        run: |
+          set +e
+          python3 scripts/check_appimage_freshness.py --json > /tmp/freshness.json 2>&1
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          echo "── Freshness check output (exit $EXIT_CODE) ──"
+          cat /tmp/freshness.json
+          echo ""
+          exit 0  # never fail this step
+
+      - name: Annotate result
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.check.outputs.exit_code }}
+        run: |
+          set -e
+          # Parse JSON output (jq is pre-installed on ubuntu-22.04 runners)
+          STATUS=$(jq -r '.status' /tmp/freshness.json 2>/dev/null || echo "unknown")
+          MESSAGE=$(jq -r '.message' /tmp/freshness.json 2>/dev/null || echo "(no message)")
+          HINT=$(jq -r '.hint // ""' /tmp/freshness.json 2>/dev/null || echo "")
+          LAST_BUILD=$(jq -r '.last_build_commit_short // "(none)"' /tmp/freshness.json 2>/dev/null)
+          LATEST=$(jq -r '.latest_tracked_commit_short // "(none)"' /tmp/freshness.json 2>/dev/null)
+
+          echo "## AppImage Freshness: ${STATUS^^}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Status | \`${STATUS}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Last build commit | \`${LAST_BUILD}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Latest tracked commit | \`${LATEST}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Message | ${MESSAGE} |" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$HINT" ]; then
+            echo "| Hint | ${HINT} |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Exit code: \`${EXIT_CODE}\` (0=fresh, 1=stale, 2=no build, 3=error)" >> "$GITHUB_STEP_SUMMARY"
+
+          # Emit a GitHub Actions annotation visible on the commit/PR.
+          # warning = yellow ⚠ ; error = red ✗ ; notice = blue ℹ
+          case "$STATUS" in
+            fresh)
+              echo "::notice title=AppImage Freshness::${MESSAGE}"
+              ;;
+            stale)
+              echo "::warning title=AppImage is stale (rebuild needed)::${MESSAGE} ${HINT}"
+              ;;
+            no_build)
+              echo "::notice title=AppImage Freshness::${MESSAGE} ${HINT}"
+              ;;
+            error)
+              echo "::warning title=AppImage Freshness check error::${MESSAGE}"
+              ;;
+            *)
+              echo "::notice title=AppImage Freshness::Unknown status: ${STATUS}"
+              ;;
+          esac
+
+      - name: Final result
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.check.outputs.exit_code }}
+        run: |
+          echo "Freshness check completed with exit code: ${EXIT_CODE}"
+          # Per workflow policy: NEVER fail the job.
+          # Even exit_code=3 (config error) is surfaced as a warning,
+          # not a failure — the AppImage build job (appimage-build.yml)
+          # is the source of truth for hard failures.
+          exit 0
