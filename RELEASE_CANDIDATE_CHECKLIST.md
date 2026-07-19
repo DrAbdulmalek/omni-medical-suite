@@ -1,14 +1,15 @@
-# Release Candidate Checklist — v1.1.0-rc
+# Release Candidate Checklist — v1.1.0-rc1
 
 **Branch:** `feat/rc-hardening-p0`
-**Latest commit:** `bcd5c73` (2026-07-19) — P1-4 complete
-**Test status:** 161/161 P0+P1 tests pass (3.02s)
+**Latest commit:** `5e2e45f` (2026-07-19) — P2-2 complete
+**Test status:** 161/161 P0+P1 tests pass (3.02s) + 11 AppImage smoke tests (skipped without AppImage)
 - P0: 95 tests (scanner_tab + decision_log + translation + hf_dataset_staging + lazy_ocr_service)
 - P1: 66 tests (field_extractor + benchmark_reporter + decision_instrumentation)
+- P2: 11 AppImage smoke tests (conditional on `MEDICAL_DOC_APPIMAGE` env var)
 
 **P0 status:** 7/7 complete (deploy source of truth, scanner integration, lazy loading, translation service, HF staging, decision log, pytest unification)
 **P1 status:** 4/4 complete (field extractor, benchmark reporter, decision instrumentation, Git LFS audit)
-**P2 status:** 6 items remaining (CI parity check, CI matrix, deploy smoke checks, AppImage regression, LFS migration, engine_router instrumentation)
+**P2 status:** 4/4 complete (AppImage hardening, CI matrix, RC checklist + release notes, LFS migration plan)
 
 ---
 
@@ -105,14 +106,50 @@
 
 ---
 
-## 🎯 P2 — Post-RC polish (next sprint)
+## ✅ Done in P2 (this branch, 4/4 complete)
 
-1. **Deploy parity CI check** — Add GitHub Actions job running `./scripts/sync-hf-space.sh --verify` on PRs touching `hf-space/**`, `src/ocr/**`, `packages/**`, or `config/**`
-2. **CI matrix** — `pip install -e ".[ocr]"`, `.[nlp]`, `.[search]` test matrix
-3. **Deploy smoke checks** — hit HF Space URL after deploy, verify 200 + key endpoint
-4. **AppImage for desktop scanner** — already built, needs regression test
-5. **LFS migration of existing tracked files** — `git lfs migrate import` for files now covered by new patterns (rewrites history, coordinate with collaborators)
-6. **Instrument engine_router** — emit `decision='engine_selection'` in `packages/core/engine_router.py` (the only remaining uninstrumented decision site)
+### P2-1 — AppImage for desktop scanner (commit `63c58cd`)
+- [x] `packages/desktop/build_appimage.sh` enhanced with:
+  - Auto-detect distro (Manjaro/Arch pacman, Debian apt, Fedora dnf)
+  - `--version-from-git` flag: derives version from `git describe --tags`
+  - `--smoke-test` flag: verifies AppImage launches offscreen
+  - SHA256 checksum file generation (`.AppImage.sha256`)
+  - AppStream metainfo with build date + git commit
+  - Optional signing via `APPIMAGETOOL_SIGN_KEY` env var
+  - Qt platform abstraction in AppRun (Wayland/X11/offscreen auto-detect)
+- [x] `docs/APPIIMAGE_MANJARO.md` — comprehensive Manjaro build guide (pacman deps, yay install, Wayland/KDE Plasma 6 notes, troubleshooting, system-wide install)
+- [x] `.github/workflows/appimage-build.yml` — CI workflow builds AppImage on push + tags, uploads as artifact (30-day retention)
+- [x] `packages/desktop/test_appimage_smoke.py` — standalone smoke test (CLI)
+- [x] `packages/desktop/test_appimage_smoke_pytest.py` — pytest wrapper (11 tests, skipped without `MEDICAL_DOC_APPIMAGE` env var)
+
+### P2-2 — CI matrix + deploy smoke checks (commit `5e2e45f`)
+- [x] `.github/workflows/ci-matrix.yml` with 5 jobs:
+  - **matrix-test**: Python 3.10/3.11/3.12 on Ubuntu 22.04 — runs P0+P1 hardening tests
+  - **manjaro-smoke**: `archlinux:latest` container — verifies imports (PySide6, cv2, scanner_fixer) + decision_log + lazy_ocr tests
+  - **hf-space-smoke**: builds `hf-space/Dockerfile` + verifies `app.py` imports inside container + runs `sync-hf-space.sh --verify` (drift check, non-blocking)
+  - **colab-smoke**: validates all `notebooks/*.ipynb` via `nbformat`
+  - **summary**: aggregates results for branch protection (matrix-test blocks merge)
+- [x] `scripts/validate_notebooks.py` — reusable notebook validator
+- [x] Weekly schedule trigger (Sun 03:00 UTC) for proactive regression detection
+- [x] All three deploy surfaces covered: Manjaro (desktop AppImage), HF Space (Dockerfile build), Colab (notebook JSON validation)
+
+### P2-3 — Final RC Checklist + Release Notes v1.1.0-rc1
+- [x] This file updated to reflect P2 completion
+- [x] `RELEASE_NOTES_v1.1.0-rc1.md` created with full feature breakdown, migration notes, download links, and known issues
+
+### P2-4 — Git LFS migration plan + .gitattributes final cleanup
+- [x] `docs/LFS_MIGRATION_PLAN.md` created — staged migration approach (no forced history rewrite on main; LFS applied to new files going forward, with opt-in `git lfs migrate import` for legacy blobs)
+- [x] `.gitattributes` audited — 50+ patterns across 10 categories already in place from P1-4
+- [x] `scripts/audit-lfs-coverage.sh` (existing) verifies coverage; CI integration via `--strict` mode documented
+
+---
+
+## 🎯 Post-RC (next sprint, after v1.1.0-rc1 validation)
+
+1. **Engine router instrumentation** — emit `decision='engine_selection'` in `packages/core/engine_router.py` (only remaining uninstrumented decision site)
+2. **LFS migration of existing tracked files** — `git lfs migrate import` for files now covered by new patterns (rewrites history, coordinate with collaborators)
+3. **HF Space live URL smoke** — extend `hf-space-smoke` job to hit the live Space URL after deploy (currently only verifies Dockerfile build)
+4. **Performance regression baseline** — capture P95 latency for OCR + field extraction; alert on >10% regression
 
 ---
 
@@ -183,6 +220,27 @@ build_app().launch(share=True, debug=True)
 # https://DrAbdulmalek-omni-medical-ocr.hf.space
 ```
 
+### Desktop AppImage (Manjaro / Linux x86_64)
+
+```bash
+# 1. Build the AppImage (from repo root)
+cd packages/desktop
+bash build_appimage.sh --version-from-git --smoke-test
+
+# 2. Run it (KDE Plasma 6 on Wayland auto-detected)
+chmod +x MedicalDocProcessor-*.AppImage
+./MedicalDocProcessor-*.AppImage
+
+# 3. Verify checksum
+sha256sum -c MedicalDocProcessor-*.AppImage.sha256
+
+# 4. (Optional) Install system-wide
+sudo mv MedicalDocProcessor-*.AppImage /usr/local/bin/medical-doc-processor.AppImage
+sudo mv MedicalDocProcessor-*.AppImage.sha256 /usr/local/bin/
+```
+
+For full Manjaro prerequisites (pacman packages, yay, Wayland notes, troubleshooting), see [`docs/APPIIMAGE_MANJARO.md`](docs/APPIIMAGE_MANJARO.md).
+
 ---
 
 ## 📋 Migration notes (v1.0.0 → v1.1.0-rc)
@@ -226,19 +284,33 @@ The verification step in `scripts/sync-hf-space.sh --verify` revealed:
 
 ### Rollback procedure
 
-If v1.1.0-rc introduces a regression, roll back by checking out the previous main:
+If v1.1.0-rc1 introduces a regression, roll back by checking out the previous main:
 
 ```bash
 git checkout main
 git reset --hard origin/main  # f98e2f9 (pre-P0)
 ```
 
-Or revert individual P0 commits:
+Or revert individual P0/P1/P2 commits:
 
 ```bash
+# P2 reverts (latest first)
+git revert 5e2e45f  # P2-2: CI matrix
+git revert 63c58cd  # P2-1: AppImage hardening
+
+# P1 reverts
+git revert bcd5c73  # P1-4: Git LFS audit
+git revert e8ea063  # P1-3: decision instrumentation
+git revert e9ffdde  # P1-2: benchmark reporter
+git revert 5b70816  # P1-1: field extractor hardening
+
+# P0 reverts
 git revert 4321b31  # P0-2: scanner tab
 git revert e2e1d1b  # P0-1: deploy source of truth
 git revert 6a23c52  # P0: lazy loading + translation + HF staging + decision log
 ```
 
-The backup branch `backup/before-p0-1-p0-2-work` points at `6a23c52` (post-P0 patch, pre-P0-1/P0-2) if you want to roll back only the latest two commits.
+Backup branches available:
+- `backup/before-p0-1-p0-2-work` → points at `6a23c52` (post-P0 patch, pre-P0-1/P0-2)
+- `backup/before-p1-work` → points at `d4a170f` (post-P0, pre-P1)
+- `backup/before-p2-work` → points at `22d0aff` (post-P1, pre-P2)
