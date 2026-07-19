@@ -15,6 +15,12 @@
 #   - Manjaro-specific appimagetool install via yay
 #   - Optional signing (APPIMAGETOOL_SIGN_KEY env)
 #
+# Freshness tracking (v1.1.1):
+#   - Writes .last_build_commit after successful build (Step 10b)
+#   - Read by scripts/check_appimage_freshness.py to detect stale builds
+#   - Tracked files: scanner_fixer/{deskew,crop,normalize,dedup}.py
+#                    + packages/desktop/medical_doc_gui_final.py
+#
 # Requirements:
 #   - Python 3.10+
 #   - PyInstaller (`pip install pyinstaller`)
@@ -376,6 +382,40 @@ echo ""
 echo "🔐 Generating SHA256 checksum..."
 sha256sum "${OUTPUT_NAME}" > "${OUTPUT_NAME}.sha256"
 echo "   Checksum: $(cat "${OUTPUT_NAME}.sha256")"
+
+# ── 10b. Record build commit (for freshness checking) ────────────
+# Write the current HEAD commit hash to .last_build_commit so that
+# scripts/check_appimage_freshness.py can detect when a rebuild is
+# needed. We record the *full* hash (40 chars) but the freshness
+# script handles short hashes too.
+#
+# Format:
+#   <40-char hash> <ISO-8601 build date>
+#   # built by build_appimage.sh v${VERSION}
+#
+# Only write after the AppImage + checksum are confirmed to exist on
+# disk, so a failed build never updates the freshness marker.
+LAST_BUILD_COMMIT_FILE="${SCRIPT_DIR}/.last_build_commit"
+if [ -f "${OUTPUT_NAME}" ] && [ -f "${OUTPUT_NAME}.sha256" ]; then
+    if command -v git &>/dev/null && [ -d "${REPO_ROOT}/.git" ]; then
+        FULL_COMMIT="$(cd "$REPO_ROOT" && git rev-parse HEAD 2>/dev/null || echo "")"
+        if [ -n "$FULL_COMMIT" ]; then
+            {
+                echo "${FULL_COMMIT} ${BUILD_DATE}"
+                echo "# built by build_appimage.sh v${VERSION}"
+                echo "# AppImage: ${OUTPUT_NAME}"
+            } > "$LAST_BUILD_COMMIT_FILE"
+            echo "📌 Recorded build commit: ${FULL_COMMIT:0:7} → ${LAST_BUILD_COMMIT_FILE}"
+            echo "   Next freshness check: python3 scripts/check_appimage_freshness.py"
+        else
+            echo "⚠️  Could not resolve HEAD commit — .last_build_commit not updated"
+        fi
+    else
+        echo "⚠️  git not available or not a repo — .last_build_commit not updated"
+    fi
+else
+    echo "⚠️  AppImage or checksum missing — .last_build_commit not updated"
+fi
 
 # ── 11. Optional smoke test ───────────────────────────────────────
 if $RUN_SMOKE_TEST; then

@@ -99,3 +99,11 @@ data/corrections.db
 data/active_learning.db
 data/backups/
 data/mobile_images/
+
+# AppImage build artifacts (local per-machine state — not committed)
+# .last_build_commit is written by packages/desktop/build_appimage.sh
+# and read by scripts/check_appimage_freshness.py to detect stale builds.
+packages/desktop/.last_build_commit
+packages/desktop/AppDir/
+packages/desktop/*.AppImage
+packages/desktop/*.AppImage.sha256
