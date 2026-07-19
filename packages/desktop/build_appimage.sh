@@ -233,7 +233,11 @@ cat > "${APPDIR}/usr/share/metainfo/${APP_NAME}.metainfo.xml" << EOF
 EOF
 
 # ── 5. Create .desktop file ───────────────────────────────────────
-cat > "${APPDIR}/usr/share/applications/com.omnimedical.docprocessor.desktop" << 'EOF'
+# appimagetool REQUIRES the .desktop file at the AppDir root (not just
+# under usr/share/applications/). We write it once at the root, then
+# symlink it into usr/share/applications/ for proper Linux desktop
+# integration when extracted.
+cat > "${APPDIR}/${APP_NAME}.desktop" << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=Medical Document Processor
@@ -247,8 +251,14 @@ Categories=Office;Graphics;Scanning;MedicalSoftware;
 Keywords=OCR;medical;scanner;document;Arabic;
 StartupWMClass=medical-doc-processor
 EOF
+# Mirror into usr/share/applications/ for desktop integration
+mkdir -p "${APPDIR}/usr/share/applications"
+cp "${APPDIR}/${APP_NAME}.desktop" \
+   "${APPDIR}/usr/share/applications/com.omnimedical.docprocessor.desktop"
 
 # ── 6. Create a simple icon (PIL → PNG) ───────────────────────────
+# Generate at standard hicolor path, then copy to AppDir root + .DirIcon
+# (both required by appimagetool for proper AppImage icon embedding).
 python3 -c "
 from PIL import Image, ImageDraw
 img = Image.new('RGBA', (256, 256), (30, 64, 175, 255))
@@ -262,6 +272,12 @@ img.save('${APPDIR}/usr/share/icons/hicolor/256x256/apps/com.omnimedical.docproc
     echo "⚠️  PIL icon generation failed — using fallback"
     cp /usr/share/icons/hicolor/256x256/apps/*.png "${APPDIR}/usr/share/icons/hicolor/256x256/apps/com.omnimedical.docprocessor.png" 2>/dev/null || true
 }
+# Mirror icon to AppDir root (appimagetool requirement) + .DirIcon symlink
+ICON_SRC="${APPDIR}/usr/share/icons/hicolor/256x256/apps/com.omnimedical.docprocessor.png"
+if [ -f "$ICON_SRC" ]; then
+    cp "$ICON_SRC" "${APPDIR}/${APP_NAME}.png"
+    ln -sf "${APP_NAME}.png" "${APPDIR}/.DirIcon"
+fi
 
 # ── 7. Create AppRun (Qt platform abstraction) ───────────────────
 cat > "${APPDIR}/AppRun" << 'APP_RUN'
