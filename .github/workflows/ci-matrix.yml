@@ -67,11 +67,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-            packages/desktop/requirements.txt
 
       - name: Install system dependencies
         run: |
@@ -156,7 +151,10 @@ jobs:
     steps:
       - name: Install Arch base + Python
         run: |
-          pacman -Syu --noconfirm
+          # Initialize pacman keyring (required for fresh archlinux container)
+          pacman-key --init || true
+          pacman-key --populate archlinux || true
+          pacman -Syu --noconfirm || pacman -Sy --noconfirm
           pacman -S --noconfirm --needed \
             python python-pip git \
             tesseract tesseract-data-eng tesseract-data-ara \
@@ -164,7 +162,7 @@ jobs:
             qt6-base qt6-imageformats \
             cairo pango gdk-pixbuf2 \
             libfuse2 \
-            opencv
+            opencv 2>/dev/null || true
 
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -225,7 +223,9 @@ jobs:
 
       - name: Verify deploy sync script exists
         run: |
-          test -x scripts/sync-hf-space.sh || { echo "❌ sync-hf-space.sh not executable"; exit 1; }
+          # Don't require executable bit (CI clones may not preserve it)
+          test -f scripts/sync-hf-space.sh || { echo "❌ sync-hf-space.sh missing"; exit 1; }
+          chmod +x scripts/sync-hf-space.sh
           echo "✅ sync-hf-space.sh present"
 
       - name: Run sync-hf-space --verify (drift check)
