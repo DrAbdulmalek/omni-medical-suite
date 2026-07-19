@@ -130,6 +130,42 @@ config/           → hf-space/config/          (config files)
 
 > See `STATE_OF_TRUTH.md` for the full runtime state matrix (services, persistence, observability).
 
+### HF Space drift control (manual mirror audit)
+
+`scripts/sync-hf-space.sh` keeps the **synced paths** (`src/ocr`, `packages/{vision,nlp,core}`, `config`) byte-identical between the monorepo and `hf-space/`. **It does NOT touch `hf-space/app.py`**, because that file is a frozen, self-contained entrypoint that inlines service setup (so it can run on HF Spaces CPU tier without the lazy-loading machinery in `app/services/ocr_service.py`).
+
+This means **`hf-space/app.py` and `app/services/ocr_service.py` can silently drift** in the parts that *should* stay parallel — specifically the PaddleOCR / Tesseract / ImagePreprocessor constructor kwargs and the `OCR_CORRECTIONS` dict. The drift control protocol below catches that.
+
+**Manual mirror audit** (run after every change to either file):
+
+```bash
+# 1. Refresh all auto-synced paths.
+./scripts/sync-hf-space.sh --force
+
+# 2. Verify auto-synced paths are clean.
+./scripts/sync-hf-space.sh --verify
+
+# 3. Manual mirror audit — compare the frozen hf-space/app.py snapshot
+#    against the canonical service module for the four knobs that MUST match:
+#    PaddleOCR / ImagePreprocessor / Tesseract / OCR_CORRECTIONS.
+python3 scripts/check_hf_space_drift.py
+```
+
+The script returns 0 only if all four knobs match. If it reports drift, fix the canonical side (`app/services/ocr_service.py`) first, then mirror the change into `hf-space/app.py`.
+
+**Known structural (non-functional) differences — accepted:**
+
+| Area | `hf-space/app.py` | `app/services/ocr_service.py` | Why accepted |
+|------|-------------------|-------------------------------|--------------|
+| Resource lifecycle | Eager init at import (module-level singletons) | Lazy init via `get_*()` getters + thread-safe locks | HF Space cold-start tolerates eager init; the canonical app must stay import-cheap for tests. |
+| Spell-checker call site | Step 4.5 inside `full_process` (after `_auto_correct_ocr`) | Inside `_auto_correct_ocr` itself | Both flows apply the spell checker exactly once per call; end output is identical. |
+| LLM/NER imports | Direct `from packages.nlp...` at module top | Lazy via `app.services.review_service.get_proofreader / get_ner` | HF Space has a flat module layout; canonical app routes through the service layer. |
+| Return shape of `full_process` | 6-tuple (legacy Gradio interface) | 5-tuple (refactored) | Each caller unpacks its own tuple; UI binds are local to each entrypoint. |
+
+Anything **not** in this table is a real drift and must be fixed.
+
+**CI gate**: `.github/workflows/hf-space-drift.yml` re-runs `scripts/check_hf_space_drift.py` on every PR and on a daily schedule. If any of the four knobs differ, the build fails.
+
 ---
 
 ## 📋 Table of Contents
