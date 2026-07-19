@@ -163,7 +163,20 @@ setup_workspace() {
     mkdir -p "$WORKSPACE"/{uploads,exports,models,corrections_db,logs}
     ok "Workspace ready at: $WORKSPACE"
 
-    # Copy termux_app.py to workspace if it exists in repo
+    # Install scanner_fixer as an editable pip package so `import scanner_fixer`
+    # works without any sys.path hacks. Falls back silently if pip install
+    # fails (termux_app.py has its own sys.path bootstrap as a safety net).
+    if [ -f "$WORKDIR/packages/scanner_fixer/pyproject.toml" ]; then
+        log "Installing scanner_fixer (editable)..."
+        pip install -e "$WORKDIR/packages/scanner_fixer" 2>/dev/null && \
+            ok "scanner_fixer installed (editable)" || \
+            warn "pip install -e scanner_fixer failed — termux_app.py will use sys.path fallback"
+    fi
+
+    # Copy termux_app.py to workspace if it exists in repo. The launcher
+    # exports OMNI_REPO_ROOT so the copied file can still discover the
+    # repo root (for packages.core.* imports) even though it's running
+    # from $WORKSPACE.
     if [ -f "$WORKDIR/mobile/termux/termux_app.py" ]; then
         cp "$WORKDIR/mobile/termux/termux_app.py" "$WORKSPACE/termux_app.py"
         ok "termux_app.py copied to workspace"
@@ -196,6 +209,14 @@ set -e
 WORKSPACE="$HOME/omni_workspace"
 WORKDIR="$HOME/omni-medical-suite"
 PORT="${1:-7860}"
+
+# Export repo root so the copied termux_app.py at $WORKSPACE can find
+# packages.core.* and (as a fallback) packages/scanner_fixer/src via
+# its sys.path bootstrap. If the repo isn't cloned, termux_app.py will
+# silently fall back to standalone mode (local OpenCV + local SQLite).
+if [ -d "$WORKDIR/packages" ]; then
+    export OMNI_REPO_ROOT="$WORKDIR"
+fi
 
 cd "$WORKSPACE"
 
@@ -270,6 +291,13 @@ pip3 install --upgrade \
 if [ -f "$WORKDIR/mobile/termux/termux_app.py" ]; then
     cp "$WORKDIR/mobile/termux/termux_app.py" "$WORKSPACE/termux_app.py"
     echo "✓ termux_app.py updated"
+fi
+
+# Re-install scanner_fixer in case its pyproject.toml / dependencies changed
+if [ -f "$WORKDIR/packages/scanner_fixer/pyproject.toml" ]; then
+    pip install -e "$WORKDIR/packages/scanner_fixer" 2>/dev/null && \
+        echo "✓ scanner_fixer reinstalled (editable)" || \
+        echo "⚠ scanner_fixer reinstall failed — sys.path fallback will be used"
 fi
 
 echo "✅ Update complete. Run: omni-ocr"
