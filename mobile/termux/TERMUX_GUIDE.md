@@ -390,6 +390,59 @@ notify("OmniMedical", "✅ OCR مكتمل")
 
 ---
 
+## 1️⃣1️⃣.5 التوحيد مع البنية الموحّدة (v1.1.1+)
+
+بدءًا من v1.1.1، تطبيق Termux لم يعد يُعيد تنفيذ منطق معالجة الصور وحفظ التصحيحات
+بشكل معزول. بل يستخدم **نفس المكتبات** التي يستخدمها:
+
+- **`packages/desktop/medical_doc_gui_final.py`** (تطبيق سطح المكتب)
+- **`packages/core/mobile/server.py`** (خادم PWA)
+
+### ما الذي تغيّر؟
+
+| المنطق | قبل v1.1.1 (معزول) | بعد v1.1.1 (موحَّد) |
+|--------|---------------------|----------------------|
+| `deskew()` | minAreaRect محلي | `scanner_fixer.deskew.deskew()` (Hough + std guard) |
+| `text_aware_crop()` | أكبر contour محلي | `scanner_fixer.crop.auto_crop()` (morphological) |
+| `denoise()` / `enhance_contrast()` | cv2 مباشرة | `scanner_fixer.enhance.{remove_noise, enhance_contrast_clahe}()` |
+| `save_correction()` | SQLite محلي خاص + JSONL | `CorrectionsDictManager.add()` + `WordCorrectionDB.save_batch()` |
+| `get_stats()` | عدّ من SQLite المحلي | `WordCorrectionDB.stats()` (دقة، جلسات، لغات) |
+
+### لماذا يهمّك هذا؟
+
+1. **حلقة التعلّم الموحّدة**: كل تصحيح تُدخله على Termux يُغذّي نفس قاعدة بيانات
+   `WordCorrectionDB` التي يستخدمها خادم PWA (إذا شغّلته على نفس الـ workspace).
+   هذا يعني أن النموذج التالي سيستفيد من تصحيحاتك حتى لو لم تمرّ بخادم PWA.
+
+2. **خوارزميات أفضل**: `scanner_fixer.deskew` يستخدم Hough line transform مع
+   standard-deviation guard، وهو أدقّ بكثير من minAreaRect على الصفحات النصّية.
+
+3. **استثناء متعمَّد لـ OCR engine**: يستمر التطبيق في استخدام `pytesseract`
+   مباشرة (وليس `EngineRegistry`/`OCRService` من `app/services/`). السبب:
+   `EngineRegistry` يسحب PaddleOCR (~500MB) و EasyOCR (~400MB) كتبعيات اختيارية،
+   وهو وزن غير عملي على هاتف Android ARM64 محدود الموارد. `pytesseract` +
+   `tesseract-data-arabic` (من `pkg install tesseract-data`) أسرع تثبيتًا وأخفّ.
+
+### التشخيص
+
+شغّل التطبيق وانظر لسجلّ الإقلاع:
+
+```
+2026-07-19 12:58:01 [INFO] OmniMedical.Termux: Repo root discovered: /home/.../omni-medical-suite
+2026-07-19 12:58:03 [INFO] OmniMedical.Termux: scanner_fixer loaded — image processing delegated to unified library
+2026-07-19 12:58:03 [INFO] OmniMedical.Termux: Learning loop wired: CorrectionsDictManager + WordCorrectionDB (shared with PWA server)
+```
+
+إذا رأيت `Repo root NOT discovered — running in standalone mode`، فهذا يعني أن
+التطبيق لم يجد المستودع. تأكّد من:
+- تثبيت المشروع في `~/omni-medical-suite` (الإعداد الافتراضي)
+- أو ضبط `OMNI_REPO_ROOT` يدويًا: `export OMNI_REPO_ROOT=/path/to/omni-medical-suite`
+
+في الوضع المستقل، يعود التطبيق للتنفيذ المحلي القديم (OpenCV مباشرة + SQLite محلي).
+هذا يضمن بقاء الملف قابلًا للتشغيل حتى لو نُسخ وحده بدون المستودع.
+
+---
+
 ## 1️⃣2️⃣ الأمان والخصوصية
 
 - ✅ **كل المعالجة محلية** — لا تُرسل أي بيانات للإنترنت.
