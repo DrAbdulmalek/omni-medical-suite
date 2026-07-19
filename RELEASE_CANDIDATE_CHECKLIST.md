@@ -1,8 +1,14 @@
 # Release Candidate Checklist — v1.1.0-rc
 
 **Branch:** `feat/rc-hardening-p0`
-**Latest commit:** `4321b31` (2026-07-19)
-**Test status:** 95/95 P0 tests pass (2.87s)
+**Latest commit:** `bcd5c73` (2026-07-19) — P1-4 complete
+**Test status:** 161/161 P0+P1 tests pass (3.02s)
+- P0: 95 tests (scanner_tab + decision_log + translation + hf_dataset_staging + lazy_ocr_service)
+- P1: 66 tests (field_extractor + benchmark_reporter + decision_instrumentation)
+
+**P0 status:** 7/7 complete (deploy source of truth, scanner integration, lazy loading, translation service, HF staging, decision log, pytest unification)
+**P1 status:** 4/4 complete (field extractor, benchmark reporter, decision instrumentation, Git LFS audit)
+**P2 status:** 6 items remaining (CI parity check, CI matrix, deploy smoke checks, AppImage regression, LFS migration, engine_router instrumentation)
 
 ---
 
@@ -57,31 +63,56 @@
 
 ---
 
-## ⏳ P1 — Should-do before final RC (next sprint)
+## ⏳ P1 — Done in this branch (4/4 complete)
 
-1. **Field extractor hardening** (`src/ocr/field_extractor.py`)
-   - Multi-line value support
-   - Broader bilingual labels (Arabic + English medical terms)
-   - Optional confidence scoring
-   - Safe `template_signature` (current `text.replace(value, " ")` corrupts output)
+1. ✅ **P1-1: Field extractor hardening** (`src/ocr/field_extractor.py`)
+   - Multi-line value support for diagnosis/medications (lookahead pattern)
+   - Bilingual labels: Arabic + English shorthand (Pt Name, File No, DOB, Dr, Dx, Rx)
+   - Per-field confidence scoring in [0.0, 1.0] via `_confidence_for()`
+   - Safe `build_template_signature()`: `re.escape()` + placeholder + length-desc sort
+   - Tests: `tests/test_field_extractor_p1.py` (29 tests, all pass)
+   - Commit: `5b70816`
 
-2. **Benchmark reporter** (`omni_medical_suite/preprocessing/compare_raw_vs_printed.py`)
-   - Add `to_csv()`, `to_json()`, `aggregate_metrics()` to `OCRComparisonPipeline`
+2. ✅ **P1-2: Benchmark reporter** (`omni_medical_suite/preprocessing/compare_raw_vs_printed.py`)
+   - `to_csv(results, path, *, flatten_field_aware=True)` — CSV export with field-aware flattening
+   - `to_json(results, path, *, indent=2)` — JSON export preserving Arabic Unicode
+   - `aggregate_metrics(results, *, percentiles=(0.5, 0.9, 0.95))` — min/max/mean/median/stdev/percentiles
+   - Convenience rollups: `improvement_mean`, `processed_better_count`, `processed_better_ratio`
+   - Tests: `tests/test_benchmark_reporter_p1.py` (25 tests, all pass)
+   - Commit: `e9ffdde`
 
-3. **RTL/dedup/backend decision logging**
-   - Instrument `engine_router`, `rtl_utils`, `deduplication`, `field_extractor` to emit `log_decision()` calls
+3. ✅ **P1-3: RTL/dedup/field_extractor decision logging**
+   - `src/ocr/rtl_utils.py` — `analyze_and_fix()` emits `decision='rtl_fix'`
+   - `src/ocr/deduplication.py` — `deduplicate()` emits `decision='dedup_batch'`
+   - `src/ocr/field_extractor.py` — `extract_fields()` emits `decision='field_extraction'`
+   - All instrumentation wrapped in `try/except ImportError` (graceful degradation)
+   - Bug fix in `app/core/decision_log.py`: `_coerce_outcome()` now handles dicts
+     (previously stringified them); `_safe_jsonable()` handles nested lists/dicts
+     with circular-reference protection
+   - Tests: `tests/test_decision_instrumentation_p1.py` (12 tests, all pass)
+   - Commit: `e8ea063`
 
-4. **Deploy parity CI check**
-   - Add GitHub Actions job running `./scripts/sync-hf-space.sh --verify` on PRs touching `hf-space/**`, `src/ocr/**`, `packages/**`, or `config/**`
+4. ✅ **P1-4: Git LFS audit + .gitattributes cleanup**
+   - Expanded `.gitattributes` from 11 → 50+ patterns across 10 categories
+   - Added: `*.ipynb`, ML weights (`.h5/.pt/.safetensors/.onnx/...`), media (`.mp4/.mp3/...`),
+     archives (`.zip/.tar/.7z/...`), office docs (`.docx/.xlsx/.pptx`),
+     path-specific patterns for `tectonic` binary and `tokenizer.json`
+   - New `scripts/audit-lfs-coverage.sh` — verifies coverage, `--strict` mode for CI
+   - Audit result: **32/32 large files covered, 0 uncovered**
+   - Commit: `bcd5c73`
+
+**P1 test total: 66 new tests (29 + 25 + 12), all pass. Combined with P0's 95 tests: 161/161 pass in 3.02s.**
 
 ---
 
-## 🎯 P2 — Post-RC polish
+## 🎯 P2 — Post-RC polish (next sprint)
 
-5. **Git LFS audit** — verify `.gitattributes` covers all binary artifacts >1MB
-6. **CI matrix** — `pip install -e ".[ocr]"`, `.[nlp]`, `.[search]` test matrix
-7. **Deploy smoke checks** — hit HF Space URL after deploy, verify 200 + key endpoint
-8. **AppImage for desktop scanner** — already built, needs regression test
+1. **Deploy parity CI check** — Add GitHub Actions job running `./scripts/sync-hf-space.sh --verify` on PRs touching `hf-space/**`, `src/ocr/**`, `packages/**`, or `config/**`
+2. **CI matrix** — `pip install -e ".[ocr]"`, `.[nlp]`, `.[search]` test matrix
+3. **Deploy smoke checks** — hit HF Space URL after deploy, verify 200 + key endpoint
+4. **AppImage for desktop scanner** — already built, needs regression test
+5. **LFS migration of existing tracked files** — `git lfs migrate import` for files now covered by new patterns (rewrites history, coordinate with collaborators)
+6. **Instrument engine_router** — emit `decision='engine_selection'` in `packages/core/engine_router.py` (the only remaining uninstrumented decision site)
 
 ---
 
