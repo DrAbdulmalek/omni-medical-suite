@@ -184,3 +184,45 @@ Stage Summary:
 - **163/163 tests pass locally**
 - **3 deploy surfaces verified**: HF Space (drift clean), Manjaro AppImage (build
   script works locally, CI env lacks PySide6), Colab (3/3 notebooks valid)
+
+---
+Task ID: RELEASE-FINAL-COMPLETION
+Agent: Z.ai (main)
+Task: Complete v1.1.0-rc1 release — build AppImage artifact, attach to Release, update README
+
+Work Log:
+- Verified PR #66 was already merged (commit a25376e, merged 2026-07-19T08:55:51Z)
+- Verified tag v1.1.0-rc1 already created (annotated, points to a25376e)
+- Verified GitHub Release v1.1.0-rc1 already published (prerelease=True, 2026-07-19T08:56:46Z)
+- Verified HF Space sync: `sync-hf-space.sh --verify` ✅ clean
+- CI AppImage build had failed at appimagetool step due to 3 issues:
+  (1) .desktop file placed only under usr/share/applications/, not at AppDir root
+  (2) No ARCH env var → "More than one architectures were found"
+  (3) Root icon named MedicalDocProcessor.png, not com.omnimedical.docprocessor.png
+- Fixed all 3 issues in `packages/desktop/build_appimage.sh` across 3 commits:
+  - `bf34b84` fix(appimage): place .desktop + icon at AppDir root
+  - `9225884` fix(appimage): force ARCH env var for appimagetool
+  - `a121b8c` fix(appimage): name root icon com.omnimedical.docprocessor.png
+- Each commit triggered CI; final run (29681501968) succeeded:
+  ✅ Build PyInstaller ELF + AppImage
+  ✅ Smoke test (offscreen) — extractable, AppRun + .desktop + metainfo present
+  ✅ Verify checksum
+  ✅ Upload AppImage artifact (176 MB)
+- Downloaded artifact ZIP (185 MB) via GitHub API
+- Extracted MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage (177 MB) + .sha256
+- Uploaded both files to GitHub Release 356297929 as release assets
+- Updated README.md Option 5 with direct download URL for the pre-built AppImage
+  (wget + sha256sum -c + chmod + run) as the recommended path
+- Final commit: `25a6198` docs(readme): add direct download link
+
+Stage Summary:
+- **PR #66**: https://github.com/DrAbdulmalek/omni-medical-suite/pull/66 (merged, squash)
+- **Tag v1.1.0-rc1**: https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0-rc1
+- **GitHub Release**: https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0-rc1
+- **AppImage asset (177 MB)**: https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0-rc1/MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage
+- **SHA256 asset**: https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0-rc1/MedicalDocProcessor-v1.1.0-rc1-x86_64.AppImage.sha256
+- **SHA256**: 58e6198d96c424669879dbc5ba338030ca6f85cd5ae24649e4e747c6501e2f48
+- **Main HEAD**: 25a6198 (README direct-download link)
+- **HF Space sync**: ✅ clean (sync-hf-space --verify passes)
+- **All required CI checks pass**: Python 3.10/3.11/3.12 + LFS audit + Colab notebooks + AppImage build
+- **Total commits added on main post-merge**: 4 (3 appimage fixes + 1 README update)
