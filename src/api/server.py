@@ -14,8 +14,11 @@ degrades when optional dependencies are unavailable.
 
 from __future__ import annotations
 
+import asyncio
+import glob
 import logging
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import Any, Optional
@@ -24,6 +27,61 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Path sandboxing — security: only allow paths under configured directories
+# ---------------------------------------------------------------------------
+
+# Comma-separated list of allowed base directories (env: OMNI_ALLOWED_DIRS)
+# Default: current working directory + data/ dir
+_ALLOWED_DIRS: list[Path] | None = None
+
+def _get_allowed_dirs() -> list[Path]:
+    """Get and cache the list of allowed directories."""
+    global _ALLOWED_DIRS
+    if _ALLOWED_DIRS is not None:
+        return _ALLOWED_DIRS
+    dirs_str = os.environ.get(
+        "OMNI_ALLOWED_DIRS",
+        os.path.join(os.getcwd(), "data"),
+    )
+    _ALLOWED_DIRS = [
+        Path(d.strip()).resolve()
+        for d in dirs_str.split(",")
+        if d.strip()
+    ]
+    # Always allow cwd
+    _ALLOWED_DIRS.append(Path.cwd().resolve())
+    return _ALLOWED_DIRS
+
+
+def _validate_path(path_str: str, must_exist: bool = True) -> Path:
+    """Validate that a path is within allowed directories (sandboxing).
+
+    Raises HTTPException(403) if the path escapes the sandbox.
+    """
+    resolved = Path(path_str).resolve()
+    allowed = _get_allowed_dirs()
+    if not any(resolved.is_relative_to(allowed_dir) for allowed_dir in allowed):
+        raise HTTPException(
+            status_code=403,
+            detail="Path is outside allowed directories",
+        )
+    if must_exist and not resolved.exists():
+        raise HTTPException(status_code=400, detail=f"Path not found: {resolved}")
+    return resolved
+
+
+# Safe category names for organize endpoint (prevent path traversal via category)
+_SAFE_CATEGORY_RE = re.compile(r"^[a-zA-Z0-9_\-\u0600-\u06FF]+$")
+
+
+def _sanitize_category(category: str) -> str:
+    """Sanitize a classifier category for use as a directory name."""
+    if not _SAFE_CATEGORY_RE.match(category):
+        return "general"
+    return category
+
 
 # ---------------------------------------------------------------------------
 # Pydantic request / response schemas
@@ -119,6 +177,8 @@ class _MinimalClassifier:
 
 _classifier: Optional[Any] = None
 _classifier_type: str = "none"
+_search_model: Optional[Any] = None
+_qdrant_client: Optional[Any] = None
 
 
 def _get_classifier() -> tuple[Any, str]:
@@ -135,7 +195,7 @@ def _get_classifier() -> tuple[Any, str]:
         logger.info("Loaded MedicalClassifier from hf-space.packages.core")
         return _classifier, _classifier_type
     except Exception as exc:
-        logger.debug(f"hf-space classifier unavailable: {exc}")
+        logger.debug("hf-space classifier unavailable: %s", exc)
 
     # Path 2: packages core
     try:
@@ -145,7 +205,7 @@ def _get_classifier() -> tuple[Any, str]:
         logger.info("Loaded MedicalClassifier from packages.core")
         return _classifier, _classifier_type
     except Exception as exc:
-        logger.debug(f"packages.core classifier unavailable: {exc}")
+        logger.debug("packages.core classifier unavailable: %s", exc)
 
     # Path 3: minimal fallback
     _classifier = _MinimalClassifier()
@@ -154,24 +214,56 @@ def _get_classifier() -> tuple[Any, str]:
     return _classifier, _classifier_type
 
 
+def _get_search_model():
+    """Lazily load and cache the SentenceTransformer model."""
+    global _search_model
+    if _search_model is not None:
+        return _search_model
+    try:
+        from sentence_transformers import SentenceTransformer
+        _search_model = SentenceTransformer(
+            "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+        )
+        logger.info("Loaded SentenceTransformer search model")
+    except Exception as exc:
+        logger.warning("SentenceTransformer unavailable: %s", exc)
+    return _search_model
+
+
+def _get_qdrant_client():
+    """Lazily load and cache the QdrantClient."""
+    global _qdrant_client
+    if _qdrant_client is not None:
+        return _qdrant_client
+    try:
+        from qdrant_client import QdrantClient
+        _qdrant_client = QdrantClient(host="localhost", port=6333, timeout=5.0)
+        logger.info("Loaded QdrantClient")
+    except Exception as exc:
+        logger.warning("QdrantClient unavailable: %s", exc)
+    return _qdrant_client
+
+
 # ---------------------------------------------------------------------------
-# Health-check helpers
+# Async health-check helpers (non-blocking)
 # ---------------------------------------------------------------------------
 
-def _check_ollama() -> bool:
+async def _check_ollama() -> bool:
     try:
         import httpx
-        r = httpx.get("http://localhost:11434/api/tags", timeout=3.0)
-        return r.status_code == 200
+        async with httpx.AsyncClient() as client:
+            r = await client.get("http://localhost:11434/api/tags", timeout=3.0)
+            return r.status_code == 200
     except Exception:
         return False
 
 
-def _check_qdrant() -> bool:
+async def _check_qdrant() -> bool:
     try:
         import httpx
-        r = httpx.get("http://localhost:6333/collections", timeout=3.0)
-        return r.status_code == 200
+        async with httpx.AsyncClient() as client:
+            r = await client.get("http://localhost:6333/collections", timeout=3.0)
+            return r.status_code == 200
     except Exception:
         return False
 
@@ -207,8 +299,8 @@ async def classify_text(req: ClassifyRequest):
     try:
         result = clf.classify(req.text)
     except Exception as exc:
-        logger.error(f"Classification error: {exc}")
-        raise HTTPException(status_code=500, detail=f"Classification failed: {exc}")
+        logger.error("Classification error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Classification failed")
 
     # Normalize output — both MedicalClassifier and _MinimalClassifier return dicts
     if isinstance(result, dict):
@@ -235,11 +327,18 @@ async def classify_text(req: ClassifyRequest):
 @router.post("/organize", response_model=OrganizeResponse)
 async def organize_files(req: OrganizeRequest):
     """Organize files in source_dir into category-based subdirectories."""
-    source = Path(req.source_dir).resolve()
-    target = Path(req.target_dir).resolve() if req.target_dir else source
+    # Security: validate paths are within allowed directories
+    source = _validate_path(req.source_dir)
+    target = _validate_path(req.target_dir, must_exist=False) if req.target_dir else source
 
     if not source.is_dir():
         raise HTTPException(status_code=400, detail=f"Source directory not found: {source}")
+
+    # Security: ensure target is within sandbox
+    try:
+        _validate_path(str(target), must_exist=False)
+    except HTTPException:
+        raise HTTPException(status_code=403, detail="Target directory is outside allowed directories")
 
     clf, _ = _get_classifier()
     organized: dict[str, list[str]] = {}
@@ -251,17 +350,23 @@ async def organize_files(req: OrganizeRequest):
             continue
         total += 1
         try:
-            # Read text content for classification (first 4KB)
+            # Skip binary files — only read text-like files
+            binary_exts = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp",
+                          ".mp3", ".wav", ".mp4", ".avi", ".mkv", ".mov", ".exe", ".dll"}
             text_content = ""
-            try:
-                text_content = item.read_text(encoding="utf-8", errors="ignore")[:4096]
-            except Exception:
-                pass
+            if item.suffix.lower() not in binary_exts:
+                try:
+                    text_content = item.read_text(encoding="utf-8", errors="ignore")[:4096]
+                except Exception:
+                    pass
 
             # Classify by filename + content
             label_text = f"{item.stem} {text_content}"
             result = clf.classify(label_text)
             category = result.get("category", "general") if isinstance(result, dict) else "general"
+
+            # Security: sanitize category to prevent path traversal
+            category = _sanitize_category(category)
 
             cat_dir = target / category
             organized.setdefault(category, []).append(item.name)
@@ -274,7 +379,7 @@ async def organize_files(req: OrganizeRequest):
                 else:
                     shutil.copy2(str(item), str(dest))
         except Exception as exc:
-            errors.append(f"{item.name}: {exc}")
+            errors.append(f"{item.name}: error during processing")
 
     return OrganizeResponse(
         organized=organized,
@@ -287,27 +392,24 @@ async def organize_files(req: OrganizeRequest):
 @router.get("/search", response_model=SearchResponse)
 async def search(q: str = Query(..., min_length=1), limit: int = Query(10, ge=1, le=100)):
     """Semantic search — falls back through Qdrant → local-fuzzy → unavailable."""
-    # Path 1: Qdrant vector search
-    try:
-        from qdrant_client import QdrantClient
-        from sentence_transformers import SentenceTransformer
-
-        client = QdrantClient(host="localhost", port=6333, timeout=5.0)
-        model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
-        query_vec = model.encode(q).tolist()
-        hits = client.search(collection_name="medical_docs", query_vector=query_vec, limit=limit)
-        results = [
-            {"id": str(h.id), "score": h.score, "payload": h.payload or {}}
-            for h in hits
-        ]
-        return SearchResponse(query=q, results=results, engine="qdrant+sentence-transformers", total=len(results))
-    except Exception as exc:
-        logger.debug(f"Qdrant search unavailable: {exc}")
+    # Path 1: Qdrant vector search (with cached model & client)
+    client = _get_qdrant_client()
+    model = _get_search_model()
+    if client and model:
+        try:
+            query_vec = model.encode(q).tolist()
+            hits = client.search(collection_name="medical_docs", query_vector=query_vec, limit=limit)
+            results = [
+                {"id": str(h.id), "score": h.score, "payload": h.payload or {}}
+                for h in hits
+            ]
+            return SearchResponse(query=q, results=results, engine="qdrant+sentence-transformers", total=len(results))
+        except Exception as exc:
+            logger.debug("Qdrant search unavailable: %s", exc)
 
     # Path 2: local fuzzy search with rapidfuzz
     try:
         from rapidfuzz import fuzz as rfuzz
-        import glob
 
         data_dir = os.environ.get("OMNI_DATA_DIR", "data")
         results: list[dict[str, Any]] = []
@@ -320,7 +422,7 @@ async def search(q: str = Query(..., min_length=1), limit: int = Query(10, ge=1,
         results = results[:limit]
         return SearchResponse(query=q, results=results, engine="rapidfuzz-local", total=len(results))
     except Exception as exc:
-        logger.debug(f"Local fuzzy search unavailable: {exc}")
+        logger.debug("Local fuzzy search unavailable: %s", exc)
 
     # Path 3: unavailable
     return SearchResponse(query=q, results=[], engine="unavailable", total=0)
@@ -341,10 +443,15 @@ async def get_stats():
     if not categories:
         categories = list(_MinimalClassifier._KEYWORDS.keys())
 
+    # Run health checks concurrently
+    ollama_ok, qdrant_ok = await asyncio.gather(
+        _check_ollama(), _check_qdrant()
+    )
+
     engines = {
         "classifier": clf_type != "none",
-        "ollama": _check_ollama(),
-        "qdrant": _check_qdrant(),
+        "ollama": ollama_ok,
+        "qdrant": qdrant_ok,
         "paddleocr": _check_paddleocr(),
         "tesseract": _check_tesseract(),
     }
@@ -354,11 +461,14 @@ async def get_stats():
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Lightweight health probe — checks external service availability."""
+    """Lightweight health probe — checks external service availability concurrently."""
+    ollama_ok, qdrant_ok = await asyncio.gather(
+        _check_ollama(), _check_qdrant()
+    )
     return HealthResponse(
         status="ok",
-        ollama_available=_check_ollama(),
-        qdrant_available=_check_qdrant(),
+        ollama_available=ollama_ok,
+        qdrant_available=qdrant_ok,
         paddleocr_available=_check_paddleocr(),
         tesseract_available=_check_tesseract(),
     )
@@ -398,5 +508,20 @@ def create_standalone_app() -> "FastAPI":
     return _app
 
 
-# When run directly: uvicorn src.api.server:app --port 8420
-app = create_standalone_app()
+# Only create standalone app when run directly: uvicorn src.api.server:app --port 8420
+def _get_app():
+    """Factory for standalone app — avoids creating app at import time."""
+    return create_standalone_app()
+
+
+# For uvicorn: uvicorn src.api.server:app --port 8420
+# Use lazy pattern to avoid app creation at import time
+app = None
+
+def __getattr__(name):
+    global app
+    if name == "app" and app is None:
+        app = create_standalone_app()
+    if name == "app":
+        return app
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
