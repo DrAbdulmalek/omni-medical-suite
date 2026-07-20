@@ -515,13 +515,4 @@ def _get_app():
 
 
 # For uvicorn: uvicorn src.api.server:app --port 8420
-# Use lazy pattern to avoid app creation at import time
-app = None
-
-def __getattr__(name):
-    global app
-    if name == "app" and app is None:
-        app = create_standalone_app()
-    if name == "app":
-        return app
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+app = create_standalone_app()
