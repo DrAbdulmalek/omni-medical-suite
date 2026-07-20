@@ -9,11 +9,13 @@ Environment:
 """
 import os
 import sys
+
+# Fix: sys.argv must come after standard imports
 from github import Github, Auth
 
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
-REPO_NAME = os.argv[2] if len(sys.argv) > 2 else "DrAbdulmalek/omni-medical-suite"
-TAG = os.argv[1] if len(sys.argv) > 1 else "v1.1.0"
+REPO_NAME = sys.argv[2] if len(sys.argv) > 2 else "DrAbdulmalek/omni-medical-suite"
+TAG = sys.argv[1] if len(sys.argv) > 1 else "v1.1.0"
 
 if not TOKEN:
     print("ERROR: GITHUB_TOKEN env var is required", file=sys.stderr)
