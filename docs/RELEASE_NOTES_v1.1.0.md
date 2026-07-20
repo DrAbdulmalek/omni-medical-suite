@@ -138,10 +138,11 @@ chmod +x MedicalDocProcessor-1.1.0-x86_64.AppImage
 
 ## Known Issues
 
-1. **systemd --user in containers**: Falls back to manual process launch; full systemd lifecycle must be verified on native Manjaro/Arch with DBUS and XDG_RUNTIME_DIR properly configured.
-2. **AppImage on Wayland**: May need `QT_QPA_PLATFORM=wayland;xcb` for fallback on KDE Plasma 6. Set `OMNI_APPIMAGE_OFFSCREEN=1` for headless/CI environments.
-3. **LFS migration**: `git lfs migrate import` rewrites history — coordinate with all contributors before running on shared repositories.
-4. **rc-gate.yml mobile-smoke job**: May fail in CI if the mobile server module path is not correctly configured for the test environment. The `PYTHONPATH` must include the repository root.
+1. **AppImage numpy/OpenBLAS crash (CRITICAL)**: The v1.1.0 AppImage was built with numpy 2.4.6, which bundles `libscipy_openblas64_` that fails to load in PyInstaller onefile mode on many Linux systems. The error is: `ImportError: libscipy_openblas64_-32a4b2a6.so: ELF load command address/offset not page-aligned`. **Fix**: Rebuild with `numpy<2` using `bash scripts/rebuild-appimage.sh`. The `requirements.txt` now pins `numpy>=1.24.0,<2.0.0` and a runtime hook (`hook_numpy_openblas.py`) is included.
+2. **systemd --user in containers**: Falls back to manual process launch; full systemd lifecycle must be verified on native Manjaro/Arch with DBUS and XDG_RUNTIME_DIR properly configured.
+3. **AppImage on Wayland**: May need `QT_QPA_PLATFORM=wayland;xcb` for fallback on KDE Plasma 6. Set `OMNI_APPIMAGE_OFFSCREEN=1` for headless/CI environments.
+4. **LFS migration**: `git lfs migrate import` rewrites history — coordinate with all contributors before running on shared repositories.
+5. **rc-gate.yml mobile-smoke job**: May fail in CI if the mobile server module path is not correctly configured for the test environment. The `PYTHONPATH` must include the repository root.
 
 ---
 

@@ -54,6 +54,19 @@ fi
 
 echo "✅ All dependencies available"
 
+# ── 1b. Verify numpy version ─────────────────────────────────────────
+echo ""
+echo "🔍 Checking numpy version..."
+NUMPY_VERSION=$(python3 -c "import numpy; print(numpy.__version__)" 2>/dev/null || echo "0.0.0")
+NUMPY_MAJOR=$(echo "$NUMPY_VERSION" | cut -d. -f1)
+if [ "$NUMPY_MAJOR" -ge 2 ]; then
+    echo "❌ numpy $NUMPY_VERSION detected — numpy 2.x causes ELF alignment crash in PyInstaller"
+    echo "   Fix: pip install 'numpy>=1.24.0,<2.0.0'"
+    echo "   Continuing anyway (build may succeed but AppImage will crash)..."
+else
+    echo "✅ numpy $NUMPY_VERSION (compatible <2.0)"
+fi
+
 # ── 2. Clean previous builds ───────────────────────────────────────
 echo ""
 echo "🧹 Cleaning previous builds..."

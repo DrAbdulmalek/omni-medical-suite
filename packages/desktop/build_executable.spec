@@ -67,7 +67,9 @@ a = Analysis(
     ],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[
+        str(SPEC_DIR / 'hook_numpy_openblas.py'),  # Fix numpy/OpenBLAS ELF alignment
+    ],
     excludes=[
         # Exclude unnecessary modules to reduce size
         'tkinter',
@@ -76,6 +78,8 @@ a = Analysis(
         'notebook',
         'jupyterlab',
         'pytest',
+        # Exclude numpy 2.x problematic modules (only if numpy<2 is used)
+        'numpy._core._methods',  # may differ between numpy versions
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
@@ -95,8 +99,8 @@ exe = EXE(
     name='medical-doc-processor',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,              # Strip debug symbols for smaller binary
-    upx=True,                # Compress with UPX if available
+    strip=False,             # Don't strip — stripping numpy .so files causes alignment issues
+    upx=False,               # Don't compress — UPX corrupts numpy/OpenBLAS shared libs
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,           # GUI app — no console window
