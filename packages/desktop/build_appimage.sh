@@ -47,7 +47,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 APP_NAME="MedicalDocProcessor"
 APPDIR="${SCRIPT_DIR}/AppDir"
-DEFAULT_VERSION="1.1.0-rc1"
+DEFAULT_VERSION="1.1.0"
 
 # ── Parse CLI args ────────────────────────────────────────────────
 VERSION=""
@@ -231,7 +231,7 @@ cat > "${APPDIR}/usr/share/metainfo/${APP_NAME}.metainfo.xml" << EOF
   <releases>
     <release version="${VERSION}" date="${BUILD_DATE}">
       <description>
-        <p>v1.1.0-rc1: P0+P1+P2 hardening — lazy OCR, decision log, AppImage build.</p>
+        <p>v1.1.0: PWA installer, AppImage CI, RC gate, LFS migration tooling.</p>
       </description>
     </release>
   </releases>

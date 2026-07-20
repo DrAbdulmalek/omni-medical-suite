@@ -1,15 +1,14 @@
 name: RC Gate — v1.1.0
 
 # ══════════════════════════════════════════════════════════════════
-# P2-1: RC Gate workflow — comprehensive quality gate for v1.1.2-rc1
-# Runs on push to feat/rc-hardening-p2 or manually.
+# P2-1: RC Gate workflow — comprehensive quality gate for v1.1.0
+# Runs on push to main or manually.
 # All checks must pass before tagging a release candidate.
 # ══════════════════════════════════════════════════════════════════
 
 on:
   push:
     branches:
-      - feat/rc-hardening-p2
       - main
     paths:
       - 'packages/**'

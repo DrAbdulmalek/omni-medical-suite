@@ -1,5 +1,5 @@
 # ============================================================================
-# GitHub Actions: Release — v1.1.2 (P2-1)
+# GitHub Actions: Release — v1.1.0 (P2-1)
 # Triggered on version tags (v*) or manual dispatch
 # Creates GitHub Release + AppImage + Docker push
 # ============================================================================
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. 1.1.2-rc1)'
+        description: 'Release version (e.g. 1.1.0)'
         required: true
       prerelease:
         description: 'Mark as pre-release?'
