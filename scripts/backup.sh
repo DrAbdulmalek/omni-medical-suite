@@ -2,11 +2,14 @@
 # =============================================================================
 # OmniMedical Suite — Backup Script
 # =============================================================================
-# Backs up: Git repos, databases (if running), and model caches.
+# Backs up: ONLY this repo (omni-medical-suite) + local databases + model caches.
 # Usage: ./scripts/backup.sh [--dry-run]
 #
 # Schedule: 0 2 * * * (daily at 2 AM via cron)
 # Retention: 30 days (configurable below)
+#
+# NOTE: Sibling repos (intelli-file-manager, etc.) MUST back up themselves.
+#       Cross-repo backup bundling is a boundary violation per REPO_POLICY.md.
 # =============================================================================
 
 set -euo pipefail
@@ -16,7 +19,7 @@ BACKUP_BASE="${BACKUP_DIR:-/var/backups/omni-medical}"
 RETENTION_DAYS=30
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 BACKUP_DIR="${BACKUP_BASE}/${TIMESTAMP}"
-REPOS=("omni-medical-suite" "intelli-file-manager" "repo-sync-toolkit" "sync-github")
+REPOS=("omni-medical-suite")
 GITHUB_USER="DrAbdulmalek"
 DRY_RUN=false
 
