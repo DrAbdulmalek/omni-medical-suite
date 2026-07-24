@@ -1,0 +1,44 @@
+# Gitleaks configuration for omni-medical-suite
+# Reference: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+title = "omni-medical-suite gitleaks config"
+
+[extend]
+# Start from the default gitleaks rules, then add repo-specific extensions.
+useDefault = true
+
+# Global allowlist — paths that should never be flagged.
+[allowlist]
+description = "Allowed paths (test fixtures, docs, examples)"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)\.env\.example\.production$''',
+  '''(^|/)\.env\.template$''',
+  '''(^|/)\.env\.cpu-example$''',
+  '''(^|/)\.env\.minimal$''',
+  '''(^|/)docs/.*\.md$''',
+  '''(^|/)SECURITY_NOTES\.md$''',
+  '''(^|/)BOUNDARY_AUDIT\.md$''',
+  '''(^|/)PRODUCT_IDENTITY\.md$''',
+  '''(^|/)REPO_POLICY\.md$''',
+  '''(^|/)AI_WORKLOG\.md$''',
+]
+
+# Allow specific test fixtures that contain obviously-fake secrets
+# (sk-1234567890abcdefghij is a standard test pattern in conftest.py).
+[[allowlist.commits]]
+# Empty list — no commits are blanket-allowed. Each finding must be
+# explicitly evaluated.
+
+# Patterns we explicitly want to flag (in addition to defaults):
+[[rules]]
+id = "omni-medical-default-creds"
+description = "omni-medical-suite default credentials"
+regex = '''(?i)(admin123|omnimedical_(dev|secure|standard)|SecureMedicalPIN123)'''
+tags = ["default-credentials", "omni-medical-suite"]
+
+[[rules]]
+id = "omni-medical-test-secret-key"
+description = "Hardcoded test SECRET_KEY in source (must be env-driven)"
+regex = '''SECRET_KEY\s*=\s*['"]test-secret-key-[^'"]+['"]'''
+tags = ["secret-key", "test-cred"]

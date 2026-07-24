@@ -170,7 +170,7 @@ services:
   flower:
     image: mher/flower:latest
     container_name: omnifile-flower
-    command: celery --broker=redis://redis:6379/0 flower --port=5555 --basic_auth=admin:admin123
+    command: celery --broker=redis://redis:6379/0 flower --port=5555 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:?FLOWER_PASSWORD must be set in .env}
     ports:
       - "5555:5555"
     environment:
