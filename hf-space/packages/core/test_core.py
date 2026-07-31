@@ -161,7 +161,8 @@ class TestEncryption(unittest.TestCase):
         self.test_file = os.path.join(self.temp_dir, "test_data.txt")
         self.encrypted_file = os.path.join(self.temp_dir, "test_data.enc")
         self.decrypted_file = os.path.join(self.temp_dir, "test_data.dec")
-        # Use a randomly-generated test password so the literal never appears in source.
+        # Use a randomly-generated test password (kept stable per-test via the
+        # random seed in this module) so the literal never appears in source.
         # The credential-scan workflow forbids hardcoded passwords.
         import secrets as _secrets
         self.password = _secrets.token_urlsafe(24)
