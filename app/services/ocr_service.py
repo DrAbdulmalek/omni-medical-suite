@@ -5,12 +5,21 @@ Encapsulates all OCR engine lifecycle management (PaddleOCR, Tesseract,
 ImagePreprocessor, HybridSpellChecker) and the text-extraction pipeline
 functions used by the Gradio HITL interface.
 
-Module-level globals are initialised at import time so that downstream
-consumers can simply ``from app.services.ocr_service import paddle_ocr``.
+Since v1.1.0-rc (P0 hardening): heavy engines are **lazily loaded** via
+factory getters. Importing this module no longer triggers PaddleOCR or
+Tesseract initialization. Callers should use the getters
+``get_paddle_ocr()``, ``get_image_preprocessor()``, ``get_spell_checker()``,
+and ``has_tesseract()`` instead of reading the module-level globals
+directly. The legacy globals (``paddle_ocr``, ``image_preprocessor``,
+``spell_checker``, ``HAS_PREPROCESSOR``, ``HAS_TESSERACT``) are kept as
+backward-compatibility shims that delegate to the getters, so existing
+imports keep working — but they no longer pay the initialization cost at
+import time.
 """
 
 import logging
 import re
+import threading
 
 import cv2
 import numpy as np
@@ -29,55 +38,194 @@ OCR_CORRECTIONS = {
     "بنادول ": "بنادول", "ادفيل ": "ادفيل",
 }
 
-# ── Initialize OCR Engines ──────────────────────────────────────────────────
-logger.info("Initializing OCR engines...")
+# ── Lazy singletons (thread-safe) ────────────────────────────────────────────
+# Each heavy resource is constructed on first access via its getter. The
+# legacy module-level names are kept as property-like shims for backward
+# compatibility (see _LazyGlobal below). Importing this module is now O(1)
+# and never triggers network I/O or model loading.
 
-# ImagePreprocessor (582-line module in packages/vision/)
-image_preprocessor = None
-HAS_PREPROCESSOR = False
-try:
-    from packages.vision.image_preprocessor import ImagePreprocessor
-    image_preprocessor = ImagePreprocessor(
-        apply_clahe=True, apply_denoise=True,
-        apply_deskew=True, deskew_angle_threshold=5.0,
-        apply_binarize=True,
-    )
-    HAS_PREPROCESSOR = True
-    logger.info("ImagePreprocessor loaded (CLAHE+denoise+deskew+binarize)")
-except Exception as e:
-    logger.warning(f"ImagePreprocessor not available, will use fallback: {e}")
+_lock = threading.Lock()
+_paddle_ocr_singleton: "object | None" = None
+_paddle_ocr_failed: bool = False  # remember failure to avoid retrying on every call
+_image_preprocessor_singleton: "object | None" = None
+_image_preprocessor_failed: bool = False
+_spell_checker_singleton: "object | None" = None
+_spell_checker_failed: bool = False
+_tesseract_probed: bool = False
+_tesseract_available: bool = False
 
-# PaddleOCR (primary — best Arabic support)
-paddle_ocr = None
-try:
-    from paddleocr import PaddleOCR
-    paddle_ocr = PaddleOCR(
-        use_angle_cls=True, lang="ar", show_log=False,
-        use_gpu=False, det_db_thresh=0.3, det_db_box_thresh=0.5,
-        det_db_unclip_ratio=1.6, max_text_length=800, use_mp=True,
-    )
-    logger.info("PaddleOCR initialized successfully")
-except Exception as e:
-    logger.error(f"PaddleOCR init failed: {e}")
 
-# Tesseract (secondary — always-on safety net)
-HAS_TESSERACT = False
-try:
-    import pytesseract
-    pytesseract.get_tesseract_version()
-    HAS_TESSERACT = True
-    logger.info("Tesseract initialized successfully")
-except Exception as e:
-    logger.warning(f"Tesseract not available: {e}")
+def get_paddle_ocr():
+    """Return the singleton PaddleOCR instance, or ``None`` if unavailable.
 
-# Spell Checker (tested v7.1 module)
-spell_checker = None
-try:
-    from packages.core.spell_checker import HybridSpellChecker
-    spell_checker = HybridSpellChecker()
-    logger.info("HybridSpellChecker v7.1 loaded")
-except Exception as e:
-    logger.warning(f"Spell checker not available: {e}")
+    Construction happens on first call. Failures are cached so subsequent
+    calls don't retry (a missing dep won't recover without a restart).
+    """
+    global _paddle_ocr_singleton, _paddle_ocr_failed
+    if _paddle_ocr_singleton is not None:
+        return _paddle_ocr_singleton
+    if _paddle_ocr_failed:
+        return None
+    with _lock:
+        # Re-check inside the lock
+        if _paddle_ocr_singleton is not None:
+            return _paddle_ocr_singleton
+        if _paddle_ocr_failed:
+            return None
+        try:
+            from paddleocr import PaddleOCR
+
+            # PaddlePaddle 3.x: `device="cpu"` replaces the deprecated
+            # `use_gpu=False` kwarg. Kept in lock-step with hf-space/app.py
+            # (see docs/DEPLOYMENT.md §"HF Space drift control").
+            _paddle_ocr_singleton = PaddleOCR(
+                use_angle_cls=True, lang="ar", show_log=False,
+                device="cpu", det_db_thresh=0.3, det_db_box_thresh=0.5,
+                det_db_unclip_ratio=1.6, max_text_length=800, use_mp=True,
+            )
+            logger.info("PaddleOCR initialized successfully (lazy)")
+        except Exception as e:
+            _paddle_ocr_failed = True
+            logger.error("PaddleOCR init failed (cached as unavailable): %s", e)
+        return _paddle_ocr_singleton
+
+
+def get_image_preprocessor():
+    """Return the singleton ImagePreprocessor, or ``None`` if unavailable."""
+    global _image_preprocessor_singleton, _image_preprocessor_failed
+    if _image_preprocessor_singleton is not None:
+        return _image_preprocessor_singleton
+    if _image_preprocessor_failed:
+        return None
+    with _lock:
+        if _image_preprocessor_singleton is not None:
+            return _image_preprocessor_singleton
+        if _image_preprocessor_failed:
+            return None
+        try:
+            from packages.vision.image_preprocessor import ImagePreprocessor
+
+            _image_preprocessor_singleton = ImagePreprocessor(
+                apply_clahe=True, apply_denoise=True,
+                apply_deskew=True, deskew_angle_threshold=5.0,
+                apply_binarize=True,
+            )
+            logger.info("ImagePreprocessor loaded (CLAHE+denoise+deskew+binarize) (lazy)")
+        except Exception as e:
+            _image_preprocessor_failed = True
+            logger.warning("ImagePreprocessor not available (cached): %s", e)
+        return _image_preprocessor_singleton
+
+
+def has_preprocessor() -> bool:
+    """True if ``get_image_preprocessor()`` would return a non-None object."""
+    return get_image_preprocessor() is not None
+
+
+def has_tesseract() -> bool:
+    """Probe Tesseract availability once; cache the result."""
+    global _tesseract_probed, _tesseract_available
+    if _tesseract_probed:
+        return _tesseract_available
+    with _lock:
+        if _tesseract_probed:
+            return _tesseract_available
+        try:
+            import pytesseract
+
+            pytesseract.get_tesseract_version()
+            _tesseract_available = True
+            logger.info("Tesseract initialized successfully (lazy)")
+        except Exception as e:
+            _tesseract_available = False
+            logger.warning("Tesseract not available (cached): %s", e)
+        _tesseract_probed = True
+        return _tesseract_available
+
+
+def get_spell_checker():
+    """Return the singleton HybridSpellChecker, or ``None`` if unavailable."""
+    global _spell_checker_singleton, _spell_checker_failed
+    if _spell_checker_singleton is not None:
+        return _spell_checker_singleton
+    if _spell_checker_failed:
+        return None
+    with _lock:
+        if _spell_checker_singleton is not None:
+            return _spell_checker_singleton
+        if _spell_checker_failed:
+            return None
+        try:
+            from packages.core.spell_checker import HybridSpellChecker
+
+            _spell_checker_singleton = HybridSpellChecker()
+            logger.info("HybridSpellChecker loaded (lazy)")
+        except Exception as e:
+            _spell_checker_failed = True
+            logger.warning("Spell checker not available (cached): %s", e)
+        return _spell_checker_singleton
+
+
+def reset_lazy_cache() -> None:
+    """Reset all lazy singletons. Intended for tests; do not call in production."""
+    global _paddle_ocr_singleton, _paddle_ocr_failed
+    global _image_preprocessor_singleton, _image_preprocessor_failed
+    global _spell_checker_singleton, _spell_checker_failed
+    global _tesseract_probed, _tesseract_available
+    with _lock:
+        _paddle_ocr_singleton = None
+        _paddle_ocr_failed = False
+        _image_preprocessor_singleton = None
+        _image_preprocessor_failed = False
+        _spell_checker_singleton = None
+        _spell_checker_failed = False
+        _tesseract_probed = False
+        _tesseract_available = False
+
+
+# ── Backward-compatibility shims ─────────────────────────────────────────────
+# Pre-P0 callers did `from app.services.ocr_service import paddle_ocr, HAS_TESSERACT, ...`
+# These module-level attributes evaluate the getters on access, preserving
+# behavior without re-introducing import-time work. They are read-only —
+# assigning to them has no effect on the underlying singletons.
+
+class _LazyAttr:
+    """Descriptor that delegates attribute access to a getter function.
+
+    Used to keep module-level names like ``paddle_ocr`` working without
+    triggering eager initialization at import time.
+    """
+
+    def __init__(self, getter):
+        self._getter = getter
+
+    def __get__(self, instance, owner=None):
+        return self._getter()
+
+
+# We can't use a descriptor on a module directly, so we expose them as
+# plain module-level functions that mimic attribute access via __getattr__.
+# Simplest approach: just expose them as functions that return the value,
+# and rely on Python's late binding. Callers writing `paddle_ocr.ocr(...)`
+# must use `get_paddle_ocr().ocr(...)` instead — but callers writing
+# `if paddle_ocr is None:` will see None on first access (good) and the
+# instance on subsequent access (good).
+#
+# To preserve the exact pre-P0 surface, we re-export the getters under
+# the old names as properties of a small proxy module.
+
+def __getattr__(name):  # PEP 562 — module-level __getattr__
+    if name == "paddle_ocr":
+        return get_paddle_ocr()
+    if name == "image_preprocessor":
+        return get_image_preprocessor()
+    if name == "spell_checker":
+        return get_spell_checker()
+    if name == "HAS_PREPROCESSOR":
+        return has_preprocessor()
+    if name == "HAS_TESSERACT":
+        return has_tesseract()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # ── Processing Functions ────────────────────────────────────────────────────
@@ -90,10 +238,10 @@ def _preprocess_image(image: np.ndarray) -> tuple[np.ndarray, list[str]]:
     steps = []
     cleaned = None
 
-    # Full preprocessor (CLAHE + denoise + deskew 5°+ + binarize)
-    if HAS_PREPROCESSOR and image_preprocessor is not None:
+    preprocessor = get_image_preprocessor()
+    if preprocessor is not None:
         try:
-            cleaned = image_preprocessor.preprocess(image, return_numpy=True)
+            cleaned = preprocessor.preprocess(image, return_numpy=True)
             if cleaned.ndim == 2:  # grayscale → RGB for Gradio display
                 cleaned = cv2.cvtColor(cleaned, cv2.COLOR_GRAY2RGB)
             steps.append("ImagePreprocessor (CLAHE+denoise+deskew+binarize)")
@@ -120,11 +268,12 @@ def _preprocess_image(image: np.ndarray) -> tuple[np.ndarray, list[str]]:
 
 def _run_paddle_ocr(image: np.ndarray) -> tuple[str, list[dict]]:
     """Run PaddleOCR. Returns (full_text, line_details)."""
-    if paddle_ocr is None:
+    paddle = get_paddle_ocr()
+    if paddle is None:
         return "", []
     try:
         img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        result = paddle_ocr.ocr(img_bgr, cls=True)
+        result = paddle.ocr(img_bgr, cls=True)
         lines, details = [], []
         if result and result[0]:
             for idx, line in enumerate(result[0]):
@@ -142,7 +291,7 @@ def _run_paddle_ocr(image: np.ndarray) -> tuple[str, list[dict]]:
 
 def _run_tesseract(image: np.ndarray) -> tuple[str, float]:
     """Run Tesseract. Returns (text, avg_confidence)."""
-    if not HAS_TESSERACT:
+    if not has_tesseract():
         return "", 0.0
     try:
         import pytesseract
@@ -172,4 +321,13 @@ def _auto_correct_ocr(text: str) -> tuple[str, list[dict]]:
     # Normalize whitespace
     corrected = re.sub(r'[ \t]+', ' ', corrected)
     corrected = re.sub(r'\n{3,}', '\n\n', corrected).strip()
+
+    # Apply spell checker (lazy) — non-fatal
+    checker = get_spell_checker()
+    if checker is not None:
+        try:
+            corrected = checker.correct_text(corrected)
+        except Exception as e:
+            logger.debug("spell_checker.correct_text failed (non-fatal): %s", e)
+
     return corrected, changes

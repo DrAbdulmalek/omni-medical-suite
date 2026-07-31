@@ -4,40 +4,111 @@
 Provides:
   - Dictionary-based NER via ``MEDICAL_TERMS`` and ``_extract_ner()``
   - Jais LLM proofreading via ``jais_proofread_only()`` (requires GPU)
-  - Module-level ``proofreader`` and ``ner`` instances (loaded when
-    ``ENABLE_LLM=true``)
+  - Lazy accessors ``get_proofreader()`` / ``get_ner()`` for the Jais
+    models, loaded only when ``ENABLE_LLM=true`` *and* first requested.
+
+Since v1.1.0-rc (P0 hardening): Jais models are no longer constructed
+at import time. Even with ``ENABLE_LLM=true``, importing this module is
+cheap; the proofreader/NER instances are built on first call to
+``get_proofreader()`` / ``get_ner()``.
 """
 
 import logging
 import os
 import re
+import threading
 
 logger = logging.getLogger(__name__)
 
 # ── Config ──────────────────────────────────────────────────────────────────
 ENABLE_LLM = os.getenv("ENABLE_LLM", "false").lower() == "true"
 
-# ── Conditional LLM Imports ─────────────────────────────────────────────────
-HAS_LLM = False
-proofreader = None
-ner = None
+# ── Lazy LLM singletons ─────────────────────────────────────────────────────
+_lock = threading.Lock()
+_proofreader_singleton = None
+_ner_singleton = None
+_proofreader_failed = False
+_ner_failed = False
 
-if ENABLE_LLM:
-    try:
-        from src.llm.proofreader import MedicalProofreader
-        from src.ner.jais_ner import JaisNER
-        HAS_LLM = True
-        logger.info("Jais LLM modules loaded (GPU required)")
-    except ImportError as e:
-        logger.warning(f"LLM modules not available: {e}")
 
-if HAS_LLM:
-    try:
-        proofreader = MedicalProofreader()
-        ner = JaisNER()
-        logger.info("Jais models loaded successfully")
-    except Exception as e:
-        logger.error(f"Failed to load Jais models: {e}")
+def get_proofreader():
+    """Return the singleton MedicalProofreader, or ``None`` if unavailable.
+
+    Construction requires ``ENABLE_LLM=true``. Failures are cached.
+    """
+    global _proofreader_singleton, _proofreader_failed
+    if _proofreader_singleton is not None:
+        return _proofreader_singleton
+    if _proofreader_failed or not ENABLE_LLM:
+        return None
+    with _lock:
+        if _proofreader_singleton is not None:
+            return _proofreader_singleton
+        if _proofreader_failed or not ENABLE_LLM:
+            return None
+        try:
+            from src.llm.proofreader import MedicalProofreader
+
+            _proofreader_singleton = MedicalProofreader()
+            logger.info("MedicalProofreader loaded (lazy)")
+        except Exception as e:
+            _proofreader_failed = True
+            logger.error("Failed to load MedicalProofreader (cached): %s", e)
+        return _proofreader_singleton
+
+
+def get_ner():
+    """Return the singleton JaisNER, or ``None`` if unavailable."""
+    global _ner_singleton, _ner_failed
+    if _ner_singleton is not None:
+        return _ner_singleton
+    if _ner_failed or not ENABLE_LLM:
+        return None
+    with _lock:
+        if _ner_singleton is not None:
+            return _ner_singleton
+        if _ner_failed or not ENABLE_LLM:
+            return None
+        try:
+            from src.ner.jais_ner import JaisNER
+
+            _ner_singleton = JaisNER()
+            logger.info("JaisNER loaded (lazy)")
+        except Exception as e:
+            _ner_failed = True
+            logger.error("Failed to load JaisNER (cached): %s", e)
+        return _ner_singleton
+
+
+def reset_lazy_cache() -> None:
+    """Reset LLM singletons. Intended for tests."""
+    global _proofreader_singleton, _ner_singleton
+    global _proofreader_failed, _ner_failed
+    with _lock:
+        _proofreader_singleton = None
+        _ner_singleton = None
+        _proofreader_failed = False
+        _ner_failed = False
+
+
+# ── Backward-compat module-level attributes ─────────────────────────────────
+# Pre-P0 callers did `from app.services.review_service import proofreader, ner, HAS_LLM`.
+# We preserve these names via PEP 562 module __getattr__ so existing imports
+# keep working — but they now trigger lazy construction on first access.
+
+def __getattr__(name):  # PEP 562
+    if name == "proofreader":
+        return get_proofreader()
+    if name == "ner":
+        return get_ner()
+    if name == "HAS_LLM":
+        # True only if both ENABLE_LLM is set AND the modules import successfully.
+        # We probe lazily: if get_proofreader() returns None, HAS_LLM is False.
+        # This matches the pre-P0 semantics where HAS_LLM was set only on
+        # successful import + instantiation.
+        return get_proofreader() is not None or get_ner() is not None
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # ── Medical dictionary for NER ──────────────────────────────────────────────
 MEDICAL_TERMS = {
@@ -88,7 +159,8 @@ def _extract_ner(text: str) -> dict[str, list[str]]:
 
 def jais_proofread_only(text: str) -> str:
     """Standalone Jais LLM proofreading on raw OCR text."""
-    if not HAS_LLM or proofreader is None:
+    proofreader = get_proofreader()
+    if proofreader is None:
         return ("⚠️ يتطلب تفعيل ENABLE_LLM=true و GPU\n\n"
                 "لا يمكن تشغيل تدقيق Jais بدون وحدة معالجة الرسومات (GPU) "
                 "وتفعيل متغير البيئة ENABLE_LLM=true.")
@@ -98,14 +170,15 @@ def jais_proofread_only(text: str) -> str:
 
     try:
         # Lazy import to avoid hard dependency on ocr_service at module load
-        from app.services.ocr_service import _auto_correct_ocr, spell_checker
+        from app.services.ocr_service import _auto_correct_ocr, get_spell_checker
 
         # Apply OCR corrections first, then spell check, then LLM proofread
         corrected, _corrections = _auto_correct_ocr(text)
 
-        if spell_checker:
+        checker = get_spell_checker()
+        if checker is not None:
             try:
-                corrected = spell_checker.correct_text(corrected)
+                corrected = checker.correct_text(corrected)
             except Exception as e:
                 logger.warning(f"Spell check failed in standalone proofread: {e}")
 

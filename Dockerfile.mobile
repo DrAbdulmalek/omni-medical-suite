@@ -1,0 +1,106 @@
+# =============================================================================
+# OmniMedical Suite — Mobile Review Server (PWA + Flask) Dockerfile
+# =============================================================================
+# Single-stage build for the mobile PWA + Flask server.
+#
+# This container runs packages/core/mobile/server.py, which is the unified
+# entry point for:
+#   - Serving the PWA shell (ocr-review.html + manifest.json + service-worker.js)
+#   - Running the live OCR pipeline via app.services.* (shared with Gradio)
+#   - Persisting user corrections into the learning loop
+#     (CorrectionsDictManager + WordCorrectionDB + ActiveLearner)
+#
+# Build:
+#   docker build -f Dockerfile.mobile -t omni-medical-suite:mobile .
+#
+# Run:
+#   docker run -p 5000:5000 -v $(pwd)/data:/app/data \
+#     -e OMNI_MOBILE_DB_DIR=/app/data \
+#     omni-medical-suite:mobile
+#
+# Then open http://<host>:5000 from a phone browser, or use ngrok for
+# remote access:
+#   ngrok http 5000
+# =============================================================================
+
+FROM python:3.11-slim
+
+LABEL maintainer="Dr. Abdulmalek <drabdulmalek@proton.me>"
+LABEL description="Omni Medical OCR — Mobile Review PWA + Learning Loop Server"
+LABEL org.opencontainers.image.source="https://github.com/DrAbdulmalek/omni-medical-suite"
+
+WORKDIR /app
+
+# ── System dependencies ───────────────────────────────────────────────────
+# tesseract-ocr + Arabic language pack: needed for the OCR pipeline
+# libgl1 etc.: needed by opencv-python-headless
+# poppler-utils: needed by pdf2image (used by scanner_fixer PDF path)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-ara \
+    tesseract-ocr-eng \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Python dependencies ──────────────────────────────────────────────────
+# Install the minimum subset needed for the mobile server:
+#   - flask: HTTP server
+#   - numpy + opencv-python-headless + Pillow: image processing
+#   - pytesseract: Tesseract OCR wrapper
+#   - PyMuPDF: PDF → image conversion
+#   - imagehash: perceptual hashing (used by scanner_fixer.dedup)
+#   - rapidfuzz: fuzzy matching (used by HybridSpellChecker)
+#
+# PaddleOCR is intentionally NOT included here to keep the image lightweight
+# (~500 MB instead of ~3 GB). The mobile server falls back to Tesseract
+# automatically via the EngineRegistry when PaddleOCR is absent. To enable
+# PaddleOCR, add `paddlepaddle>=3.0.0 paddleocr>=2.7.0` and rebuild.
+RUN pip install --no-cache-dir \
+    flask>=3.0.0 \
+    numpy>=1.24.0 \
+    opencv-python-headless>=4.8.0 \
+    Pillow>=10.0.0 \
+    pytesseract>=0.3.10 \
+    PyMuPDF>=1.23.0 \
+    imagehash>=4.3.0 \
+    rapidfuzz>=3.0.0
+
+# ── Application source ───────────────────────────────────────────────────
+# Copy the canonical app/services/ layer (shared with Gradio HITL)
+COPY app/ ./app/
+# Copy the packages/ tree (core, vision, scanner_fixer, ai, ...)
+COPY packages/ ./packages/
+# Copy src/ (used by review_service for LLM proofreader — optional)
+COPY src/ ./src/
+# Copy supporting data files
+COPY medical_terms.json ./medical_terms.json
+COPY data/ ./data/
+
+# ── Runtime config ───────────────────────────────────────────────────────
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app/data /app/uploads && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+# Where Flask listens
+EXPOSE 5000
+
+# Where the learning-loop SQLite DBs and JSON files live
+ENV OMNI_MOBILE_DB_DIR=/app/data
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Healthcheck — hit /health (returns 200 even when PaddleOCR is absent)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
+
+# Run the mobile server
+CMD ["python", "-m", "packages.core.mobile.server", "--host", "0.0.0.0", "--port", "5000"]

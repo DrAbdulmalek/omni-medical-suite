@@ -95,12 +95,39 @@ class EngineRouter:
         document_type: str = "generic",
         prefer_structured_output: bool = False,
     ) -> tuple[list[str], list[str]]:
+        import time as _time
+
+        from app.core.decision_log import log_decision
+
+        t0 = _time.perf_counter()
         recommendations: list[str] = []
         reasons: list[str] = []
+        # Track which candidates were considered but skipped (for the
+        # structured decision log). Reset per call.
+        skipped: list[str] = []
 
         if self.profile == "low":
             fallback = [engine for engine in [ENGINE_TESSERACT, ENGINE_EASYOCR] if engine in self._allowed]
-            return fallback[:1], ["low-end profile — single engine mode"]
+            chosen = fallback[:1]
+            chosen_reasons = ["low-end profile — single engine mode"]
+            log_decision(
+                decision="engine_selection",
+                outcome=chosen,
+                reasons=chosen_reasons,
+                inputs={
+                    "profile": self.profile,
+                    "language": language,
+                    "image_quality": image_quality,
+                    "block_type": block_type,
+                    "has_diacritics": has_diacritics,
+                    "document_type": document_type,
+                    "prefer_structured_output": prefer_structured_output,
+                    "allowed": self._allowed,
+                },
+                skipped=[e for e in self._allowed if e not in chosen],
+                duration_ms=(_time.perf_counter() - t0) * 1000,
+            )
+            return chosen, chosen_reasons
 
         if block_type == "handwriting":
             for engine, reason in [
@@ -111,6 +138,8 @@ class EngineRouter:
                 if engine in self._allowed and engine not in recommendations:
                     recommendations.append(engine)
                     reasons.append(reason)
+                elif engine not in self._allowed:
+                    skipped.append(engine)
                 if len(recommendations) >= self.max_engines:
                     break
 
@@ -156,7 +185,13 @@ class EngineRouter:
             recommendations = fallback[: self.max_engines]
             reasons = ["default fallback — no specific signal"] * len(recommendations)
 
+        pre_ram_recommendations = list(recommendations)
+        pre_ram_reasons = list(reasons)
         recommendations, reasons = self._filter_by_ram(recommendations, reasons)
+        # Anything dropped by the RAM filter is recorded as skipped
+        for engine in pre_ram_recommendations:
+            if engine not in recommendations:
+                skipped.append(engine)
 
         seen: set[str] = set()
         deduped_engines: list[str] = []
@@ -168,7 +203,34 @@ class EngineRouter:
                 deduped_reasons.append(reason)
             if len(deduped_engines) >= self.max_engines:
                 break
-        return deduped_engines, deduped_reasons
+        recommendations = deduped_engines
+        reasons = deduped_reasons
+
+        # Record engines considered but not selected (informational)
+        for engine in self._allowed:
+            if engine not in recommendations and engine not in skipped:
+                skipped.append(engine)
+
+        log_decision(
+            decision="engine_selection",
+            outcome=recommendations,
+            reasons=reasons,
+            inputs={
+                "profile": self.profile,
+                "language": language,
+                "image_quality": image_quality,
+                "block_type": block_type,
+                "has_diacritics": has_diacritics,
+                "document_type": document_type,
+                "prefer_structured_output": prefer_structured_output,
+                "allowed": self._allowed,
+                "max_engines": self.max_engines,
+                "available_ram_gb": self.available_ram_gb,
+            },
+            skipped=skipped,
+            duration_ms=(_time.perf_counter() - t0) * 1000,
+        )
+        return recommendations, reasons
 
     def estimate_time(self, engines: list[str]) -> float:
         estimates = {
