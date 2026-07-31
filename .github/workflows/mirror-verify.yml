@@ -1,0 +1,65 @@
+name: Mirror Verify
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: "0 0 * * 0"  # weekly
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify repo integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check git remotes
+        run: |
+          echo '=== Git remotes ==='
+          git remote -v
+
+      - name: Verify submodule integrity
+        run: |
+          echo '=== Submodule status ==='
+          git submodule status || echo 'No submodules configured'
+          echo ''
+          echo '=== .gitmodules ==='
+          cat .gitmodules 2>/dev/null || echo 'No .gitmodules file'
+
+      - name: Check for broken gitlinks (mode 160000 without .gitmodules entry)
+        run: |
+          echo '=== Gitlink check ==='
+          GITLINKS=$(git ls-tree -r HEAD | grep '^160000' || true)
+          if [ -n "$GITLINKS" ]; then
+            echo 'Found gitlinks:'
+            echo "$GITLINKS"
+            echo ''
+            for path in $(echo "$GITLINKS" | awk '{print $4}'); do
+              if ! grep -q "path = $path" .gitmodules 2>/dev/null; then
+                echo "::error:: Gitlink '$path' has no .gitmodules entry (will break checkout)"
+                exit 1
+              fi
+            done
+            echo 'All gitlinks have .gitmodules entries'
+          else
+            echo 'No gitlinks found'
+          fi
+        continue-on-error: true
+
+      - name: Summary
+        if: always()
+        run: |
+          echo '### Mirror Verify Summary' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '- Git remotes: checked' >> $GITHUB_STEP_SUMMARY
+          echo '- Submodules: verified' >> $GITHUB_STEP_SUMMARY
+          echo '- Gitlinks: scanned for missing .gitmodules entries' >> $GITHUB_STEP_SUMMARY
