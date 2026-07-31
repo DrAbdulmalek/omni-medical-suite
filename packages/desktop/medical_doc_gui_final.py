@@ -37,7 +37,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PySide6.QtCore import QMutex, QPoint, QRect, QSize, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QIcon, QImage, QKeySequence, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QFont, QIcon, QImage, QKeySequence, QPainter, QPen, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -55,7 +55,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRubberBand,
     QScrollArea,
-    QShortcut,
     QSlider,
     QSpinBox,
     QSplitter,
@@ -93,6 +92,17 @@ try:
     from PIL import Image as PILImage
     OCR_SUPPORT = True
     HASH_SUPPORT = True
+except ImportError:
+    pass
+
+# ── scanner_fixer integration ─────────────────────────────────────────
+SCANNER_FIXER_AVAILABLE = False
+try:
+    from scanner_fixer.deskew import detect_skew_angle, deskew as sf_deskew
+    from scanner_fixer.crop import auto_crop as sf_auto_crop
+    from scanner_fixer.normalize import normalize_scanned_image
+    from scanner_fixer.dedup import compute_image_phash, find_duplicate_clusters
+    SCANNER_FIXER_AVAILABLE = True
 except ImportError:
     pass
 
@@ -298,14 +308,26 @@ def auto_detect_skew(img: np.ndarray, max_a: float = 15.0, step: float = 0.5) ->
     """
     يكشف زاوية الميلان الحقيقية.
     ✅ يُزيل الحدود الرمادية أولاً → لا "زوايا خاطئة" من حواف الماسح.
+    ⚡ يستخدم scanner_fixer.deskew عند التوفر (Hough lines + std guard)،
+    ويعود للطريقة القديمة (projection profile) كاحتياط.
     """
-    # ── المرحلة 1: احصل على الصفحة النظيفة ────────────────────
+    if SCANNER_FIXER_AVAILABLE:
+        try:
+            angle, meta = detect_skew_angle(img)
+            if not meta.get("uncertain", False):
+                return angle
+            # If Hough method is uncertain, fall through to projection method
+            logger.debug("scanner_fixer Hough uncertain (std=%.2f), falling back to projection",
+                         meta.get("angles_std", 0))
+        except Exception as exc:
+            logger.debug("scanner_fixer.deskew failed, falling back: %s", exc)
+
+    # ── Fallback: projection profile method (original implementation) ──
     l, _t, r, _b = find_page_bounds(img)
     _h, w = img.shape[:2]
     x0, x1 = l, w - r if r > 0 else w
     page = img[:, x0:x1] if (x1 > x0) else img
 
-    # ── المرحلة 2: كشف الميلان على الصفحة النظيفة ─────────────
     gray = cv2.cvtColor(page, cv2.COLOR_BGR2GRAY) if page.ndim == 3 else page
     gray = cv2.equalizeHist(gray)
     _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
@@ -326,14 +348,38 @@ def smart_auto_crop(img: np.ndarray, padding: int = 15, dark_threshold: int = 20
     """
     قص ذكي على مرحلتين — يحل مشكلة الرمادي كلياً:
 
+    ⚡ يستخدم scanner_fixer.crop عند التوفر (morphological close/open +
+    bounding rect)، ويعود للطريقة القديمة كاحتياط.
+
+    ملاحظة: scanner_fixer.auto_crop يُرجع صورة مقصوصة (ndarray)، بينما
+    الواجهة تحتاج إحداثيات القص (l, t, r, b) — لذا نحسب الفرق.
+
     المرحلة 1 — find_page_bounds():
         يُزيل الحدود الرمادية للماسح (يمين/يسار)
-        المنطق: الرمادي median ≈ 150–160 ≠ الصفحة ≈ 254–255
 
     المرحلة 2 — كشف المحتوى:
-        يجد النص داخل الصفحة النظيفة (بكسلات أقل من dark_threshold)
-        Vectorized numpy بدل حلقات Python → 100× أسرع
+        يجد النص داخل الصفحة النظيفة
     """
+    if SCANNER_FIXER_AVAILABLE:
+        try:
+            cropped = sf_auto_crop(img, padding=padding, threshold=256 - dark_threshold)
+            h_orig, w_orig = img.shape[:2]
+            h_crop, w_crop = cropped.shape[:2]
+            # Find the offset by template matching (most reliable for exact coords)
+            if h_crop <= h_orig and w_crop <= w_orig:
+                # The crop is a sub-region; find top-left corner
+                gray_orig = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+                gray_crop = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY) if cropped.ndim == 3 else cropped
+                result = cv2.matchTemplate(gray_orig, gray_crop, cv2.TM_SQDIFF)
+                _, _, top_left, _ = cv2.minMaxLoc(result)
+                t_val, l_val = top_left[1], top_left[0]
+                b_val = h_orig - t_val - h_crop
+                r_val = w_orig - l_val - w_crop
+                return (max(0, l_val), max(0, t_val), max(0, r_val), max(0, b_val))
+        except Exception as exc:
+            logger.debug("scanner_fixer.auto_crop failed, falling back: %s", exc)
+
+    # ── Fallback: original two-phase crop (projection + content detection) ──
     h, w = img.shape[:2]
 
     # المرحلة 1: إزالة الرمادي
@@ -348,14 +394,14 @@ def smart_auto_crop(img: np.ndarray, padding: int = 15, dark_threshold: int = 20
     gray = cv2.cvtColor(page, cv2.COLOR_BGR2GRAY) if page.ndim == 3 else page
     _, binary = cv2.threshold(gray, dark_threshold, 255, cv2.THRESH_BINARY_INV)
 
-    col_has = binary.max(axis=0) > 0       # (pw,) bool — أسرع بـ 100× من for
-    row_has = binary.max(axis=1) > 0       # (h,)  bool
+    col_has = binary.max(axis=0) > 0
+    row_has = binary.max(axis=1) > 0
 
     content_cols = np.where(col_has)[0]
     content_rows = np.where(row_has)[0]
 
     if len(content_cols) == 0 or len(content_rows) == 0:
-        return (gl, gt, gr, gb)             # فارغة: أرجع حدود الرمادي فقط
+        return (gl, gt, gr, gb)
 
     cl = max(0,    content_cols[0]  - padding)
     cr = min(pw-1, content_cols[-1] + padding)
@@ -512,6 +558,60 @@ def assess_image_quality(img: np.ndarray) -> dict[str, float]:
 #  Worker Thread Classes
 # ════════════════════════════════════════════════════════════════
 
+
+
+
+def detect_upside_down(img: np.ndarray) -> bool:
+    """
+    يكشف إذا كانت الصورة مقلوبة رأساً على عقب (180°).
+
+    المنطق:
+    - في المستندات، النص يتكثف في النصف العلوي أكثر من السفلي
+    - نحسب كثافة البكسلات الداكنة (نص) في الربعين العلوي والسفلي
+    - إذا كان الربع السفلي أكثف ← الصورة مقلوبة
+
+    طريقة بديلة: نستخدم تدرج الصفوف الأفقية —
+    الأسطر النصية في الأعلى لها gradient مختلف عن الأسفل.
+    """
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+    h, w = gray.shape
+
+    # نأخذ شريط في المنتصف (50%-80% عرض) لتجنب الحواف الرمادية
+    margin_x = int(w * 0.15)
+    strip = gray[:, margin_x:w - margin_x]
+
+    # تجاهل الحواشي العلوية والسفلية (10%)
+    margin_y = int(h * 0.10)
+    core = strip[margin_y:h - margin_y, :]
+
+    # قسم إلى نصفين
+    mid = core.shape[0] // 2
+    top_half = core[:mid, :]
+    bot_half = core[mid:, :]
+
+    # كثافة البكسلات الداكنة (نص) في كل نصف
+    dark_thresh = 160  # النص عادة أغمق من هذا
+    top_dark = float(np.mean(top_half < dark_thresh))
+    bot_dark = float(np.mean(bot_half < dark_thresh))
+
+    # إذا كان النصف السفلي أكثف نصاً ← مقلوبة
+    # لكن نحتاج هامش كافٍ لتجنب الإيجابيات الكاذبة
+    if bot_dark > top_dark * 1.3 and (bot_dark - top_dark) > 0.005:
+        return True
+
+    # طريقة إضافية: عدد حواف أفقية (أسطر نصية)
+    # في المستندات الطبية، عدد الأسطر في الأعلى أكثر عادة
+    top_edges = cv2.Sobel(top_half, cv2.CV_64F, 0, 1, ksize=3)
+    bot_edges = cv2.Sobel(bot_half, cv2.CV_64F, 0, 1, ksize=3)
+    top_edge_density = float(np.mean(np.abs(top_edges) > 30))
+    bot_edge_density = float(np.mean(np.abs(bot_edges) > 30))
+
+    # المقلوب: حواف أفقية أكثر في الأسفل
+    if bot_edge_density > top_edge_density * 1.2 and (bot_edge_density - top_edge_density) > 0.003:
+        return True
+
+    return False
+
 class SkewWorker(QThread):
     """Background skew detection worker."""
     finished = Signal(float)
@@ -592,7 +692,7 @@ class AdaptiveLearner:
             sim = max(0.0, 1.0 - d)
             if sim > best_sim:
                 best_sim, best_p = sim, rec["params"]
-        return (best_p, best_sim) if best_sim > 0.85 else (None, 0.0)
+        return (best_p, best_sim) if best_sim > 0.75 else (None, 0.0)
 
     def add(self, img: np.ndarray, params: dict):
         self.history.append({"features": self._feat(img), "params": params.copy()})
@@ -675,8 +775,8 @@ class ImageFeatureExtractor:
 class TrainingDataCollector:
     """KNN-based training data collector. Saves to JSONL."""
     FILEPATH = Path("medical_doc_training.jsonl")
-    MIN_INFER = 5
-    SIM_THRESH = 0.80
+    MIN_INFER = 3
+    SIM_THRESH = 0.70
 
     def __init__(self):
         self.records = []  # type: List[dict]
@@ -1039,6 +1139,9 @@ class MedicalDocApp(QMainWindow):
         self.learner = AdaptiveLearner()
         self.training = TrainingDataCollector()
         self.operation_history = []  # type: List[str]
+        # ── حفظ إعدادات الصورة السابقة ────────────────────────
+        self._last_crop_params = None   # إعدادات القص من الصورة السابقة
+        self._previous_params = None    # كل الإعدادات من الصورة السابقة
         self.initial_params_snapshot = {}  # type: dict
 
         # Thumbnails
@@ -1154,6 +1257,8 @@ class MedicalDocApp(QMainWindow):
         self.btn_apply_deskew = self._mk_btn("✔️ تطبيق الميلان", "#0ea5e9", h=32)
         self.btn_smart_crop = self._mk_btn("✂️ قص ذكي", "#7c3aed", h=32)
         self.btn_remove_gray = self._mk_btn("🖼️ إزالة رمادي", "#0891b2", h=32)
+        self.btn_normalize = self._mk_btn("🔄 تنسيق كامل", "#059669", h=32)
+        self.btn_dedup = self._mk_btn("🔍 كشف تكرار", "#b91c1c", h=32)
         self.btn_compare = self._mk_btn("🔍 مقارنة", "#6366f1", h=32)
         self.btn_save_inplace = self._mk_btn("💾 حفظ محلي", "#0891b2", h=32)
         self.btn_confirm = self._mk_btn("✅ تأكيد وحفظ", "#16a34a", h=32)
@@ -1181,7 +1286,8 @@ class MedicalDocApp(QMainWindow):
         row2 = QHBoxLayout()
         row2.setSpacing(4)
         for w in [self.btn_auto_deskew, self.btn_apply_deskew,
-                  self.btn_smart_crop, self.btn_remove_gray, self.btn_compare]:
+                  self.btn_smart_crop, self.btn_remove_gray,
+                  self.btn_normalize, self.btn_dedup, self.btn_compare]:
             row2.addWidget(w)
         row2.addStretch()
 
@@ -1272,6 +1378,12 @@ class MedicalDocApp(QMainWindow):
         self.chk_shadow = QCheckBox("🌑 إزالة الظل")
         self.chk_auto_deskew = QCheckBox("🤖 تصحيح ميلان تلقائي عند الفتح")
         self.chk_auto_deskew.setChecked(True)
+        self.chk_auto_rotate_180 = QCheckBox("🔄 تدوير 180° تلقائي عند الفتح")
+        self.chk_auto_rotate_180.setChecked(True)
+        self.chk_auto_gray = QCheckBox("🖼️ إزالة رمادي تلقائية عند الفتح")
+        self.chk_auto_gray.setChecked(True)
+        self.chk_remember_crop = QCheckBox("📌 حفظ إعدادات القص من الصورة السابقة")
+        self.chk_remember_crop.setChecked(True)
         self.chk_auto_save = QCheckBox("💾 حفظ تلقائي بعد الميلان والقص")
         self.chk_auto_save.setChecked(False)
         self.chk_learn = QCheckBox("🧠 تعلّم + حفظ بيانات تدريب")
@@ -1292,6 +1404,9 @@ class MedicalDocApp(QMainWindow):
 
         ml.addWidget(self.chk_auto_save)
         ml.addWidget(self.chk_auto_deskew)
+        ml.addWidget(self.chk_auto_rotate_180)
+        ml.addWidget(self.chk_auto_gray)
+        ml.addWidget(self.chk_remember_crop)
         ml.addLayout(deskew_row)
         ml.addWidget(self.chk_flip)
         ml.addWidget(self.btn_sharpen)
@@ -1418,6 +1533,8 @@ class MedicalDocApp(QMainWindow):
         self.btn_apply_deskew.clicked.connect(self._apply_skew)
         self.btn_smart_crop.clicked.connect(self._do_smart_crop)
         self.btn_remove_gray.clicked.connect(self._do_remove_gray)
+        self.btn_normalize.clicked.connect(self._do_full_normalize)
+        self.btn_dedup.clicked.connect(self._do_dedup)
         self.btn_compare.clicked.connect(self._show_compare)
         self.btn_confirm.clicked.connect(self._confirm_save)
         self.btn_save_inplace.clicked.connect(self._save_in_place)
@@ -1477,6 +1594,7 @@ class MedicalDocApp(QMainWindow):
         QShortcut(QKeySequence("Ctrl+G"), self, self._do_smart_crop)
         QShortcut(QKeySequence("Ctrl+Shift+A"), self, self.analyze_and_organize_pages)
         QShortcut(QKeySequence("F11"), self, self.toggle_fullscreen)
+        QShortcut(QKeySequence("Ctrl+R"), self, self._toggle_180)
         QShortcut(QKeySequence("Ctrl+P"), self, self._apply_predicted)
 
     # ──────────────────────────────────────────────────────────
@@ -1652,8 +1770,39 @@ class MedicalDocApp(QMainWindow):
         self.current_img  = img
         self.current_blur = calc_blur(img)   # ← يُحسب مرة واحدة هنا ويُمرَّر لاحقاً
         self._update_quality_display()
+
+        # ── حفظ إعدادات الصورة السابقة ──────────────────────────
+        if self.current_params.get("crop", (0,0,0,0)) != (0,0,0,0):
+            self._last_crop_params = self.current_params.get("crop", (0,0,0,0))
+        self._previous_params = self.current_params.copy()
+
         self.current_params["rotation"] = 0
         self.operation_history = []
+
+        # ── كشف تدوير 180° تلقائي ─────────────────────────────
+        if hasattr(self, 'chk_auto_rotate_180') and self.chk_auto_rotate_180.isChecked():
+            if detect_upside_down(img):
+                self.current_params["rotation"] = 180
+                self.operation_history.append("تدوير 180° تلقائي")
+                self._log("🔄 كشف صورة مقلوبة — تدوير 180° تلقائي")
+
+        # ── إزالة رمادي تلقائية ────────────────────────────────
+        if hasattr(self, 'chk_auto_gray') and self.chk_auto_gray.isChecked():
+            gray_crop = find_page_bounds(img)
+            if gray_crop[0] > 10 or gray_crop[2] > 10:  # يوجد رمادي جانبي
+                self.current_params["crop"] = gray_crop
+                self.operation_history.append("إزالة رمادي تلقائية")
+                self._log(f"🖼️ إزالة رمادي تلقائية: L={gray_crop[0]} R={gray_crop[2]}")
+
+        # ── تطبيق إعدادات القص السابقة ────────────────────────
+        if (hasattr(self, 'chk_remember_crop') and self.chk_remember_crop.isChecked()
+                and self._last_crop_params is not None):
+            prev = self._last_crop_params
+            # نطبق القص السابق فقط إذا لم يكن هناك إزالة رمادي تلقائية
+            if "إزالة رمادي تلقائية" not in self.operation_history:
+                self.current_params["crop"] = prev
+                self.operation_history.append("قص من الصورة السابقة")
+                self._log(f"📌 تطبيق قص سابق: L={prev[0]} T={prev[1]} R={prev[2]} B={prev[3]}")
 
         # اقتراح من نظام التعلّم
         if self.chk_learn.isChecked():
@@ -1890,6 +2039,121 @@ class MedicalDocApp(QMainWindow):
         self._log(f"🖼️ إزالة رمادي: L={crop[0]} T={crop[1]} R={crop[2]} B={crop[3]}")
 
     # ──────────────────────────────────────────────────────────
+    #  Full Normalize (scanner_fixer pipeline)
+    # ──────────────────────────────────────────────────────────
+
+    def _do_full_normalize(self):
+        """Apply scanner_fixer full normalization pipeline: deskew + crop + resize."""
+        if self.current_img is None:
+            return
+        if not SCANNER_FIXER_AVAILABLE:
+            QMessageBox.warning(self, "غير متوفر",
+                                "مكتبة scanner_fixer غير مثبتة.\n"
+                                "ثبّتها عبر: pip install -e packages/scanner_fixer")
+            return
+        self._push_undo()
+        try:
+            normalized = normalize_scanned_image(
+                self.current_img,
+                target_height=1600,
+                crop_padding=15,
+                output_grayscale=False,  # Keep color for the GUI
+                fit_mode="aspect_resize",
+            )
+            # Replace current image with normalized result
+            self.current_img = normalized
+            # Reset crop/deskew since they're already applied
+            self.current_params["crop"] = (0, 0, 0, 0)
+            self.current_params["deskew_angle"] = 0.0
+            self.sp_left.setValue(0)
+            self.sp_top.setValue(0)
+            self.sp_right.setValue(0)
+            self.sp_bottom.setValue(0)
+            self.slider_deskew.setValue(0)
+            self.lbl_deskew.setText("+0.0°")
+            self.operation_history.append("تنسيق كامل (scanner_fixer)")
+            self._update_preview()
+            self._log("🔄 تنسيق كامل: تصحيح ميلان + قص + تغيير حجم")
+        except Exception as exc:
+            self._log(f"⚠️ خطأ في التنسيق الكامل: {exc}")
+            QMessageBox.critical(self, "خطأ", f"فشل التنسيق الكامل:\n{exc}")
+
+    # ──────────────────────────────────────────────────────────
+    #  Dedup Detection (scanner_fixer phash)
+    # ──────────────────────────────────────────────────────────
+
+    def _do_dedup(self):
+        """Detect duplicate images in current folder using scanner_fixer phash."""
+        if not SCANNER_FIXER_AVAILABLE:
+            QMessageBox.warning(self, "غير متوفر",
+                                "مكتبة scanner_fixer غير مثبتة.\n"
+                                "ثبّتها عبر: pip install -e packages/scanner_fixer")
+            return
+        if not self.image_list:
+            QMessageBox.information(self, "لا صور", "حمّل مجلد صور أولاً.")
+            return
+
+        # Collect folder of loaded images
+        folder = None
+        for entry in self.image_list:
+            if entry.is_path and entry._path:
+                folder = str(entry._path.parent)
+                break
+        if not folder:
+            QMessageBox.information(self, "لا مسارات",
+                                    "كشف التكرار يحتاج ملفات محمّلة من قرص (لا صفحات PDF).")
+            return
+
+        self._log(f"🔍 كشف تكرار في: {folder}")
+        self.btn_dedup.setEnabled(False)
+        self.btn_dedup.setText("⏳ جاري...")
+        QApplication.processEvents()
+
+        try:
+            clusters = find_duplicate_clusters(
+                folder,
+                hamming_threshold=5,
+                hash_size=8,
+                normalize=True,
+            )
+            # Build summary
+            multi = [c for c in clusters if c["cluster_size"] > 1]
+            unique = [c for c in clusters if c["cluster_size"] == 1]
+            dup_cluster_ids = set(c["cluster_id"] for c in multi)
+
+            msg = f"صور فريدة: {len(unique)}\nمجموعات تكرار: {len(dup_cluster_ids)}\nصور مكررة: {len(multi)}"
+            self._log(f"🔍 كشف تكرار: {msg.replace(chr(10), ' | ')}")
+
+            # Export CSV report
+            from scanner_fixer.dedup import export_dedup_report
+            csv_path = str(Path(folder) / "dedup_report.csv")
+            export_dedup_report(clusters, csv_path)
+            self._log(f"📄 تقرير التكرار: {csv_path}")
+
+            # Show results dialog
+            detail_lines = []
+            for cid in sorted(dup_cluster_ids):
+                members = [c for c in multi if c["cluster_id"] == cid]
+                detail_lines.append(f"\n{cid} ({len(members)} صورة):")
+                for m in members[:5]:  # Show max 5 per cluster
+                    detail_lines.append(f"  - {Path(m['original_path']).name} (dist={m['hamming_distance_from_representative']})")
+                if len(members) > 5:
+                    detail_lines.append(f"  ... و{len(members) - 5} أخرى")
+
+            detail = "\n".join(detail_lines) if detail_lines else "\nلا تكرار مكتشف ✅"
+
+            QMessageBox.information(
+                self, "نتيجة كشف التكرار",
+                f"{msg}\n\nالتقرير: {csv_path}\n{detail}"
+            )
+        except Exception as exc:
+            self._log(f"⚠️ خطأ في كشف التكرار: {exc}")
+            QMessageBox.critical(self, "خطأ", f"فشل كشف التكرار:\n{exc}")
+        finally:
+            self.btn_dedup.setEnabled(True)
+            self.btn_dedup.setText("🔍 كشف تكرار")
+
+    # ──────────────────────────────────────────────────────────
     #  Skew Detection
     # ──────────────────────────────────────────────────────────
 
@@ -1964,16 +2228,26 @@ class MedicalDocApp(QMainWindow):
         else:
             self._log("✅ لا ميلان مكتشف")
 
-        # قص ذكي بعد الميلان — يستخدم gray_threshold القابل للتعديل
+        # قص ذكي بعد الميلان — إزالة رمادي ثم قص محتوى
         if self.current_img is not None:
+            # المرحلة 1: إزالة الحدود الرمادية للماسح
+            gray_crop = find_page_bounds(self.current_img)
+            # المرحلة 2: قص ذكي للمحتوى
             crop = smart_auto_crop(self.current_img, dark_threshold=self.gray_threshold)
-            self.sp_left.setValue(crop[0])
-            self.sp_top.setValue(crop[1])
-            self.sp_right.setValue(crop[2])
-            self.sp_bottom.setValue(crop[3])
-            self.current_params["crop"] = crop
-            self.operation_history.append("قص ذكي تلقائي")
-            self._log("✂️ قص ذكي تلقائي: L={} T={} R={} B={}".format(*crop))
+            # نأخذ الأكبر بين gray_crop و smart_crop لكل جانب
+            final_crop = (
+                max(gray_crop[0], crop[0]),
+                max(gray_crop[1], crop[1]),
+                max(gray_crop[2], crop[2]),
+                max(gray_crop[3], crop[3]),
+            )
+            self.sp_left.setValue(final_crop[0])
+            self.sp_top.setValue(final_crop[1])
+            self.sp_right.setValue(final_crop[2])
+            self.sp_bottom.setValue(final_crop[3])
+            self.current_params["crop"] = final_crop
+            self.operation_history.append("قص ذكي تلقائي + إزالة رمادي")
+            self._log("✂️ قص ذكي: L={} T={} R={} B={}".format(*final_crop))
 
         self.btn_auto_deskew.setEnabled(True)
         self.btn_auto_deskew.setText("📐 كشف ميلان")
@@ -2032,6 +2306,15 @@ class MedicalDocApp(QMainWindow):
         # Try TrainingDataCollector first (more accurate)
         t_params, t_sim = self.training.predict(self.current_img)
         if t_params:
+            # ندمج القص: نأخذ الأكبر لكل جانب (إزالة أكثر = أفضل)
+            current_crop = self.current_params.get("crop", (0,0,0,0))
+            predicted_crop = t_params.get("crop", (0,0,0,0))
+            t_params["crop"] = (
+                max(current_crop[0], predicted_crop[0]),
+                max(current_crop[1], predicted_crop[1]),
+                max(current_crop[2], predicted_crop[2]),
+                max(current_crop[3], predicted_crop[3]),
+            )
             self._push_undo()
             self.current_params.update(t_params)
             self._sync_ui_from_params()
@@ -2199,6 +2482,18 @@ class MedicalDocApp(QMainWindow):
         except Exception:
             pass
 
+    def _toggle_180(self):
+        """Toggle 180° rotation (Ctrl+R)."""
+        if self.current_img is None:
+            return
+        self._push_undo()
+        current_rot = self.current_params.get("rotation", 0)
+        self.current_params["rotation"] = 0 if current_rot == 180 else 180
+        self.lbl_rotation.setText("{}°".format(self.current_params["rotation"]))
+        self.operation_history.append(f"تدوير: {self.current_params['rotation']}°")
+        self._log(f"🔄 تدوير: {self.current_params['rotation']}°")
+        self._update_preview()
+
     def _auto_save_all(self):
         """v12: Batch save using QTimer — non-blocking, UI stays responsive."""
         if not self.image_list or self._auto_save_in_prog:
@@ -2327,6 +2622,7 @@ class MedicalDocApp(QMainWindow):
             self.btn_prev, self.btn_next, self.btn_open, self.btn_refresh,
             self.btn_zoom_in, self.btn_zoom_out, self.btn_zoom_fit,
             self.btn_fullscreen, self.btn_remove_gray,
+            self.btn_normalize, self.btn_dedup,
         ]
         for btn in targets:
             if hasattr(btn, 'setEnabled'):
