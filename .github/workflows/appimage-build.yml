@@ -1,0 +1,150 @@
+name: AppImage Build — Desktop Scanner
+
+# ══════════════════════════════════════════════════════════════════
+# Builds the Medical Document Processor AppImage on every push to
+# feat/rc-hardening-p0 and on v* tags. Uploads the AppImage + SHA256
+# checksum as a downloadable artifact.
+#
+# Trigger: push to feat/rc-hardening-p0, tags v*, manual dispatch.
+# ══════════════════════════════════════════════════════════════════
+
+on:
+  push:
+    branches:
+      - feat/rc-hardening-p0
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'packages/desktop/**'
+      - 'packages/scanner_fixer/**'
+      - '.github/workflows/appimage-build.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'AppImage version (default: from git)'
+        required: false
+        default: ''
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  build-appimage:
+    name: Build AppImage (Linux x86_64)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed for `git describe --tags`
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            packages/desktop/requirements.txt
+            packages/scanner_fixer/pyproject.toml
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            tesseract-ocr tesseract-ocr-ara \
+            poppler-utils \
+            libfuse2 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libxkbcommon-x11-0 \
+            libgl1 \
+            wget
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install scanner_fixer editable
+          pip install -e packages/scanner_fixer
+          # Install desktop requirements
+          pip install -r packages/desktop/requirements.txt
+          pip install pyinstaller
+
+      - name: Verify imports
+        run: |
+          python -c "import PySide6, cv2, scanner_fixer, numpy, PIL; print('imports OK')"
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # git describe falls back to short SHA if no tags exist
+            VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "ci-${GITHUB_SHA::7}")"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "📌 Resolved version: $VERSION"
+
+      - name: Build PyInstaller ELF + AppImage
+        run: |
+          cd packages/desktop
+          bash build_appimage.sh "${{ steps.version.outputs.version }}"
+        env:
+          # Force offscreen Qt during build-time smoke (no display in CI)
+          OMNI_APPIMAGE_OFFSCREEN: "1"
+
+      - name: Smoke test (offscreen)
+        run: |
+          cd packages/desktop
+          APPIMAGE_FILE="$(ls MedicalDocProcessor-*.AppImage | head -1)"
+          echo "Testing: $APPIMAGE_FILE"
+          chmod +x "$APPIMAGE_FILE"
+          # Extract and inspect (no display needed)
+          ./"$APPIMAGE_FILE" --appimage-extract >/dev/null 2>&1 || true
+          if [ -d "squashfs-root" ]; then
+            echo "✅ AppImage extractable"
+            ls squashfs-root/usr/bin/
+            test -f squashfs-root/AppRun && echo "✅ AppRun present"
+            test -f squashfs-root/usr/share/applications/com.omnimedical.docprocessor.desktop && echo "✅ .desktop present"
+            test -f squashfs-root/usr/share/metainfo/MedicalDocProcessor.metainfo.xml && echo "✅ metainfo present"
+          else
+            echo "❌ AppImage extraction failed"
+            exit 1
+          fi
+
+      - name: Verify checksum
+        run: |
+          cd packages/desktop
+          APPIMAGE_FILE="$(ls MedicalDocProcessor-*.AppImage | head -1)"
+          echo "Verifying checksum for: $APPIMAGE_FILE"
+          sha256sum -c "${APPIMAGE_FILE}.sha256"
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MedicalDocProcessor-${{ steps.version.outputs.version }}-x86_64.AppImage
+          path: |
+            packages/desktop/MedicalDocProcessor-*.AppImage
+            packages/desktop/MedicalDocProcessor-*.AppImage.sha256
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## AppImage Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Version:** ${{ steps.version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Branch/Tag:** ${{ github.ref_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f packages/desktop/MedicalDocProcessor-*.AppImage ]; then
+            SIZE=$(du -h packages/desktop/MedicalDocProcessor-*.AppImage | cut -f1)
+            echo "- **Artifact size:** $SIZE" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Status:** ✅ Built successfully" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- **Status:** ❌ Build failed" >> "$GITHUB_STEP_SUMMARY"
+          fi

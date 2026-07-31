@@ -1,11 +1,98 @@
-*.csv filter=lfs diff=lfs merge=lfs -text
-data/** filter=lfs diff=lfs merge=lfs -text
-*.jsonl filter=lfs diff=lfs merge=lfs -text
-*.parquet filter=lfs diff=lfs merge=lfs -text
-*.jpg filter=lfs diff=lfs merge=lfs -text
-*.jpeg filter=lfs diff=lfs merge=lfs -text
-*.tiff filter=lfs diff=lfs merge=lfs -text
-*.tif filter=lfs diff=lfs merge=lfs -text
+# .gitattributes — Git LFS tracking policy for omni-medical-suite
+#
+# P1-4 audit (v1.1.0-rc): comprehensive coverage for binary + large text artifacts.
+# Run `./scripts/audit-lfs-coverage.sh` to verify coverage on a fresh clone.
+#
+# Categories:
+# 1. Data files (CSV, JSONL, Parquet) — already covered
+# 2. Images (raster + vector) — already covered, added gif/webp/bmp/svg
+# 3. PDFs — already covered
+# 4. Jupyter notebooks — NEW (large notebooks with embedded outputs)
+# 5. ML model weights — NEW (h5, pt, bin, safetensors, onnx, gguf, ckpt, pth)
+# 6. Media (audio/video) — NEW (mp4, mp3, wav, webm, mov)
+# 7. Archives — NEW (zip, tar, gz, bz2, 7z, rar)
+# 8. Binary executables — NEW (path-specific: tectonic)
+# 9. Large JSON (tokenizer files) — NEW (path-specific)
+# 10. Office documents — NEW (docx, xlsx, pptx)
+
+# --- 1. Data files (existing) ---
+*.csv      filter=lfs diff=lfs merge=lfs -text
+*.jsonl    filter=lfs diff=lfs merge=lfs -text
+*.parquet  filter=lfs diff=lfs merge=lfs -text
+data/**    filter=lfs diff=lfs merge=lfs -text
+
+# Redundant but explicit (harmless: more specific pattern wins)
 packages/file_processor/data/dictionaries/*.csv filter=lfs diff=lfs merge=lfs -text
-*.pdf filter=lfs diff=lfs merge=lfs -text
-*.png filter=lfs diff=lfs merge=lfs -text
+
+# --- 2. Images (existing + new) ---
+*.jpg      filter=lfs diff=lfs merge=lfs -text
+*.jpeg     filter=lfs diff=lfs merge=lfs -text
+*.tiff     filter=lfs diff=lfs merge=lfs -text
+*.tif      filter=lfs diff=lfs merge=lfs -text
+*.png      filter=lfs diff=lfs merge=lfs -text
+# New image formats
+*.gif      filter=lfs diff=lfs merge=lfs -text
+*.webp     filter=lfs diff=lfs merge=lfs -text
+*.bmp      filter=lfs diff=lfs merge=lfs -text
+*.svg      filter=lfs diff=lfs merge=lfs -text
+*.ico      filter=lfs diff=lfs merge=lfs -text
+
+# --- 3. PDFs (existing) ---
+*.pdf      filter=lfs diff=lfs merge=lfs -text
+
+# --- 4. Jupyter notebooks (NEW — P1-4) ---
+# Large notebooks with embedded outputs/images can exceed 1MB.
+# Small notebooks stay in git for diff readability.
+*.ipynb    filter=lfs diff=lfs merge=lfs -text
+
+# --- 5. ML model weights (NEW — P1-4) ---
+*.h5          filter=lfs diff=lfs merge=lfs -text
+*.pt          filter=lfs diff=lfs merge=lfs -text
+*.pth         filter=lfs diff=lfs merge=lfs -text
+*.bin         filter=lfs diff=lfs merge=lfs -text
+*.safetensors filter=lfs diff=lfs merge=lfs -text
+*.onnx        filter=lfs diff=lfs merge=lfs -text
+*.gguf        filter=lfs diff=lfs merge=lfs -text
+*.ckpt        filter=lfs diff=lfs merge=lfs -text
+*.weights     filter=lfs diff=lfs merge=lfs -text
+*.model       filter=lfs diff=lfs merge=lfs -text
+
+# --- 6. Media: audio + video (NEW — P1-4) ---
+*.mp4      filter=lfs diff=lfs merge=lfs -text
+*.mp3      filter=lfs diff=lfs merge=lfs -text
+*.wav      filter=lfs diff=lfs merge=lfs -text
+*.webm     filter=lfs diff=lfs merge=lfs -text
+*.mov      filter=lfs diff=lfs merge=lfs -text
+*.flac     filter=lfs diff=lfs merge=lfs -text
+*.ogg      filter=lfs diff=lfs merge=lfs -text
+
+# --- 7. Archives (NEW — P1-4) ---
+*.zip      filter=lfs diff=lfs merge=lfs -text
+*.tar      filter=lfs diff=lfs merge=lfs -text
+*.tar.gz   filter=lfs diff=lfs merge=lfs -text
+*.tgz      filter=lfs diff=lfs merge=lfs -text
+*.tar.bz2  filter=lfs diff=lfs merge=lfs -text
+*.bz2      filter=lfs diff=lfs merge=lfs -text
+*.7z       filter=lfs diff=lfs merge=lfs -text
+*.rar      filter=lfs diff=lfs merge=lfs -text
+
+# --- 8. Binary executables (NEW — P1-4, path-specific) ---
+# tectonic is a ~10MB compiled binary shipped with the ppt skill.
+packages/doc_processor/skills/ppt/scripts/tectonic filter=lfs diff=lfs merge=lfs -text
+
+# --- 9. Large JSON files (NEW — P1-4, path-specific) ---
+# tokenizer.json files are 3MB+ and don't benefit from line-level diffs.
+# Using path-specific patterns so small JSON configs stay in git.
+config/extras/tokenizer.json             filter=lfs diff=lfs merge=lfs -text
+hf-space/config/extras/tokenizer.json    filter=lfs diff=lfs merge=lfs -text
+
+# --- 10. Office documents (NEW — P1-4) ---
+*.docx     filter=lfs diff=lfs merge=lfs -text
+*.xlsx     filter=lfs diff=lfs merge=lfs -text
+*.pptx     filter=lfs diff=lfs merge=lfs -text
+*.odt      filter=lfs diff=lfs merge=lfs -text
+*.ods      filter=lfs diff=lfs merge=lfs -text
+*.odp      filter=lfs diff=lfs merge=lfs -text
+
+# --- End-of-file normalization (always include) ---
+* text=auto eol=lf

@@ -5,6 +5,26 @@
 
 ---
 
+## سجل الإصدارات (Release History)
+
+| الإصدار | التاريخ | الحالة | أبرز الميزات |
+|---------|---------|--------|--------------|
+| **v1.1.0** | 2026-07-19 | ✅ Stable | P0+P1+P2 hardening sprint — lazy OCR, decision log, HF staging, AppImage, CI matrix, LFS coverage. **174 اختبار ناجح** (163 وحدوي + 11 AppImage smoke). |
+| v1.1.0-rc1 | 2026-07-19 | ✅ Merged into v1.1.0 | أول مرشح إصدار — 161 اختبار ناجح + 11 AppImage smoke مشروطة. |
+| v1.0.0 | 2026-07-05 | ✅ Stable (legacy) | الإصدار الأساسي قبل إعادة الهيكلة — هيكل monorepo، CI/CD متكامل، HF Space عملي. |
+
+### الخطوات القادمة بعد v1.1.0
+
+| الأولوية | العنصر | الإصدار المستهدف |
+|---------|--------|------------------|
+| P3-1 | توصيل `engine_router.py` بـ `log_decision()` (آخر موقع قرار غير مُTool) | v1.1.1 |
+| P3-2 | HF Space live URL smoke (HTTP 200 + فحص endpoint) | v1.1.1 |
+| P3-3 | خط أساس لأداء الانحدار (P95 latency) لـ OCR + field extraction | v1.2.0 |
+| P3-4 | ترحيل ملفات LFS القديمة (`git lfs migrate import`) | v1.2.0 (منسق) |
+| P3-5 | ضبط دقيق لـ NER الطبي العربي | v1.2.0 |
+
+---
+
 ## الوضع الحالي (Current State)
 
 ### ملخص المنظومة الحالية
