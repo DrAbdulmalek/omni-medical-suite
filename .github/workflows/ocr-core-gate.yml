@@ -31,7 +31,7 @@ jobs:
 
       - name: Install minimal dependencies
         run: |
-          pip install pytest rapidfuzz numpy opencv-python-headless
+          pip install pytest rapidfuzz numpy opencv-python-headless pydantic
 
       - name: Smoke import tests
         run: |
