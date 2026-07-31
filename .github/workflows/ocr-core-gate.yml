@@ -29,6 +29,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install system dependencies (Tesseract OCR)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng libtesseract-dev 2>/dev/null || true
+
       - name: Install minimal dependencies
         run: |
           pip install pytest rapidfuzz numpy opencv-python-headless pydantic
