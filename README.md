@@ -16,7 +16,9 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/Packages-31-4B8BBE?style=flat-square" />
   <img src="https://img.shields.io/badge/Apps-5-2ECC71?style=flat-square" />
-  <img src="https://img.shields.io/badge/Tests-50%2B-FF6B6B?style=flat-square" />
+  <img src="https://img.shields.io/badge/Tests-174%2B-FF6B6B?style=flat-square" />
+  <img src="https://img.shields.io/badge/Version-v1.1.0-blue?style=flat-square" />
+  <a href="https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/Release-v1.1.0-brightgreen?style=flat-square" /></a>
   <img src="https://img.shields.io/badge/License-MIT-3C873A?style=flat-square" />
   <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><img src="https://img.shields.io/badge/HF%20Space-Beta-yellow?style=flat-square&logo=huggingface" /></a>
 </p>
@@ -68,6 +70,43 @@ Omni Medical Suite extracts, corrects, and structures Arabic text from medical d
 | **Desktop + Web + API** | PyQt6 desktop app, Gradio web UI, FastAPI REST API |
 | **Continuous Retraining** | Weekly model improvement from accumulated corrections |
 
+## 🆕 What's New in v1.1.0 (stable)
+
+The v1.1.0 hardening sprint consolidates **16 commits** across three phases (P0 + P1 + P2) plus 4 post-rc1 AppImage build fixes. It adds **174 passing tests** (163 unit + 11 AppImage smoke), structured decision logging, an AppImage build pipeline, and a multi-platform CI matrix.
+
+### Highlights
+
+| Phase | Feature | Impact |
+|-------|---------|--------|
+| **P0** | Lazy OCR factories (`get_paddle_ocr()`, `has_tesseract()`, ...) | First-use construction + cached failures → no import-time crashes |
+| **P0** | Structured decision log (`app/core/decision_log.py`) | Every RTL/dedup/field/HF decision emits JSON line with reasons + duration |
+| **P0** | HF dataset staging queue | `save_to_hf()` is now O(1); batched push at 25 rows (configurable) |
+| **P0** | Translation service extracted | `transformers + torch` loaded lazily inside `load_translator()` |
+| **P0** | Scanner fixer Gradio integration | Manual crop (x/y/w/h) + advanced edges + ZIP save |
+| **P1** | Field extractor hardening | Multi-line values, bilingual labels, confidence scores, safe signatures |
+| **P1** | Benchmark reporter | `to_csv()`, `to_json()`, `aggregate_metrics()` with percentiles |
+| **P1** | Decision instrumentation | RTL, dedup, field_extractor all emit `log_decision()` |
+| **P1** | Git LFS coverage | `.gitattributes` 50+ patterns across 10 categories |
+| **P2** | **AppImage build pipeline** | `bash build_appimage.sh --version-from-git --smoke-test` |
+| **P2** | CI matrix | Python 3.10/3.11/3.12 × Ubuntu + Manjaro/Arch container + HF smoke + Colab smoke + LFS audit |
+| **P2** | LFS migration plan | Staged approach (no forced history rewrite on `main`) |
+| **stable** | AppImage pre-built binary (177 MB) | Direct download from GitHub Release — no build step required |
+| **stable** | `ARCH=x86_64` + `.desktop`/icon at AppDir root | `appimagetool` build fully green in CI |
+| **stable** | Backup branches + RC1 → stable promotion | `backup/before-v1.1.0-stable` for rollback safety |
+
+### Migration notes (v1.0.0 → v1.1.0)
+
+- **Breaking changes:** None. All public APIs preserved via PEP 562 `__getattr__`.
+- **Behavioral changes:**
+  1. `save_to_hf()` now appends to local JSONL by default; flushes batch of 25 rows. Set `OMNI_HF_FLUSH_THRESHOLD=1` for legacy per-save behavior.
+  2. OCR engines construct on first use (not at import). Failed constructions are cached (no retry storm).
+  3. Decision log emits to stderr by default. Attach a JSON-lines file handler to ship to your log aggregator.
+- **New env vars:** `OMNI_HF_QUEUE_DIR`, `OMNI_HF_FLUSH_THRESHOLD`, `OMNI_APPIMAGE_OFFSCREEN`, `APPIMAGETOOL_SIGN_KEY`, `MEDICAL_DOC_APPIMAGE`.
+
+📖 **Full release notes:** [`RELEASE_NOTES_v1.1.0.md`](RELEASE_NOTES_v1.1.0.md)
+📋 **Release candidate checklist:** [`RELEASE_CANDIDATE_CHECKLIST.md`](RELEASE_CANDIDATE_CHECKLIST.md)
+🔄 **Previous RC:** [`RELEASE_NOTES_v1.1.0-rc1.md`](RELEASE_NOTES_v1.1.0-rc1.md)
+
 ## Quick Start
 
 ### Option 1: Official Gradio HITL UI
@@ -115,6 +154,51 @@ docker-compose up -d
 ```bash
 docker-compose -f docker-compose.lite.yml up -d
 ```
+
+### Option 5: Desktop AppImage (Manjaro / Linux x86_64) — Stable in v1.1.0
+
+Portable single-file AppImage — no install required, runs on Manjaro/KDE Plasma 6 (Wayland) and most modern Linux distros.
+
+**⬇️ Pre-built binary (recommended):**
+Download `MedicalDocProcessor-v1.1.0-x86_64.AppImage` (177 MB) directly from the
+[GitHub Release v1.1.0](https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0):
+
+```bash
+# Download + verify + run
+wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0/MedicalDocProcessor-v1.1.0-x86_64.AppImage
+wget https://github.com/DrAbdulmalek/omni-medical-suite/releases/download/v1.1.0/MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256
+sha256sum -c MedicalDocProcessor-v1.1.0-x86_64.AppImage.sha256
+chmod +x MedicalDocProcessor-v1.1.0-x86_64.AppImage
+./MedicalDocProcessor-v1.1.0-x86_64.AppImage
+```
+
+**🔧 Build from source (advanced):**
+
+```bash
+git clone https://github.com/DrAbdulmalek/omni-medical-suite.git
+cd omni-medical-suite
+git checkout v1.1.0   # stable release
+
+# Install scanner_fixer editable + desktop deps
+pip install -e packages/scanner_fixer
+pip install -r packages/desktop/requirements.txt
+pip install pyinstaller
+
+# Build the AppImage (auto-downloads appimagetool)
+cd packages/desktop
+bash build_appimage.sh --version-from-git --smoke-test
+
+# Run it
+chmod +x MedicalDocProcessor-*.AppImage
+./MedicalDocProcessor-*.AppImage
+
+# Verify integrity
+sha256sum -c MedicalDocProcessor-*.AppImage.sha256
+```
+
+📖 **Full Manjaro build guide:** [`docs/APPIIMAGE_MANJARO.md`](docs/APPIIMAGE_MANJARO.md)
+
+> Pre-built AppImage is also published as a CI artifact on every push to `main` and on tags `v*`. Download from the **Actions tab → `appimage-build.yml` → latest run**.
 
 ### Live Demo
 **[HuggingFace Space](https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr)** — No installation needed.
@@ -185,6 +269,48 @@ Key variables:
 | `HF_TOKEN` | HuggingFace token for dataset upload | (optional) |
 
 See [`.env.example`](.env.example) for the full list.
+
+## Documentation
+
+## 📄 PDF OCR Processor
+
+نظام متكامل لاستخراج النص والمسارد من ملفات PDF الطبية باستخدام OCR متقدم مع ضبط تلقائي.
+
+### الميزات
+- **ضبط تلقائي** لمعاملات OCR (PSM + DPI) — يختار أفضل إعداد
+- **معالجة مسبقة** للصور عبر scanner_fixer (deskew, crop, normalize, enhance)
+- **استخراج المسارد** الثنائية اللغة (عربي = إنجليزي) تلقائياً
+- **حفظ متعدد** (TXT, CSV, JSON) + مسرد موحد
+- **تكامل** مع نظام التسجيل المتقدم (advanced_logger)
+
+### الاستخدام
+```bash
+# تثبيت الحزم
+sudo pacman -S tesseract tesseract-data-ara tesseract-data-eng poppler
+pip install -r requirements/ml.txt
+
+# معالجة مجلد PDF
+python3 scripts/pdf_ocr_processor.py
+
+# ملف واحد مع ضبط تلقائي
+python3 scripts/pdf_ocr_processor.py --input report.pdf --auto-tune
+
+# باستخدام سكربت التشغيل
+./scripts/run_ocr.sh [GITHUB_TOKEN] [INPUT_PATH]
+```
+
+### المخرجات
+```
+~/glossaries_output/
+├── <filename>.txt          # النص الكامل المستخرج
+├── <filename>.csv          # المسارد (term_arabic, term_english)
+├── <filename>.json         # النتيجة الكاملة (JSON)
+├── combined_glossary.csv   # مسارد موحدة
+├── combined_glossary.json  # مسارد موحدة (JSON)
+└── OCR_PROCESSING_LOG.md   # سجل المعالجة
+```
+
+📖 [توثيق مفصل](docs/PDF_OCR_PROCESSOR.md)
 
 ## Documentation
 

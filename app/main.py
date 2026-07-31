@@ -126,6 +126,14 @@ try:
 except ImportError:
     logger.debug("Training hub package router not available")
 
+# Include core-engine API router (classify, search, organize, stats, health)
+try:
+    from src.api.server import router as core_api_router
+    app.include_router(core_api_router, prefix="/api", tags=["core-engines"])
+    logger.info("Core-engine API router mounted at /api")
+except ImportError as e:
+    logger.warning(f"Core-engine API router not available: {e}")
+
 
 # Health check endpoint
 @app.get("/health", tags=["health"])

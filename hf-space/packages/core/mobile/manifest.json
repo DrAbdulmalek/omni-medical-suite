@@ -1,0 +1,42 @@
+{
+  "name": "OmniFile OCR Review",
+  "short_name": "OmniFile",
+  "description": "مراجعة نتائج OCR على الجوال مع تعلّم تلقائي من تصحيحات المستخدم",
+  "start_url": "/mobile/ocr-review.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#4f46e5",
+  "background_color": "#0f172a",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["medical", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='38' fill='%234f46e5'/><text x='96' y='125' text-anchor='middle' fill='white' font-size='96' font-family='sans-serif'>O</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='102' fill='%234f46e5'/><text x='256' y='335' text-anchor='middle' fill='white' font-size='256' font-family='sans-serif'>O</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "مراجعة جديدة",
+      "short_name": "مراجعة",
+      "description": "ابدأ مراجعة نتائج OCR جديدة",
+      "url": "/mobile/ocr-review.html?action=new"
+    },
+    {
+      "name": "الإحصائيات",
+      "short_name": "إحصائيات",
+      "description": "عرض إحصائيات التعلّم",
+      "url": "/stats"
+    }
+  ]
+}

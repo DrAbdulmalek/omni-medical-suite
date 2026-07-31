@@ -165,6 +165,30 @@ class WeightedMedicalDeduplicator:
             if not matched:
                 unique.append(current)
 
+        # P1-3: instrument decision
+        try:
+            from app.core.decision_log import log_decision
+
+            log_decision(
+                decision="dedup_batch",
+                outcome={
+                    "input_count": len(records),
+                    "unique_count": len(unique),
+                    "duplicate_count": len(duplicates),
+                },
+                reasons=[
+                    f"duplicate_threshold={self.duplicate_threshold}",
+                    f"weights={self.weights}",
+                ],
+                inputs={
+                    "input_count": len(records),
+                    "unique_count": len(unique),
+                },
+                duration_ms=None,
+            )
+        except ImportError:
+            pass  # app.core.decision_log not available
+
         return {
             "unique_records": [record.to_dict() for record in unique],
             "duplicates": duplicates,
