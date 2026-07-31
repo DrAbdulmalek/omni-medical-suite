@@ -17,7 +17,7 @@ redis>=5.0.1
 celery[redis]>=5.3.6
 
 # === Security & Auth ===
-python-jose[cryptography]>=3.3.0
+python-jose[cryptography]>=3.5.0
 passlib[bcrypt]>=1.7.4
 cryptography>=41.0.0
 
