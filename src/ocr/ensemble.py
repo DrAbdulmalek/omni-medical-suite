@@ -250,7 +250,7 @@ class OCREnsemble:
             clean_text = text.strip()
             clean_len = len(clean_text)
 
-            # Composite score: confidence × length × validity_ratio
+            # Composite score: confidence * length * validity_ratio
             # Replaces the old "longest text wins" heuristic which
             # could pick garbage from a failing engine.
             lines = result.get("lines", [])
@@ -275,8 +275,8 @@ class OCREnsemble:
                 best_engine = name
 
         logger.info(
-            f"أفضل نتيجة من: {best_engine} ({best_len} حرف) "
-            f"| Best result from: {best_engine} ({best_len} chars)"
+            f"أفضل نتيجة من: {best_engine} (score={best_score:.3f}) "
+            f"| Best result from: {best_engine} (score={best_score:.3f})"
         )
         return best_text
 
