@@ -10,8 +10,9 @@ from .rotate import auto_rotate
 from .enhance import enhance_for_ocr
 from .enhanced_preprocessor import DocumentPreprocessor as EnhancedPreprocessor
 from .batch_pipeline import BatchProcessor
+from .pdf_ocr_processor import PDFOCRProcessor
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 __all__ = [
     "fix_scan",
     "fix_scan_batch",
@@ -21,4 +22,5 @@ __all__ = [
     "enhance_for_ocr",
     "EnhancedPreprocessor",
     "BatchProcessor",
+    "PDFOCRProcessor",
 ]

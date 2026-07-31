@@ -1,0 +1,112 @@
+# .github/workflows/hf-space-drift.yml
+# =============================================================================
+# HF Space drift gate
+# =============================================================================
+# Two layers of protection against silent drift between the canonical service
+# module `app/services/ocr_service.py` and the frozen HF Space entrypoint
+# `hf-space/app.py`:
+#
+#   1. Auto-synced paths check (`scripts/sync-hf-space.sh --verify`)
+#      Verifies that `src/ocr`, `packages/{vision,nlp,core}`, `config` are
+#      byte-identical between the monorepo and `hf-space/`. This is the
+#      mechanical sync that the sync script already performs.
+#
+#   2. Manual mirror audit (three diffs over PaddleOCR / ImagePreprocessor /
+#      Tesseract kwargs). `hf-space/app.py` is NOT auto-overwritten by the
+#      sync script (it's a frozen, intentionally-divergent entrypoint), so
+#      knobs that should stay parallel must be checked explicitly.
+#
+# Triggers:
+#   - pull_request touching either side of the mirror
+#   - push to main
+#   - daily schedule (catches drift introduced by dependency bumps even when
+#     no PR touches the files explicitly)
+#
+# Failure policy: any non-empty diff fails the build. See
+# `docs/DEPLOYMENT.md` § "HF Space drift control" for the accepted structural
+# differences table.
+# =============================================================================
+name: HF Space Drift Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/services/ocr_service.py'
+      - 'app/services/**'
+      - 'hf-space/app.py'
+      - 'hf-space/src/**'
+      - 'hf-space/packages/**'
+      - 'hf-space/config/**'
+      - 'src/ocr/**'
+      - 'packages/vision/**'
+      - 'packages/nlp/**'
+      - 'packages/core/**'
+      - 'config/**'
+      - 'scripts/sync-hf-space.sh'
+      - '.github/workflows/hf-space-drift.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/services/ocr_service.py'
+      - 'hf-space/app.py'
+      - 'src/ocr/**'
+      - 'packages/vision/**'
+      - 'packages/nlp/**'
+      - 'packages/core/**'
+      - 'config/**'
+  schedule:
+    # 06:30 UTC daily — catches drift from dependency bumps / renames
+    # that slip in without touching the explicit paths above.
+    - cron: '30 6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hf-space-drift-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hf-space-drift:
+    name: Verify hf-space/ ↔ app/services/ mirror
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Make sync script executable
+        run: chmod +x scripts/sync-hf-space.sh
+
+      # ── Layer 1: auto-synced paths ──────────────────────────────────────
+      - name: Layer 1 — auto-synced paths verify
+        run: |
+          echo "=== Layer 1: scripts/sync-hf-space.sh --verify ==="
+          ./scripts/sync-hf-space.sh --verify
+
+      # ── Layer 2: manual mirror audit (frozen entrypoint vs service) ────
+      # Uses scripts/check_hf_space_drift.py — extracts and compares the
+      # PaddleOCR / ImagePreprocessor / Tesseract / OCR_CORRECTIONS knobs
+      # between hf-space/app.py (frozen snapshot) and the canonical
+      # app/services/ocr_service.py. Returns 0 if all four match.
+      - name: Layer 2 — manual mirror audit
+        run: |
+          echo "=== Layer 2: mirror audit ==="
+          python3 scripts/check_hf_space_drift.py
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== Drift gate summary ==="
+          echo "Layer 1 (auto-synced paths): scripts/sync-hf-space.sh --verify"
+          echo "Layer 2 (frozen-entrypoint mirror): scripts/check_hf_space_drift.py"
+          echo "  — 4 knobs: PaddleOCR / ImagePreprocessor / Tesseract / OCR_CORRECTIONS"
+          echo ""
+          echo "If this job failed, see docs/DEPLOYMENT.md § 'HF Space drift control'."

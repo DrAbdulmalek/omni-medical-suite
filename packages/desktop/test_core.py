@@ -12,7 +12,7 @@ import pytest
 # ── إضافة المجلد الجذر للمسار ─────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from medical_doc_gui import (
+from medical_doc_gui_final import (
     AdaptiveLearner,
     ImageFeatureExtractor,
     TrainingDataCollector,
@@ -23,6 +23,7 @@ from medical_doc_gui import (
     cv2_to_pixmap,
     quality_label,
     smart_auto_crop,
+    SCANNER_FIXER_AVAILABLE,
 )
 
 # ══════════════════════════════════════════════
@@ -647,8 +648,107 @@ class TestCv2ToPixmap:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
         QApplication.instance() or QApplication([])
-        # make_white_img(h=200, w=150) → الصورة بالشكل (200, 150, 3)
         img = make_white_img(200, 150)
         pix = cv2_to_pixmap(img)
-        assert pix.width() == 150   # w
-        assert pix.height() == 200  # h
+        assert pix.width() == 150
+        assert pix.height() == 200
+
+
+# ══════════════════════════════════════════════
+#  scanner_fixer Integration Tests
+# ══════════════════════════════════════════════
+
+class TestScannerFixerIntegration:
+    """اختبارات تكامل scanner_fixer مع الواجهة."""
+
+    def test_scanner_fixer_available(self):
+        """مكتبة scanner_fixer مثبتة ومتاحة."""
+        assert SCANNER_FIXER_AVAILABLE is True
+
+    def test_deskew_uses_scanner_fixer(self):
+        """auto_detect_skew يستخدم scanner_fixer عند التوفر."""
+        import cv2
+        img = make_text_img()
+        # With scanner_fixer, should use Hough line method
+        angle = auto_detect_skew(img)
+        assert isinstance(angle, float)
+        # Straight text image should have near-zero angle
+        assert abs(angle) < 5.0
+
+    def test_smart_crop_uses_scanner_fixer(self):
+        """smart_auto_crop يستخدم scanner_fixer عند التوفر."""
+        img = make_text_img()
+        result = smart_auto_crop(img)
+        assert len(result) == 4
+        l, t, r, b = result
+        assert l >= 0 and t >= 0 and r >= 0 and b >= 0
+
+    def test_normalize_pipeline(self):
+        """normalize_scanned_image pipeline يعمل بشكل كامل."""
+        from scanner_fixer.normalize import normalize_scanned_image
+        img = make_text_img()
+        result = normalize_scanned_image(img, output_grayscale=False)
+        assert result.ndim == 3
+        assert result.shape[0] > 0
+        assert result.shape[1] > 0
+
+    def test_normalize_grayscale(self):
+        """normalize_scanned_image يُنتج صورة رمادية عند الطلب."""
+        from scanner_fixer.normalize import normalize_scanned_image
+        img = make_text_img()
+        result = normalize_scanned_image(img, output_grayscale=True)
+        assert result.ndim == 2  # Grayscale
+
+    def test_dedup_phash(self):
+        """compute_image_phash يُنتج hash صالح."""
+        from scanner_fixer.dedup import compute_image_phash
+        img = make_text_img()
+        phash = compute_image_phash(img)
+        assert str(phash)  # Non-empty hash string
+
+    def test_dedup_phash_identical_images(self):
+        """صورتان متطابقتان لهما نفس الـ hash."""
+        from scanner_fixer.dedup import compute_image_phash
+        img = make_text_img()
+        h1 = compute_image_phash(img)
+        h2 = compute_image_phash(img)
+        assert h1 == h2
+
+    def test_dedup_phash_different_images(self):
+        """صورتان مختلفتان لهما hash مختلف."""
+        from scanner_fixer.dedup import compute_image_phash
+        img1 = make_text_img()
+        img2 = make_white_img()
+        h1 = compute_image_phash(img1)
+        h2 = compute_image_phash(img2)
+        assert h1 != h2
+
+    def test_deskew_detector_direct(self):
+        """detect_skew_angle يُرجع tuple (angle, meta)."""
+        from scanner_fixer.deskew import detect_skew_angle
+        img = make_text_img()
+        angle, meta = detect_skew_angle(img)
+        assert isinstance(angle, float)
+        assert isinstance(meta, dict)
+        assert "uncertain" in meta
+
+    def test_auto_crop_direct(self):
+        """scanner_fixer.auto_crop يُرجع ndarray مقصوص."""
+        from scanner_fixer.crop import auto_crop
+        img = make_text_img()
+        result = auto_crop(img, padding=10)
+        assert isinstance(result, np.ndarray)
+        assert result.shape[0] > 0
+        assert result.shape[1] > 0
+        # Cropped image should be <= original
+        assert result.shape[0] <= img.shape[0]
+        assert result.shape[1] <= img.shape[1]
+
+    def test_fallback_on_failure(self):
+        """الدوال تعود للطريقة القديمة عند فشل scanner_fixer."""
+        # Test with an edge case that might trigger fallback
+        img = np.full((10, 10, 3), 255, dtype=np.uint8)  # Very small
+        angle = auto_detect_skew(img)
+        assert isinstance(angle, float)
+        crop = smart_auto_crop(img)
+        assert len(crop) == 4

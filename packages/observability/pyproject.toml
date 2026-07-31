@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "observability"
+version = "1.0.0"
+description = "Structured logging + LLM-powered log review for OmniMedical"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+analyzer = ["z-ai-sdk>=0.1.0"]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

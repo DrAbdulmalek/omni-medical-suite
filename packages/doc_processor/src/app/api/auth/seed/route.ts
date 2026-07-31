@@ -22,9 +22,21 @@ export async function GET() {
       });
     }
 
-    // Hash default password
+    // Hash default password — read from env so the literal never lives in source.
+    // Operator MUST set SEED_ADMIN_PASSWORD before seeding; refuse to seed otherwise.
     const bcrypt = await import("bcryptjs");
-    const hashedPassword = await bcrypt.hash("admin123", 12);
+    const seedPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (!seedPassword || seedPassword.length < 12) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "SEED_ADMIN_PASSWORD env var must be set to a value of at least 12 characters before seeding. Refusing to seed with a hardcoded default.",
+        },
+        { status: 400 }
+      );
+    }
+    const hashedPassword = await bcrypt.hash(seedPassword, 12);
 
     const admin = await prisma.user.create({
       data: {
