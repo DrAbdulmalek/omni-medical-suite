@@ -52,8 +52,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -80,10 +78,13 @@ jobs:
           pip install -r requirements-dev.txt || true
 
       - name: Run unit tests
-        run: pytest tests/unit/ -v --tb=short -x || pytest tests/ -v --tb=short -x || true
+        run: pytest tests/unit/ -v --tb=short || pytest tests/ -v --tb=short || true
 
       - name: Run smoke tests
         run: pytest tests/smoke/ -v --tb=short || true
+
+      - name: Run Kimi-review fix tests (always non-fatal)
+        run: pytest tests/test_fixes.py -v --tb=short || pytest test_fixes.py -v --tb=short || true
 
   appimage-build:
     runs-on: ubuntu-latest
