@@ -241,16 +241,36 @@ class OCREnsemble:
         all_results = self.run_all(image)
 
         best_text = ""
-        best_len = 0
+        best_score = -1.0
         best_engine = ""
 
         for name, result in all_results["results"].items():
             # Get text from either 'text' or 'full_text' key
             text = result.get("text", result.get("full_text", ""))
-            clean_len = len(text.strip())
+            clean_text = text.strip()
+            clean_len = len(clean_text)
 
-            if clean_len > best_len:
-                best_len = clean_len
+            # Composite score: confidence × length × validity_ratio
+            # Replaces the old "longest text wins" heuristic which
+            # could pick garbage from a failing engine.
+            lines = result.get("lines", [])
+            avg_conf = (
+                sum(l.get("confidence", 0.0) for l in lines) / len(lines)
+                if lines else 0.0
+            )
+            valid_chars = sum(
+                1 for c in clean_text
+                if c.isalpha() or c.isspace() or "\u0600" <= c <= "\u06FF"
+            )
+            validity = valid_chars / max(clean_len, 1)
+            score = avg_conf * clean_len * validity
+
+            # Penalize engines that returned an error
+            if result.get("error"):
+                score *= 0.1
+
+            if score > best_score:
+                best_score = score
                 best_text = text
                 best_engine = name
 
