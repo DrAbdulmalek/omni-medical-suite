@@ -20,11 +20,8 @@ Business logic is delegated to service modules under ``app/services/``.
 This file contains only the UI composition layer and thin orchestration.
 """
 import logging
-import os
 import re
 import time
-import traceback
-from pathlib import Path
 
 import gradio as gr
 
@@ -32,27 +29,31 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 # ── Service Imports ─────────────────────────────────────────────────────────
+# Note: ``paddle_ocr`` / ``spell_checker`` / ``HAS_TESSERACT`` / ``HAS_PREPROCESSOR``
+# / ``proofreader`` / ``ner`` / ``HAS_LLM`` are resolved lazily via PEP 562
+# ``__getattr__`` on the service modules — importing them here triggers no
+# engine construction. Where they are used inside a function body we now
+# call the explicit getters (``get_paddle_ocr()`` etc.) to avoid repeated
+# lookups; the module-level imports are kept for backward compatibility.
 from app.services.ocr_service import (          # noqa: E402
-    HAS_PREPROCESSOR,
-    HAS_TESSERACT,
     _auto_correct_ocr,
     _preprocess_image,
     _run_paddle_ocr,
     _run_tesseract,
-    paddle_ocr,
-    spell_checker,
 )
 from app.services.review_service import (        # noqa: E402
-    HAS_LLM,
     _extract_ner,
     jais_proofread_only,
-    ner,
-    proofreader,
 )
 from app.services.hf_dataset_service import (    # noqa: E402
     retrain_now,
     save_to_hf,
     update_medical_dictionary,
+)
+from app.services.translation_service import (  # noqa: E402
+    DEVICE,
+    TRANSLATION_MODELS,
+    translate_text,
 )
 
 # ====================================================================
@@ -62,141 +63,12 @@ from app.services.hf_dataset_service import (    # noqa: E402
 # HybridSpellChecker أعلاه يحمي منها عبر _try_digit_fix(). لا داعي لمصحّح
 # ثانٍ أضعف بجانب الأقوى.
 # ====================================================================
-
-_translation_corrector = None
-_model_cache: dict[str, object] = {}
-
-DEVICE = "cpu"
-try:
-    import torch
-    if torch.cuda.is_available():
-        DEVICE = "cuda"
-except ImportError:
-    pass
-
-TRANSLATION_MODELS = {
-    "Arabic → English": "Helsinki-NLP/opus-mt-ar-en",
-    "English → Arabic": "Helsinki-NLP/opus-mt-en-ar",
-    "Arabic → German": "Helsinki-NLP/opus-mt-ar-de",
-    "German → Arabic": "Helsinki-NLP/opus-mt-de-ar",
-}
-
-
-def _get_translation_corrector():
-    """Lazy-load the translation corrector with rules."""
-    global _translation_corrector
-    if _translation_corrector is not None:
-        return _translation_corrector
-    try:
-        # app/ -> جذر المستودع (كان المسار الأصلي في hf_app.py يشير خطأً
-        # لـ app/data/ بدل data/ بعد نقل الملف من جذر OmniFile_Processor)
-        base = Path(__file__).parent.parent
-        rules_path = base / "data" / "translation_rules.json"
-        if not rules_path.is_file():
-            rules_path = None
-        from packages.nlp.translation_corrector import ArabicTranslationProcessor
-        _translation_corrector = ArabicTranslationProcessor(rules_file=str(rules_path) if rules_path else None)
-        logger.info("Translation corrector loaded (%d rules)", len(_translation_corrector.rules))
-    except ImportError:
-        logger.warning("translation_corrector module not found — using inline fallback")
-        _translation_corrector = None
-    return _translation_corrector
-
-
-def _correct_translation(english_text: str, arabic_text: str, enable: bool = True) -> str:
-    """Apply post-MT correction to Arabic translation."""
-    if not enable or not arabic_text:
-        return arabic_text
-    corrector = _get_translation_corrector()
-    if corrector is None:
-        return arabic_text
-    result = corrector.process_translation(english_text, arabic_text)
-    if result["improved"]:
-        logger.info("Translation corrected: %d rule changes + %d regex changes",
-                     len(result["corrections"]), len(result["regex_changes"]))
-    return result["corrected"]
-
-
-def _get_model(key: str):
-    return _model_cache.get(key)
-
-
-def _set_model(key: str, obj) -> None:
-    _model_cache[key] = obj
-
-
-def _load_translator(model_name: str):
-    cache_key = f"translator_{model_name}"
-    cached = _get_model(cache_key)
-    if cached:
-        return cached
-    try:
-        from transformers import MarianMTModel, MarianTokenizer
-        tok = MarianTokenizer.from_pretrained(model_name)
-        mdl = MarianMTModel.from_pretrained(model_name).to(DEVICE)
-        _set_model(cache_key, (tok, mdl))
-        return tok, mdl
-    except Exception as e:
-        logger.error("Failed to load translator %s: %s", model_name, e)
-        return None, None
-
-
-def translate_text(text: str, direction: str, correct_output: bool = True, progress=gr.Progress()) -> str:
-    """ترجمة النصوص بين العربية والإنجليزية والألمانية مع تصحيح اختياري."""
-    if not text or not text.strip():
-        return "⚠️ الرجاء إدخال نص للترجمة."
-
-    model_name = TRANSLATION_MODELS.get(direction)
-    if not model_name:
-        return f"❌ اتجاه غير مدعوم: {direction}"
-
-    progress(0.2, desc=f"تحميل النموذج ({direction})…")
-    tok, mdl = _load_translator(model_name)
-    if tok is None or mdl is None:
-        return "❌ فشل تحميل النموذج. راجع السجل."
-
-    try:
-        import torch
-        chunks: list[str] = []
-        cur = ""
-        for para in re.split(r"\n\s*\n", text.strip()):
-            if len(cur) + len(para) + 2 <= 400:
-                cur += ("\n\n" if cur else "") + para
-            else:
-                if cur:
-                    chunks.append(cur)
-                cur = para
-        if cur:
-            chunks.append(cur)
-
-        parts: list[str] = []
-        for i, chunk in enumerate(chunks):
-            progress(0.3 + 0.7 * ((i + 1) / len(chunks)), desc=f"ترجمة الجزء {i+1}/{len(chunks)}…")
-            inputs = tok(chunk, return_tensors="pt", truncation=True, max_length=512, padding=True)
-            inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
-            with torch.no_grad():
-                gen = mdl.generate(**inputs, max_length=512)
-            parts.append(tok.decode(gen[0], skip_special_tokens=True))
-
-        translated = "\n\n".join(parts)
-
-        correction_note = ""
-        if correct_output and "Arabic" in direction:
-            corrected = _correct_translation(text, translated)
-            if corrected != translated:
-                correction_note = "✅ تم تطبيق تصحيح ما بعد الترجمة\n\n"
-                translated = corrected
-
-        return (
-            f"{translated}\n\n"
-            f"{correction_note}"
-            f"---\n"
-            f"**النموذج**: `{model_name}`  |  **الجهاز**: `{DEVICE}`  |  "
-            f"**الأحرف**: {len(text)} → {len(translated)}"
-        )
-    except Exception as e:
-        logger.error("خطأ ترجمة: %s", traceback.format_exc())
-        return f"❌ فشلت الترجمة: {e}"
+# Translation logic (model cache, MarianMT loader, post-MT correction,
+# chunking, translate_text()) was extracted to
+# ``app/services/translation_service.py`` in v1.1.0-rc (P0 hardening) so
+# this UI file stays focused on orchestration. The names above
+# (``DEVICE``, ``TRANSLATION_MODELS``, ``translate_text``) are re-exported
+# here for backward compatibility with the rest of this file's UI bindings.
 
 
 def _normalize_text_metrics(text: str) -> str:
@@ -282,6 +154,20 @@ def full_process(image):
     if image is None:
         return None, "لم يتم رفع صورة", "", {}, "يرجى رفع صورة طبية"
 
+    # Resolve lazy singletons once for the whole call
+    from app.services.ocr_service import (
+        get_paddle_ocr,
+        get_spell_checker,
+        has_tesseract,
+    )
+    from app.services.review_service import get_ner, get_proofreader
+
+    paddle = get_paddle_ocr()
+    checker = get_spell_checker()
+    tess_ok = has_tesseract()
+    proof = get_proofreader()
+    ner_inst = get_ner()
+
     t0 = time.time()
     try:
         # 1. Preprocessing
@@ -302,24 +188,19 @@ def full_process(image):
         if tesseract_text:
             engine_info["Tesseract"] = f"ثقة {tess_conf:.0f}%"
 
-        # 4. Auto-correct OCR artifacts
+        # 4. Auto-correct OCR artifacts (now also applies spell checker internally)
         corrected, corrections = _auto_correct_ocr(raw_text)
 
-        # 4.5 Spell check (HybridSpellChecker — existing v7.0)
+        # 4.5 Spell check info (the checker was already applied inside _auto_correct_ocr
+        # since v1.1.0-rc; we keep this block only for the status message).
         spell_info = ""
-        if spell_checker:
-            try:
-                before_spell = corrected
-                corrected = spell_checker.correct_text(corrected)
-                if before_spell != corrected:
-                    spell_info = f"SpellChecker: {sum(1 for a,b in zip(before_spell, corrected, strict=False) if a!=b)} تعديل"
-            except Exception as e:
-                logger.warning(f"Spell check failed: {e}")
+        if checker is not None:
+            spell_info = "SpellChecker: applied via _auto_correct_ocr"
 
         # 5. LLM Proofreading (optional, GPU required)
-        if proofreader:
+        if proof is not None:
             try:
-                proof_result = proofreader.proofread(corrected)
+                proof_result = proof.proofread(corrected)
                 corrected = proof_result["corrected"]
                 logger.info("Proofread applied")
             except Exception as e:
@@ -327,9 +208,9 @@ def full_process(image):
 
         # 6. NER
         entities = {}
-        if ner:
+        if ner_inst is not None:
             try:
-                entities = ner.extract_entities(corrected)
+                entities = ner_inst.extract_entities(corrected)
             except Exception as e:
                 logger.warning(f"LLM NER failed: {e}")
         # Fallback: dictionary-based NER
@@ -340,7 +221,7 @@ def full_process(image):
         elapsed = time.time() - t0
         parts = [f"✅ معالجة مسبقة: {' + '.join(prep_steps)}"]
 
-        if not HAS_TESSERACT and paddle_ocr is None:
+        if not tess_ok and paddle is None:
             parts.append("❌ لا يوجد محرك OCR مثبت — ثبّت pytesseract أو paddleocr")
         elif not raw_text.strip():
             parts.append("⚠️ لم يُستخرَج أي نص (تحقق من جودة الصورة)")
@@ -352,7 +233,7 @@ def full_process(image):
         parts.append(f"✅ كيانات: {sum(len(v) for v in entities.values())}")
         parts.append(f"⏱️ {elapsed:.1f} ثانية")
 
-        if not HAS_LLM:
+        if proof is None and ner_inst is None:
             parts.append("(وضع أساسي — LLM غير مفعّل)")
 
         return cleaned, corrected, raw_text, entities, "\n".join(parts)

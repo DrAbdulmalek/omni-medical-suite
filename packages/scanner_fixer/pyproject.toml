@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scanner-fixer"
-version = "1.1.0"
-description = "Pre-OCR image normalization for scanned medical documents"
+version = "1.2.0"
+description = "Pre-OCR image normalization and PDF OCR processing for scanned medical documents"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "DrAbdulmalek" }]
 requires-python = ">=3.9"
 
 dependencies = [
-    "numpy>=1.23",
+    "numpy>=1.24.0,<2.0.0",
     "opencv-python>=4.7",
     "click>=8.0",
     "Pillow>=9.0",
@@ -21,6 +21,9 @@ dependencies = [
 
 [project.optional-dependencies]
 tesseract = ["pytesseract>=0.3"]
+pdf = ["PyMuPDF>=1.22", "pdf2image>=1.16", "pdfplumber>=0.9"]
+ocr = ["pytesseract>=0.3", "paddleocr>=2.6", "easyocr>=1.6"]
+all = ["scanner-fixer[pdf,ocr]"]
 dev = ["pytest>=7.0", "pytest-cov", "ruff", "black"]
 
 [project.scripts]
