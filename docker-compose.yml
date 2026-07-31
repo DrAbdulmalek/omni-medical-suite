@@ -8,7 +8,7 @@
 #
 # Environment:
 #   POSTGRES_PASSWORD  — PostgreSQL password (default: omni_dev_pass)
-#   SECRET_KEY         — API auth secret (default: dev-secret-key-change-in-production)
+#   SECRET_KEY         — API auth secret (REQUIRED — no default; refuse to start without it)
 #   GRAFANA_PASSWORD   — Grafana admin password (default: admin)
 # =============================================================================
 
@@ -50,7 +50,7 @@ services:
       - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:-omni_dev_pass}@postgres:5432/omnimedical
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in the environment (no hardcoded default for production safety)}
       - ENVIRONMENT=development
     volumes:
       - ./uploads:/app/uploads
