@@ -39,6 +39,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
 
+      - name: Clean Old Context Files
+        run: |
+          # حذف أي ملفات context قديمة قبل التوليد (لتجنب تراكم النسخ القديمة)
+          rm -f project_context.txt project_context.md project_context_part*.txt project_context_part*.md
+          echo "🧹 تم تنظيف الملفات القديمة"
+
       - name: Generate Context File
         run: |
           mkdir -p .github/scripts
