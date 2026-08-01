@@ -39,7 +39,7 @@ from collections import defaultdict
 # الإعدادات الافتراضية
 # ============================================================================
 
-DEFAULT_MAX_FILE_SIZE = 100 * 1024  # 100 KB (الحد الأقصى لحجم الملف الواحد)
+DEFAULT_MAX_FILE_SIZE = 20 * 1024  # 20 KB (omni-medical-suite: platform-only, tight)
 DEFAULT_MAX_TOTAL_SIZE = 800_000    # 800K حرف (حجم آمن لـ Gemini Flash)
 
 # الملفات والامتدادات التي نستبعدها
@@ -48,7 +48,38 @@ EXCLUDED_DIRS = {
     'venv', 'env', '.venv', 'dist', 'build', '.pytest_cache',
     '.mypy_cache', '.idea', '.DS_Store', 'coverage', 'htmlcov',
     '.tox', '.eggs', '*.egg-info', 'site-packages', 'lib',
-    'bin', 'include', 'share', 'docs/_build', 'target'
+    'bin', 'include', 'share', 'docs/_build', 'target',
+    '.cache', '.tmp', 'tmp',
+
+    # ═══════════════════════════════════════════════════════════
+    # omni-medical-suite: PLATFORM-ONLY MODE
+    # نُضمّ فقط الكود الأساسي للمنصة (app/, src/, omni_medical_suite/,
+    # docs/, config/, docker/, scripts/, infra/, migrations/, requirements/)
+    # ونستبعد كل الحزم الفرعية والتطبيقات المنفصلة والبيانات
+    # ═══════════════════════════════════════════════════════════
+
+    # ─── sub-packages (302 MB, 2464 files) — طلبها فردياً عند الحاجة ───
+    'packages',
+
+    # ─── separate apps & deployments ───
+    'apps', 'hf-space', 'hf-spaces', 'mobile', 'desktop',
+
+    # ─── separate tools & labs ───
+    'tools', 'labs', 'research',
+
+    # ─── data & training (large, not code) ───
+    'data', 'training-data', 'training', 'samples', 'benchmarks',
+    'evaluation', 'model', 'models',
+
+    # ─── tests (extensive, not needed for context) ───
+    'tests', 'test', '__tests__', 'tests_integration',
+
+    # ─── archive & duplicates ───
+    'archive', '_claude_merge', 'variants', 'extracted_notebooks',
+    'notebooks', 'prototypes', 'legacy',
+
+    # ─── downloaded/generated code ───
+    'download', 'downloads', 'schemas', 'assets',
 }
 
 EXCLUDED_EXTENSIONS = {
@@ -57,7 +88,17 @@ EXCLUDED_EXTENSIONS = {
     '.zip', '.tar', '.gz', '.bz2', '.7z', '.rar', '.xz',
     '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.db',
     '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-    '.pyc', '.pyo', '.class', '.o', '.obj', '.a', '.lib'
+    '.pyc', '.pyo', '.class', '.o', '.obj', '.a', '.lib',
+    # ─── omni-medical-suite specific: data/schema/notebook files ───
+    '.ipynb',  # Jupyter notebooks (often huge, contain output cells)
+    '.xsd', '.wsdl',  # XML schema files (OOXML has 39 .xsd files)
+    '.csv', '.tsv',  # data tables
+    '.parquet', '.arrow', '.feather',  # binary data formats
+    '.pt', '.bin', '.safetensors', '.ckpt',  # model weights
+    '.pickle', '.pkl',  # serialized objects
+    '.h5', '.npy', '.npz',  # numerical arrays
+    '.jsonl',  # JSON Lines (often data dumps)
+    '.log', '.out',  # log files
 }
 
 EXCLUDED_FILES = {
@@ -93,6 +134,9 @@ EXCLUDED_PATTERNS = [
     r'^id_(rsa|ecdsa|ed25519|dsa)$',
     # Google service account files
     r'.*service[_-]?account.*\.json$',
+    # ─── omni-medical-suite: استبعاد ملفات SKILL الكبيرة المكررة ───
+    # SKILL.md files موجودة في 54 نسخة (واحدة لكل skill)، نُبقي فقط root
+    r'^SKILL\.md$',
 ]
 
 # أولوية الملفات (تظهر أولاً في السياق)
