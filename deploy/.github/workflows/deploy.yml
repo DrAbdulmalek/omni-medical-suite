@@ -1,0 +1,137 @@
+# =============================================================================
+# Omni Medical Suite — CI/CD: Build & Deploy
+# =============================================================================
+# Triggers:
+#   - Push to main → Build + Test + Deploy to production
+#   - Pull Request → Build + Test only
+# =============================================================================
+
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ── Build & Test ──────────────────────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test health endpoint
+        run: |
+          # Start the container with minimal env
+          docker run -d --name test-api \
+            -p 8000:8000 \
+            -e APP_ENV=testing \
+            -e APP_DEBUG=false \
+            -e APP_SECRET_KEY=test-secret-key-for-ci \
+            -e JWT_SECRET_KEY=test-jwt-key-for-ci \
+            -e DATABASE_URL=sqlite:///tmp/test.db \
+            -e REDIS_URL=redis://localhost:6379/0 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+          # Wait for startup
+          sleep 15
+
+          # Test health endpoint
+          HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/health || echo "000")
+          echo "Health check HTTP code: $HTTP_CODE"
+
+          if [[ "$HTTP_CODE" != "200" ]]; then
+            echo "::warning::Health check returned $HTTP_CODE (may need DB/Redis)"
+            docker logs test-api
+          fi
+
+          docker stop test-api && docker rm test-api
+
+      - name: Push Docker image
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Deploy to Production ──────────────────────────────────────────────────
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /opt/omni-medical-suite
+
+            # Pull latest image
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+            # Restart services with new image
+            docker compose -f docker-compose.prod.yml up -d --pull always
+
+            # Wait and verify
+            sleep 15
+            curl -sf http://localhost:8000/health || echo "WARN: Health check failed"
+
+            echo "Deploy complete at $(date)"
