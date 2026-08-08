@@ -1,11 +1,17 @@
 # =============================================================================
-# Omni Medical Suite — Production Multi-Stage Dockerfile (API)
+# Omni Medical Suite — Production Dockerfile (Gradio HITL Interface)
 # =============================================================================
-# FastAPI API Worker — lightweight, no heavy ML engines
-# For the Gradio HITL interface (with PaddleOCR/EasyOCR), use Dockerfile.gradio
+# Full OCR interface with all 5 engines:
+#   1. PaddleOCR — best for Arabic text
+#   2. Tesseract 5 — reliable classic engine
+#   3. EasyOCR — fast multilingual
+#   4. TrOCR — best for handwritten manuscripts
+#   5. Surya — modern high-accuracy engine
 #
-# Build:  docker build --target production -t omni-api:latest .
-# Run:    docker run -p 8000:8000 --env-file .env omni-api:latest
+# PaddleOCR models are pre-cached during build for fast cold starts.
+#
+# Build:  docker build -f Dockerfile.gradio.prod -t omni-gradio:latest .
+# Run:    docker run -p 7860:7860 --env-file .env omni-gradio:latest
 # =============================================================================
 
 # ─── Stage 1: Builder ────────────────────────────────────────────────────────
@@ -16,12 +22,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Build-time system dependencies (gcc, libpq for psycopg/asyncpg)
+# Build-time system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libpq-dev \
     gcc \
     g++ \
+    cmake \
+    libpq-dev \
+    git \
+    tesseract-ocr \
+    tesseract-ocr-ara \
+    tesseract-ocr-eng \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
@@ -30,24 +46,27 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /build
 
-# Copy requirements (layered: base → api → ml)
-# NOTE: ml.txt has CV/NLP deps but NOT PaddlePaddle (that's in gradio.txt)
-COPY requirements/base.txt ./requirements/base.txt
-COPY requirements/api.txt ./requirements/api.txt
-COPY requirements/ml.txt  ./requirements/ml.txt
+# Copy all requirements
+COPY requirements/base.txt    ./requirements/base.txt
+COPY requirements/api.txt     ./requirements/api.txt
+COPY requirements/ml.txt      ./requirements/ml.txt
+COPY requirements/gradio.txt  ./requirements/gradio.txt
 
-# Install Python dependencies in layers (better Docker caching)
+# Install in layers — gradio.txt includes ml.txt which includes base.txt
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements/base.txt && \
-    pip install --no-cache-dir -r requirements/api.txt && \
-    pip install --no-cache-dir -r requirements/ml.txt && \
+    pip install --no-cache-dir -r requirements/gradio.txt && \
     pip install --no-cache-dir asyncpg uvloop httptools
+
+# Pre-download PaddleOCR models (Arabic + English) during build
+# This avoids 5-10 minute cold start on first run
+RUN PYTHONPATH=/opt/venv/lib/python3.11/site-packages \
+    python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle_cls=True, lang='ar', show_log=False)" || true
 
 # ─── Stage 2: Production ────────────────────────────────────────────────────
 FROM python:3.11-slim AS production
 
 LABEL maintainer="Dr. Abdulmalek Al-husseini"
-LABEL description="Omni Medical Suite - Production API Worker (FastAPI)"
+LABEL description="Omni Medical Suite - Gradio HITL Interface (Production)"
 LABEL version="2.2.0"
 LABEL org.opencontainers.image.source="https://github.com/DrAbdulmalek/omni-medical-suite"
 
@@ -67,16 +86,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libtesseract-dev \
     libleptonica-dev \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Verify Tesseract installation
+# Verify Tesseract
 RUN tesseract --version && tesseract --list-langs
 
 # Create non-root user
 RUN groupadd -r omni && useradd -r -g omni -u 1000 -m -d /app omni
 
-# Create application directories
+# Create directories
 RUN mkdir -p /app/uploads /app/results /app/logs /app/data \
              /app/encrypted /app/model /app/backups && \
     chown -R omni:omni /app
@@ -95,10 +117,10 @@ RUN chmod +x /app/docker-entrypoint.sh 2>/dev/null || true
 # Switch to non-root user
 USER omni
 
-EXPOSE 8000
+EXPOSE 7860
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:7860/ || exit 1
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--loop", "uvloop", "--http", "httptools"]
+CMD ["python", "app/gradio_full_hitl.py"]
