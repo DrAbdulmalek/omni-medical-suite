@@ -83,7 +83,7 @@ jobs:
 
       - name: Upload APK artifact
         if: steps.build.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: OmniMedical-APK-${{ github.ref_name }}
           path: mobile/android/bin/*.apk
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload build log on failure
         if: steps.build.outcome != 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: buildozer-failure-log
           path: |
