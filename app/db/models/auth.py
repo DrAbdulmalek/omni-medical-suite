@@ -1,11 +1,5 @@
 # app/db/models/auth.py
-"""Authentication and RBAC database models.
-
-The authentication hardening must preserve the complete model surface used by
-existing routers and Alembic metadata. Security-sensitive timestamps are
-timezone-aware UTC values; legacy migration columns are normalized by the
-follow-up migration.
-"""
+"""Authentication and RBAC database models."""
 from __future__ import annotations
 
 import uuid
@@ -77,20 +71,13 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     last_login = Column(DateTime(timezone=True))
 
-    refresh_tokens = relationship(
-        "RefreshToken",
-        back_populates="user",
-        foreign_keys="RefreshToken.user_id",
-        cascade="all, delete-orphan",
-    )
-    user_roles = relationship("UserRoleAssignment", back_populates="user")
-    user_permissions = relationship("UserPermissionAssignment", back_populates="user")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", foreign_keys="RefreshToken.user_id", cascade="all, delete-orphan")
+    user_roles = relationship("UserRoleAssignment", back_populates="user", foreign_keys="UserRoleAssignment.user_id")
+    user_permissions = relationship("UserPermissionAssignment", back_populates="user", foreign_keys="UserPermissionAssignment.user_id")
 
     __table_args__ = (
-        Index("ix_users_email", "email"),
-        Index("ix_users_username", "username"),
-        Index("ix_users_uuid", "uuid"),
-        Index("ix_users_status", "status"),
+        Index("ix_users_email", "email"), Index("ix_users_username", "username"),
+        Index("ix_users_uuid", "uuid"), Index("ix_users_status", "status"),
         Index("ix_users_created_at", "created_at"),
     )
 
@@ -127,7 +114,6 @@ class User(Base):
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
-
     id = Column(Integer, primary_key=True, index=True)
     token_hash = Column(String(255), unique=True, index=True, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -144,21 +130,15 @@ class RefreshToken(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     last_used_at = Column(DateTime(timezone=True))
-
     user = relationship("User", back_populates="refresh_tokens", foreign_keys=[user_id])
     revoker = relationship("User", foreign_keys=[revoked_by])
-
     __table_args__ = (
-        Index("ix_refresh_tokens_user_id", "user_id"),
-        Index("ix_refresh_tokens_jti", "jti"),
-        Index("ix_refresh_tokens_token_hash", "token_hash"),
-        Index("ix_refresh_tokens_expires", "expires_at"),
+        Index("ix_refresh_tokens_user_id", "user_id"), Index("ix_refresh_tokens_jti", "jti"),
+        Index("ix_refresh_tokens_token_hash", "token_hash"), Index("ix_refresh_tokens_expires", "expires_at"),
         Index("ix_refresh_tokens_revoked", "is_revoked"),
     )
-
     def is_active(self) -> bool:
         return not self.is_revoked and self.expires_at > datetime.now(timezone.utc)
-
     def revoke(self, reason: str = "User logout", revoked_by: int | None = None) -> None:
         self.is_revoked = True
         self.revoked_at = datetime.now(timezone.utc)
@@ -177,11 +157,7 @@ class Permission(Base):
     is_sensitive = Column(Boolean, default=False, nullable=False)
     role_permissions = relationship("RolePermission", back_populates="permission")
     user_permissions = relationship("UserPermissionAssignment", back_populates="permission")
-
-    __table_args__ = (
-        Index("ix_permissions_codename", "codename"),
-        Index("ix_permissions_category", "category"),
-    )
+    __table_args__ = (Index("ix_permissions_codename", "codename"), Index("ix_permissions_category", "category"))
 
 
 class Role(Base):
@@ -195,7 +171,6 @@ class Role(Base):
     is_assignable = Column(Boolean, default=True, nullable=False)
     role_permissions = relationship("RolePermission", back_populates="role")
     user_roles = relationship("UserRoleAssignment", back_populates="role")
-
     __table_args__ = (Index("ix_roles_name", "name"), Index("ix_roles_level", "level"))
 
 
@@ -207,11 +182,7 @@ class RolePermission(Base):
     assigned_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     role = relationship("Role", back_populates="role_permissions")
     permission = relationship("Permission", back_populates="role_permissions")
-
-    __table_args__ = (
-        Index("ix_role_permissions_role", "role_id"),
-        Index("ix_role_permissions_permission", "permission_id"),
-    )
+    __table_args__ = (Index("ix_role_permissions_role", "role_id"), Index("ix_role_permissions_permission", "permission_id"))
 
 
 class UserRoleAssignment(Base):
@@ -224,10 +195,8 @@ class UserRoleAssignment(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     user = relationship("User", back_populates="user_roles", foreign_keys=[user_id])
     role = relationship("Role", back_populates="user_roles")
-
     __table_args__ = (
-        Index("ix_user_role_assignments_user", "user_id"),
-        Index("ix_user_role_assignments_role", "role_id"),
+        Index("ix_user_role_assignments_user", "user_id"), Index("ix_user_role_assignments_role", "role_id"),
         Index("ix_user_role_assignments_active", "is_active"),
     )
 
@@ -243,7 +212,6 @@ class UserPermissionAssignment(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     user = relationship("User", back_populates="user_permissions", foreign_keys=[user_id])
     permission = relationship("Permission", back_populates="user_permissions")
-
     __table_args__ = (Index("ix_user_perm_assignments_user", "user_id"),)
 
 
@@ -267,12 +235,7 @@ class AuditLog(Base):
     error_message = Column(String(1000))
     error_code = Column(String(50))
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
-    __table_args__ = (
-        Index("ix_audit_logs_user_id", "user_id"),
-        Index("ix_audit_logs_action", "action"),
-        Index("ix_audit_logs_timestamp", "timestamp"),
-    )
+    __table_args__ = (Index("ix_audit_logs_user_id", "user_id"), Index("ix_audit_logs_action", "action"), Index("ix_audit_logs_timestamp", "timestamp"))
 
 
 class Job(Base):
