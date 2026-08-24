@@ -3,8 +3,6 @@ name: Apply medical safety hardening
 on:
   push:
     branches: [audit/production-hardening]
-    paths:
-      - .github/workflows/apply-medical-safety.yml
 
 permissions:
   contents: write
