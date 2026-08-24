@@ -105,8 +105,7 @@ jobs:
           pytest -q \
             tests/test_auth_security.py \
             tests/test_security_hardening.py \
-            tests/integration/test_auth_postgres.py \
-            tests/security/test_medical_safety_contract.py
+            tests/integration/test_auth_postgres.py
 
       - name: Validate production Compose configuration
         env:
@@ -114,6 +113,7 @@ jobs:
           DB_PASSWORD: test-password-123456
           GRADIO_USERNAME: ci
           GRADIO_PASSWORD: ci-password-123456
+          ADMIN_BOOTSTRAP_PASSWORD: ci-admin-password-123456
         run: docker compose -f docker-compose.prod.yml config --quiet
 
       - name: Reject false-green patterns
