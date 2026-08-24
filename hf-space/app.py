@@ -43,6 +43,8 @@ logger = logging.getLogger(__name__)
 ENABLE_LLM = os.getenv("ENABLE_LLM", "false").lower() == "true"
 HF_TOKEN = os.getenv("HF_TOKEN", "")
 HF_DATASET = "DrAbdulmalek/arabic-medical-ocr-corrections"
+HF_DATASET_PRIVATE = os.getenv("HF_DATASET_PRIVATE", "true").lower() == "true"
+MEDICAL_MIN_CONFIDENCE = float(os.getenv("MEDICAL_MIN_CONFIDENCE", "70"))
 
 # ── Conditional Imports ─────────────────────────────────────────────────────
 HAS_LLM = False
@@ -300,7 +302,7 @@ def full_process(image) -> Tuple:
     Image → Preprocess → OCR Ensemble → Spell Check → LLM Proofread → NER
     """
     if image is None:
-        return None, None, "لم يتم رفع صورة", "", "", "يرجى رفع صورة طبية"
+        return None, None, "لم يتم رفع صورة", "", "", "يرجى رفع صورة طبية", 0.0
 
     t0 = time.time()
     try:
@@ -316,6 +318,11 @@ def full_process(image) -> Tuple:
         if not raw_text.strip():
             raw_text = paddle_text or tesseract_text or "[لم يتم اكتشاف نص]"
 
+        selected_confidence = (
+            sum(float(d.get("confidence", 0.0)) for d in paddle_details) / len(paddle_details)
+            if paddle_text and paddle_details
+            else float(tess_conf)
+        )
         engine_info = {}
         if paddle_text:
             engine_info["PaddleOCR"] = f"{len(paddle_details)} lines"
@@ -365,6 +372,7 @@ def full_process(image) -> Tuple:
             parts.append("No text detected (check image quality)")
 
         parts.extend(f"{k}: {v}" for k, v in engine_info.items())
+        parts.append(f"OCR confidence: {selected_confidence:.1f}%")
         parts.append(f"OCR corrections: {len(corrections)}")
         if spell_info:
             parts.append(spell_info)
@@ -376,20 +384,28 @@ def full_process(image) -> Tuple:
 
         ner_markdown = _format_ner_table(entities)
 
-        return cleaned, image, corrected, raw_text, ner_markdown, "\n".join(parts)
+        return cleaned, image, corrected, raw_text, ner_markdown, "\n".join(parts), selected_confidence
 
     except Exception as e:
         logger.error(f"Processing error: {e}", exc_info=True)
-        return None, None, f"Error: {str(e)}", "", "", f"An error occurred: {str(e)}"
+        return None, None, f"Error: {str(e)}", "", "", f"An error occurred: {str(e)}", 0.0
 
 
 # ── Save to HuggingFace ────────────────────────────────────────────────────
 
-def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category: str) -> str:
-    """Save correction pair to HuggingFace Dataset."""
+def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category: str, approved: bool, confidence: float) -> str:
+    """Persist a reviewed correction only after mandatory approval and confidence gate."""
     if not HAS_HF:
         return "HuggingFace libraries not available. Install datasets and huggingface_hub."
 
+    if not approved:
+        return "BLOCKED: Human approval is required before saving corrected medical text."
+    try:
+        confidence = float(confidence)
+    except (TypeError, ValueError):
+        confidence = 0.0
+    if confidence < MEDICAL_MIN_CONFIDENCE:
+        return f"BLOCKED: OCR confidence {confidence:.1f}% is below the required {MEDICAL_MIN_CONFIDENCE:.1f}% threshold."
     if not corrected_text or not corrected_text.strip():
         return "No text to save"
 
@@ -409,7 +425,7 @@ def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category:
         except Exception:
             new_ds = Dataset.from_dict({k: [v] for k, v in row.items()})
 
-        push_kwargs = {"repo_id": HF_DATASET, "private": False}
+        push_kwargs = {"repo_id": HF_DATASET, "private": HF_DATASET_PRIVATE}
         if HF_TOKEN:
             push_kwargs["token"] = HF_TOKEN
         new_ds.push_to_hub(**push_kwargs)
@@ -607,17 +623,19 @@ with gr.Blocks(
                     choices=["prescription", "report", "handwriting", "lab_result", "other"],
                     value="prescription", label="Document Type",
                 )
-                save_btn = gr.Button("Save Correction to HF Dataset", variant="secondary")
+                approved = gr.Checkbox(label="I have reviewed the raw/corrected text and approve this medical correction", value=False)
+                confidence = gr.Number(label="OCR Confidence (%)", value=0, interactive=False)
+                save_btn = gr.Button("Save Reviewed Correction to HF Dataset", variant="secondary")
                 save_status = gr.Textbox(label="Save Status", interactive=False)
 
             process_btn.click(
                 fn=full_process,
                 inputs=[input_image],
-                outputs=[cleaned_img, before_img, corrected, raw_ocr, ner_output, status],
+                outputs=[cleaned_img, before_img, corrected, raw_ocr, ner_output, status, confidence],
             )
             save_btn.click(
                 fn=save_to_hf,
-                inputs=[corrected, raw_ocr, ner_output, category],
+                inputs=[corrected, raw_ocr, ner_output, category, approved, confidence],
                 outputs=[save_status],
             )
 
