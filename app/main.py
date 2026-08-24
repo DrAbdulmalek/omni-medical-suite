@@ -5,14 +5,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.config import get_app_config, get_security_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Configuration is intentionally fail-fast. Development may use documented defaults;
-# staging/production are rejected by get_security_config() when secrets are unsafe.
 app_config = get_app_config()
 security_config = get_security_config()
 
@@ -68,7 +68,10 @@ async def add_security_headers(request: Request, call_next):
 from app.routers.auth import router as auth_router
 app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
 
+from app.routers.session_auth import limiter as auth_limiter
 from app.routers.session_auth import router as session_auth_router
+app.state.limiter = auth_limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(session_auth_router, prefix="/api/auth", tags=["authentication"])
 
 from app.routers.pipeline import router as pipeline_router
