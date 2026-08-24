@@ -16,7 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import get_security_config
-from app.db.models.auth import User
+from app.db.models.auth import (
+    RolePermission,
+    User,
+    UserPermissionAssignment,
+    UserRoleAssignment,
+)
 from app.db.session import get_db
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -31,11 +36,7 @@ def _unauthorized(detail: str = "Could not validate authentication credentials")
 
 
 def _decode_access_token(token: str) -> dict:
-    """Validate an access JWT and return its claims.
-
-    The token must contain ``sub`` and must match configured issuer/audience.
-    ``python-jose`` performs signature and standard time-claim validation.
-    """
+    """Validate an access JWT and return its claims."""
     config = get_security_config()
     try:
         return jwt.decode(
@@ -51,7 +52,7 @@ def _decode_access_token(token: str) -> dict:
 
 
 async def _load_user(db: AsyncSession, subject: str) -> User:
-    """Load an active user with RBAC relationships eagerly available."""
+    """Load an active user with all RBAC relationships needed by authorization."""
     try:
         user_id = int(subject)
     except (TypeError, ValueError) as exc:
@@ -61,10 +62,11 @@ async def _load_user(db: AsyncSession, subject: str) -> User:
         select(User)
         .options(
             selectinload(User.user_roles)
-            .selectinload("role")
+            .selectinload(UserRoleAssignment.role)
             .selectinload("role_permissions")
-            .selectinload("permission"),
-            selectinload(User.user_permissions).selectinload("permission"),
+            .selectinload(RolePermission.permission),
+            selectinload(User.user_permissions)
+            .selectinload(UserPermissionAssignment.permission),
         )
         .where(User.id == user_id)
     )
