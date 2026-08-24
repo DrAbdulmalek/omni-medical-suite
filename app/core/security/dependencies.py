@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 
 from app.config import get_security_config
 from app.db.models.auth import (
+    Role,
     RolePermission,
     User,
     UserPermissionAssignment,
@@ -63,7 +64,7 @@ async def _load_user(db: AsyncSession, subject: str) -> User:
         .options(
             selectinload(User.user_roles)
             .selectinload(UserRoleAssignment.role)
-            .selectinload("role_permissions")
+            .selectinload(Role.role_permissions)
             .selectinload(RolePermission.permission),
             selectinload(User.user_permissions)
             .selectinload(UserPermissionAssignment.permission),
