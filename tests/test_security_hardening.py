@@ -3,8 +3,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from jose import jwt
 from fastapi import HTTPException
+from jose import jwt
 
 from app.config.security import SecurityConfig
 from app.core.security.dependencies import _decode_access_token
@@ -46,23 +46,30 @@ def test_secret_key_alias_populates_jwt_secret(monkeypatch):
     assert config.JWT_SECRET_KEY == "s" * 64
 
 
-def test_production_compose_declares_production_environment_and_secret_contract():
+def test_production_compose_declares_security_contract():
     compose = Path("docker-compose.prod.yml").read_text(encoding="utf-8")
     assert "dockerfile: deploy/Dockerfile.gradio" in compose
     assert "ENVIRONMENT: production" in compose
     assert "JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}" in compose
     assert "POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}" in compose
+    assert "GRADIO_USERNAME: ${GRADIO_USERNAME:?GRADIO_USERNAME is required}" in compose
+    assert "GRADIO_PASSWORD: ${GRADIO_PASSWORD:?GRADIO_PASSWORD is required}" in compose
     assert "CHANGE_ME_IN_PRODUCTION" not in compose
+
+
+def test_production_docker_uses_authenticated_launcher():
+    dockerfile = Path("deploy/Dockerfile.gradio").read_text(encoding="utf-8")
+    launcher = Path("deploy/gradio_launcher.py").read_text(encoding="utf-8")
+    assert 'CMD ["python", "deploy/gradio_launcher.py"]' in dockerfile
+    assert "GRADIO_USERNAME" in launcher
+    assert "GRADIO_PASSWORD" in launcher
+    assert "auth=auth" in launcher
 
 
 def test_access_token_requires_expiration(monkeypatch):
     monkeypatch.setattr("app.core.security.dependencies.get_security_config", lambda: _Config())
     token = jwt.encode(
-        {
-            "sub": "1",
-            "iss": _Config.JWT_ISSUER,
-            "aud": _Config.JWT_AUDIENCE,
-        },
+        {"sub": "1", "iss": _Config.JWT_ISSUER, "aud": _Config.JWT_AUDIENCE},
         _Config.JWT_SECRET_KEY,
         algorithm=_Config.JWT_ALGORITHM,
     )
