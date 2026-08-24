@@ -21,22 +21,35 @@ target_metadata = Base.metadata
 
 
 def _get_database_url() -> str:
-    """Resolve the database URL without silently selecting a production-incompatible DB."""
-    url = os.environ.get("DATABASE_URL", "").strip()
+    """Resolve the migration database without silently falling back to SQLite in production."""
+    environment = os.environ.get("APP_ENV", os.environ.get("ENVIRONMENT", "development")).lower()
 
-    # Explicit Alembic configuration is allowed for local development and CI.
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if not url and environment in {"production", "prod", "staging"}:
+        user = os.environ.get("POSTGRES_USER", "").strip()
+        password = os.environ.get("POSTGRES_PASSWORD", "").strip()
+        host = os.environ.get("POSTGRES_HOST", "").strip()
+        port = os.environ.get("POSTGRES_PORT", "5432").strip()
+        database = os.environ.get("POSTGRES_DB", "").strip()
+        if all((user, password, host, database)):
+            url = (
+                f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
+            )
+        else:
+            raise RuntimeError(
+                "DATABASE_URL or complete POSTGRES_* settings are required for production/staging migrations."
+            )
+
     if not url:
         ini_url = config.get_main_option("sqlalchemy.url") or ""
+        # The repository's SQLite URL is a development fallback, not an override
+        # for an explicitly configured PostgreSQL environment.
         if ini_url and not ini_url.startswith("%"):
             url = ini_url.strip()
 
     if not url:
-        environment = os.environ.get("APP_ENV", os.environ.get("ENVIRONMENT", "development")).lower()
         if environment in {"production", "prod", "staging"}:
-            raise RuntimeError(
-                "DATABASE_URL must be explicitly configured for production/staging Alembic migrations."
-            )
-        # SQLite is intentionally opt-in for development/tests rather than a silent fallback.
+            raise RuntimeError("A PostgreSQL database URL is required for production/staging migrations.")
         url = "sqlite:///data/omni_medical.db"
 
     try:
@@ -44,13 +57,12 @@ def _get_database_url() -> str:
     except Exception as exc:
         raise RuntimeError("DATABASE_URL is not a valid SQLAlchemy database URL") from exc
 
-    if parsed.drivername in {"sqlite", "sqlite+pysqlite"}:
-        environment = os.environ.get("APP_ENV", os.environ.get("ENVIRONMENT", "development")).lower()
-        if environment in {"production", "prod", "staging"}:
-            raise RuntimeError("SQLite is not permitted for production/staging migrations")
-    elif not parsed.drivername.startswith(("postgresql", "mysql")):
+    if parsed.drivername in {"sqlite", "sqlite+pysqlite"} and environment in {"production", "prod", "staging"}:
+        raise RuntimeError("SQLite is not permitted for production/staging migrations")
+    if parsed.drivername.startswith("postgresql"):
+        return url
+    if parsed.drivername not in {"sqlite", "sqlite+pysqlite"}:
         raise RuntimeError(f"Unsupported migration database driver: {parsed.drivername}")
-
     return url
 
 
@@ -74,10 +86,7 @@ def run_migrations_online() -> None:
     """Run migrations in online mode."""
     connectable = create_engine(SQLALCHEMY_URL, poolclass=pool.NullPool)
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()
 
