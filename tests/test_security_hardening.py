@@ -3,8 +3,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from fastapi import HTTPException
 from jose import jwt
+from fastapi import HTTPException
 
 from app.config.security import SecurityConfig
 from app.core.security.dependencies import _decode_access_token
@@ -37,6 +37,13 @@ def test_development_defaults_require_explicit_debug():
     with pytest.raises(ValueError, match="Insecure default secrets"):
         SecurityConfig.validate_config("development", False)
     assert SecurityConfig.validate_config("development", True) is True
+
+
+def test_secret_key_alias_populates_jwt_secret(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "s" * 64)
+    monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
+    config = SecurityConfig()
+    assert config.JWT_SECRET_KEY == "s" * 64
 
 
 def test_production_compose_declares_production_environment_and_secret_contract():
