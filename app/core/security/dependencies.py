@@ -40,7 +40,7 @@ def _decode_access_token(token: str) -> dict:
     """Validate an access JWT and return its claims."""
     config = get_security_config()
     try:
-        return jwt.decode(
+        claims = jwt.decode(
             token,
             config.JWT_SECRET_KEY,
             algorithms=[config.JWT_ALGORITHM],
@@ -50,6 +50,10 @@ def _decode_access_token(token: str) -> dict:
         )
     except JWTError as exc:
         raise _unauthorized() from exc
+
+    if claims.get("type") != "access":
+        raise _unauthorized("Invalid token type")
+    return claims
 
 
 async def _load_user(db: AsyncSession, subject: str) -> User:
