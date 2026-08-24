@@ -13,6 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from passlib.context import CryptContext
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +30,7 @@ from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _DUMMY_PASSWORD_HASH = pwd_context.hash("omni-medical-invalid-login")
 
@@ -65,6 +68,7 @@ def _constant_time_dummy_verify(password: str) -> None:
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -120,10 +124,11 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("20/minute")
+async def refresh_token(request: Request, payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
     """Rotate a refresh token atomically and revoke the consumed credential.
 
-    A revoked-but-known token is treated as a replay signal.  All remaining
+    A revoked-but-known token is treated as a replay signal. All remaining
     active refresh tokens for that user are then revoked to terminate the
     session family after suspected credential theft.
     """
@@ -141,9 +146,6 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
     stored = result.scalar_one_or_none()
 
     if stored is None:
-        # The token may have been rotated or explicitly revoked.  A matching
-        # revoked row is distinguishable from a random/unknown credential and
-        # indicates replay of a credential that was already consumed.
         replay_result = await db.execute(
             select(RefreshToken).where(RefreshToken.token_hash == digest)
         )
