@@ -9,21 +9,15 @@ from __future__ import annotations
 import logging
 import secrets
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.db.models.auth import (
-    Role,
-    User,
-    UserRole,
-    UserRoleAssignment,
-)
+from app.db.models.auth import Role, User, UserRole, UserRoleAssignment
 
 logger = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -42,14 +36,12 @@ async def get_user_permissions(user: User, db: AsyncSession | None = None) -> li
     """Return effective permission codenames for an already-loaded user."""
     if not user:
         return []
-
     permissions: set[str] = set()
     for assignment in user.user_roles:
         if not assignment.is_active:
             continue
         for role_permission in assignment.role.role_permissions:
             permissions.add(role_permission.permission.codename)
-
     for assignment in user.user_permissions:
         if not assignment.is_active:
             continue
@@ -57,28 +49,23 @@ async def get_user_permissions(user: User, db: AsyncSession | None = None) -> li
             permissions.discard(assignment.permission.codename)
         else:
             permissions.add(assignment.permission.codename)
-
     return sorted(permissions)
 
 
 async def check_permission(user: User, required_permission: str, db: AsyncSession | None = None) -> bool:
-    return required_permission in await get_user_permissions(user, db)
+    return bool(user and user.is_superuser) or required_permission in await get_user_permissions(user, db)
 
 
-async def check_any_permission(
-    user: User,
-    required_permissions: list[str],
-    db: AsyncSession | None = None,
-) -> bool:
+async def check_any_permission(user: User, required_permissions: list[str], db: AsyncSession | None = None) -> bool:
+    if user and user.is_superuser:
+        return True
     permissions = set(await get_user_permissions(user, db))
     return bool(permissions.intersection(required_permissions))
 
 
-async def check_all_permissions(
-    user: User,
-    required_permissions: list[str],
-    db: AsyncSession | None = None,
-) -> bool:
+async def check_all_permissions(user: User, required_permissions: list[str], db: AsyncSession | None = None) -> bool:
+    if user and user.is_superuser:
+        return True
     permissions = set(await get_user_permissions(user, db))
     return set(required_permissions).issubset(permissions)
 
@@ -86,19 +73,17 @@ async def check_all_permissions(
 async def check_role(user: User, required_role: str, db: AsyncSession | None = None) -> bool:
     if not user:
         return False
-    return any(
-        assignment.is_active and assignment.role.name == required_role
-        for assignment in user.user_roles
-    )
+    if user.is_superuser:
+        return True
+    return any(assignment.is_active and assignment.role.name == required_role for assignment in user.user_roles)
 
 
 async def check_min_role_level(user: User, min_level: int, db: AsyncSession | None = None) -> bool:
     if not user:
         return False
-    return any(
-        assignment.is_active and assignment.role.level >= min_level
-        for assignment in user.user_roles
-    )
+    if user.is_superuser:
+        return True
+    return any(assignment.is_active and assignment.role.level >= min_level for assignment in user.user_roles)
 
 
 def _require_authenticated_user(kwargs: dict) -> User:
@@ -158,10 +143,7 @@ def require_role(required_role: str) -> Callable:
         async def wrapper(*args, **kwargs):
             user = _require_authenticated_user(kwargs)
             if not await check_role(user, required_role, kwargs.get("db")):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Role '{required_role}' required",
-                )
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Role '{required_role}' required")
             return await func(*args, **kwargs)
         return wrapper
     return decorator
@@ -173,10 +155,7 @@ def require_min_role_level(min_level: int) -> Callable:
         async def wrapper(*args, **kwargs):
             user = _require_authenticated_user(kwargs)
             if not await check_min_role_level(user, min_level, kwargs.get("db")):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Role level {min_level} required",
-                )
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Role level {min_level} required")
             return await func(*args, **kwargs)
         return wrapper
     return decorator
@@ -221,21 +200,29 @@ async def create_default_admin(
     db.add(user)
     await db.flush()
 
-    role_result = await db.execute(
-        select(Role).where(Role.name == "Super Admin")
-    )
+    role_result = await db.execute(select(Role).where(Role.name == "Super Admin"))
     super_admin_role = role_result.scalar_one_or_none()
-    if super_admin_role:
-        db.add(
-            UserRoleAssignment(
-                user_id=user.id,
-                role_id=super_admin_role.id,
-                assigned_by=None,
-                assigned_at=datetime.utcnow(),
-                is_active=True,
-            )
+    if super_admin_role is None:
+        super_admin_role = Role(
+            name="Super Admin",
+            description="Full system administrator",
+            level=100,
+            is_default=False,
+            is_system=True,
+            is_assignable=False,
         )
+        db.add(super_admin_role)
+        await db.flush()
 
+    db.add(
+        UserRoleAssignment(
+            user_id=user.id,
+            role_id=super_admin_role.id,
+            assigned_by=None,
+            assigned_at=datetime.now(timezone.utc),
+            is_active=True,
+        )
+    )
     await db.commit()
     await db.refresh(user)
     return user
