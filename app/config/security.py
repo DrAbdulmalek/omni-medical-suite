@@ -1,5 +1,6 @@
-"""Security configuration with fail-closed production validation."""
+"""Security configuration with fail-closed validation."""
 from functools import lru_cache
+import os
 
 try:
     from pydantic.v1 import BaseSettings, root_validator, validator
@@ -21,6 +22,8 @@ class SecurityConfig(BaseSettings):
     """Authentication, database and HTTP security configuration."""
 
     JWT_SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION"
+    # Backward-compatible deployment alias. JWT_SECRET_KEY always wins when both are set.
+    SECRET_KEY: str | None = None
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -53,6 +56,13 @@ class SecurityConfig(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = True
 
+    @root_validator(pre=True)
+    def apply_secret_alias(cls, values):
+        """Accept the historical SECRET_KEY deployment variable safely."""
+        if not values.get("JWT_SECRET_KEY") and values.get("SECRET_KEY"):
+            values["JWT_SECRET_KEY"] = values["SECRET_KEY"]
+        return values
+
     @validator("POSTGRES_PASSWORD")
     @classmethod
     def validate_db_password(cls, value: str) -> str:
@@ -78,13 +88,26 @@ class SecurityConfig(BaseSettings):
         return values
 
     @classmethod
-    def validate_config(cls, environment: str | None = None):
-        """Fail closed for production/staging; allow explicit development defaults."""
+    def validate_config(cls, environment: str | None = None, debug: bool | None = None):
+        """Fail closed unless development mode is explicitly enabled with DEBUG=true."""
         config = cls()
+        environment = environment or os.getenv("ENVIRONMENT", "development")
+        if debug is None:
+            debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes", "on"}
+
+        insecure_jwt = config.JWT_SECRET_KEY in _INSECURE_SECRETS or len(config.JWT_SECRET_KEY) < 32
+        insecure_db = config.POSTGRES_PASSWORD in _INSECURE_SECRETS or len(config.POSTGRES_PASSWORD) < 12
+        explicitly_safe_dev = environment == "development" and debug is True
+
+        if (insecure_jwt or insecure_db) and not explicitly_safe_dev:
+            raise ValueError(
+                "Insecure default secrets are allowed only in explicit development mode with DEBUG=true"
+            )
+
         if environment in {"production", "staging"}:
-            if config.JWT_SECRET_KEY in _INSECURE_SECRETS or len(config.JWT_SECRET_KEY) < 32:
+            if insecure_jwt:
                 raise ValueError("JWT_SECRET_KEY must be a unique secret of at least 32 characters")
-            if config.POSTGRES_PASSWORD in _INSECURE_SECRETS or len(config.POSTGRES_PASSWORD) < 12:
+            if insecure_db:
                 raise ValueError("POSTGRES_PASSWORD must be a non-default secret of at least 12 characters")
             if config.JWT_ALGORITHM not in {"HS256", "HS384", "HS512"}:
                 raise ValueError("Unsupported JWT algorithm")
@@ -99,8 +122,8 @@ def get_security_config() -> SecurityConfig:
     config = SecurityConfig()
     from app.config.app import get_app_config
 
-    environment = get_app_config().ENVIRONMENT
-    config.validate_config(environment)
+    app_config = get_app_config()
+    config.validate_config(app_config.ENVIRONMENT, app_config.DEBUG)
     return config
 
 
