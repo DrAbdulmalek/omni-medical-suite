@@ -1,5 +1,6 @@
 """Regression tests for authentication and security hardening."""
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
@@ -21,7 +22,7 @@ def test_production_rejects_default_jwt_secret(monkeypatch):
     monkeypatch.setenv("JWT_SECRET_KEY", "CHANGE_ME_IN_PRODUCTION")
     monkeypatch.setenv("POSTGRES_PASSWORD", "a" * 32)
     with pytest.raises(ValueError, match="JWT_SECRET_KEY"):
-        SecurityConfig.validate_config("production")
+        SecurityConfig.validate_config("production", False)
 
 
 def test_production_rejects_default_database_password(monkeypatch):
@@ -29,11 +30,22 @@ def test_production_rejects_default_database_password(monkeypatch):
     monkeypatch.setenv("JWT_SECRET_KEY", "x" * 64)
     monkeypatch.setenv("POSTGRES_PASSWORD", "change_me_in_production")
     with pytest.raises(ValueError, match="POSTGRES_PASSWORD"):
-        SecurityConfig.validate_config("production")
+        SecurityConfig.validate_config("production", False)
 
 
-def test_development_defaults_are_allowed():
-    assert SecurityConfig.validate_config("development") is True
+def test_development_defaults_require_explicit_debug():
+    with pytest.raises(ValueError, match="Insecure default secrets"):
+        SecurityConfig.validate_config("development", False)
+    assert SecurityConfig.validate_config("development", True) is True
+
+
+def test_production_compose_declares_production_environment_and_secret_contract():
+    compose = Path("docker-compose.prod.yml").read_text(encoding="utf-8")
+    assert "dockerfile: deploy/Dockerfile.gradio" in compose
+    assert "ENVIRONMENT: production" in compose
+    assert "JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}" in compose
+    assert "POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}" in compose
+    assert "CHANGE_ME_IN_PRODUCTION" not in compose
 
 
 def test_access_token_requires_expiration(monkeypatch):
