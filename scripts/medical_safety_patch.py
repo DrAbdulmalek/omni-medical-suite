@@ -1,0 +1,18 @@
+from pathlib import Path
+
+p = Path('hf-space/app.py')
+s = p.read_text()
+s = s.replace('HF_DATASET = "DrAbdulmalek/arabic-medical-ocr-corrections"', 'HF_DATASET = "DrAbdulmalek/arabic-medical-ocr-corrections"\nHF_DATASET_PRIVATE = os.getenv("HF_DATASET_PRIVATE", "true").lower() == "true"\nMEDICAL_MIN_CONFIDENCE = float(os.getenv("MEDICAL_MIN_CONFIDENCE", "70"))')
+s = s.replace('def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category: str) -> str:', 'def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category: str, approved: bool, confidence: float) -> str:')
+s = s.replace('    """Save correction pair to HuggingFace Dataset."""', '    """Persist a reviewed correction only after mandatory approval and confidence gate."""')
+s = s.replace('    if not corrected_text or not corrected_text.strip():\n        return "No text to save"', '    if not approved:\n        return "BLOCKED: Human approval is required before saving corrected medical text."\n    try:\n        confidence = float(confidence)\n    except (TypeError, ValueError):\n        confidence = 0.0\n    if confidence < MEDICAL_MIN_CONFIDENCE:\n        return f"BLOCKED: OCR confidence {confidence:.1f}% is below the required {MEDICAL_MIN_CONFIDENCE:.1f}% threshold."\n    if not corrected_text or not corrected_text.strip():\n        return "No text to save"')
+s = s.replace('push_kwargs = {"repo_id": HF_DATASET, "private": False}', 'push_kwargs = {"repo_id": HF_DATASET, "private": HF_DATASET_PRIVATE}')
+s = s.replace('                save_btn = gr.Button("Save Correction to HF Dataset", variant="secondary")\n                save_status = gr.Textbox(label="Save Status", interactive=False)', '                approved = gr.Checkbox(label="I have reviewed the raw/corrected text and approve this medical correction", value=False)\n                confidence = gr.Number(label="OCR Confidence (%)", value=0, interactive=False)\n                save_btn = gr.Button("Save Reviewed Correction to HF Dataset", variant="secondary")\n                save_status = gr.Textbox(label="Save Status", interactive=False)')
+s = s.replace('        engine_info = {}\n', '        selected_confidence = (\n            sum(float(d.get("confidence", 0.0)) for d in paddle_details) / len(paddle_details)\n            if paddle_text and paddle_details\n            else float(tess_conf)\n        )\n        engine_info = {}\n')
+s = s.replace('        parts.append(f"OCR corrections: {len(corrections)}")', '        parts.append(f"OCR confidence: {selected_confidence:.1f}%")\n        parts.append(f"OCR corrections: {len(corrections)}")')
+s = s.replace('return cleaned, image, corrected, raw_text, ner_markdown, "\\n".join(parts)', 'return cleaned, image, corrected, raw_text, ner_markdown, "\\n".join(parts), selected_confidence')
+s = s.replace('return None, None, "لم يتم رفع صورة", "", "", "يرجى رفع صورة طبية"', 'return None, None, "لم يتم رفع صورة", "", "", "يرجى رفع صورة طبية", 0.0')
+s = s.replace('return None, None, f"Error: {str(e)}", "", "", f"An error occurred: {str(e)}"', 'return None, None, f"Error: {str(e)}", "", "", f"An error occurred: {str(e)}", 0.0')
+s = s.replace('outputs=[cleaned_img, before_img, corrected, raw_ocr, ner_output, status],', 'outputs=[cleaned_img, before_img, corrected, raw_ocr, ner_output, status, confidence],')
+s = s.replace('inputs=[corrected, raw_ocr, ner_output, category],', 'inputs=[corrected, raw_ocr, ner_output, category, approved, confidence],')
+p.write_text(s)
