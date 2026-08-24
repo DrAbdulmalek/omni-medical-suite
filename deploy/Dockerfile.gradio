@@ -1,20 +1,6 @@
 # =============================================================================
 # Omni Medical Suite — Production Dockerfile (Gradio HITL Interface)
 # =============================================================================
-# Full OCR interface with all 5 engines:
-#   1. PaddleOCR — best for Arabic text
-#   2. Tesseract 5 — reliable classic engine
-#   3. EasyOCR — fast multilingual
-#   4. TrOCR — best for handwritten manuscripts
-#   5. Surya — modern high-accuracy engine
-#
-# PaddleOCR models are pre-cached during build for fast cold starts.
-#
-# Build:  docker build -f Dockerfile.gradio.prod -t omni-gradio:latest .
-# Run:    docker run -p 7860:7860 --env-file .env omni-gradio:latest
-# =============================================================================
-
-# ─── Stage 1: Builder ────────────────────────────────────────────────────────
 FROM python:3.11-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -22,47 +8,28 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Build-time system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    g++ \
-    cmake \
-    libpq-dev \
-    git \
-    tesseract-ocr \
-    tesseract-ocr-ara \
-    tesseract-ocr-eng \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
+    build-essential gcc g++ cmake libpq-dev git \
+    tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng \
+    libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-
 WORKDIR /build
 
-# Copy all requirements
-COPY requirements/base.txt    ./requirements/base.txt
-COPY requirements/api.txt     ./requirements/api.txt
-COPY requirements/ml.txt      ./requirements/ml.txt
-COPY requirements/gradio.txt  ./requirements/gradio.txt
+COPY requirements/base.txt ./requirements/base.txt
+COPY requirements/api.txt ./requirements/api.txt
+COPY requirements/ml.txt ./requirements/ml.txt
+COPY requirements/gradio.txt ./requirements/gradio.txt
 
-# Install in layers — gradio.txt includes ml.txt which includes base.txt
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements/gradio.txt && \
     pip install --no-cache-dir asyncpg uvloop httptools
 
-# Pre-download PaddleOCR models (Arabic + English) during build
-# This avoids 5-10 minute cold start on first run
 RUN PYTHONPATH=/opt/venv/lib/python3.11/site-packages \
     python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle_cls=True, lang='ar', show_log=False)" || true
 
-# ─── Stage 2: Production ────────────────────────────────────────────────────
 FROM python:3.11-slim AS production
 
 LABEL maintainer="Dr. Abdulmalek Al-husseini"
@@ -75,52 +42,26 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:$PATH" \
     PYTHONPATH=/app
 
-# Runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    curl \
-    tesseract-ocr \
-    tesseract-ocr-ara \
-    tesseract-ocr-eng \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libtesseract-dev \
-    libleptonica-dev \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    poppler-utils \
+    libpq5 curl tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng \
+    libgl1-mesa-glx libglib2.0-0 libtesseract-dev libleptonica-dev \
+    libsm6 libxext6 libxrender-dev poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Verify Tesseract
 RUN tesseract --version && tesseract --list-langs
-
-# Create non-root user
 RUN groupadd -r omni && useradd -r -g omni -u 1000 -m -d /app omni
-
-# Create directories
-RUN mkdir -p /app/uploads /app/results /app/logs /app/data \
-             /app/encrypted /app/model /app/backups && \
+RUN mkdir -p /app/uploads /app/results /app/logs /app/data /app/encrypted /app/model /app/backups && \
     chown -R omni:omni /app
 
 WORKDIR /app
-
-# Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
-
-# Copy application code
 COPY --chown=omni:omni . .
-
-# Ensure entrypoint is executable
 RUN chmod +x /app/docker-entrypoint.sh 2>/dev/null || true
 
-# Switch to non-root user
 USER omni
-
 EXPOSE 7860
-
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD curl -f http://localhost:7860/ || exit 1
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["python", "app/gradio_full_hitl.py"]
+CMD ["python", "deploy/gradio_launcher.py"]
