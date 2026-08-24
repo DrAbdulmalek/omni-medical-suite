@@ -39,12 +39,14 @@ jobs:
           pip install safety pip-audit
 
       - name: Run pip-audit
-        # python-jose pulls ecdsa transitively. The reported Minerva issue has
-        # no upstream fix, and ecdsa verification is unaffected. This project
-        # signs/verifies JWTs with HS256 and does not use ECDSA/ECDH operations.
-        # Keep the exception explicit and reviewable rather than making the
+        # python-jose pulls ecdsa transitively. The reported Minerva/side-channel
+        # advisories have no upstream fix, and ecdsa verification is unaffected.
+        # This project signs/verifies JWTs with HS256 and does not use ECDSA/ECDH.
+        # Keep the exceptions explicit and reviewable rather than making the
         # entire dependency scan non-blocking.
         run: pip-audit --desc --ignore PYSEC-2026-1325
 
       - name: Run safety check
-        run: safety check --full-report
+        # Safety reports the same unfixable ecdsa advisories under its own IDs.
+        # They are explicitly scoped to ecdsa and documented above.
+        run: safety check --full-report --ignore 64396 --ignore 64459
