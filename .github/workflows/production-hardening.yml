@@ -55,8 +55,10 @@ jobs:
             'python-multipart>=0.0.32' \
             'asyncpg>=0.29' \
             'alembic>=1.12' \
+            'slowapi>=0.1.9' \
             'pytest>=8' \
             'pytest-asyncio>=0.23' \
+            'pytest-httpx>=0.30' \
             'httpx>=0.27'
 
       - name: Verify production secret fail-closed behavior
@@ -77,20 +79,40 @@ jobs:
       - name: Compile application code
         run: python -m compileall -q app scripts
 
-      - name: Run security regression suite
+      - name: Apply Alembic migrations to PostgreSQL
         env:
           ENVIRONMENT: development
           DEBUG: 'true'
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: test-password-123456
+          POSTGRES_DB: omni_medical
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: '5432'
+        run: alembic upgrade head
+
+      - name: Run security and PostgreSQL integration suite
+        env:
+          ENVIRONMENT: development
+          DEBUG: 'true'
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-password-123456
+          POSTGRES_DB: omni_medical
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: '5432'
+          JWT_SECRET_KEY: 01234567890123456789012345678901
         run: |
           pytest -q \
             tests/test_auth_security.py \
-            tests/test_security_hardening.py
+            tests/test_security_hardening.py \
+            tests/security/test_file_security.py \
+            tests/integration/test_auth_postgres.py
 
       - name: Validate production Compose configuration
         env:
           JWT_SECRET_KEY: 01234567890123456789012345678901
           DB_PASSWORD: test-password-123456
+          GRADIO_USERNAME: ci
+          GRADIO_PASSWORD: ci-password-123456
         run: docker compose -f docker-compose.prod.yml config --quiet
 
       - name: Reject false-green patterns
