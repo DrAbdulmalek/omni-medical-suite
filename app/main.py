@@ -35,13 +35,16 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown complete")
 
 
+# API documentation is an internal development aid and should not disclose the
+# production schema and routes to unauthenticated internet clients.
+_docs_enabled = app_config.ENVIRONMENT == "development"
 app = FastAPI(
     title="Omni Medical Suite API",
     description="Comprehensive Medical OCR and Text Processing Platform",
     version=app_config.APP_VERSION,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    docs_url="/api/docs" if _docs_enabled else None,
+    redoc_url="/api/redoc" if _docs_enabled else None,
+    openapi_url="/api/openapi.json" if _docs_enabled else None,
     lifespan=lifespan,
 )
 
@@ -144,7 +147,7 @@ async def root():
         "name": "Omni Medical Suite",
         "version": app_config.APP_VERSION,
         "description": "Comprehensive Medical OCR and Text Processing Platform",
-        "docs": "/api/docs",
+        "docs": "/api/docs" if _docs_enabled else None,
         "health": "/health",
         "readiness": "/ready",
     }
