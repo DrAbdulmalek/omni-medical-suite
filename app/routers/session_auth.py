@@ -6,6 +6,7 @@ router-level authorization helpers.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -26,6 +27,8 @@ from app.db.session import get_db
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Pre-computed once: never generate a fresh bcrypt hash for every unknown username.
+_DUMMY_PASSWORD_HASH = pwd_context.hash("omni-medical-invalid-login")
 
 
 class RefreshRequest(BaseModel):
@@ -43,6 +46,11 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Normalize DB timestamps for safe aware-vs-naive comparisons."""
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
 def _verify_password(plain: str, hashed: str) -> bool:
     try:
         return pwd_context.verify(plain, hashed)
@@ -50,9 +58,9 @@ def _verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-def _dummy_password_hash() -> str:
-    # Constant-cost verification for unknown usernames to reduce user enumeration.
-    return pwd_context.hash("omni-medical-invalid-login")
+def _constant_time_dummy_verify(password: str) -> None:
+    """Perform one bcrypt verification for unknown usernames."""
+    _verify_password(password, _DUMMY_PASSWORD_HASH)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -67,16 +75,12 @@ async def login(
     user = result.scalar_one_or_none()
 
     if user is None:
-        _verify_password(form_data.password, _dummy_password_hash())
+        _constant_time_dummy_verify(form_data.password)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
 
     now = _utcnow()
-    if user.locked_until is not None:
-        locked_until = user.locked_until
-        if locked_until.tzinfo is None:
-            locked_until = locked_until.replace(tzinfo=timezone.utc)
-        if locked_until > now:
-            raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="Account temporarily locked")
+    if user.locked_until is not None and _as_utc(user.locked_until) > now:
+        raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="Account temporarily locked")
 
     if user.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active")
@@ -99,7 +103,7 @@ async def login(
         RefreshToken(
             token_hash=refresh_hash,
             user_id=user.id,
-            jti=__import__("uuid").uuid4().hex,
+            jti=uuid4().hex,
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             expires_at=refresh_expires,
@@ -116,23 +120,24 @@ async def login(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
-    """Rotate a refresh token and revoke the consumed credential."""
+    """Rotate a refresh token atomically and revoke the consumed credential."""
     now = _utcnow()
     digest = hash_refresh_token(payload.refresh_token)
+
+    # Lock the credential row so concurrent refresh requests cannot both consume it.
     result = await db.execute(
-        select(RefreshToken).where(
+        select(RefreshToken)
+        .where(
             RefreshToken.token_hash == digest,
             RefreshToken.is_revoked.is_(False),
         )
+        .with_for_update()
     )
     stored = result.scalar_one_or_none()
     if stored is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    expires_at = stored.expires_at
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if expires_at <= now:
+    if _as_utc(stored.expires_at) <= now:
         stored.is_revoked = True
         stored.revoked_at = now
         stored.revoked_reason = "expired"
@@ -142,6 +147,7 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
     user_result = await db.execute(select(User).where(User.id == stored.user_id))
     user = user_result.scalar_one_or_none()
     if user is None or user.status != UserStatus.ACTIVE or not user.is_active:
+        await db.rollback()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive")
 
     stored.is_revoked = True
@@ -154,7 +160,7 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
         RefreshToken(
             token_hash=refresh_hash,
             user_id=user.id,
-            jti=__import__("uuid").uuid4().hex,
+            jti=uuid4().hex,
             expires_at=refresh_expires,
         )
     )
