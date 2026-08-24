@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import Enum
 
 from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import declarative_base, relationship
@@ -19,7 +19,7 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 
-class UserRole(StrEnum):
+class UserRole(str, Enum):
     SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
     EDITOR = "editor"
@@ -28,7 +28,7 @@ class UserRole(StrEnum):
     GUEST = "guest"
 
 
-class UserStatus(StrEnum):
+class UserStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
@@ -36,7 +36,7 @@ class UserStatus(StrEnum):
     BANNED = "banned"
 
 
-class PermissionCategory(StrEnum):
+class PermissionCategory(str, Enum):
     USER_MANAGEMENT = "user_management"
     AUTHENTICATION = "authentication"
     CONTENT_MANAGEMENT = "content_management"
@@ -239,9 +239,7 @@ class UserPermissionAssignment(Base):
     user = relationship("User", back_populates="user_permissions", foreign_keys=[user_id])
     permission = relationship("Permission", back_populates="user_permissions")
 
-    __table_args__ = (
-        Index("ix_user_perm_assignments_user", "user_id"),
-    )
+    __table_args__ = (Index("ix_user_perm_assignments_user", "user_id"),)
 
 
 class AuditLog(Base):
@@ -317,6 +315,6 @@ class UserSession(Base):
     user = relationship("User")
 
 
-# Compatibility hook. Role/permission seeding is now performed by explicit setup code.
 def create_default_roles_and_permissions(session):
+    """Compatibility hook; explicit bootstrap code owns role provisioning."""
     return None
