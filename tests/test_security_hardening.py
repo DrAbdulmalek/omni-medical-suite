@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from jose import jwt
 
 from app.config.security import SecurityConfig
+from app.core.condition_parser import evaluate_condition
 from app.core.security.dependencies import _decode_access_token
 
 
@@ -54,6 +55,7 @@ def test_production_compose_declares_security_contract():
     assert "POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}" in compose
     assert "GRADIO_USERNAME: ${GRADIO_USERNAME:?GRADIO_USERNAME is required}" in compose
     assert "GRADIO_PASSWORD: ${GRADIO_PASSWORD:?GRADIO_PASSWORD is required}" in compose
+    assert "ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:?ADMIN_BOOTSTRAP_PASSWORD is required}" in compose
     assert "CHANGE_ME_IN_PRODUCTION" not in compose
 
 
@@ -64,6 +66,16 @@ def test_production_docker_uses_authenticated_launcher():
     assert "GRADIO_USERNAME" in launcher
     assert "GRADIO_PASSWORD" in launcher
     assert "auth=auth" in launcher
+
+
+def test_condition_parser_rejects_unbounded_power():
+    assert evaluate_condition("101010 > 0", {}) is False
+    assert evaluate_condition("2 ** 32 > 0", {}) is False
+    assert evaluate_condition("2 ** 8 > 0", {}) is True
+
+
+def test_condition_parser_rejects_oversized_expression():
+    assert evaluate_condition("1 == 1 " + "or 1 == 1 " * 2000, {}) is False
 
 
 def test_access_token_requires_expiration(monkeypatch):
