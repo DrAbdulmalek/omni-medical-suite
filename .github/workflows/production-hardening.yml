@@ -1,0 +1,53 @@
+name: Production Hardening Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'tests/test_auth_security.py'
+      - 'requirements/**'
+      - '.github/workflows/production-hardening.yml'
+  push:
+    branches: [audit/production-hardening]
+  workflow_dispatch:
+
+jobs:
+  security-gate:
+    name: Auth / runtime security gate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install focused runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            'fastapi>=0.104' \
+            'sqlalchemy>=2.0.51' \
+            'python-jose[cryptography]>=3.5.0' \
+            'passlib[bcrypt]>=1.7.4' \
+            'pydantic>=2.0,<2.11' \
+            'pydantic-settings>=2.0' \
+            'python-multipart>=0.0.32' \
+            'asyncpg>=0.29' \
+            pytest
+
+      - name: Compile changed application code
+        run: python -m compileall -q app
+
+      - name: Run authentication security regression tests
+        run: pytest tests/test_auth_security.py -q
+
+      - name: Reject obvious false-green patterns in the new gate
+        run: |
+          if grep -RInE '\|\|[[:space:]]*true' .github/workflows/production-hardening.yml; then
+            echo 'False-green shell pattern detected in production hardening workflow.'
+            exit 1
+          fi
