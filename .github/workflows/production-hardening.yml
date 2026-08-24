@@ -19,7 +19,7 @@ jobs:
   security-gate:
     name: Production security regression gate
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16-alpine
@@ -79,8 +79,26 @@ jobs:
               raise SystemExit('FAIL: insecure production defaults were accepted')
           PY
 
+      - name: Verify shipped production environment fails closed
+        env:
+          ENVIRONMENT: production
+          DEBUG: 'false'
+          JWT_SECRET_KEY: ''
+          POSTGRES_PASSWORD: ''
+        run: |
+          python - <<'PY'
+          import os
+          from app.config.security import SecurityConfig
+          try:
+              SecurityConfig.validate_config(os.environ['ENVIRONMENT'], False)
+          except ValueError:
+              print('PASS: empty production secrets rejected')
+          else:
+              raise SystemExit('FAIL: empty production secrets were accepted')
+          PY
+
       - name: Compile application code
-        run: python -m compileall -q app scripts
+        run: python -m compileall -q app scripts src
 
       - name: Apply Alembic migrations to PostgreSQL
         env:
@@ -103,6 +121,7 @@ jobs:
           pytest -q \
             tests/test_auth_security.py \
             tests/test_security_hardening.py \
+            tests/security/test_medical_safety_contract.py \
             tests/integration/test_auth_postgres.py
 
       - name: Validate production Compose configuration
@@ -113,6 +132,9 @@ jobs:
           GRADIO_PASSWORD: ci-password-123456
           ADMIN_BOOTSTRAP_PASSWORD: ci-admin-password-123456
         run: docker compose -f docker-compose.prod.yml config --quiet
+
+      - name: Build the exact production Gradio image
+        run: docker build --target production -f deploy/Dockerfile.gradio -t omni-medical-suite:production .
 
       - name: Reject false-green patterns
         run: |
