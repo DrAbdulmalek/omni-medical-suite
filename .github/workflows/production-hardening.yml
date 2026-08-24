@@ -55,6 +55,7 @@ jobs:
             'pydantic-settings>=2.0' \
             'python-multipart>=0.0.32' \
             'asyncpg>=0.29' \
+            'psycopg[binary]>=3.1' \
             'alembic>=1.12' \
             'slowapi>=0.1.9' \
             'pytest>=8' \
@@ -84,11 +85,7 @@ jobs:
         env:
           ENVIRONMENT: development
           DEBUG: 'true'
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test-password-123456
-          POSTGRES_DB: omni_medical
-          POSTGRES_HOST: 127.0.0.1
-          POSTGRES_PORT: '5432'
+          DATABASE_URL: postgresql+psycopg://postgres:test-password-123456@127.0.0.1:5432/omni_medical
         run: alembic upgrade head
 
       - name: Run security and PostgreSQL integration suite
