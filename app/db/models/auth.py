@@ -77,7 +77,12 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     last_login = Column(DateTime(timezone=True))
 
-    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens = relationship(
+        "RefreshToken",
+        back_populates="user",
+        foreign_keys="RefreshToken.user_id",
+        cascade="all, delete-orphan",
+    )
     user_roles = relationship("UserRoleAssignment", back_populates="user")
     user_permissions = relationship("UserPermissionAssignment", back_populates="user")
 
