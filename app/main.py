@@ -26,8 +26,6 @@ async def lifespan(app: FastAPI):
         from app.db.session import init_db
         init_db()
         logger.info("Database engine initialized during startup")
-    else:
-        logger.info("Development mode: database connection remains lazy")
 
     yield
 
@@ -69,6 +67,9 @@ async def add_security_headers(request: Request, call_next):
 
 from app.routers.auth import router as auth_router
 app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
+
+from app.routers.session_auth import router as session_auth_router
+app.include_router(session_auth_router, prefix="/api/auth", tags=["authentication"])
 
 from app.routers.pipeline import router as pipeline_router
 app.include_router(pipeline_router, prefix="/api/pipeline", tags=["pipeline"])
@@ -149,7 +150,7 @@ async def root():
 @app.exception_handler(Exception)
 async def generic_error_handler(request: Request, exc: Exception):
     logger.error("Unexpected error: %s", exc, exc_info=True)
-    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 if __name__ == "__main__":
