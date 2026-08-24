@@ -21,7 +21,7 @@ jobs:
   security-scan:
     name: Scan Dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -31,11 +31,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install scanners
-        run: python -m pip install --upgrade pip safety pip-audit
+      - name: Install project dependencies and scanners
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install safety pip-audit
 
       - name: Run pip-audit
-        run: pip-audit -r requirements.txt --desc
+        run: pip-audit --desc
 
       - name: Run safety check
-        run: safety check --full-report -r requirements.txt
+        run: safety check --full-report
