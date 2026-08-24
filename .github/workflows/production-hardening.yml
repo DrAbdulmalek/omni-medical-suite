@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'app/**'
+      - 'hf-space/**'
       - 'tests/**'
       - 'requirements/**'
       - 'deploy/**'
@@ -104,8 +105,8 @@ jobs:
           pytest -q \
             tests/test_auth_security.py \
             tests/test_security_hardening.py \
-            tests/security/test_file_security.py \
-            tests/integration/test_auth_postgres.py
+            tests/integration/test_auth_postgres.py \
+            tests/security/test_medical_safety_contract.py
 
       - name: Validate production Compose configuration
         env:
