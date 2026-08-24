@@ -69,7 +69,7 @@ def test_production_docker_uses_authenticated_launcher():
 
 
 def test_condition_parser_rejects_unbounded_power():
-    assert evaluate_condition("101010 > 0", {}) is False
+    assert evaluate_condition("10 ** 101010 > 0", {}) is False
     assert evaluate_condition("2 ** 32 > 0", {}) is False
     assert evaluate_condition("2 ** 8 > 0", {}) is True
 
