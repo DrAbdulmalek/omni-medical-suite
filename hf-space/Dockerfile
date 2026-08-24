@@ -17,10 +17,10 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Build dependencies + OCR runtime libs
+# Debian trixie no longer provides the obsolete libgl1-mesa-glx package.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
     tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng \
     git \
     && rm -rf /var/lib/apt/lists/*
@@ -43,29 +43,24 @@ WORKDIR /app
 
 # Runtime system deps only (no build-essential)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
     tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python packages from builder
 COPY --from=builder /install /usr/local
 
-# Create non-root user (HF Spaces requires non-root)
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Copy application source
 COPY app.py .
 COPY src/ src/
 COPY packages/ packages/
 COPY config/ config/
 
-# Create data directories
 RUN mkdir -p uploads crops data .cache/huggingface
 ENV HF_HOME=/app/.cache/huggingface
 ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
 
-# Copy pre-cached PaddleOCR models
 COPY --from=builder /root/.paddleocr /home/appuser/.paddleocr
 RUN chown -R appuser:appuser /home/appuser/.paddleocr
 
