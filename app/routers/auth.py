@@ -1,6 +1,6 @@
 # app/routers/auth.py
 """Authentication and RBAC management endpoints."""
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,11 +23,7 @@ async def log_audit_event(
     details: dict | None = None,
     request: Request | None = None,
 ):
-    """Best-effort audit hook kept as a compatibility boundary.
-
-    The existing audit service can replace this implementation without coupling
-    authentication dependencies back to the router.
-    """
+    """Best-effort audit hook kept as a compatibility boundary."""
     return None
 
 
@@ -36,8 +32,7 @@ async def get_my_permissions(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    permissions = await get_user_permissions(current_user, db)
-    return permissions
+    return await get_user_permissions(current_user, db)
 
 
 @router.get("/me/roles", response_model=list[str])
@@ -51,10 +46,7 @@ async def check_my_permission(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return {
-        "permission": permission,
-        "has_permission": await check_permission(current_user, permission, db),
-    }
+    return {"permission": permission, "has_permission": await check_permission(current_user, permission, db)}
 
 
 @router.post("/roles", response_model=dict)
@@ -66,7 +58,7 @@ async def create_role(
     is_default: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    request: Request | None = None,
+    request: Request = None,
 ):
     from sqlalchemy import select
 
@@ -74,33 +66,12 @@ async def create_role(
     if result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role already exists")
 
-    role = Role(
-        name=name,
-        description=description,
-        level=level,
-        is_default=is_default,
-        is_system=False,
-    )
+    role = Role(name=name, description=description, level=level, is_default=is_default, is_system=False)
     db.add(role)
     await db.commit()
     await db.refresh(role)
-
-    await log_audit_event(
-        db=db,
-        user_id=current_user.id,
-        action="role_create",
-        entity_type="role",
-        entity_id=str(role.id),
-        details={"name": name, "level": level},
-        request=request,
-    )
-    return {
-        "id": role.id,
-        "name": role.name,
-        "description": role.description,
-        "level": role.level,
-        "is_default": role.is_default,
-    }
+    await log_audit_event(db=db, user_id=current_user.id, action="role_create", entity_type="role", entity_id=str(role.id), details={"name": name, "level": level}, request=request)
+    return {"id": role.id, "name": role.name, "description": role.description, "level": role.level, "is_default": role.is_default}
 
 
 @router.get("/roles", response_model=list[dict])
@@ -112,11 +83,7 @@ async def list_roles(
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 
-    result = await db.execute(
-        select(Role)
-        .options(selectinload(Role.role_permissions).selectinload(RolePermission.permission))
-        .order_by(Role.level.desc())
-    )
+    result = await db.execute(select(Role).options(selectinload(Role.role_permissions).selectinload(RolePermission.permission)).order_by(Role.level.desc()))
     roles = result.scalars().all()
     return [
         {
@@ -140,59 +107,26 @@ async def add_permission_to_role(
     permission_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    request: Request | None = None,
+    request: Request = None,
 ):
     from sqlalchemy import select
 
     role = (await db.execute(select(Role).where(Role.id == role_id))).scalar_one_or_none()
     if not role:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
-
     permission = (await db.execute(select(Permission).where(Permission.id == permission_id))).scalar_one_or_none()
     if not permission:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Permission not found")
-
-    existing = (
-        await db.execute(
-            select(RolePermission).where(
-                RolePermission.role_id == role_id,
-                RolePermission.permission_id == permission_id,
-            )
-        )
-    ).scalar_one_or_none()
+    existing = (await db.execute(select(RolePermission).where(RolePermission.role_id == role_id, RolePermission.permission_id == permission_id))).scalar_one_or_none()
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Permission already assigned to role")
 
-    assignment = RolePermission(
-        role_id=role_id,
-        permission_id=permission_id,
-        assigned_by=current_user.id,
-        assigned_at=datetime.utcnow(),
-    )
+    assignment = RolePermission(role_id=role_id, permission_id=permission_id, assigned_by=current_user.id, assigned_at=datetime.now(timezone.utc))
     db.add(assignment)
     await db.commit()
     await db.refresh(assignment)
-
-    await log_audit_event(
-        db=db,
-        user_id=current_user.id,
-        action="role_permission_add",
-        entity_type="role_permission",
-        entity_id=f"{role_id}-{permission_id}",
-        details={
-            "role_id": role_id,
-            "role_name": role.name,
-            "permission_id": permission_id,
-            "permission_codename": permission.codename,
-        },
-        request=request,
-    )
-    return {
-        "role_id": role_id,
-        "permission_id": permission_id,
-        "role_name": role.name,
-        "permission_codename": permission.codename,
-    }
+    await log_audit_event(db=db, user_id=current_user.id, action="role_permission_add", entity_type="role_permission", entity_id=f"{role_id}-{permission_id}", details={"role_id": role_id, "role_name": role.name, "permission_id": permission_id, "permission_codename": permission.codename}, request=request)
+    return {"role_id": role_id, "permission_id": permission_id, "role_name": role.name, "permission_codename": permission.codename}
 
 
 @router.get("/permissions", response_model=list[dict])
@@ -214,7 +148,7 @@ async def list_permissions(
             "name": p.name,
             "codename": p.codename,
             "description": p.description,
-            "category": p.category.value,
+            "category": p.category,
             "is_system": p.is_system,
         }
         for p in result.scalars().all()
@@ -228,57 +162,23 @@ async def assign_role_to_user(
     role_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    request: Request | None = None,
+    request: Request = None,
 ):
     from sqlalchemy import select
 
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
     role = (await db.execute(select(Role).where(Role.id == role_id))).scalar_one_or_none()
     if not role:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
-
-    existing = (
-        await db.execute(
-            select(UserRoleAssignment).where(
-                UserRoleAssignment.user_id == user_id,
-                UserRoleAssignment.role_id == role_id,
-            )
-        )
-    ).scalar_one_or_none()
+    existing = (await db.execute(select(UserRoleAssignment).where(UserRoleAssignment.user_id == user_id, UserRoleAssignment.role_id == role_id))).scalar_one_or_none()
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role already assigned to user")
 
-    assignment = UserRoleAssignment(
-        user_id=user_id,
-        role_id=role_id,
-        assigned_by=current_user.id,
-        assigned_at=datetime.utcnow(),
-        is_active=True,
-    )
+    assignment = UserRoleAssignment(user_id=user_id, role_id=role_id, assigned_by=current_user.id, assigned_at=datetime.now(timezone.utc), is_active=True)
     db.add(assignment)
     await db.commit()
     await db.refresh(assignment)
-
-    await log_audit_event(
-        db=db,
-        user_id=current_user.id,
-        action="user_role_assign",
-        entity_type="user_role",
-        entity_id=f"{user_id}-{role_id}",
-        details={
-            "user_id": user_id,
-            "username": user.username,
-            "role_id": role_id,
-            "role_name": role.name,
-        },
-        request=request,
-    )
-    return {
-        "user_id": user_id,
-        "username": user.username,
-        "role_id": role_id,
-        "role_name": role.name,
-    }
+    await log_audit_event(db=db, user_id=current_user.id, action="user_role_assign", entity_type="user_role", entity_id=f"{user_id}-{role_id}", details={"user_id": user_id, "username": user.username, "role_id": role_id, "role_name": role.name}, request=request)
+    return {"user_id": user_id, "username": user.username, "role_id": role_id, "role_name": role.name}
