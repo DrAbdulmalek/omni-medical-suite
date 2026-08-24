@@ -22,6 +22,9 @@ COPY requirements/base.txt ./requirements/base.txt
 COPY requirements/api.txt ./requirements/api.txt
 COPY requirements/ml.txt ./requirements/ml.txt
 COPY requirements/gradio.txt ./requirements/gradio.txt
+# requirements/ml.txt contains an editable local dependency. Copy that package
+# into the builder before pip resolves requirements so the path exists.
+COPY packages/scanner_fixer ./packages/scanner_fixer
 
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements/gradio.txt && \
