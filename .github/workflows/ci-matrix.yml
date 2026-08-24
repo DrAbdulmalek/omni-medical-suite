@@ -1,0 +1,144 @@
+name: CI Matrix — Python × OS Compatibility
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, feat/rc-hardening-p0]
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_CACHE_DIR: "1"
+
+jobs:
+  matrix-test:
+    name: Python ${{ matrix.python }} on Ubuntu
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-ara poppler-utils libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0 libgl1
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov pytest-asyncio rapidfuzz numpy pillow opencv-python-headless
+          python -m pip install -e packages/scanner_fixer 2>/dev/null || true
+      - name: Run core hardening tests
+        run: |
+          python -m pytest tests/test_scanner_tab.py tests/test_decision_log.py tests/test_translation_service.py tests/test_hf_dataset_staging.py tests/test_lazy_ocr_service.py -q --tb=short
+
+  manjaro-smoke:
+    name: Arch smoke (imports + scanner_fixer)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: archlinux:latest
+      env:
+        OMNI_CI: "1"
+    steps:
+      - name: Initialize Arch and install required packages
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Sy --noconfirm archlinux-keyring
+          pacman -Su --noconfirm
+          pacman -S --noconfirm --needed python python-pip git tesseract tesseract-data-eng tesseract-data-ara poppler qt6-base qt6-imageformats cairo pango gdk-pixbuf2 libfuse2 opencv
+          command -v python
+          python --version
+      - uses: actions/checkout@v4
+      - name: Install Python packages
+        run: |
+          python -m venv /opt/venv
+          /opt/venv/bin/python -m pip install --upgrade pip
+          /opt/venv/bin/pip install -e packages/scanner_fixer
+          /opt/venv/bin/pip install -r packages/desktop/requirements.txt
+          /opt/venv/bin/pip install pytest
+      - name: Smoke imports
+        run: |
+          /opt/venv/bin/python -c "import PySide6; print('PySide6:', PySide6.__version__)"
+          /opt/venv/bin/python -c "import cv2; print('OpenCV:', cv2.__version__)"
+          /opt/venv/bin/python -c "import scanner_fixer; print('scanner_fixer: OK')"
+          /opt/venv/bin/python -c "import numpy, PIL; print('numpy + PIL: OK')"
+      - name: Run smoke tests
+        run: /opt/venv/bin/python -m pytest tests/test_decision_log.py tests/test_lazy_ocr_service.py -q --tb=short
+
+  hf-space-smoke:
+    name: HF Space Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Verify HF source of truth
+        run: |
+          test -f hf-space/app.py
+          test -f hf-space/Dockerfile
+          test -f hf-space/requirements.txt
+      - name: Build HF Space image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./hf-space
+          file: ./hf-space/Dockerfile
+          push: false
+          load: true
+          tags: omni-medical-hf:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify image import
+        run: docker run --rm --entrypoint python omni-medical-hf:ci -c "import app; print('HF Space app import OK')"
+
+  colab-smoke:
+    name: Colab notebook validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install nbformat
+      - run: python scripts/validate_notebooks.py
+
+  lfs-audit:
+    name: LFS Coverage Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Install git-lfs
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq git-lfs
+          git lfs install
+      - run: git lfs pull
+      - run: chmod +x scripts/audit-lfs-coverage.sh && ./scripts/audit-lfs-coverage.sh --strict
+
+  summary:
+    name: Matrix Summary
+    runs-on: ubuntu-latest
+    needs: [matrix-test, manjaro-smoke, hf-space-smoke, colab-smoke, lfs-audit]
+    if: always()
+    steps:
+      - name: Enforce all matrix jobs
+        run: |
+          test "${{ needs.matrix-test.result }}" = success
+          test "${{ needs.manjaro-smoke.result }}" = success
+          test "${{ needs.hf-space-smoke.result }}" = success
+          test "${{ needs.colab-smoke.result }}" = success
+          test "${{ needs.lfs-audit.result }}" = success
+          echo "All CI matrix jobs passed."
