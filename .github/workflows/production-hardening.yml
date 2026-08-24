@@ -51,6 +51,7 @@ jobs:
             'sqlalchemy>=2.0.51' \
             'python-jose[cryptography]>=3.5.0' \
             'passlib[bcrypt]>=1.7.4' \
+            'bcrypt>=4.0.1,<5' \
             'pydantic>=2.0,<2.11' \
             'pydantic-settings>=2.0' \
             'python-multipart>=0.0.32' \
@@ -97,7 +98,7 @@ jobs:
           POSTGRES_DB: omni_medical
           POSTGRES_HOST: 127.0.0.1
           POSTGRES_PORT: '5432'
-          JWT_SECRET_KEY: 01234567890123456789012345678901
+          JWT_SECRET_KEY: '01234567890123456789012345678901'
         run: |
           pytest -q \
             tests/test_auth_security.py \
@@ -106,7 +107,7 @@ jobs:
 
       - name: Validate production Compose configuration
         env:
-          JWT_SECRET_KEY: 01234567890123456789012345678901
+          JWT_SECRET_KEY: '01234567890123456789012345678901'
           DB_PASSWORD: test-password-123456
           GRADIO_USERNAME: ci
           GRADIO_PASSWORD: ci-password-123456
