@@ -20,7 +20,6 @@ services:
       POSTGRES_DB: ${DB_NAME:-medical_ocr}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      DATABASE_URL: postgresql+asyncpg://${DB_USER:-medocr}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-medical_ocr}
       ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
       ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME:-admin}
       ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-admin@omni-medical-suite.local}
