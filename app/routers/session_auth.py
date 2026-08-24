@@ -5,6 +5,7 @@ router-level authorization helpers.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -12,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_security_config
@@ -25,9 +26,9 @@ from app.core.security.tokens import (
 from app.db.models.auth import RefreshToken, User, UserStatus
 from app.db.session import get_db
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-# Pre-computed once: never generate a fresh bcrypt hash for every unknown username.
 _DUMMY_PASSWORD_HASH = pwd_context.hash("omni-medical-invalid-login")
 
 
@@ -120,11 +121,15 @@ async def login(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
-    """Rotate a refresh token atomically and revoke the consumed credential."""
+    """Rotate a refresh token atomically and revoke the consumed credential.
+
+    A revoked-but-known token is treated as a replay signal.  All remaining
+    active refresh tokens for that user are then revoked to terminate the
+    session family after suspected credential theft.
+    """
     now = _utcnow()
     digest = hash_refresh_token(payload.refresh_token)
 
-    # Lock the credential row so concurrent refresh requests cannot both consume it.
     result = await db.execute(
         select(RefreshToken)
         .where(
@@ -134,7 +139,33 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
         .with_for_update()
     )
     stored = result.scalar_one_or_none()
+
     if stored is None:
+        # The token may have been rotated or explicitly revoked.  A matching
+        # revoked row is distinguishable from a random/unknown credential and
+        # indicates replay of a credential that was already consumed.
+        replay_result = await db.execute(
+            select(RefreshToken).where(RefreshToken.token_hash == digest)
+        )
+        replayed = replay_result.scalar_one_or_none()
+        if replayed is not None and replayed.is_revoked:
+            await db.execute(
+                update(RefreshToken)
+                .where(
+                    RefreshToken.user_id == replayed.user_id,
+                    RefreshToken.is_revoked.is_(False),
+                )
+                .values(
+                    is_revoked=True,
+                    revoked_at=now,
+                    revoked_reason="refresh_token_reuse_detected",
+                )
+            )
+            await db.commit()
+            logger.warning(
+                "Refresh token reuse detected; revoked active token family for user_id=%s",
+                replayed.user_id,
+            )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
     if _as_utc(stored.expires_at) <= now:
