@@ -24,9 +24,15 @@ _original_button_click = gr.Button.click
 
 
 def _guarded_button_click(self, fn=None, *args, **kwargs):
-    if os.getenv("ENVIRONMENT", "production") == "production" and getattr(fn, "__name__", "") == "save_to_hf":
+    if (
+        os.getenv("ENVIRONMENT", "production") == "production"
+        and getattr(fn, "__name__", "") == "save_to_hf"
+    ):
         def blocked_save(*_inputs, **_kwargs):
-            return "BLOCKED: corrected medical text cannot be persisted until mandatory human approval is enforced."
+            return (
+                "BLOCKED: corrected medical text cannot be persisted until "
+                "mandatory human approval is enforced."
+            )
 
         fn = blocked_save
     return _original_button_click(self, fn, *args, **kwargs)
