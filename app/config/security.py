@@ -56,42 +56,47 @@ class SecurityConfig(BaseSettings):
     @validator("POSTGRES_PASSWORD")
     @classmethod
     def validate_db_password(cls, value: str) -> str:
-        if value in _INSECURE_SECRETS or len(value) < 12:
-            raise ValueError("POSTGRES_PASSWORD must be a non-default secret of at least 12 characters")
+        if not value:
+            raise ValueError("POSTGRES_PASSWORD cannot be empty")
         return value
 
     @validator("JWT_SECRET_KEY")
     @classmethod
     def validate_jwt_secret(cls, value: str) -> str:
-        if value in _INSECURE_SECRETS or len(value) < 32:
-            raise ValueError("JWT_SECRET_KEY must be a unique secret of at least 32 characters")
+        if not value:
+            raise ValueError("JWT_SECRET_KEY cannot be empty")
         return value
 
     @root_validator
-    def validate_security_policy(cls, values):
-        environment = values.get("ENVIRONMENT")
-        if environment in {"production", "staging"}:
-            origins = values.get("CORS_ALLOW_ORIGINS") or []
-            if "*" in origins and values.get("CORS_ALLOW_CREDENTIALS"):
-                raise ValueError("Wildcard CORS origin cannot be combined with credentials")
+    def validate_ranges(cls, values):
+        if values.get("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 0) <= 0:
+            raise ValueError("JWT_ACCESS_TOKEN_EXPIRE_MINUTES must be positive")
+        if values.get("JWT_REFRESH_TOKEN_EXPIRE_DAYS", 0) <= 0:
+            raise ValueError("JWT_REFRESH_TOKEN_EXPIRE_DAYS must be positive")
+        if values.get("MIN_PASSWORD_LENGTH", 0) < 12:
+            raise ValueError("MIN_PASSWORD_LENGTH must be at least 12")
         return values
 
     @classmethod
     def validate_config(cls, environment: str | None = None):
-        """Fail closed for production/staging instead of logging a warning."""
+        """Fail closed for production/staging; allow explicit development defaults."""
         config = cls()
         if environment in {"production", "staging"}:
-            # Field validators already reject default/weak secrets.
+            if config.JWT_SECRET_KEY in _INSECURE_SECRETS or len(config.JWT_SECRET_KEY) < 32:
+                raise ValueError("JWT_SECRET_KEY must be a unique secret of at least 32 characters")
+            if config.POSTGRES_PASSWORD in _INSECURE_SECRETS or len(config.POSTGRES_PASSWORD) < 12:
+                raise ValueError("POSTGRES_PASSWORD must be a non-default secret of at least 12 characters")
             if config.JWT_ALGORITHM not in {"HS256", "HS384", "HS512"}:
                 raise ValueError("Unsupported JWT algorithm")
+            if "*" in config.CORS_ALLOW_ORIGINS and config.CORS_ALLOW_CREDENTIALS:
+                raise ValueError("Wildcard CORS origin cannot be combined with credentials")
         return True
 
 
 @lru_cache
 def get_security_config() -> SecurityConfig:
-    """Return cached validated security configuration."""
+    """Return cached security configuration after environment-aware validation."""
     config = SecurityConfig()
-    # Avoid importing app config at module import time; this prevents a cycle.
     from app.config.app import get_app_config
 
     environment = get_app_config().ENVIRONMENT
