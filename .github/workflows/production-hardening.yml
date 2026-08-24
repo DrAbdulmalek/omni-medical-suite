@@ -14,9 +14,6 @@ on:
     branches: [audit/production-hardening]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   security-gate:
     name: Production security regression gate
@@ -61,19 +58,6 @@ jobs:
             'pytest>=8' \
             'pytest-asyncio>=0.23' \
             'httpx>=0.27'
-
-      - name: Apply pending medical safety hardening
-        run: |
-          python scripts/medical_safety_patch.py
-          if git diff --quiet -- hf-space/app.py; then
-            echo 'Medical safety patch already applied.'
-          else
-            git config user.name 'omni-medical-security-bot'
-            git config user.email 'security-bot@users.noreply.github.com'
-            git add hf-space/app.py
-            git commit -m 'fix: enforce medical OCR review and confidence gate'
-            git push
-          fi
 
       - name: Verify production secret fail-closed behavior
         env:
