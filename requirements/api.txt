@@ -20,6 +20,7 @@ celery[redis]>=5.3.6
 python-jose[cryptography]>=3.5.0
 passlib[bcrypt]>=1.7.4
 cryptography>=41.0.0
+slowapi>=0.1.9
 
 # === OCR ===
 pytesseract>=0.3.10
