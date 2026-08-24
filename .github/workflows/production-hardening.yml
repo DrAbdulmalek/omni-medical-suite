@@ -138,7 +138,22 @@ jobs:
 
       - name: Reject false-green patterns
         run: |
-          if grep -RInE 'continue-on-error:[[:space:]]*true|--exit-zero|\|\|[[:space:]]*true' .github/workflows/production-hardening.yml; then
-            echo 'False-green pattern detected in production hardening workflow.'
-            exit 1
-          fi
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          workflow = Path('.github/workflows/production-hardening.yml').read_text(encoding='utf-8')
+          forbidden = re.compile(r'continue-on-error:\s*true|--exit-zero|\|\|\s*true')
+          violations = []
+          for lineno, line in enumerate(workflow.splitlines(), 1):
+              # Ignore this detector's own source text; it must not flag its pattern definition.
+              if 'forbidden = re.compile' in line:
+                  continue
+              if forbidden.search(line):
+                  violations.append(f'{lineno}: {line}')
+          if violations:
+              print('False-green pattern detected in production hardening workflow:')
+              print('\n'.join(violations))
+              raise SystemExit(1)
+          print('PASS: no false-green patterns in production hardening workflow')
+          PY
