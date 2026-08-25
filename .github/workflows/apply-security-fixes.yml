@@ -1,0 +1,165 @@
+name: Apply Security Fixes
+
+on:
+  push:
+    branches: [security-fixes-clean]
+    paths:
+      - '.github/workflows/apply-security-fixes.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, 'chore: apply verified security fixes') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply exact source fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('hf-space/app_core.py')
+          s = p.read_text(encoding='utf-8')
+          old_dict = '''OCR_CORRECTIONS = {
+              "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
+              "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
+              "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
+              "ديكلوفيناك ": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
+              "اوميبرازول ": "اوميبرازول", "سيليبريكس ": "سيليبريكس",
+              "ترامادول ": "ترامادول", "كاتافلام ": "كاتافلام",
+              "نوفافين ": "نوفافين", "فلاميكس ": "فلاميكس",
+              "بنادول ": "بنادول", "ادفيل ": "ادفيل",
+          }'''
+          new_dict = '''OCR_CORRECTIONS = {
+              "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
+              "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
+              "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
+              "ديكلوفيناك": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
+              "اوميبرازول": "اوميبرازول", "سيليبريكس": "سيليبريكس",
+              "ترامادول": "ترامادول", "كاتافلام": "كاتافلام",
+              "نوفافين": "نوفافين", "فلاميكس": "فلاميكس",
+              "بنادول": "بنادول", "ادفيل": "ادفيل",
+          }'''
+          if old_dict not in s:
+              raise SystemExit('Expected original OCR_CORRECTIONS block not found')
+          s = s.replace(old_dict, new_dict, 1)
+          old_func = '''def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
+              """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
+              changes = []
+              corrected = text
+              for wrong, right in OCR_CORRECTIONS.items():
+                  if wrong in corrected:
+                      count = corrected.count(wrong)
+                      corrected = corrected.replace(wrong, right)
+                      changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
+              corrected = re.sub(r'[ \\t]+', ' ', corrected)
+              corrected = re.sub(r'\\n{3,}', '\\n\\n', corrected).strip()
+              return corrected, changes'''
+          new_func = '''def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
+              """Apply OCR corrections while preserving token boundaries and whitespace."""
+              changes = []
+              corrected = text
+              for wrong, right in OCR_CORRECTIONS.items():
+                  if wrong == right:
+                      continue
+                  pattern = r'(?<!\\w)' + re.escape(wrong) + r'(?!\\w)'
+                  count = len(re.findall(pattern, corrected))
+                  if count:
+                      corrected = re.sub(pattern, right, corrected)
+                      changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
+              corrected = re.sub(r'[ \\t]+', ' ', corrected)
+              corrected = re.sub(r'\\n{3,}', '\\n\\n', corrected).strip()
+              return corrected, changes'''
+          if old_func not in s:
+              raise SystemExit('Expected original _auto_correct_ocr function not found')
+          s = s.replace(old_func, new_func, 1)
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('app/routers/admin.py')
+          s = p.read_text(encoding='utf-8')
+          if 'Depends(get_current_user)' not in s:
+              s = s.replace('from fastapi import APIRouter\n', 'from fastapi import APIRouter, Depends\nfrom app.core.security import get_current_user\nfrom app.db.models.auth import User\n', 1)
+              s = s.replace('async def system_status():', 'async def system_status(current_user: User = Depends(get_current_user)):', 1)
+              p.write_text(s, encoding='utf-8')
+
+          p = Path('deploy/deploy.sh')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('deploy/docker-compose.prod.yml', 'deploy/docker-compose.full.yml')
+          s = re.sub(r'^\s*cp\s+[^\n]*docker-compose\.full\.yml[^\n]*\n', '', s, flags=re.M)
+          p.write_text(s, encoding='utf-8')
+
+          old = Path('deploy/docker-compose.prod.yml')
+          full = Path('deploy/docker-compose.full.yml')
+          if old.exists() and not full.exists():
+              old.rename(full)
+          elif old.exists() and full.exists():
+              raise SystemExit('Both compose files exist; refusing to choose silently')
+          elif not full.exists():
+              raise SystemExit('Full compose file missing')
+          PY
+
+      - name: Add behavioral medical regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tests/security
+          cat > tests/security/test_medical_behavior.py <<'PY'
+          import re
+          from pathlib import Path
+
+          def _load_ocr_function():
+              source = Path('hf-space/app_core.py').read_text(encoding='utf-8')
+              block = source[source.index('OCR_CORRECTIONS = {'):source.index('# ── Lazy-loaded modules')]
+              ns = {'re': re}
+              exec(block + '\n' + source[source.index('def _auto_correct_ocr'):source.index('\ndef _extract_ner')], ns)
+              return ns['OCR_CORRECTIONS'], ns['_auto_correct_ocr']
+
+          def test_separator_preserved():
+              _, fn = _load_ocr_function()
+              assert fn('ترامادول 0.5 mg')[0] == 'ترامادول 0.5 mg'
+
+          def test_decimal_tokens_unchanged():
+              _, fn = _load_ocr_function()
+              for text in ('0.5', '1.25', '0.75', '٠٫٥', '١٫٢٥'):
+                  assert fn(text)[0] == text
+
+          def test_negations_unchanged():
+              _, fn = _load_ocr_function()
+              for text in ('لا', 'ليس', 'لم', 'لن', 'غير', 'بدون', 'لا يوجد سكري'):
+                  assert fn(text)[0] == text
+
+          def test_intended_ocr_correction():
+              _, fn = _load_ocr_function()
+              assert fn('باراسيتبمول 500 mg')[0] == 'باراسيتامول 500 mg'
+          PY
+
+      - name: Verify exact changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '"ترامادول": "ترامادول"' hf-space/app_core.py
+          ! grep -q '"ترامادول ": "ترامادول"' hf-space/app_core.py
+          grep -q 'Depends(get_current_user)' app/routers/admin.py
+          test -f deploy/docker-compose.full.yml
+          ! test -f deploy/docker-compose.prod.yml
+          ! grep -q 'cp .*docker-compose.*yml.*docker-compose.prod.yml' deploy/deploy.sh
+          python -m pytest -q tests/security/test_medical_behavior.py
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add hf-space/app_core.py app/routers/admin.py deploy/deploy.sh deploy/docker-compose.full.yml tests/security/test_medical_behavior.py
+          git add -u deploy/docker-compose.prod.yml
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore: apply verified security fixes'
+          git push

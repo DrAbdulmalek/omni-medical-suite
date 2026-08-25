@@ -1,0 +1,139 @@
+name: Apply verified OCR separator fix
+
+on:
+  push:
+    branches: [security-fixes-clean]
+    paths:
+      - '.github/workflows/apply-ocr-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch production OCR implementation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('hf-space/app_core.py')
+          s = p.read_text(encoding='utf-8')
+          old_block = '''OCR_CORRECTIONS = {
+              "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
+              "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
+              "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
+              "ديكلوفيناك ": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
+              "اوميبرازول ": "اوميبرازول", "سيليبريكس ": "سيليبريكس",
+              "ترامادول ": "ترامادول", "كاتافلام ": "كاتافلام",
+              "نوفافين ": "نوفافين", "فلاميكس ": "فلاميكس",
+              "بنادول ": "بنادول", "ادفيل ": "ادفيل",
+          }'''
+          new_block = '''OCR_CORRECTIONS = {
+              "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
+              "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
+              "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
+              "ديكلوفيناك": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
+              "اوميبرازول": "اوميبرازول", "سيليبريكس": "سيليبريكس",
+              "ترامادول": "ترامادول", "كاتافلام": "كاتافلام",
+              "نوفافين": "نوفافين", "فلاميكس": "فلاميكس",
+              "بنادول": "بنادول", "ادفيل": "ادفيل",
+          }'''
+          if old_block not in s:
+              raise SystemExit('Expected OCR_CORRECTIONS block not found; refusing blind edit')
+          s = s.replace(old_block, new_block, 1)
+          old_fn = '''def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
+              """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
+              changes = []
+              corrected = text
+              for wrong, right in OCR_CORRECTIONS.items():
+                  if wrong in corrected:
+                      count = corrected.count(wrong)
+                      corrected = corrected.replace(wrong, right)
+                      changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
+              corrected = re.sub(r'[ \\t]+', ' ', corrected)
+              corrected = re.sub(r'\\n{3,}', '\\n\\n', corrected).strip()
+              return corrected, changes'''
+          new_fn = '''def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
+              """Apply OCR corrections while preserving token boundaries and separators."""
+              changes = []
+              corrected = text
+              for wrong, right in OCR_CORRECTIONS.items():
+                  if wrong == right:
+                      continue
+                  pattern = r'(?<!\\w)' + re.escape(wrong) + r'(?!\\w)'
+                  matches = list(re.finditer(pattern, corrected))
+                  if matches:
+                      corrected = re.sub(pattern, right, corrected)
+                      changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": len(matches)})
+              corrected = re.sub(r'[ \\t]+', ' ', corrected)
+              corrected = re.sub(r'\\n{3,}', '\\n\\n', corrected).strip()
+              return corrected, changes'''
+          if old_fn not in s:
+              raise SystemExit('Expected _auto_correct_ocr body not found; refusing blind edit')
+          s = s.replace(old_fn, new_fn, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Add behavioral regression test
+        run: |
+          mkdir -p tests/security
+          cat > tests/security/test_medical_behavior.py <<'PY'
+          import re
+          from pathlib import Path
+          
+          SOURCE = Path('hf-space/app_core.py').read_text(encoding='utf-8')
+          
+          def _load_auto_correct():
+              start = SOURCE.index('OCR_CORRECTIONS = {')
+              end = SOURCE.index('\n\n# ── Lazy-loaded modules', start)
+              namespace = {}
+              exec(SOURCE[start:end], namespace)
+              fn_start = SOURCE.index('def _auto_correct_ocr(')
+              fn_end = SOURCE.index('\n\ndef _extract_ner', fn_start)
+              exec('import re\nfrom typing import Dict, List, Tuple\n' + SOURCE[fn_start:fn_end], namespace)
+              return namespace['_auto_correct_ocr']
+          
+          def test_medical_ocr_boundaries_and_tokens():
+              fn = _load_auto_correct()
+              cases = [
+                  ('ترامادول 0.5 mg', 'ترامادول 0.5 mg'),
+                  ('0.5', '0.5'), ('1.25', '1.25'), ('0.75', '0.75'),
+                  ('٠٫٥', '٠٫٥'), ('١٫٢٥', '١٫٢٥'),
+                  ('لا', 'لا'), ('ليس', 'ليس'), ('لم', 'لم'), ('لن', 'لن'),
+                  ('لا يوجد سكري', 'لا يوجد سكري'),
+                  ('لا يعطى ترامادول 0.5 mg', 'لا يعطى ترامادول 0.5 mg'),
+                  ('باراسيتبمول 500 mg', 'باراسيتامول 500 mg'),
+              ]
+              for src, expected in cases:
+                  actual, _ = fn(src)
+                  assert actual == expected, f'{src!r} -> {actual!r}, expected {expected!r}'
+          
+          def test_no_trailing_space_correction_keys():
+              namespace = {}
+              start = SOURCE.index('OCR_CORRECTIONS = {')
+              end = SOURCE.index('\n\n# ── Lazy-loaded modules', start)
+              exec(SOURCE[start:end], namespace)
+              assert all(not key.endswith(' ') for key in namespace['OCR_CORRECTIONS'])
+          PY
+
+      - name: Run focused behavioral tests
+        run: python -m pytest tests/security/test_medical_behavior.py -q
+
+      - name: Verify admin and deployment changes
+        run: |
+          grep -q 'Depends(get_current_user)' app/routers/admin.py
+          test -f deploy/docker-compose.full.yml
+          test ! -f deploy/docker-compose.prod.yml
+          grep -q 'docker-compose.full.yml' deploy/deploy.sh
+          ! grep -Eq '(^|[[:space:]])cp[[:space:]].*docker-compose.*docker-compose.prod.yml' deploy/deploy.sh
+
+      - name: Commit verified changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add hf-space/app_core.py tests/security/test_medical_behavior.py
+          git commit -m 'fix: preserve medical OCR token boundaries' || exit 0
+          git push origin HEAD:security-fixes-clean
