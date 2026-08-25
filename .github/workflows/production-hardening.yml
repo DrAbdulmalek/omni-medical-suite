@@ -107,7 +107,28 @@ jobs:
           DATABASE_URL: postgresql+psycopg://postgres:test-password-123456@127.0.0.1:5432/omni_medical
         run: alembic upgrade head
 
-      - name: Run security and PostgreSQL integration suite
+      - name: Run authentication unit tests
+        env:
+          ENVIRONMENT: development
+          DEBUG: 'true'
+          JWT_SECRET_KEY: '01234567890123456789012345678901'
+        run: pytest -q tests/test_auth_security.py
+
+      - name: Run security hardening tests
+        env:
+          ENVIRONMENT: development
+          DEBUG: 'true'
+          JWT_SECRET_KEY: '01234567890123456789012345678901'
+        run: pytest -q tests/test_security_hardening.py
+
+      - name: Run medical safety contract tests
+        env:
+          ENVIRONMENT: development
+          DEBUG: 'true'
+          JWT_SECRET_KEY: '01234567890123456789012345678901'
+        run: pytest -q tests/security/test_medical_safety_contract.py
+
+      - name: Run PostgreSQL authentication integration tests
         env:
           ENVIRONMENT: development
           DEBUG: 'true'
@@ -117,12 +138,7 @@ jobs:
           POSTGRES_HOST: 127.0.0.1
           POSTGRES_PORT: '5432'
           JWT_SECRET_KEY: '01234567890123456789012345678901'
-        run: |
-          pytest -q \
-            tests/test_auth_security.py \
-            tests/test_security_hardening.py \
-            tests/security/test_medical_safety_contract.py \
-            tests/integration/test_auth_postgres.py
+        run: pytest -q -vv tests/integration/test_auth_postgres.py
 
       - name: Validate production Compose configuration
         env:
@@ -146,7 +162,6 @@ jobs:
           forbidden = re.compile(r'continue-on-error:\s*true|--exit-zero|\|\|\s*true')
           violations = []
           for lineno, line in enumerate(workflow.splitlines(), 1):
-              # Ignore this detector's own source text; it must not flag its pattern definition.
               if 'forbidden = re.compile' in line:
                   continue
               if forbidden.search(line):
