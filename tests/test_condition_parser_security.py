@@ -18,8 +18,12 @@ def test_bounded_numeric_multiplication_still_works() -> None:
     assert parser.evaluate("2 * 3 == 6") is True
 
 
-def test_pow_escape_remains_blocked() -> None:
+def test_pow_operator_remains_bounded() -> None:
     assert evaluate_condition("2 ** 10000 > 0") is False
+
+
+def test_pow_helper_is_not_exposed() -> None:
+    assert evaluate_condition("pow(2, 1000000000) > 0") is False
 
 
 def test_attribute_escape_remains_blocked() -> None:
