@@ -1,15 +1,15 @@
-#!/bin/sh
+#!/usr/bin/env sh
 set -eu
 
-# The production image must not start before the database schema is current.
-# docker-compose.prod.yml already waits for PostgreSQL health before launching us.
-echo "[omni] applying database migrations"
-alembic upgrade head
+# The production image runs as the non-root `omni` user. Database migrations
+# and the idempotent admin bootstrap therefore run with the same application
+# identity as the service itself.
+if [ "${ENVIRONMENT:-development}" = "production" ]; then
+  echo "[omni] applying Alembic migrations"
+  alembic upgrade head
 
-# Bootstrap is explicit and idempotent. The compose deployment requires the
-# password to come from a deployment secret; the script never prints it.
-echo "[omni] ensuring bootstrap administrator exists"
-python -m scripts.bootstrap_admin
+  echo "[omni] bootstrapping production administrator"
+  python /app/deploy/bootstrap_admin.py
+fi
 
-echo "[omni] starting application: $*"
 exec "$@"
