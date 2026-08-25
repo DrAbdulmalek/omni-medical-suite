@@ -25,7 +25,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Apply exact fixes and behavioral tests
+      - name: Apply fixes to actual checkout
         shell: bash
         run: |
           set -euo pipefail
@@ -33,100 +33,63 @@ jobs:
           from pathlib import Path
           import re
 
-          # 1) Medical OCR separator fix
+          # OCR: operate only inside the named dictionary/function, never by global text guessing.
           p = Path('hf-space/app_core.py')
           s = p.read_text(encoding='utf-8')
-          if '"ترامادول ": "ترامادول"' in s:
-              old_dict = '''OCR_CORRECTIONS = {
-              "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
-              "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
-              "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
-              "ديكلوفيناك ": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
-              "اوميبرازول ": "اوميبرازول", "سيليبريكس ": "سيليبريكس",
-              "ترامادول ": "ترامادول", "كاتافلام ": "كاتافلام",
-              "نوفافين ": "نوفافين", "فلاميكس ": "فلاميكس",
-              "بنادول ": "بنادول", "ادفيل ": "ادفيل",
-          }'''
-              new_dict = '''OCR_CORRECTIONS = {
-              "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
-              "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
-              "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
-              "ديكلوفيناك": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
-              "اوميبرازول": "اوميبرازول", "سيليبريكس": "سيليبريكس",
-              "ترامادول": "ترامادول", "كاتافلام": "كاتافلام",
-              "نوفافين": "نوفافين", "فلاميكس": "فلاميكس",
-              "بنادول": "بنادول", "ادفيل": "ادفيل",
-          }'''
-              if old_dict not in s:
-                  raise SystemExit('Expected original OCR_CORRECTIONS block not found')
-              s = s.replace(old_dict, new_dict, 1)
+          m = re.search(r'OCR_CORRECTIONS = \{.*?\n\}', s, flags=re.S)
+          if not m:
+              raise SystemExit('OCR_CORRECTIONS block not found')
+          block = m.group(0)
+          block = re.sub(r'("[^"\n]*?)\s+":', r'\1":', block)
+          s = s[:m.start()] + block + s[m.end():]
 
-              old_func = '''def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
-              """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
-              changes = []
-              corrected = text
-              for wrong, right in OCR_CORRECTIONS.items():
-                  if wrong in corrected:
-                      count = corrected.count(wrong)
-                      corrected = corrected.replace(wrong, right)
-                      changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
-              corrected = re.sub(r'[ \\t]+', ' ', corrected)
-              corrected = re.sub(r'\\n{3,}', '\\n\\n', corrected).strip()
-              return corrected, changes'''
-              new_func = '''def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
-              """Apply OCR corrections while preserving token boundaries and whitespace."""
-              changes = []
-              corrected = text
-              for wrong, right in OCR_CORRECTIONS.items():
-                  if wrong == right:
-                      continue
-                  pattern = r'(?<!\\w)' + re.escape(wrong) + r'(?!\\w)'
-                  count = len(re.findall(pattern, corrected))
-                  if count:
-                      corrected = re.sub(pattern, right, corrected)
-                      changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
-              corrected = re.sub(r'[ \\t]+', ' ', corrected)
-              corrected = re.sub(r'\\n{3,}', '\\n\\n', corrected).strip()
-              return corrected, changes'''
-              if old_func not in s:
-                  raise SystemExit('Expected original _auto_correct_ocr function not found')
-              s = s.replace(old_func, new_func, 1)
-              p.write_text(s, encoding='utf-8')
+          old_start = s.index('def _auto_correct_ocr(')
+          old_end = s.index('\ndef _extract_ner', old_start)
+          new_func = '''def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:\n    """Apply OCR corrections while preserving token boundaries and whitespace."""\n    changes = []\n    corrected = text\n    for wrong, right in OCR_CORRECTIONS.items():\n        if wrong == right:\n            continue\n        pattern = r'(?<!\\w)' + re.escape(wrong) + r'(?!\\w)'\n        count = len(re.findall(pattern, corrected))\n        if count:\n            corrected = re.sub(pattern, right, corrected)\n            changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})\n    corrected = re.sub(r'[ \\t]+', ' ', corrected)\n    corrected = re.sub(r'\\n{3,}', '\\n\\n', corrected).strip()\n    return corrected, changes\n'''
+          s = s[:old_start] + new_func + s[old_end:]
+          p.write_text(s, encoding='utf-8')
 
-          # 2) Authenticate admin status endpoint
+          # Admin endpoint.
           p = Path('app/routers/admin.py')
           s = p.read_text(encoding='utf-8')
           if 'Depends(get_current_user)' not in s:
-              s = s.replace('from fastapi import APIRouter\n', 'from fastapi import APIRouter, Depends\nfrom app.core.security import get_current_user\nfrom app.db.models.auth import User\n', 1)
+              s = s.replace('from fastapi import APIRouter', 'from fastapi import APIRouter, Depends', 1)
+              s = s.replace('from fastapi import APIRouter, Depends\n', 'from fastapi import APIRouter, Depends\nfrom app.core.security import get_current_user\nfrom app.db.models.auth import User\n', 1)
               s = s.replace('async def system_status():', 'async def system_status(current_user: User = Depends(get_current_user)):', 1)
-              p.write_text(s, encoding='utf-8')
+          p.write_text(s, encoding='utf-8')
 
-          # 3) Make full-stack deployment explicit and non-destructive
+          # Deployment topology.
           p = Path('deploy/deploy.sh')
           s = p.read_text(encoding='utf-8')
-          s = s.replace('deploy/docker-compose.prod.yml', 'deploy/docker-compose.full.yml')
-          s = re.sub(r'^\s*cp\s+[^\n]*docker-compose\.full\.yml[^\n]*\n', '', s, flags=re.M)
+          s = s.replace('docker-compose.prod.yml', 'docker-compose.full.yml')
+          s = re.sub(r'^\s*cp\s+"?\$\{DEPLOY_DIR\}/docker-compose\.full\.yml"?\s+"?\$\{PROJECT_DIR\}/docker-compose\.prod\.yml"?\s*\n', '', s, flags=re.M)
+          s = re.sub(r'^if \[\[ -f "\$\{DEPLOY_DIR\}/docker-compose\.full\.yml" \]\]; then\n\s*cp .*?\nfi\n', '', s, flags=re.M)
+          if 'COMPOSE_FILE=' not in s:
+              s = s.replace('DEPLOY_DIR="$(dirname "$0")"\n', 'DEPLOY_DIR="$(dirname "$0")"\nCOMPOSE_FILE="${DEPLOY_DIR}/docker-compose.full.yml"\n', 1)
+          s = s.replace('docker compose -f docker-compose.full.yml', 'docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE"')
           p.write_text(s, encoding='utf-8')
-          old = Path('deploy/docker-compose.prod.yml')
-          full = Path('deploy/docker-compose.full.yml')
-          if old.exists() and not full.exists():
-              old.rename(full)
-          elif old.exists() and full.exists():
-              raise SystemExit('Both compose files exist; refusing to choose silently')
-          elif not full.exists():
-              raise SystemExit('Full compose file missing')
 
-          # 4) Behavioral tests against the actual source implementation
-          test = Path('tests/security/test_medical_behavior.py')
-          test.parent.mkdir(parents=True, exist_ok=True)
-          test.write_text('''import re\nfrom pathlib import Path\n\ndef _load_ocr_function():\n    source = Path("hf-space/app_core.py").read_text(encoding="utf-8")\n    block = source[source.index("OCR_CORRECTIONS = {"):source.index("# ── Lazy-loaded modules")]\n    ns = {"re": re}\n    exec(block + "\\n" + source[source.index("def _auto_correct_ocr"):source.index("\\ndef _extract_ner")], ns)\n    return ns["_auto_correct_ocr"]\n\ndef test_separator_preserved():\n    assert _load_ocr_function()("ترامادول 0.5 mg")[0] == "ترامادول 0.5 mg"\n\ndef test_decimal_tokens_unchanged():\n    fn = _load_ocr_function()\n    for text in ("0.5", "1.25", "0.75", "٠٫٥", "١٫٢٥"):\n        assert fn(text)[0] == text\n\ndef test_negations_unchanged():\n    fn = _load_ocr_function()\n    for text in ("لا", "ليس", "لم", "لن", "غير", "بدون", "لا يوجد سكري"):\n        assert fn(text)[0] == text\n\ndef test_intended_ocr_correction():\n    assert _load_ocr_function()("باراسيتبمول 500 mg")[0] == "باراسيتامول 500 mg"\n''', encoding='utf-8')
+          # Rename alternate compose if needed.
+          old = Path('deploy/docker-compose.prod.yml')
+          new = Path('deploy/docker-compose.full.yml')
+          if old.exists() and not new.exists():
+              old.rename(new)
+          if not new.exists():
+              raise SystemExit('deploy/docker-compose.full.yml missing')
+
+          # Real behavioral regression tests: execute the extracted production function source.
+          t = Path('tests/security/test_medical_behavior.py')
+          t.parent.mkdir(parents=True, exist_ok=True)
+          t.write_text('''import re\nfrom pathlib import Path\n\ndef _fn():\n    s = Path("hf-space/app_core.py").read_text(encoding="utf-8")\n    b = s[s.index("OCR_CORRECTIONS = {"):s.index("# ── Lazy-loaded modules")]\n    f = s[s.index("def _auto_correct_ocr"):s.index("\\ndef _extract_ner")]\n    ns = {"re": re}\n    exec(b + "\\n" + f, ns)\n    return ns["_auto_correct_ocr"]\n\ndef test_separator():\n    assert _fn()("ترامادول 0.5 mg")[0] == "ترامادول 0.5 mg"\n\ndef test_decimals():\n    fn = _fn()\n    for x in ("0.5", "1.25", "0.75", "٠٫٥", "١٫٢٥"):\n        assert fn(x)[0] == x\n\ndef test_negations():\n    fn = _fn()\n    for x in ("لا", "ليس", "لم", "لن", "غير", "بدون", "لا يوجد سكري"):\n        assert fn(x)[0] == x\n\ndef test_intended_fix():\n    assert _fn()("باراسيتبمول 500 mg")[0] == "باراسيتامول 500 mg"\n''', encoding='utf-8')
           PY
+
           python -m pytest -q tests/security/test_medical_behavior.py
           grep -q '"ترامادول": "ترامادول"' hf-space/app_core.py
           ! grep -q '"ترامادول ": "ترامادول"' hf-space/app_core.py
           grep -q 'Depends(get_current_user)' app/routers/admin.py
           test -f deploy/docker-compose.full.yml
           ! test -f deploy/docker-compose.prod.yml
+          grep -q 'docker-compose.full.yml' deploy/deploy.sh
 
       - name: Commit applied fixes
         shell: bash
@@ -136,34 +99,24 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add hf-space/app_core.py app/routers/admin.py deploy/deploy.sh deploy/docker-compose.full.yml tests/security/test_medical_behavior.py
           git add -u deploy/docker-compose.prod.yml
-          if git diff --cached --quiet; then
-            echo 'Fixes already applied; nothing to commit.'
-          else
-            git commit -m 'fix: apply verified security hardening'
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
-          fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'fix: apply verified security hardening'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
   lint:
     name: Code Quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
+        with: {python-version: '3.11'}
       - name: Install lint tools
-        run: |
-          pip install flake8 black isort mypy
-
+        run: pip install flake8 black isort mypy
       - name: Run flake8
         run: flake8 desktop/ hf-space/ app/ --count --statistics || true
-
       - name: Run black check
         run: black --check desktop/ hf-space/ app/ || true
-
       - name: Run isort check
         run: isort --check-only desktop/ hf-space/ app/ || true
 
@@ -172,26 +125,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
+        with: {python-version: '3.11'}
       - name: Install system dependencies (Tesseract OCR)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng libtesseract-dev 2>/dev/null || true
-
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng libtesseract-dev 2>/dev/null || true
       - name: Install dependencies
         run: |
           pip install pytest pytest-cov
           pip install opencv-python Pillow numpy
           pip install "huggingface-hub<1.0.0" "pydantic<2.11.0"
-
       - name: Run tests
         run: pytest tests/ -v --cov=. --cov-report=xml || echo "No tests yet"
-
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         if: always()
