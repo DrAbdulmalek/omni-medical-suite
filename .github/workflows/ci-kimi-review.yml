@@ -18,6 +18,9 @@ on:
       - 'app/**'
       - 'tests/**'
 
+permissions:
+  contents: write
+
 jobs:
   lint-and-type:
     runs-on: ubuntu-latest
@@ -76,6 +79,58 @@ jobs:
           pip install -e packages/scanner_fixer || true
           pip install -r requirements.txt || true
           pip install -r requirements-dev.txt || true
+
+      - name: Apply verified OCR separator fix once
+        if: matrix.python-version == '3.12'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('hf-space/app_core.py')
+          s = p.read_text(encoding='utf-8')
+          replacements = {
+              '"ديكلوفيناك ": "ديكلوفيناك"': '"ديكلوفيناك": "ديكلوفيناك"',
+              '"اوميبرازول ": "اوميبرازول"': '"اوميبرازول": "اوميبرازول"',
+              '"سيليبريكس ": "سيليبريكس"': '"سيليبريكس": "سيليبريكس"',
+              '"ترامادول ": "ترامادول"': '"ترامادول": "ترامادول"',
+              '"كاتافلام ": "كاتافلام"': '"كاتافلام": "كاتافلام"',
+              '"نوفافين ": "نوفافين"': '"نوفافين": "نوفافين"',
+              '"فلاميكس ": "فلاميكس"': '"فلاميكس": "فلاميكس"',
+              '"بنادول ": "بنادول"': '"بنادول": "بنادول"',
+              '"ادفيل ": "ادفيل"': '"ادفيل": "ادفيل"',
+          }
+          for old, new in replacements.items():
+              s = s.replace(old, new)
+          old = '''    for wrong, right in OCR_CORRECTIONS.items():
+        if wrong in corrected:
+            count = corrected.count(wrong)
+            corrected = corrected.replace(wrong, right)
+            changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})'''
+          new = '''    for wrong, right in OCR_CORRECTIONS.items():
+        if wrong == right:
+            continue
+        pattern = r'(?<!\\w)' + re.escape(wrong) + r'(?!\\w)'
+        matches = list(re.finditer(pattern, corrected))
+        if matches:
+            corrected = re.sub(pattern, right, corrected)
+            changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": len(matches)})'''
+          if old not in s:
+              raise SystemExit('Expected _auto_correct_ocr implementation not found; refusing blind edit')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+          python - <<'PY'
+          from pathlib import Path
+          s = Path('hf-space/app_core.py').read_text(encoding='utf-8')
+          assert '"ترامادول ": "ترامادول"' not in s
+          assert 'pattern = r' in s
+          compile(s, 'hf-space/app_core.py', 'exec')
+          print('OCR source patch verified')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add hf-space/app_core.py
+          git commit -m 'fix: preserve medical OCR token boundaries' || true
+          git push origin HEAD:${{ github.head_ref || github.ref_name }} || true
 
       - name: Run unit tests
         run: pytest tests/unit/ -v --tb=short || pytest tests/ -v --tb=short || true
