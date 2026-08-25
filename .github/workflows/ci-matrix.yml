@@ -55,7 +55,8 @@ jobs:
           pacman-key --populate archlinux
           pacman -Sy --noconfirm archlinux-keyring
           pacman -Su --noconfirm
-          pacman -S --noconfirm --needed python python-pip git tesseract tesseract-data-eng tesseract-data-ara poppler qt6-base qt6-imageformats cairo pango gdk-pixbuf2 libfuse2 opencv
+          # Arch package is fuse2; libfuse2 is the Debian/Ubuntu package name.
+          pacman -S --noconfirm --needed python python-pip git tesseract tesseract-data-eng tesseract-data-ara poppler qt6-base qt6-imageformats cairo pango gdk-pixbuf2 fuse2 opencv
           command -v python
           python --version
       - uses: actions/checkout@v4
