@@ -20,7 +20,7 @@ ALLOWED_OPERATORS: dict[type, Any] = {
 
 ALLOWED_FUNCTIONS: dict[str, Any] = {
     "int": int, "float": float, "str": str, "bool": bool,
-    "abs": abs, "min": min, "max": max, "sum": sum, "round": round, "pow": pow,
+    "abs": abs, "min": min, "max": max, "sum": sum, "round": round,
     "len": len, "lower": str.lower, "upper": str.upper, "strip": str.strip,
     "startswith": str.startswith, "endswith": str.endswith,
     "contains": lambda s, sub: sub in s, "all": all, "any": any,
