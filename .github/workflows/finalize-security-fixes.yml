@@ -2,7 +2,7 @@ name: Finalize security fixes
 
 on:
   push:
-    branches: [security-fixes-3451e6e]
+    branches: [security-fixes-final]
 
 permissions:
   contents: write
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
         with:
-          ref: security-fixes-3451e6e
+          ref: security-fixes-final
           fetch-depth: 1
 
       - name: Apply exact security fixes
@@ -24,27 +24,18 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import re
 
-          # Remove only OCR dictionary entries whose keys contain a trailing separator.
           p = Path('hf-space/app_core.py')
           s = p.read_text(encoding='utf-8')
-          old = s
           for wrong, right in [
-              ('ديكلوفيناك ', 'ديكلوفيناك'),
-              ('اوميبرازول ', 'اوميبرازول'),
-              ('سيليبريكس ', 'سيليبريكس'),
-              ('ترامادول ', 'ترامادول'),
-              ('كاتافلام ', 'كاتافلام'),
-              ('نوفافين ', 'نوفافين'),
-              ('فلاميكس ', 'فلاميكس'),
-              ('بنادول ', 'بنادول'),
-              ('ادفيل ', 'ادفيل'),
+              ('ديكلوفيناك ', 'ديكلوفيناك'), ('اوميبرازول ', 'اوميبرازول'),
+              ('سيليبريكس ', 'سيليبريكس'), ('ترامادول ', 'ترامادول'),
+              ('كاتافلام ', 'كاتافلام'), ('نوفافين ', 'نوفافين'),
+              ('فلاميكس ', 'فلاميكس'), ('بنادول ', 'بنادول'), ('ادفيل ', 'ادفيل'),
           ]:
               s = s.replace(f'"{wrong}": "{right}"', f'"{right}": "{right}"')
           p.write_text(s, encoding='utf-8')
 
-          # Authenticate the admin stub.
           p = Path('app/routers/admin.py')
           s = p.read_text(encoding='utf-8')
           if 'Depends(get_current_user)' not in s:
@@ -52,7 +43,6 @@ jobs:
               s = s.replace('async def system_status():', 'async def system_status(current_user: User = Depends(get_current_user)):', 1)
           p.write_text(s, encoding='utf-8')
 
-          # Separate alternate full-stack deployment; never overwrite root compose.
           old = Path('deploy/docker-compose.prod.yml')
           new = Path('deploy/docker-compose.full.yml')
           if old.exists() and not new.exists():
@@ -62,8 +52,14 @@ jobs:
 
           p = Path('deploy/deploy.sh')
           s = p.read_text(encoding='utf-8')
-          if 'cp "${DEPLOY_DIR}/docker-compose.prod.yml" "${PROJECT_DIR}/docker-compose.prod.yml"' in s:
-              s = s.replace('if [[ -f "${DEPLOY_DIR}/docker-compose.prod.yml" ]]; then\n    cp "${DEPLOY_DIR}/docker-compose.prod.yml" "${PROJECT_DIR}/docker-compose.prod.yml"\nfi', 'COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.full.yml"\nif [[ ! -f "$COMPOSE_FILE" ]]; then\n    error "Full-stack compose file not found: $COMPOSE_FILE"\nfi')
+          old_block = '''if [[ -f "${DEPLOY_DIR}/docker-compose.prod.yml" ]]; then
+    cp "${DEPLOY_DIR}/docker-compose.prod.yml" "${PROJECT_DIR}/docker-compose.prod.yml"
+fi'''
+          if old_block in s:
+              s = s.replace(old_block, '''COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.full.yml"
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+    error "Full-stack compose file not found: $COMPOSE_FILE"
+fi''', 1)
           if 'COMPOSE_FILE=' not in s:
               marker = 'DEPLOY_DIR="$(dirname "$0")"\n'
               s = s.replace(marker, marker + 'COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.full.yml"\n', 1)
@@ -79,7 +75,6 @@ jobs:
           cat > tests/security/test_medical_behavior.py <<'PY'
           import sys
           from pathlib import Path
-
           ROOT = Path(__file__).resolve().parents[2]
           sys.path.insert(0, str(ROOT / 'hf-space'))
           import app_core
@@ -139,4 +134,4 @@ jobs:
           git add hf-space/app_core.py app/routers/admin.py deploy/deploy.sh deploy/docker-compose.full.yml tests/security/test_medical_behavior.py .github/workflows/finalize-security-fixes.yml
           git status --short
           git commit -m 'Security fixes: finalize verified changes'
-          git push origin security-fixes-3451e6e
+          git push origin security-fixes-final
