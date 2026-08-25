@@ -1,12 +1,10 @@
 """Production launcher for the Gradio OCR UI.
 
-The application module defines the UI but historically launched without an
-authentication boundary. This wrapper imports it without executing its
-__main__ block and applies mandatory HTTP Basic authentication in production.
-Medical persistence is enforced by ``save_to_hf`` itself: explicit human
-approval and the confidence threshold are required before any dataset write.
+The implementation lives in ``hf-space/app_core.py``.  The public
+``hf-space/app.py`` compatibility entrypoint deliberately refuses direct
+execution so the production authentication boundary cannot be bypassed.
 
-The launcher also establishes the production confidence contract: all OCR
+The launcher establishes the production confidence contract: all OCR
 confidence values exposed by the application are percentages in the range
 0..100. PaddleOCR reports confidence as a fraction in 0..1, while Tesseract
 already reports percentages, so Paddle values are normalized here before the
@@ -21,7 +19,7 @@ from pathlib import Path
 import gradio as gr
 
 
-APP_PATH = Path(__file__).resolve().parents[1] / "hf-space" / "app.py"
+APP_PATH = Path(__file__).resolve().parents[1] / "hf-space" / "app_core.py"
 
 spec = importlib.util.spec_from_file_location("omni_gradio_app", APP_PATH)
 if spec is None or spec.loader is None:
