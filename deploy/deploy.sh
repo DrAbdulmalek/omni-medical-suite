@@ -287,11 +287,12 @@ info "═══ Phase 4: Build & Launch ═══"
 # Copy production deployment files
 info "Copying production deployment files..."
 DEPLOY_DIR="$(dirname "$0")"
+COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.full.yml"
 if [[ -f "${DEPLOY_DIR}/Dockerfile" ]]; then
     cp "${DEPLOY_DIR}/Dockerfile" "${PROJECT_DIR}/Dockerfile"
 fi
-if [[ -f "${DEPLOY_DIR}/docker-compose.prod.yml" ]]; then
-    cp "${DEPLOY_DIR}/docker-compose.prod.yml" "${PROJECT_DIR}/docker-compose.prod.yml"
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+    error "Full-stack compose file not found: $COMPOSE_FILE"
 fi
 if [[ -f "${DEPLOY_DIR}/docker-entrypoint.sh" ]]; then
     cp "${DEPLOY_DIR}/docker-entrypoint.sh" "${PROJECT_DIR}/docker-entrypoint.sh"
@@ -301,12 +302,12 @@ ok "Deployment files copied"
 
 # Build Docker images
 info "Building Docker images (this may take 10-20 minutes)..."
-docker compose -f docker-compose.prod.yml build --no-cache 2>&1 | tail -20
+docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" build --no-cache 2>&1 | tail -20
 ok "Docker images built"
 
 # Launch services
 info "Starting all services..."
-docker compose -f docker-compose.prod.yml up -d
+docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" up -d
 ok "Services started"
 
 # Wait for health checks
@@ -316,7 +317,7 @@ sleep 10
 MAX_WAIT=60
 ELAPSED=0
 while [[ $ELAPSED -lt $MAX_WAIT ]]; do
-    UNHEALTHY=$(docker compose -f docker-compose.prod.yml ps --format json 2>/dev/null | jq -r 'select(.Health != "healthy" and .Health != null) | .Name' 2>/dev/null | wc -l || echo "0")
+    UNHEALTHY=$(docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" ps --format json 2>/dev/null | jq -r 'select(.Health != "healthy" and .Health != null) | .Name' 2>/dev/null | wc -l || echo "0")
     if [[ "$UNHEALTHY" -eq 0 ]]; then
         break
     fi
@@ -333,7 +334,7 @@ info "═══ Phase 5: Verification ═══"
 
 # Show service status
 info "Docker services status:"
-docker compose -f docker-compose.prod.yml ps
+docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" ps
 
 echo ""
 
@@ -344,7 +345,7 @@ if [[ "$HEALTH_STATUS" == "OK" ]]; then
     ok "API health check: PASSED"
 else
     warn "API health check: FAILED (may still be starting up)"
-    warn "Run: docker compose -f docker-compose.prod.yml logs api"
+    warn "Run: docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" logs api"
 fi
 
 # Verify HTTPS
@@ -362,7 +363,7 @@ fi
 echo ""
 info "Service Health Summary:"
 for svc in api postgres redis qdrant; do
-    STATUS=$(docker compose -f docker-compose.prod.yml ps "$svc" --format json 2>/dev/null | jq -r '.Health // "unknown"' 2>/dev/null || echo "unknown")
+    STATUS=$(docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" ps "$svc" --format json 2>/dev/null | jq -r '.Health // "unknown"' 2>/dev/null || echo "unknown")
     if [[ "$STATUS" == "healthy" ]]; then
         ok "$svc: $STATUS"
     else
@@ -384,13 +385,13 @@ echo "  ❤️  Health:       https://${DOMAIN}/health"
 echo "  📊 API (direct): http://localhost:8000"
 echo ""
 echo "  📁 Project:      ${PROJECT_DIR}"
-echo "  ⚙️  Compose:      docker compose -f docker-compose.prod.yml"
+echo "  ⚙️  Compose:      docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE""
 echo ""
 echo "  Useful commands:"
-echo "    docker compose -f docker-compose.prod.yml ps          # Check status"
-echo "    docker compose -f docker-compose.prod.yml logs -f api # View API logs"
-echo "    docker compose -f docker-compose.prod.yml restart api # Restart API"
-echo "    docker compose -f docker-compose.prod.yml down        # Stop all"
+echo "    docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" ps          # Check status"
+echo "    docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" logs -f api # View API logs"
+echo "    docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" restart api # Restart API"
+echo "    docker compose --project-directory "$PROJECT_DIR" -f "$COMPOSE_FILE" down        # Stop all"
 echo ""
 echo "  Security checklist:"
 echo "    [✓] HTTPS enabled (Let's Encrypt)"
