@@ -48,7 +48,8 @@ RUN useradd -m -u 1000 appuser \
     && chown -R appuser:appuser /app /home/appuser
 USER appuser
 
-COPY app.py .
+# app.py is a compatibility wrapper; app_core.py contains the actual Gradio app.
+COPY app.py app_core.py ./
 COPY src/ src/
 COPY packages/ packages/
 COPY config/ config/
