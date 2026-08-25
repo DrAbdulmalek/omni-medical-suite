@@ -27,7 +27,6 @@ jobs:
 
           p = Path('hf-space/app_core.py')
           s = p.read_text(encoding='utf-8')
-
           old_dict = '''OCR_CORRECTIONS = {
               "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
               "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
@@ -51,7 +50,6 @@ jobs:
           if old_dict not in s:
               raise SystemExit('Expected original OCR_CORRECTIONS block not found')
           s = s.replace(old_dict, new_dict, 1)
-
           old_func = '''def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
               """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
               changes = []
@@ -152,6 +150,7 @@ jobs:
           test -f deploy/docker-compose.full.yml
           ! test -f deploy/docker-compose.prod.yml
           ! grep -q 'cp .*docker-compose.*yml.*docker-compose.prod.yml' deploy/deploy.sh
+          python -m pytest -q tests/security/test_medical_behavior.py
 
       - name: Commit fixes
         shell: bash
