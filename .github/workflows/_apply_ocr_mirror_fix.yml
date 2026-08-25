@@ -1,0 +1,57 @@
+name: Apply OCR mirror fix (temporary)
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event.pull_request.head.ref == 'security-fixes-3451e6e' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 1
+
+      - name: Align canonical OCR correction dictionary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/services/ocr_service.py')
+          s = p.read_text(encoding='utf-8')
+          replacements = {
+              '    "ديكلوفيناك ": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",': '    "اوجمينتين": "اوجمنتين",',
+              '    "اوميبرازول ": "اوميبرازول", "سيليبريكس ": "سيليبريكس",': '    "اوميبرازول": "اوميبرازول", "سيليبريكس": "سيليبريكس",',
+              '    "ترامادول ": "ترامادول", "كاتافلام ": "كاتافلام",': '    "كاتافلام": "كاتافلام",',
+              '    "نوفافين ": "نوفافين", "فلاميكس ": "فلاميكس",': '    "فلاميكس": "فلاميكس",',
+              '    "بنادول ": "بنادول", "ادفيل ": "ادفيل",': '    "بنادول": "بنادول", "ادفيل": "ادفيل",',
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'Expected OCR service pattern not found: {old!r}')
+              s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          python3 scripts/check_hf_space_drift.py
+          git diff --check
+
+      - name: Commit only canonical OCR service fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/services/ocr_service.py
+          git diff --cached --check
+          git diff --cached --name-only
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          git commit -m 'fix(ocr): keep canonical correction dictionary aligned'
+          git push origin HEAD:${{ github.head_ref }}
