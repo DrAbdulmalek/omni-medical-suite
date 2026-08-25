@@ -59,13 +59,20 @@ def test_production_compose_declares_security_contract():
     assert "CHANGE_ME_IN_PRODUCTION" not in compose
 
 
+def test_production_gradio_auth_contract_is_shared_with_launcher():
+    app = Path("hf-space/app.py").read_text(encoding="utf-8")
+    launcher = Path("deploy/gradio_launcher.py").read_text(encoding="utf-8")
+    assert "GRADIO_USERNAME" in app
+    assert "GRADIO_PASSWORD" in app
+    assert "auth=auth" in app
+    assert "module.launch_production()" in launcher
+
+
 def test_production_docker_uses_authenticated_launcher():
     dockerfile = Path("deploy/Dockerfile.gradio").read_text(encoding="utf-8")
     launcher = Path("deploy/gradio_launcher.py").read_text(encoding="utf-8")
     assert 'CMD ["python", "deploy/gradio_launcher.py"]' in dockerfile
-    assert "GRADIO_USERNAME" in launcher
-    assert "GRADIO_PASSWORD" in launcher
-    assert "auth=auth" in launcher
+    assert "launch_production()" in launcher
 
 
 def test_condition_parser_rejects_unbounded_power():
