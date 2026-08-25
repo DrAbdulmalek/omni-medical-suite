@@ -55,7 +55,6 @@ jobs:
           pacman-key --populate archlinux
           pacman -Sy --noconfirm archlinux-keyring
           pacman -Su --noconfirm
-          # Arch package is fuse2; libfuse2 is the Debian/Ubuntu package name.
           pacman -S --noconfirm --needed python python-pip git tesseract tesseract-data-eng tesseract-data-ara poppler qt6-base qt6-imageformats cairo pango gdk-pixbuf2 fuse2 opencv
           command -v python
           python --version
@@ -83,11 +82,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Verify HF source of truth
         run: |
           test -f hf-space/app.py
+          test -f hf-space/app_core.py
           test -f hf-space/Dockerfile
           test -f hf-space/requirements.txt
+      - name: Validate HF Python entrypoints
+        run: |
+          python -m py_compile hf-space/app.py hf-space/app_core.py
       - name: Build HF Space image
         uses: docker/build-push-action@v5
         with:
@@ -98,8 +104,12 @@ jobs:
           tags: omni-medical-hf:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Verify image import
-        run: docker run --rm --entrypoint python omni-medical-hf:ci -c "import app; print('HF Space app import OK')"
+      - name: Verify built image metadata and runtime contract
+        run: |
+          docker image inspect omni-medical-hf:ci >/dev/null
+          test "$(docker image inspect omni-medical-hf:ci --format '{{.Config.User}}')" = "appuser"
+          test "$(docker image inspect omni-medical-hf:ci --format '{{.Config.WorkingDir}}')" = "/app"
+          docker run --rm --entrypoint python omni-medical-hf:ci -m py_compile /app/app.py /app/app_core.py
 
   colab-smoke:
     name: Colab notebook validation
