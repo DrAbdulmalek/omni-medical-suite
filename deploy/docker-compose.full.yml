@@ -21,7 +21,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: deploy/Dockerfile.api
       target: production
     container_name: omni-api
     restart: unless-stopped
