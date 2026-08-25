@@ -1,7 +1,18 @@
-# Security Scan — runs weekly on Mondays
+# Security Scan — blocking on pull requests and weekly on Mondays
 name: Security Scan
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'requirements*.txt'
+      - 'requirements/**'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+      - 'uv.lock'
+      - 'Dockerfile*'
+      - 'deploy/**'
+      - '.github/workflows/security-scan.yml'
   schedule:
     - cron: "0 0 * * 1"
   workflow_dispatch:
@@ -10,7 +21,7 @@ jobs:
   security-scan:
     name: Scan Dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -20,23 +31,22 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install safety
-        run: pip install safety pip-audit
+      - name: Install project dependencies and scanners
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install --upgrade setuptools
+          pip install safety pip-audit
 
       - name: Run pip-audit
-        run: pip-audit -r requirements.txt --desc 2>&1 | tee pip-audit-report.txt
-        continue-on-error: true
+        # python-jose pulls ecdsa transitively. The reported Minerva/side-channel
+        # advisories have no upstream fix, and ecdsa verification is unaffected.
+        # This project signs/verifies JWTs with HS256 and does not use ECDSA/ECDH.
+        # Keep the exceptions explicit and reviewable rather than making the
+        # entire dependency scan non-blocking.
+        run: pip-audit --desc --ignore PYSEC-2026-1325
 
       - name: Run safety check
-        run: safety check --full-report -r requirements.txt 2>&1 | tee safety-report.txt
-        continue-on-error: true
-
-      - name: Upload reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-reports-${{ github.run_number }}
-          path: |
-            pip-audit-report.txt
-            safety-report.txt
-          retention-days: 30
+        # Safety reports the same unfixable ecdsa advisories under its own IDs.
+        # They are explicitly scoped to ecdsa and documented above.
+        run: safety check --full-report --ignore 64396 --ignore 64459

@@ -1,15 +1,11 @@
 # =============================================================================
 # Omni Medical OCR — HuggingFace Spaces Dockerfile (Optimized)
 # =============================================================================
-# Multi-stage build optimized for HF Spaces:
-#   Stage 1 (builder): Install pip packages + pre-cache PaddleOCR models
-#   Stage 2 (runtime): Minimal image with only runtime deps
+# Multi-stage build optimized for HF Spaces.
 #
-# Key optimizations:
-#   - PaddleOCR models pre-downloaded during build (fast cold start)
-#   - Non-root user (appuser:1000) for HF Spaces compatibility
-#   - Health check on port 7860
-#   - Transformers cached separately for lazy translation loading
+# The runtime image is deliberately non-root. PaddleOCR models are downloaded
+# lazily at runtime because PaddleOCR's cache location is version-dependent;
+# copying a hard-coded /root/.paddleocr directory makes the build brittle.
 # =============================================================================
 
 # ---- Stage 1: Builder ----
@@ -17,10 +13,9 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Build dependencies + OCR runtime libs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
     tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng \
     git \
     && rm -rf /var/lib/apt/lists/*
@@ -28,9 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Pre-download PaddleOCR Arabic models (saves ~30s on cold start)
-RUN PYTHONPATH=/install/lib/python3.11/site-packages \
-    python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle_cls=True, lang='ar', show_log=False)" || true
+# Do not pre-download PaddleOCR models here. PaddleOCR changes its cache
+# location between releases, and model downloads are safely performed lazily
+# by the non-root runtime user.
 
 # ---- Stage 2: Runtime ----
 FROM python:3.11-slim AS runtime
@@ -41,33 +36,26 @@ LABEL org.opencontainers.image.source="https://github.com/DrAbdulmalek/omni-medi
 
 WORKDIR /app
 
-# Runtime system deps only (no build-essential)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
     tesseract-ocr tesseract-ocr-ara tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python packages from builder
 COPY --from=builder /install /usr/local
 
-# Create non-root user (HF Spaces requires non-root)
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 1000 appuser \
+    && mkdir -p /app/uploads /app/crops /app/data /app/.cache/huggingface /home/appuser/.paddlex \
+    && chown -R appuser:appuser /app /home/appuser
 USER appuser
 
-# Copy application source
-COPY app.py .
+# app.py is a compatibility wrapper; app_core.py contains the actual Gradio app.
+COPY app.py app_core.py ./
 COPY src/ src/
 COPY packages/ packages/
 COPY config/ config/
 
-# Create data directories
-RUN mkdir -p uploads crops data .cache/huggingface
 ENV HF_HOME=/app/.cache/huggingface
 ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
-
-# Copy pre-cached PaddleOCR models
-COPY --from=builder /root/.paddleocr /home/appuser/.paddleocr
-RUN chown -R appuser:appuser /home/appuser/.paddleocr
 
 EXPOSE 7860
 

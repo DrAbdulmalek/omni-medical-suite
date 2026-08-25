@@ -1,51 +1,53 @@
-"""
-Security Configuration - Pydantic-based (compatible with v1 and v2)
-"""
+"""Security configuration with fail-closed validation."""
 from functools import lru_cache
+import os
 
 try:
-    from pydantic.v1 import BaseSettings, validator  # Pydantic v2 with v1 compat
+    from pydantic.v1 import BaseSettings, root_validator, validator
 except ImportError:
-    from pydantic import BaseSettings, validator  # Pydantic v1
+    from pydantic import BaseSettings, root_validator, validator
+
+
+_INSECURE_SECRETS = {
+    "CHANGE_ME_IN_PRODUCTION",
+    "change_me_in_production",
+    "changeme",
+    "change-me",
+    "secret",
+    "password",
+}
 
 
 class SecurityConfig(BaseSettings):
-    """Security configuration"""
+    """Authentication, database and HTTP security configuration."""
 
-    # JWT
     JWT_SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION"
+    # Backward-compatible deployment alias. JWT_SECRET_KEY always wins when both are set.
+    SECRET_KEY: str | None = None
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     JWT_ISSUER: str = "omni-medical-suite"
     JWT_AUDIENCE: str = "omni-medical-suite-api"
 
-    # PostgreSQL (used by session.py for DB URI)
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "change_me_in_production"
     POSTGRES_DB: str = "omni_medical"
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
 
-    # CORS (used by main.py middleware)
     CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8080"]
     CORS_ALLOW_CREDENTIALS: bool = True
-    CORS_ALLOW_METHODS: list[str] = ["*"]
-    CORS_ALLOW_HEADERS: list[str] = ["*"]
+    CORS_ALLOW_METHODS: list[str] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    CORS_ALLOW_HEADERS: list[str] = ["Authorization", "Content-Type", "Accept", "X-Request-ID"]
 
-    # Security Headers
     ENABLE_SECURITY_HEADERS: bool = True
-
-    # Rate Limiting
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_WINDOW: int = 60
-
-    # Password Policy
-    MIN_PASSWORD_LENGTH: int = 8
+    MIN_PASSWORD_LENGTH: int = 12
     MAX_LOGIN_ATTEMPTS: int = 5
     LOCKOUT_DURATION_MINUTES: int = 15
 
-    # API Keys
     API_KEY_HEADER: str = "X-API-Key"
     API_KEY_QUERY_PARAM: str = "api_key"
 
@@ -54,49 +56,75 @@ class SecurityConfig(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = True
 
+    @root_validator(pre=True)
+    def apply_secret_alias(cls, values):
+        """Accept the historical SECRET_KEY deployment variable safely."""
+        if not values.get("JWT_SECRET_KEY") and values.get("SECRET_KEY"):
+            values["JWT_SECRET_KEY"] = values["SECRET_KEY"]
+        return values
+
     @validator("POSTGRES_PASSWORD")
     @classmethod
-    def validate_db_password(cls, v):
-        if len(v) < 8:
-            raise ValueError("POSTGRES_PASSWORD must be at least 8 characters")
-        return v
+    def validate_db_password(cls, value: str) -> str:
+        if not value:
+            raise ValueError("POSTGRES_PASSWORD cannot be empty")
+        return value
 
     @validator("JWT_SECRET_KEY")
     @classmethod
-    def validate_jwt_secret(cls, v):
-        if v == "CHANGE_ME_IN_PRODUCTION":
-            import logging
-            logging.getLogger(__name__).warning(
-                "JWT_SECRET_KEY is using default value. Change it in production!"
-            )
-        return v
+    def validate_jwt_secret(cls, value: str) -> str:
+        if not value:
+            raise ValueError("JWT_SECRET_KEY cannot be empty")
+        return value
+
+    @root_validator
+    def validate_ranges(cls, values):
+        if values.get("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 0) <= 0:
+            raise ValueError("JWT_ACCESS_TOKEN_EXPIRE_MINUTES must be positive")
+        if values.get("JWT_REFRESH_TOKEN_EXPIRE_DAYS", 0) <= 0:
+            raise ValueError("JWT_REFRESH_TOKEN_EXPIRE_DAYS must be positive")
+        if values.get("MIN_PASSWORD_LENGTH", 0) < 12:
+            raise ValueError("MIN_PASSWORD_LENGTH must be at least 12")
+        return values
 
     @classmethod
-    def validate_config(cls):
-        """Validate all security configurations"""
-        import logging
-        logger = logging.getLogger(__name__)
-        errors = []
+    def validate_config(cls, environment: str | None = None, debug: bool | None = None):
+        """Fail closed unless development mode is explicitly enabled with DEBUG=true."""
+        config = cls()
+        environment = environment or os.getenv("ENVIRONMENT", "development")
+        if debug is None:
+            debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes", "on"}
 
-        if cls().JWT_SECRET_KEY == "CHANGE_ME_IN_PRODUCTION":
-            errors.append("JWT_SECRET_KEY must be changed from default")
+        insecure_jwt = config.JWT_SECRET_KEY in _INSECURE_SECRETS or len(config.JWT_SECRET_KEY) < 32
+        insecure_db = config.POSTGRES_PASSWORD in _INSECURE_SECRETS or len(config.POSTGRES_PASSWORD) < 12
+        explicitly_safe_dev = environment == "development" and debug is True
 
-        if cls().POSTGRES_PASSWORD == "change_me_in_production":
-            errors.append("POSTGRES_PASSWORD must be changed from default")
+        if (insecure_jwt or insecure_db) and not explicitly_safe_dev:
+            raise ValueError(
+                "Insecure default secrets are allowed only in explicit development mode with DEBUG=true"
+            )
 
-        if errors:
-            for error in errors:
-                logger.error(f"Security config error: {error}")
-            raise ValueError(f"Security configuration errors: {', '.join(errors)}")
-
+        if environment in {"production", "staging"}:
+            if insecure_jwt:
+                raise ValueError("JWT_SECRET_KEY must be a unique secret of at least 32 characters")
+            if insecure_db:
+                raise ValueError("POSTGRES_PASSWORD must be a non-default secret of at least 12 characters")
+            if config.JWT_ALGORITHM not in {"HS256", "HS384", "HS512"}:
+                raise ValueError("Unsupported JWT algorithm")
+            if "*" in config.CORS_ALLOW_ORIGINS and config.CORS_ALLOW_CREDENTIALS:
+                raise ValueError("Wildcard CORS origin cannot be combined with credentials")
         return True
 
 
 @lru_cache
 def get_security_config() -> SecurityConfig:
-    """Get security configuration - cached for performance"""
-    return SecurityConfig()
+    """Return cached security configuration after environment-aware validation."""
+    config = SecurityConfig()
+    from app.config.app import get_app_config
+
+    app_config = get_app_config()
+    config.validate_config(app_config.ENVIRONMENT, app_config.DEBUG)
+    return config
 
 
-# Alias for backward compatibility
 validate_config = SecurityConfig.validate_config
