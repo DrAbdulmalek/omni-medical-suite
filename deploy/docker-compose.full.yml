@@ -11,9 +11,9 @@
 #   qdrant   — Qdrant vector DB (for search_service.py)
 #
 # Usage:
-#   docker compose -f docker-compose.prod.yml up -d --build
-#   docker compose -f docker-compose.prod.yml ps
-#   docker compose -f docker-compose.prod.yml logs -f gradio
+#   docker compose -f deploy/docker-compose.full.yml up -d --build
+#   docker compose -f deploy/docker-compose.full.yml ps
+#   docker compose -f deploy/docker-compose.full.yml logs -f gradio
 # =============================================================================
 
 services:
