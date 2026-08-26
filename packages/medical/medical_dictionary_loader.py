@@ -127,15 +127,16 @@ class MedicalDictionaryLoader:
         safe, quarantined = [], []
         for entry in entries:
             dangerous, reason = is_dangerous_key(entry.key)
-            # A production OCR correction may repair a misspelled drug name,
-            # but only as an explicit exact-token mapping; doses/numbers/negation
-            # and padded keys remain forbidden.
-            if not dangerous and is_critical_medical_term(entry.key) and entry.category == "ocr_correction" and entry.source == "production_arabic_fixes":
-                safe.append(entry); continue
             if dangerous:
                 entry.safety_flag = f"quarantined:{reason}"; quarantined.append(entry); continue
             if not entry.value.strip():
                 entry.safety_flag = "quarantined:empty_value"; quarantined.append(entry); continue
+            # Critical medical terms (drug names) must NEVER be used as correction keys,
+            # even from the production arabic_fixes source. Allowing a drug name as a
+            # correction key risks corrupting prescriptions if the value field is ever
+            # changed. The intended drug-name OCR corrections (باراسيتبمول → باراسيتامول)
+            # are handled separately in hf-space/app_core.py:OCR_CORRECTIONS dict,
+            # NOT through this dictionary.
             if is_critical_medical_term(entry.key):
                 entry.safety_flag = "quarantined:critical_medical_term_as_key"; quarantined.append(entry); continue
             safe.append(entry)

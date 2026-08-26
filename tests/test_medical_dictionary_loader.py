@@ -142,8 +142,10 @@ class TestMedicalSafetyFirewall:
         ("1.25", {"decimal_dose"}),
         ("2.5", {"decimal_dose"}),
         ("0.75", {"decimal_dose"}),
-        ("٠٫٥", {"arabic_indic_digits"}),
-        ("١٫٢٥", {"arabic_indic_digits"}),
+        # Arabic-Indic digits like ٠٫٥ also match \d+[.,]\d+ (Python regex \d matches
+        # Unicode digits), so decimal_dose is a correct superset reason.
+        ("٠٫٥", {"arabic_indic_digits", "decimal_dose"}),
+        ("١٫٢٥", {"arabic_indic_digits", "decimal_dose"}),
         # Any input containing "0.75" matches decimal_dose first (correct precedence)
         ("جرعة 0.75 مل", {"decimal_dose", "drug_dose_unit"}),
         ("ترامادول 0.5 mg", {"decimal_dose", "drug_dose_unit"}),
