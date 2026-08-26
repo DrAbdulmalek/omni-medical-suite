@@ -1,14 +1,14 @@
 """Registry for every dictionary-like source in the repository.
 
-The registry separates *what a source is* from *how it may be applied*.
-Large terminology resources are never exposed as blind text replacements.
+The registry separates what a source is from how it may be applied. Large
+terminology resources are never exposed as blind text replacements.
 """
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -25,7 +25,7 @@ class DictionarySpec:
 
 
 DICTIONARY_REGISTRY: tuple[DictionarySpec, ...] = (
-    DictionarySpec("arabic_ocr_fixes", ROOT / "data/arabic_fixes.json", "general", "ocr_correction", "json_map", "ocr-safe spelling corrections"),
+    DictionarySpec("arabic_ocr_fixes", ROOT / "data/arabic_fixes.json", "general", "ocr_correction", "json_map", "OCR-safe spelling corrections"),
     DictionarySpec("safe_ocr_corrections", ROOT / "data/dictionaries/ocr_corrections_safe.json", "general", "ocr_correction", "json_map", "audited OCR corrections"),
     DictionarySpec("general_correction_seed", ROOT / "data/correction_dict_seed.json", "general", "protected_lexicon", "json_map", "general/technical vocabulary; not a replacement dictionary"),
     DictionarySpec("medical_dictionary", ROOT / "data/medical_dictionary.json", "general_medical", "terminology", "medical_json", "general medical and orthopedic terminology"),
@@ -35,8 +35,6 @@ DICTIONARY_REGISTRY: tuple[DictionarySpec, ...] = (
     DictionarySpec("translation_rules", ROOT / "data/translation_rules.json", "general", "translation_rule", "rules_json", "structural and grammatical translation rules"),
 )
 
-# These are corpora/training resources, not dictionaries and must not be routed
-# into runtime correction or translation replacement.
 NON_DICTIONARY_RESOURCES = {
     "data/learning_database.json": "learning database",
     "data/medical_doc_training.jsonl": "training corpus",
@@ -62,13 +60,17 @@ def canonical_specialty(value: str | None) -> str:
 
 
 def specs_for_specialty(specialty: str | None) -> list[DictionarySpec]:
-    """Return sources applicable to a specialty, ordered deterministically."""
+    """Return the general + medical inheritance chain + specialty sources."""
     specialty = canonical_specialty(specialty)
-    selected: list[DictionarySpec] = []
-    for spec in DICTIONARY_REGISTRY:
-        if spec.specialty == "general" or spec.specialty == specialty:
-            selected.append(spec)
-    return selected
+    if specialty == "general":
+        allowed = {"general"}
+    elif specialty == "general_medical":
+        allowed = {"general", "general_medical"}
+    else:
+        # A clinical specialty inherits general-language and general-medical
+        # terminology, then adds its specialty-specific lexicon.
+        allowed = {"general", "general_medical", specialty}
+    return [s for s in DICTIONARY_REGISTRY if s.specialty in allowed]
 
 
 def registry_manifest() -> list[dict[str, Any]]:
@@ -100,13 +102,11 @@ def terminology_terms(spec: DictionarySpec) -> set[str]:
     if spec.format == "medical_json":
         terms.update((data.get("arabic_corrections") or {}).keys())
         terms.update((data.get("arabic_corrections") or {}).values())
-        return {t.strip() for t in terms if isinstance(t, str) and t.strip()}
-    if spec.format == "ortho_json":
+    elif spec.format == "ortho_json":
         for category in (data.get("categories") or {}).values():
             for language in ("arabic", "english"):
                 terms.update(category.get(language) or [])
-        return {t.strip() for t in terms if isinstance(t, str) and t.strip()}
-    return terms
+    return {t.strip() for t in terms if isinstance(t, str) and t.strip()}
 
 
 def protected_terms_for_specialty(specialty: str | None) -> set[str]:
