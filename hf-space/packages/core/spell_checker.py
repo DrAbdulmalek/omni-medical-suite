@@ -12,13 +12,6 @@ v6.0 changes:
 - حماية المصطلحات البرمجية من التصحيح الخاطئ (المراجعة المعمارية)
 - إضافة _is_protected_word() مع دعم الكلمات المخصصة
 - get_suggestions/auto_correct/check_text تتجاوز الكلمات المحمية
-
-PR #92 runtime integration:
-- OCR maps are resolved through SpecialtyDictionaryRouter.
-- The production spell checker classifies the current document when no
-  specialty is supplied and activates only the applicable OCR resources.
-- Protected technical vocabulary is imported as protection only; terminology
-  and TMX are never converted into arbitrary replacement rules.
 """
 import json
 import logging
@@ -31,19 +24,26 @@ ARABIC_FIXES_PATH = "data/dictionaries/ocr_corrections_safe.json"
 _AR_RE = re.compile(r'[\u0600-\u06ff]')
 _EN_RE = re.compile(r'[a-zA-Z]')
 
+# Medical safety boundaries: numbers/doses and negated clinical statements are
+# never passed through spell/dictionary correction. Drug-name OCR typos remain
+# correctable token-by-token (e.g. باراسيتبمول -> باراسيتامول).
 _DECIMAL_RE = re.compile(r"(?:\d+[.,]\d+|[٠-٩]+[٫٬،][٠-٩]+)")
 _DOSE_RE = re.compile(r"(?:\d+(?:[.,]\d+)?|[٠-٩]+(?:[٫٬،][٠-٩]+)?)\s*(?:mg|ml|g|mcg|µg|ug|IU|units?|ملغ|مغ|مل|جم|مجم)\b", re.IGNORECASE)
 _NEGATION_RE = re.compile(r"(?:^|\s)(?:لا\s+يعطى|لا\s+يوجد|ليس\s+لديه|لم\s+|لن\s+|غير\s+|بدون\s+)")
 
 
 def _is_medical_safety_token(word: str) -> bool:
+    """Return True for numeric/dose tokens that must remain byte-for-byte stable."""
     stripped = word.strip(".,;:!?\"'()-")
     return bool(stripped and (_DECIMAL_RE.fullmatch(stripped) or _DOSE_RE.fullmatch(stripped)))
 
 
 def _has_negated_statement(text: str) -> bool:
+    """Negated clinical statements are protected as complete statements."""
     return bool(text and _NEGATION_RE.search(text.strip()))
 
+# ===================== قائمة المصطلحات المحمية =====================
+# هذه الكلمات لن يُقترح أي تصحيح لها — تحل مشكلة "تصحيح" الكلمات البرمجية
 
 TECHNICAL_KEYWORDS = {
     "python", "pythonistas", "scraping", "parsing", "ocr",
@@ -91,63 +91,22 @@ _rebuild_protected_set()
 
 
 class HybridSpellChecker:
-    """مدقق إملائي هجين مع توجيه القواميس حسب التخصص."""
+    """مدقق إملائي هجين — يكتشف اللغة تلقائياً من النص المكتوب."""
 
-    def __init__(self, arabic_fixes_path: str = ARABIC_FIXES_PATH, specialty: str | None = None) -> None:
-        from packages.medical.dictionary_router import SpecialtyDictionaryRouter
-
+    def __init__(self, arabic_fixes_path: str = ARABIC_FIXES_PATH) -> None:
         self._fixes_path = Path(arabic_fixes_path)
-        self._specialty = specialty
-        self._router = SpecialtyDictionaryRouter(specialty or "general_medical")
         self._arabic_fixes: dict = {}
         self._spell_en = self._spell_ar = self._spell_de = None
         self._custom_protected: set = set()
         self._load_fixes()
-        # General/technical vocabulary is a protected lexicon, never a
-        # replacement map. It is small enough to load eagerly.
-        self.add_protected_words(list(self._router.protected_lexicon()))
 
     def _load_fixes(self) -> None:
         try:
-            # The router determines which audited OCR sources are applicable.
-            # An explicit constructor path remains supported and wins on key
-            # conflicts for backward compatibility.
-            self._arabic_fixes = self._router.ocr_corrections()
             if self._fixes_path.exists():
                 with open(self._fixes_path, encoding="utf-8") as f:
-                    explicit = json.load(f)
-                if isinstance(explicit, dict):
-                    self._arabic_fixes.update(explicit)
+                    self._arabic_fixes = json.load(f)
         except Exception as e:
             logger.warning("arabic_fixes: %s", e)
-
-    def _activate_specialty(self, text: str) -> None:
-        """Select a registry namespace from explicit or classified specialty."""
-        if self._specialty:
-            self._router.set_specialty(self._specialty)
-            self._load_fixes()
-            return
-        try:
-            from packages.core.classifier import MedicalClassifier
-            result = MedicalClassifier().classify_with_fallback(text, min_confidence=0.15)
-            self._router.set_specialty(result.get("category", "general_medical"))
-            self._load_fixes()
-        except Exception as e:
-            logger.debug("specialty classification unavailable: %s", e)
-            self._router.set_specialty("general_medical")
-
-    def set_specialty(self, specialty: str | None) -> None:
-        self._specialty = specialty
-        self._router.set_specialty(specialty or "general_medical")
-        self._load_fixes()
-
-    @property
-    def specialty(self) -> str:
-        return self._router.specialty
-
-    def active_dictionary_names(self) -> list[str]:
-        """Return registry resources actually active for this checker instance."""
-        return [spec.name for spec in self._router.specs if spec.path.exists()]
 
     def reload_fixes(self) -> None:
         self._load_fixes()
@@ -212,6 +171,7 @@ class HybridSpellChecker:
             lang = self.detect_language(word)
         suggestions = []
 
+        # 1. Explicit safe OCR corrections. Exact-token lookup only; no str.replace.
         if lang in ("ar", "mixed") and word in self._arabic_fixes:
             fixed = self._arabic_fixes[word]
             if fixed != word:
@@ -291,7 +251,6 @@ class HybridSpellChecker:
         return (sugg[0] if sugg else word), lang
 
     def check_text(self, text: str) -> dict:
-        self._activate_specialty(text)
         lang = self.detect_language(text)
         results = []
         for w in text.split():
@@ -302,8 +261,7 @@ class HybridSpellChecker:
                 "changed": corrected != w,
                 "protected": self._is_protected(w),
             })
-        return {"lang": lang, "words": results, "total": len(results), "specialty": self.specialty,
-                "active_dictionaries": self.active_dictionary_names()}
+        return {"lang": lang, "words": results, "total": len(results)}
 
     def enhance_digit_recognition(self, text: str) -> str:
         if not text:
@@ -332,7 +290,8 @@ class HybridSpellChecker:
     def correct_text(self, text: str) -> str:
         if not text or not text.strip():
             return text
-        self._activate_specialty(text)
+        # Negated statements are protected as a whole: no token-level spell
+        # correction may alter the clinical meaning.
         if _has_negated_statement(text):
             return text
         words = text.split()
