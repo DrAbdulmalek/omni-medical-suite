@@ -310,24 +310,47 @@ def _run_tesseract(image: np.ndarray) -> tuple[str, float]:
 
 
 def _auto_correct_ocr(text: str) -> tuple[str, list[dict]]:
-    """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
-    changes = []
-    corrected = text
-    for wrong, right in OCR_CORRECTIONS.items():
-        if wrong in corrected:
-            count = corrected.count(wrong)
-            corrected = corrected.replace(wrong, right)
-            changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
-    # Normalize whitespace
-    corrected = re.sub(r'[ \t]+', ' ', corrected)
-    corrected = re.sub(r'\n{3,}', '\n\n', corrected).strip()
+    """Apply OCR corrections + spell checker via the canonical HybridSpellChecker.
 
-    # Apply spell checker (lazy) — non-fatal
+    Production path (single source of OCR correction):
+        OCR raw text
+          → HybridSpellChecker.apply_ocr_corrections(text, OCR_CORRECTIONS)
+            → SpecialtyDictionaryRouter
+            → audited OCR corrections
+            → exact-token replacement (preserves punctuation, no substring)
+          → HybridSpellChecker.correct_text()
+            → specialty-routed safe token-level corrections
+
+    This function does NOT use ``str.replace()``, ``OCR_CORRECTIONS.items()``
+    as a replacement loop, or ``wrong in corrected`` substring checks.
+    """
+    changes: list[dict] = []
+    corrected = text
     checker = get_spell_checker()
+    # Step 1: exact-token OCR corrections through the canonical spell checker.
     if checker is not None:
         try:
-            corrected = checker.correct_text(corrected)
+            corrected, changes = checker.apply_ocr_corrections(
+                corrected, OCR_CORRECTIONS
+            )
+        except Exception as e:
+            logger.debug("apply_ocr_corrections failed (non-fatal): %s", e)
+    # Step 2: token-level spell corrections (specialty-routed, safe).
+    if checker is not None:
+        try:
+            new_corrected = checker.correct_text(corrected)
+            if new_corrected != corrected:
+                changes.append({
+                    "type": "spell_check",
+                    "from": corrected,
+                    "to": new_corrected,
+                    "count": 1,
+                })
+                corrected = new_corrected
         except Exception as e:
             logger.debug("spell_checker.correct_text failed (non-fatal): %s", e)
+    # Step 3: normalize whitespace only (no replacement).
+    corrected = re.sub(r'[ \t]+', ' ', corrected)
+    corrected = re.sub(r'\n{3,}', '\n\n', corrected).strip()
 
     return corrected, changes

@@ -13,12 +13,11 @@
     results = pipeline.search("fracture")
 """
 
-import os
-import shutil
 import logging
-from typing import Dict, List, Optional, Any
+import os
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -26,20 +25,20 @@ logger = logging.getLogger(__name__)
 class DictionaryPipeline:
     """
     خط أنابيب القواميس الموحد.
-    
+
     يوفر واجهة واحدة لاستيراد وبحث وتصدير القواميس من مصادر متعددة:
     - ملفات Babylon (.bgl) → عبر BGL Converter
     - قواميس StarDict (.ifo/.idx/.dict) → عبر StarDict Reader
     - ملفات TMX (.tmx) → عبر TMX Processor
     - ملفات JSON و CSV → عبر Dictionary Manager
-    
+
     يدمج جميع المصادر في قاعدة بيانات موحدة مع فهرسة كاملة.
     """
 
     DEFAULT_DB_PATH = "data/dictionaries/medical_terms.db"
     DEFAULT_DATA_DIR = "data/dictionaries"
 
-    def __init__(self, db_path: Optional[str] = None, data_dir: Optional[str] = None):
+    def __init__(self, db_path: str | None = None, data_dir: str | None = None):
         self.db_path = db_path or self.DEFAULT_DB_PATH
         self.data_dir = data_dir or self.DEFAULT_DATA_DIR
         self._manager = None
@@ -58,19 +57,19 @@ class DictionaryPipeline:
             self._manager = MedicalDictionaryManager(db_path=self.db_path)
         return self._manager
 
-    def _get_tmx_processor(self, tmx_file: Optional[str] = None):
+    def _get_tmx_processor(self, tmx_file: str | None = None):
         """الحصول على TMXProcessor"""
         db_path = os.path.join(self.data_dir, "tmx", f"{Path(tmx_file).stem}_review.db") if tmx_file else None
         return tmx_file, __import__("packages.medical.tmx_processor", fromlist=["TMXProcessor"]).TMXProcessor(db_path=db_path)
 
     # ============ استيراد BGL ============
 
-    def import_bgl(self, file_path: str, title: Optional[str] = None,
+    def import_bgl(self, file_path: str, title: str | None = None,
                    source_lang: str = "ar", target_lang: str = "en",
-                   category: Optional[str] = None) -> Dict[str, Any]:
+                   category: str | None = None) -> dict[str, Any]:
         """
         استيراد قاموس Babylon (.bgl).
-        
+
         يستخدم BGLConverter لفك الضغط واستخراج المداخل،
         ثم يحفظها في قاعدة البيانات عبر DictionaryManager.
         """
@@ -86,10 +85,10 @@ class DictionaryPipeline:
         return result.to_dict()
 
     def convert_bgl_to_stardict(self, bgl_path: str,
-                                output_dir: Optional[str] = None) -> Dict[str, Any]:
+                                output_dir: str | None = None) -> dict[str, Any]:
         """
         تحويل ملف BGL إلى صيغة StarDict باستخدام PyGlossary (إن توفر).
-        
+
         يحاول أولاً استخدام PyGlossary، وإذا لم يكن متاحاً يستخدم المحول الداخلي.
         """
         output_dir = output_dir or os.path.join(self.data_dir, "stardict")
@@ -139,9 +138,9 @@ class DictionaryPipeline:
 
     # ============ استيراد StarDict ============
 
-    def import_stardict(self, stardict_dir: str, title: Optional[str] = None,
+    def import_stardict(self, stardict_dir: str, title: str | None = None,
                         source_lang: str = "ar", target_lang: str = "en",
-                        category: Optional[str] = None) -> Dict[str, Any]:
+                        category: str | None = None) -> dict[str, Any]:
         """
         استيراد قاموس StarDict (.ifo/.idx/.dict).
         """
@@ -188,22 +187,22 @@ class DictionaryPipeline:
 
     def import_tmx(self, file_path: str, auto_detect_medical: bool = True,
                    confidence_threshold: float = 0.0,
-                   auto_approve_threshold: float = 0.9) -> Dict[str, Any]:
+                   auto_approve_threshold: float = 0.9) -> dict[str, Any]:
         """
         استيراد ملف TMX واستخراج المصطلحات الطبية.
-        
+
         المعاملات:
             file_path: مسار ملف TMX
             auto_detect_medical: كشف المصطلحات الطبية تلقائياً
             confidence_threshold: الحد الأدنى للثقة
             auto_approve_threshold: اعتماد تلقائي فوق هذا الحد
-            
+
         العائد:
             نتيجة الاستيراد مع إحصائيات
         """
         logger.info(f"استيراد TMX: {file_path}")
 
-        tmx_file, processor = self._get_tmx_processor(file_path)
+        _tmx_file, processor = self._get_tmx_processor(file_path)
         if not os.path.exists(file_path):
             return {"success": False, "error": f"الملف غير موجود: {file_path}"}
 
@@ -260,9 +259,9 @@ class DictionaryPipeline:
 
     # ============ بحث موحد ============
 
-    def search(self, query: str, language: Optional[str] = None,
-               category: Optional[str] = None, limit: int = 50,
-               exact: bool = False) -> List[Dict[str, Any]]:
+    def search(self, query: str, language: str | None = None,
+               category: str | None = None, limit: int = 50,
+               exact: bool = False) -> list[dict[str, Any]]:
         """بحث موحد في جميع القواميس"""
         manager = self._get_manager()
         results = manager.search(query, language=language, category=category,
@@ -270,7 +269,7 @@ class DictionaryPipeline:
         return [r.to_dict() for r in results]
 
     def search_by_prefix(self, prefix: str, language: str = "ar",
-                         limit: int = 20) -> List[Dict[str, Any]]:
+                         limit: int = 20) -> list[dict[str, Any]]:
         """بحث بالبادئة"""
         manager = self._get_manager()
         results = manager.search_by_prefix(prefix, language=language, limit=limit)
@@ -278,17 +277,17 @@ class DictionaryPipeline:
 
     # ============ إحصائيات ============
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """إحصائيات شاملة لجميع القواميس"""
         manager = self._get_manager()
         return manager.get_dictionary_stats()
 
-    def get_categories(self) -> List[Dict[str, Any]]:
+    def get_categories(self) -> list[dict[str, Any]]:
         """التصنيفات المتاحة"""
         manager = self._get_manager()
         return manager.get_categories()
 
-    def list_dictionaries(self) -> List[Dict[str, Any]]:
+    def list_dictionaries(self) -> list[dict[str, Any]]:
         """قائمة القواميس المستوردة"""
         manager = self._get_manager()
         dicts = manager.list_dictionaries()
@@ -296,11 +295,11 @@ class DictionaryPipeline:
 
     # ============ تصدير ============
 
-    def export_all(self, output_dir: Optional[str] = None,
-                   formats: List[str] = None) -> Dict[str, Any]:
+    def export_all(self, output_dir: str | None = None,
+                   formats: list[str] | None = None) -> dict[str, Any]:
         """
         تصدير جميع القواميس إلى صيغ متعددة.
-        
+
         المعاملات:
             output_dir: مجلد الإخراج
             formats: صيغ التصدير (json, csv, omni)
@@ -328,7 +327,7 @@ class DictionaryPipeline:
 
     # ============ تحقق وتكامل ============
 
-    def validate_integrity(self) -> Dict[str, Any]:
+    def validate_integrity(self) -> dict[str, Any]:
         """التحقق من سلامة قاعدة البيانات"""
         manager = self._get_manager()
         stats = manager.get_dictionary_stats()
@@ -355,7 +354,7 @@ class DictionaryPipeline:
             "stats": stats,
         }
 
-    def sync_with_nlp_pipeline(self) -> Dict[str, Any]:
+    def sync_with_nlp_pipeline(self) -> dict[str, Any]:
         """
         مزامنة القاموس مع خط أنابيب NLP.
         يُحدّث ملفات JSON المستخدمة في SpellCorrector و ProtectedWordsManager.
@@ -397,10 +396,10 @@ class DictionaryPipeline:
     # ============ استيراد دفعي ============
 
     def batch_import(self, directory: str, pattern: str = "*",
-                     file_type: str = "auto") -> List[Dict[str, Any]]:
+                     file_type: str = "auto") -> list[dict[str, Any]]:
         """
         استيراد مجموعة ملفات دفعة واحدة.
-        
+
         المعاملات:
             directory: مجلد الملفات
             pattern: نمط أسماء الملفات (مثل "*.bgl")
@@ -435,9 +434,7 @@ class DictionaryPipeline:
                     result = self.import_bgl(str(filepath))
                 elif detected_type == "tmx":
                     result = self.import_tmx(str(filepath))
-                elif detected_type == "json":
-                    result = self._get_manager().import_dictionary(str(filepath))
-                elif detected_type == "csv":
+                elif detected_type == "json" or detected_type == "csv":
                     result = self._get_manager().import_dictionary(str(filepath))
                 else:
                     result = {"success": False, "error": f"صيغة غير مدعومة: {ext}"}

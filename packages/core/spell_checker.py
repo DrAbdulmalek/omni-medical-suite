@@ -329,6 +329,87 @@ class HybridSpellChecker:
         has_letter_digit = any(c in self._DIGIT_CORRECTIONS for c in word)
         return has_digit and has_letter_digit
 
+    # Punctuation that may surround a token. Used by apply_ocr_corrections to
+    # preserve surrounding punctuation while replacing only the exact-token
+    # body. We do NOT use str.replace() on the full text — that would corrupt
+    # longer words containing a typo as a substring (e.g. "باراسيتبمولات" must
+    # NOT be matched against the key "باراسيتبمول").
+    _TOKEN_PUNCT = ".,;:!?\"'()[]{}«»‹›،؛؟"
+
+    def apply_ocr_corrections(
+        self,
+        text: str,
+        corrections_map: dict[str, str] | None = None,
+    ) -> tuple[str, list[dict]]:
+        """Apply audited OCR corrections as exact-token replacements only.
+
+        This is the single canonical entry point for OCR correction. It does
+        NOT use ``str.replace()`` on the full text and does NOT perform
+        substring replacement. Each whitespace-separated token is matched
+        against the corrections map only after stripping surrounding
+        punctuation; the surrounding punctuation is preserved verbatim.
+
+        Safety guarantees (enforced token-by-token and on the full text):
+          - Numeric-only tokens are never replaced.
+          - Decimal/dose tokens (``0.5``, ``1.25 mg``, ``٠٫٥``) are never replaced.
+          - Negated clinical statements (``لا يعطى ...``, ``ليس لديه ...``) are
+            preserved verbatim — the entire text is returned unchanged.
+          - Substring matches inside a longer token are NOT applied
+            (e.g. ``باراسيتبمولات`` does NOT match the key ``باراسيتبمول``).
+
+        Returns a tuple ``(corrected_text, changes)`` where ``changes`` is a
+        list of ``{type, from, to, count}`` dicts describing each correction.
+        """
+        if not text or not text.strip():
+            return text, []
+        # Negated clinical statements are protected at the statement level.
+        if _has_negated_statement(text):
+            return text, []
+        corrections = corrections_map or {}
+        if not corrections:
+            return text, []
+        # Preserve original whitespace by splitting on whitespace explicitly
+        # and re-joining with the original separator. text.split() collapses
+        # whitespace, so we use re.split with capture to preserve it.
+        tokens_with_ws = re.split(r"(\s+)", text)
+        out_parts: list[str] = []
+        changes: list[dict] = []
+        for token in tokens_with_ws:
+            if not token or token.isspace():
+                out_parts.append(token)
+                continue
+            # Strip surrounding punctuation to get the token body.
+            # Find the leading-punct / trailing-punct boundaries.
+            lead = 0
+            while lead < len(token) and token[lead] in self._TOKEN_PUNCT:
+                lead += 1
+            trail = len(token)
+            while trail > lead and token[trail - 1] in self._TOKEN_PUNCT:
+                trail -= 1
+            body = token[lead:trail]
+            if not body:
+                out_parts.append(token)
+                continue
+            # Safety: never correct numeric/dose tokens.
+            if _is_medical_safety_token(body):
+                out_parts.append(token)
+                continue
+            # Exact-token match only (NOT substring).
+            if body in corrections:
+                replacement = corrections[body]
+                if replacement and replacement != body:
+                    new_token = token[:lead] + replacement + token[trail:]
+                    out_parts.append(new_token)
+                    changes.append({
+                        "type": "ocr_fix",
+                        "from": body,
+                        "to": replacement,
+                        "count": 1,
+                    })
+                    continue
+            out_parts.append(token)
+        return "".join(out_parts), changes
+
     def correct_text(self, text: str) -> str:
         if not text or not text.strip():
             return text

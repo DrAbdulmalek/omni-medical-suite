@@ -1,4 +1,11 @@
+from pathlib import Path
+
+import pytest
+
 from packages.medical.translation_memory import ExactTranslationMemory
+
+ROOT = Path(__file__).resolve().parents[1]
+MALEK_TERMS = ROOT / "data" / "dictionaries" / "malek_data_terms.json"
 
 
 def test_specialty_tm_is_selected_from_registry_not_all_sources():
@@ -18,10 +25,19 @@ def test_specialty_tm_remains_exact_match_only():
     assert tm.translate_exact(arbitrary) is None
 
 
+@pytest.mark.skipif(
+    not MALEK_TERMS.exists(),
+    reason="malek_data_terms.json is git-ignored and regenerated only when the malek_data 7z archive is available",
+)
 def test_tm_provenance_is_preserved_for_specialty_source():
     """Every TM entry must have non-empty provenance (source attribution).
     The category may be 'translation_memory' or any other category the source
-    TMX file assigned (e.g., 'vascular_complications', 'glossary_term')."""
+    TMX file assigned (e.g., 'vascular_complications', 'glossary_term').
+
+    Skipped when ``data/dictionaries/malek_data_terms.json`` is absent — that
+    file is git-ignored and regeneratable via ``scripts/setup_medical_dictionaries.py``.
+    In a fresh CI clone without the private malek_data archive, the TMX index
+    is intentionally empty."""
     tm = ExactTranslationMemory.from_specialty("orthopedic_surgery")
     found_any = False
     for bucket in tm._index.values():

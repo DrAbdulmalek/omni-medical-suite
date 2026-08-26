@@ -18,13 +18,43 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_production_ocr_uses_specialty_router_and_safety_cases():
+    """Verify the canonical OCR correction path through HybridSpellChecker.
+
+    Production call graph (PR #92):
+      OCR raw text
+        → HybridSpellChecker.apply_ocr_corrections(text, OCR_CORRECTIONS)
+          → SpecialtyDictionaryRouter
+          → audited OCR corrections
+          → exact-token replacement (preserves punctuation, no substring)
+        → HybridSpellChecker.correct_text()
+          → specialty-routed safe token-level corrections
+    """
     checker = HybridSpellChecker()
     assert "safe_ocr_corrections" in checker.active_dictionary_names()
+    # Safety cases through correct_text (must remain unchanged)
     assert checker.correct_text("ترامادول 0.5 mg") == "ترامادول 0.5 mg"
     assert checker.correct_text("لا يعطى ترامادول 0.5 mg") == "لا يعطى ترامادول 0.5 mg"
-    assert checker.correct_text("باراسيتبمول 500 mg") == "باراسيتامول 500 mg"
     for value in ("0.5", "1.25", "0.75", "٠٫٥", "١٫٢٥"):
         assert checker.correct_text(value) == value
+    # Intended OCR correction (باراسيتبمول → باراسيتامول) happens via
+    # apply_ocr_corrections with the hardcoded OCR_CORRECTIONS dict — NOT
+    # via correct_text (which uses arabic_fixes that exclude critical drug
+    # names per the safety firewall).
+    # The canonical production path is _auto_correct_ocr() in hf-space/app_core.py
+    # which calls apply_ocr_corrections first, then correct_text.
+    import sys
+    from pathlib import Path
+    ROOT = Path(__file__).resolve().parents[1]
+    if str(ROOT / "hf-space") not in sys.path:
+        sys.path.append(str(ROOT / "hf-space"))
+    import app_core
+    # The full production path: _auto_correct_ocr applies OCR_CORRECTIONS via
+    # HybridSpellChecker.apply_ocr_corrections (exact-token), then correct_text.
+    out, _ = app_core._auto_correct_ocr("باراسيتبمول 500 mg")
+    assert out == "باراسيتامول 500 mg", f"Expected correction, got {out!r}"
+    # Substring safety: باراسيتبمولات must NOT match the key باراسيتبمول
+    out2, _ = app_core._auto_correct_ocr("باراسيتبمولات")
+    assert out2 == "باراسيتبمولات", f"Substring replacement detected: {out2!r}"
 
 
 def test_specialty_classifier_routes_real_production_spell_checker():
