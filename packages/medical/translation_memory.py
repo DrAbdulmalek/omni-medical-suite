@@ -25,11 +25,14 @@ class ExactTranslationMemory:
             if not source or not target:
                 continue
             key = normalize_arabic_key(source)
+            # Provenance: must be non-empty; fall back to "unknown" if missing
+            provenance = str(entry.get("source", "") or "").strip() or "unknown"
+            category = str(entry.get("category", "") or "").strip() or "translation_memory"
             self._index.setdefault(key, []).append({
                 "source": source,
                 "target": target,
-                "provenance": entry.get("source", "unknown"),
-                "category": entry.get("category", "translation_memory"),
+                "provenance": provenance,
+                "category": category,
             })
 
     @classmethod

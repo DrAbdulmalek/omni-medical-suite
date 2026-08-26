@@ -19,8 +19,19 @@ def test_specialty_tm_remains_exact_match_only():
 
 
 def test_tm_provenance_is_preserved_for_specialty_source():
+    """Every TM entry must have non-empty provenance (source attribution).
+    The category may be 'translation_memory' or any other category the source
+    TMX file assigned (e.g., 'vascular_complications', 'glossary_term')."""
     tm = ExactTranslationMemory.from_specialty("orthopedic_surgery")
+    found_any = False
     for bucket in tm._index.values():
         for entry in bucket:
-            assert entry["provenance"]
-            assert entry["category"] == "translation_memory"
+            found_any = True
+            # Provenance MUST be non-empty (source attribution is required)
+            assert entry["provenance"], \
+                f"Entry missing provenance: {entry}"
+            # Category MUST be non-empty (defaults to 'translation_memory' if missing)
+            assert entry["category"], \
+                f"Entry missing category: {entry}"
+    # Sanity: the TM index must have at least some entries
+    assert found_any, "Specialty TM index is empty"

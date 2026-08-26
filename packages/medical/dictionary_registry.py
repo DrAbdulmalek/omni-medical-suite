@@ -25,14 +25,14 @@ class DictionarySpec:
 
 
 DICTIONARY_REGISTRY: tuple[DictionarySpec, ...] = (
-    DictionarySpec("arabic_ocr_fixes", ROOT / "data/arabic_fixes.json", "general", "ocr_correction", "json_map", "OCR-safe spelling corrections"),
-    DictionarySpec("safe_ocr_corrections", ROOT / "data/dictionaries/ocr_corrections_safe.json", "general", "ocr_correction", "json_map", "audited OCR corrections"),
-    DictionarySpec("general_correction_seed", ROOT / "data/correction_dict_seed.json", "general", "protected_lexicon", "json_map", "general/technical vocabulary; not a replacement dictionary"),
-    DictionarySpec("medical_dictionary", ROOT / "data/medical_dictionary.json", "general_medical", "terminology", "medical_json", "general medical and orthopedic terminology"),
-    DictionarySpec("orthopedic_lexicon", ROOT / "data/ortho_lexicon.json", "orthopedic_surgery", "terminology", "ortho_json", "orthopedic surgery terminology"),
-    DictionarySpec("medical_glossary", ROOT / "data/arabic-medical-glossary/glossaries/final_unified_glossary.csv", "general_medical", "terminology", "csv", "medical bilingual glossary"),
-    DictionarySpec("malek_tmx", ROOT / "data/dictionaries/malek_data_terms.json", "general_medical", "translation_memory", "entries_json", "extracted TMX translation memory"),
-    DictionarySpec("translation_rules", ROOT / "data/translation_rules.json", "general", "translation_rule", "rules_json", "structural and grammatical translation rules"),
+    DictionarySpec("arabic_ocr_fixes", ROOT / "data/arabic_fixes.json", "general", "ocr_correction", "json_map", "loaded", "OCR-safe spelling corrections"),
+    DictionarySpec("safe_ocr_corrections", ROOT / "data/dictionaries/ocr_corrections_safe.json", "general", "ocr_correction", "json_map", "loaded", "audited OCR corrections"),
+    DictionarySpec("general_correction_seed", ROOT / "data/correction_dict_seed.json", "general", "protected_lexicon", "json_map", "loaded", "general/technical vocabulary; not a replacement dictionary"),
+    DictionarySpec("medical_dictionary", ROOT / "data/medical_dictionary.json", "general_medical", "terminology", "medical_json", "loaded", "general medical and orthopedic terminology"),
+    DictionarySpec("orthopedic_lexicon", ROOT / "data/ortho_lexicon.json", "orthopedic_surgery", "terminology", "ortho_json", "loaded", "orthopedic surgery terminology"),
+    DictionarySpec("medical_glossary", ROOT / "data/arabic-medical-glossary/glossaries/final_unified_glossary.csv", "general_medical", "terminology", "csv", "loaded", "medical bilingual glossary"),
+    DictionarySpec("malek_tmx", ROOT / "data/dictionaries/malek_data_terms.json", "general_medical", "translation_memory", "entries_json", "loaded", "extracted TMX translation memory"),
+    DictionarySpec("translation_rules", ROOT / "data/translation_rules.json", "general", "translation_rule", "rules_json", "loaded", "structural and grammatical translation rules"),
 )
 
 NON_DICTIONARY_RESOURCES = {
@@ -97,15 +97,28 @@ def terminology_terms(spec: DictionarySpec) -> set[str]:
     """Extract terms for protection/recognition, never replacement."""
     if not spec.path.exists() or spec.role != "terminology":
         return set()
-    data = _read_json(spec.path)
     terms: set[str] = set()
     if spec.format == "medical_json":
+        data = _read_json(spec.path)
         terms.update((data.get("arabic_corrections") or {}).keys())
         terms.update((data.get("arabic_corrections") or {}).values())
     elif spec.format == "ortho_json":
+        data = _read_json(spec.path)
         for category in (data.get("categories") or {}).values():
             for language in ("arabic", "english"):
                 terms.update(category.get(language) or [])
+    elif spec.format == "csv":
+        # CSV terminology files (e.g., final_unified_glossary.csv) — extract
+        # 'en' and 'ar' columns. NOTE: this returns ALL terms as a set for
+        # protection/recognition only; it is NOT used as a replacement map.
+        import csv as _csv
+        with spec.path.open(encoding="utf-8", newline="") as f:
+            reader = _csv.DictReader(f)
+            for row in reader:
+                en = (row.get("en") or "").strip()
+                ar = (row.get("ar") or "").strip()
+                if en: terms.add(en)
+                if ar: terms.add(ar)
     return {t.strip() for t in terms if isinstance(t, str) and t.strip()}
 
 
