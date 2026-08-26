@@ -4,8 +4,8 @@
 Dictionary resources are separated by role:
 - Translation rules are delegated to the existing rule engine.
 - TMX is exact whole-segment lookup only.
-- Terminology is exact whole-input lookup for short terms; it is never a
-  blind substring replacement map.
+- Bilingual terminology is exact whole-input lookup for short terms; it is
+  never a blind substring replacement map.
 - Specialty selection is inherited from general -> general_medical -> specialty.
 """
 
@@ -59,7 +59,6 @@ def get_dictionary_router(specialty: str | None = "general_medical"):
     """Return the production dictionary router for a canonical specialty."""
     from packages.medical.dictionary_router import SpecialtyDictionaryRouter
     from packages.medical.dictionary_registry import canonical_specialty
-
     canonical = canonical_specialty(specialty)
     router = _dictionary_router_cache.get(canonical)
     if router is None:
@@ -69,10 +68,9 @@ def get_dictionary_router(specialty: str | None = "general_medical"):
 
 
 def get_exact_translation_memory(specialty: str | None = "general_medical"):
-    """Load only the TMX resources routed to the selected specialty."""
+    """Load only TMX resources routed to the selected specialty."""
     from packages.medical.translation_memory import ExactTranslationMemory
     from packages.medical.dictionary_registry import canonical_specialty
-
     canonical = canonical_specialty(specialty)
     if canonical not in _tm_cache:
         _tm_cache[canonical] = ExactTranslationMemory.from_specialty(canonical)
@@ -90,24 +88,19 @@ def _lookup_exact_dictionary(text: str, direction: str, specialty: str) -> str |
         logger.info("Exact TM hit: specialty=%s direction=%s", specialty, direction)
         return tm_target
 
-    # Terminology is consulted only as an exact whole-input lookup. This keeps
-    # the 124k+ glossary out of arbitrary string replacement semantics.
-    if direction in ("English → Arabic", "Arabic → English"):
-        router = get_dictionary_router(specialty)
-        matches = router.lookup_term_exact(text)
-        if matches:
-            # Prefer the candidate whose source language matches the requested
-            # direction. The registry stores both directions for bilingual CSV.
-            target_lang_is_ar = direction == "English → Arabic"
-            for match in matches:
-                source = match["source"]
-                target = match["target"]
-                source_has_ar = bool(re.search(r"[\u0600-\u06ff]", source))
-                if target_lang_is_ar and not source_has_ar:
-                    return target
-                if not target_lang_is_ar and source_has_ar:
-                    return target
-            return matches[0]["target"]
+    # Only an explicitly bilingual glossary can provide a translation. OCR
+    # correction maps and specialty lexicons are intentionally excluded here.
+    if direction == "English → Arabic":
+        target_lang = "ar"
+    elif direction == "Arabic → English":
+        target_lang = "en"
+    else:
+        return None
+    router = get_dictionary_router(specialty)
+    matches = router.lookup_translation_exact(text, target_lang)
+    if matches:
+        logger.info("Exact terminology hit: specialty=%s direction=%s", specialty, direction)
+        return matches[0]["target"]
     return None
 
 
@@ -204,12 +197,7 @@ def translate_text(
     progress: Callable[[float, str], None] | None = None,
     specialty: str | None = None,
 ) -> str:
-    """Translate using production dictionaries selected by specialty.
-
-    Exact TM/glossary matches short-circuit MT. Non-exact clinical text is
-    intentionally left to MarianMT + the dedicated post-MT rule engine; no
-    dictionary is used as an arbitrary substring replacement mechanism.
-    """
+    """Translate using production dictionaries selected by specialty."""
     if not text or not text.strip():
         return "⚠️ الرجاء إدخال نص للترجمة."
 
@@ -226,7 +214,6 @@ def translate_text(
                 f"**المصدر**: exact dictionary/TMX  |  **التخصص**: `{resolved_specialty}`"
             )
     except Exception as e:
-        # Dictionary failure must never break the primary MT pipeline.
         logger.warning("Dictionary lookup unavailable: %s", e)
 
     progress = progress or _noop_progress
