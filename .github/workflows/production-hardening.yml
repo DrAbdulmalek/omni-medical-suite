@@ -128,6 +128,9 @@ jobs:
           JWT_SECRET_KEY: '01234567890123456789012345678901'
         run: pytest -q tests/security/test_medical_safety_contract.py
 
+      - name: Run Docker workflow path regression test
+        run: pytest -q tests/security/test_docker_workflow_paths.py
+
       - name: Run PostgreSQL authentication integration tests
         env:
           ENVIRONMENT: development
