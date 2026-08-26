@@ -29,6 +29,9 @@ DECIMAL_PATTERN = re.compile(r"(?:\d+[.,]\d+|[٠-٩]+[٫٬،][٠-٩]+)")
 DRUG_DOSE_PATTERN = re.compile(r"\b(?:\d+(?:\.\d+)?|[٠-٩]+(?:[٫٬،][٠-٩]+)?)\s*(?:mg|ml|g|mcg|µg|ug|IU|units?|قطرات?|مل|جم|مجم|ملغ|مغ)\b", re.IGNORECASE)
 CONCENTRATION_PATTERN = re.compile(r"\b\d+(?:\.\d+)?\s*%")
 ARABIC_INDIC_DIGITS = re.compile(r"[\u0660-\u0669\u06F0-\u06F9]")
+EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+PHONE_PATTERN = re.compile(r"(?<!\w)(?:\+\s*[0-9٠-٩][0-9٠-٩\s().-]{7,}[0-9٠-٩])(?!\w)")
+URL_PATTERN = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
 CRITICAL_MEDICAL_TERMS = {"ترامادول", "باراسيتامول", "باراسيتبمول", "ايبوبروفين", "ايبوروفين", "اموكسيسيلين", "اموكسيستلين", "اموكسيسلين", "ديكلوفيناك", "نابروكسين", "كوديين", "سالبوتامول", "لوراتادين", "سيتيريزين", "رانيتيدين", "فاموتيدين", "ميترونيدازول", "ميتروندازول", "اوجمنتين", "اوجمينتين", "اوميبرازول", "ازيثرومايسين", "ازيثروميسين", "سيفترياكسون", "دوكسيسيكلين", "سيبروفلوكساسين", "لوفلوكساسين", "ميفيناميك", "بنادول", "ادفيل", "كاتافلام", "فولتارين", "مونتيلوكاست", "سودوافيدرين", "انالجين"}
 
 @dataclass
@@ -52,6 +55,12 @@ def normalize_arabic_key(text: str) -> str:
     s = re.sub(r"[\u0622\u0623\u0625]", "ا", s)
     s = s.replace("ى", "ي").replace("ک", "ك").replace("ی", "ي").replace("ہ", "ه").replace("ة", "ه")
     return re.sub(r"\s+", " ", s).lower()
+
+def contains_pii(text: str) -> bool:
+    """Content-based safety check for contact/identifier material."""
+    if not text:
+        return False
+    return bool(EMAIL_PATTERN.search(text) or PHONE_PATTERN.search(text) or URL_PATTERN.search(text))
 
 def is_dangerous_key(key: str) -> Tuple[bool, str]:
     if not key or not key.strip(): return True, "empty_key"
@@ -131,12 +140,11 @@ class MedicalDictionaryLoader:
                 entry.safety_flag = f"quarantined:{reason}"; quarantined.append(entry); continue
             if not entry.value.strip():
                 entry.safety_flag = "quarantined:empty_value"; quarantined.append(entry); continue
-            # Critical medical terms (drug names) must NEVER be used as correction keys,
-            # even from the production arabic_fixes source. Allowing a drug name as a
-            # correction key risks corrupting prescriptions if the value field is ever
-            # changed. The intended drug-name OCR corrections (باراسيتبمول → باراسيتامول)
-            # are handled separately in hf-space/app_core.py:OCR_CORRECTIONS dict,
-            # NOT through this dictionary.
+            # Content-based PII filtering applies to both key and value. This
+            # deliberately removes institutional contact strings too: a
+            # dictionary/TMX runtime should not carry contact information.
+            if contains_pii(entry.key) or contains_pii(entry.value):
+                entry.safety_flag = "quarantined:pii_or_contact"; quarantined.append(entry); continue
             if is_critical_medical_term(entry.key):
                 entry.safety_flag = "quarantined:critical_medical_term_as_key"; quarantined.append(entry); continue
             safe.append(entry)
