@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List
 
+from .dictionary_registry import canonical_specialty
+from .dictionary_router import SpecialtyDictionaryRouter
 from .medical_dictionary_loader import normalize_arabic_key
 
 
@@ -35,6 +37,22 @@ class ExactTranslationMemory:
         data = json.loads(path.read_text(encoding="utf-8"))
         entries = data.get("entries", data) if isinstance(data, dict) else data
         return cls(entries)
+
+    @classmethod
+    def from_specialty(cls, specialty: str | None = "general_medical") -> "ExactTranslationMemory":
+        """Build TM from only TMX sources applicable to the selected specialty."""
+        router = SpecialtyDictionaryRouter(canonical_specialty(specialty))
+        all_entries: list[dict] = []
+        for path in router.translation_memory_sources():
+            data = json.loads(path.read_text(encoding="utf-8"))
+            entries = data.get("entries", data) if isinstance(data, dict) else data
+            for entry in entries:
+                if isinstance(entry, dict):
+                    enriched = dict(entry)
+                    enriched.setdefault("source", f"{path.name}:tmx")
+                    enriched.setdefault("category", "translation_memory")
+                    all_entries.append(enriched)
+        return cls(all_entries)
 
     def lookup_exact(self, text: str) -> List[dict]:
         """Return candidates only when the complete input is an indexed key."""
