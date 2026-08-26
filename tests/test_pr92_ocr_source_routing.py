@@ -24,7 +24,6 @@ def test_safe_ocr_source_is_loaded_by_production_checker():
     )
     checker = HybridSpellChecker()
     assert checker._arabic_fixes
-    # A known audited safe correction must be available to the production checker.
     assert "الاستااذ" in checker._arabic_fixes
     assert checker._arabic_fixes["الاستااذ"] == safe["الاستااذ"]
 
@@ -34,11 +33,22 @@ def test_ocr_correction_is_exact_token_and_preserves_punctuation():
 
     checker = HybridSpellChecker()
     corrected, changes = checker.apply_ocr_corrections(
-        "الاستااذ، والالفل. والاسمالات", checker._arabic_fixes
+        "الاستااذ، الالفل. والاسمالات", checker._arabic_fixes
     )
-    assert corrected == "الأستاذ، والألف. والاسمالات"
+    assert corrected == "الأستاذ، الألف. والاسمالات"
     assert [c["from"] for c in changes] == ["الاستااذ", "الالفل"]
     assert "والاسمالات" in corrected
+
+
+def test_prefixed_form_is_not_substring_corrected():
+    from packages.core.spell_checker import HybridSpellChecker
+
+    checker = HybridSpellChecker()
+    corrected, changes = checker.apply_ocr_corrections(
+        "والالفل", checker._arabic_fixes
+    )
+    assert corrected == "والالفل"
+    assert changes == []
 
 
 def test_critical_drug_correction_remains_explicit_and_exact_token():
@@ -56,8 +66,8 @@ def test_safe_ocr_map_does_not_become_terminology_or_tm_replacement():
 
     router = SpecialtyDictionaryRouter("general_medical")
     assert not hasattr(router, "replace_text")
-    assert router.lookup_term_exact("الاستااذ") is None
-    assert router.lookup_translation_exact("الاستااذ") is None
+    assert router.lookup_term_exact("الاستااذ") == []
+    assert router.lookup_translation_exact("الاستااذ", "en") == []
 
 
 @pytest.mark.parametrize(
