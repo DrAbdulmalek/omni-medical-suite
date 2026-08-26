@@ -1,9 +1,15 @@
 # =============================================================================
 # OmniMedical Suite — Docker Build & Push to GHCR
 # =============================================================================
-# Triggers when docker-related files change on main.
-# Builds and pushes the real production images to GitHub Container Registry:
-#   - deploy/Dockerfile.gradio  (Gradio HITL interface, production target)
+# Triggers when docker-related files change on main or via pull_request.
+#
+# Behavior:
+#   - On push to main:  builds and PUSHES images to GHCR
+#   - On pull_request:  builds WITHOUT pushing (validates that both production
+#     Dockerfiles build successfully before merge)
+#
+# Production images built:
+#   - deploy/Dockerfile.gradio  (Gradio HITL interface, target=production)
 #   - deploy/Dockerfile.api     (FastAPI production image)
 # =============================================================================
 
@@ -12,6 +18,19 @@ name: Docker
 on:
   push:
     branches: [main]
+    paths:
+      - "deploy/**"
+      - "packages/**"
+      - "app/**"
+      - "hf-space/**"
+      - "src/**"
+      - "requirements.txt"
+      - "requirements/**"
+      - "pyproject.toml"
+      - "alembic.ini"
+      - "migrations/**"
+      - ".github/workflows/docker.yml"
+  pull_request:
     paths:
       - "deploy/**"
       - "packages/**"
@@ -74,6 +93,10 @@ jobs:
   # ===========================================================================
   # Build & Push — Gradio (HITL production image)
   # ===========================================================================
+  # On pull_request: push=false (build only, no GHCR push)
+  # On push to main: push=true  (build and push to GHCR)
+  # This ensures both Dockerfiles are validated on every PR that touches
+  # docker-related files, without polluting GHCR with unmerged images.
   docker-gradio:
     name: Docker Build (Gradio)
     runs-on: ubuntu-latest
@@ -91,7 +114,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry (push only)
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -114,7 +138,7 @@ jobs:
           context: .
           file: deploy/Dockerfile.gradio
           target: production
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=gradio
@@ -140,7 +164,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry (push only)
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -162,7 +187,7 @@ jobs:
         with:
           context: .
           file: deploy/Dockerfile.api
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=api

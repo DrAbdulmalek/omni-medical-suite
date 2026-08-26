@@ -94,3 +94,71 @@ class TestDockerWorkflowPaths:
         assert "test_docker_workflow_paths" in content, (
             "production-hardening.yml must run tests/security/test_docker_workflow_paths.py"
         )
+
+    def test_docker_workflow_triggers_on_pull_request(self):
+        """The Docker workflow MUST run on pull_request so that both
+        production Dockerfiles are validated BEFORE merge (not only
+        after merge to main). Without this, a broken Dockerfile would
+        only be discovered post-merge."""
+        import yaml
+        content = DOCKER_WORKFLOW.read_text(encoding="utf-8")
+        parsed = yaml.safe_load(content)
+        # YAML 1.1 parses 'on' as boolean True; handle both
+        on_key = parsed.get("on") or parsed.get(True)
+        assert on_key is not None, "docker.yml must have an 'on:' trigger section"
+        assert "pull_request" in on_key, (
+            "docker.yml must trigger on pull_request (currently only triggers "
+            "on push to main, which means broken Dockerfiles are only caught "
+            "post-merge)"
+        )
+
+    def test_docker_workflow_does_not_push_on_pull_request(self):
+        """On pull_request, the Docker build MUST use push:false to avoid
+        polluting GHCR with unmerged images. Push should only happen on
+        push to main."""
+        content = DOCKER_WORKFLOW.read_text(encoding="utf-8")
+        # Find all 'push:' settings in build steps (the build-push-action 'push' field)
+        # We look for lines that set push: with a value
+        push_lines = re.findall(r"^\s+push:\s*(.+)$", content, re.MULTILINE)
+        # Filter out the trigger 'push:' (which is at column 2, not 4+)
+        build_push_lines = [p for p in push_lines if "${{" in p or p.strip() in ("true", "false")]
+        assert len(build_push_lines) >= 2, (
+            f"Expected at least 2 build push: settings (gradio + api), found {len(build_push_lines)}: {build_push_lines}"
+        )
+        for i, push_val in enumerate(build_push_lines):
+            push_val = push_val.strip()
+            # Must be conditional (not a hardcoded 'true')
+            assert push_val != "true", (
+                f"Build step #{i+1} has push: true (hardcoded) — must be "
+                f"conditional: push: ${{{{ github.event_name == 'push' }}}}"
+            )
+            assert "github.event_name" in push_val and "push" in push_val, (
+                f"Build step #{i+1} push setting must be conditional on "
+                f"github.event_name == 'push', got: {push_val}"
+            )
+
+    def test_docker_workflow_yaml_syntax_is_valid(self):
+        """Verify docker.yml has no YAML syntax corruption and parses cleanly."""
+        import yaml
+        content = DOCKER_WORKFLOW.read_text(encoding="utf-8")
+        # Should parse without error
+        parsed = yaml.safe_load(content)
+        assert isinstance(parsed, dict), "docker.yml must parse to a dict"
+        # 'on' key must exist and be a dict
+        on_key = parsed.get("on") or parsed.get(True)  # YAML 1.1 parses 'on' as True
+        assert on_key is not None, "docker.yml must have an 'on:' trigger section"
+        assert isinstance(on_key, dict), (
+            f"docker.yml 'on:' must be a dict, got {type(on_key).__name__}"
+        )
+        # Check branches is a list, not a corrupted string
+        if "push" in on_key:
+            push_config = on_key["push"]
+            if isinstance(push_config, dict) and "branches" in push_config:
+                branches = push_config["branches"]
+                assert isinstance(branches, list), (
+                    f"docker.yml push.branches must be a list, got "
+                    f"{type(branches).__name__}: {branches!r}"
+                )
+                assert "main" in branches, (
+                    f"docker.yml push.branches must contain 'main', got {branches}"
+                )
