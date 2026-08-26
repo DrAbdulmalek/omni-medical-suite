@@ -1,8 +1,16 @@
 # =============================================================================
 # OmniMedical Suite — Docker Build & Push to GHCR
 # =============================================================================
-# Triggers only when docker-related files change on main.
-# Builds and pushes web + api images to GitHub Container Registry.
+# Triggers when docker-related files change on main or via pull_request.
+#
+# Behavior:
+#   - On push to main:  builds and PUSHES images to GHCR
+#   - On pull_request:  builds WITHOUT pushing (validates that both production
+#     Dockerfiles build successfully before merge)
+#
+# Production images built:
+#   - deploy/Dockerfile.gradio  (Gradio HITL interface, target=production)
+#   - deploy/Dockerfile.api     (FastAPI production image)
 # =============================================================================
 
 name: Docker
@@ -11,15 +19,30 @@ on:
   push:
     branches: [main]
     paths:
-      - "infrastructure/docker/**"
-      - "apps/web/**"
+      - "deploy/**"
       - "packages/**"
-      - "services/**"
-      - "prisma/**"
+      - "app/**"
+      - "hf-space/**"
+      - "src/**"
       - "requirements.txt"
-      - "package.json"
-      - "package-lock.json"
-      - "Dockerfile*"
+      - "requirements/**"
+      - "pyproject.toml"
+      - "alembic.ini"
+      - "migrations/**"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    paths:
+      - "deploy/**"
+      - "packages/**"
+      - "app/**"
+      - "hf-space/**"
+      - "src/**"
+      - "requirements.txt"
+      - "requirements/**"
+      - "pyproject.toml"
+      - "alembic.ini"
+      - "migrations/**"
+      - ".github/workflows/docker.yml"
 
 env:
   REGISTRY: ghcr.io
@@ -33,49 +56,68 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      web: ${{ steps.filter.outputs.web }}
+      gradio: ${{ steps.filter.outputs.gradio }}
       api: ${{ steps.filter.outputs.api }}
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Detect changed paths
         uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
-            web:
-              - "apps/web/**"
-              - "infrastructure/docker/Dockerfile.web"
-              - "prisma/**"
-              - "package.json"
-              - "package-lock.json"
-              - "turbo.json"
-            api:
+            gradio:
+              - "deploy/Dockerfile.gradio"
+              - "deploy/Dockerfile"
+              - "hf-space/**"
               - "packages/**"
-              - "services/**"
-              - "infrastructure/docker/Dockerfile.api"
+              - "src/**"
               - "requirements.txt"
+              - "requirements/**"
+              - "pyproject.toml"
+              - ".github/workflows/docker.yml"
+            api:
+              - "deploy/Dockerfile.api"
+              - "deploy/Dockerfile"
+              - "app/**"
+              - "packages/**"
+              - "src/**"
+              - "migrations/**"
+              - "alembic.ini"
+              - "requirements.txt"
+              - "requirements/**"
+              - "pyproject.toml"
+              - ".github/workflows/docker.yml"
 
   # ===========================================================================
-  # Build & Push — Web (Next.js)
+  # Build & Push — Gradio (HITL production image)
   # ===========================================================================
-  docker-web:
-    name: Docker Build (Web)
+  # On pull_request: push=false (build only, no GHCR push)
+  # On push to main: push=true  (build and push to GHCR)
+  # This ensures both Dockerfiles are validated on every PR that touches
+  # docker-related files, without polluting GHCR with unmerged images.
+  docker-gradio:
+    name: Docker Build (Gradio)
     runs-on: ubuntu-latest
     needs: detect-changes
-    if: needs.detect-changes.outputs.web == 'true'
+    if: needs.detect-changes.outputs.gradio == 'true'
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry (push only)
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -86,25 +128,26 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_PREFIX }}/web
+          images: ${{ env.IMAGE_PREFIX }}/gradio
           tags: |
             type=sha,prefix=
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Web image
+      - name: Build and push Gradio image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: infrastructure/docker/Dockerfile.web
-          push: true
+          file: deploy/Dockerfile.gradio
+          target: production
+          push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
+          cache-from: type=gha,scope=gradio
+          cache-to: type=gha,mode=max,scope=gradio
 
   # ===========================================================================
-  # Build & Push — API (FastAPI)
+  # Build & Push — API (FastAPI production image)
   # ===========================================================================
   docker-api:
     name: Docker Build (API)
@@ -115,13 +158,16 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry (push only)
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -142,8 +188,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: infrastructure/docker/Dockerfile.api
-          push: true
+          file: deploy/Dockerfile.api
+          push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=api
