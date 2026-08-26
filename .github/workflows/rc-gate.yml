@@ -1,10 +1,7 @@
 name: RC Gate — v1.1.0
 
-# ══════════════════════════════════════════════════════════════════
-# P2-1: RC Gate workflow — comprehensive quality gate for v1.1.0
-# Runs on push to main or manually.
-# All checks must pass before tagging a release candidate.
-# ══════════════════════════════════════════════════════════════════
+# P2-1: comprehensive quality gate for v1.1.0.
+# Runs on pushes to main or manually. Every required check is fail-closed.
 
 on:
   push:
@@ -33,24 +30,22 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install ruff
-      - run: ruff check src/ packages/ app/ scripts/ --exit-zero
-      - run: ruff format --check src/ packages/ app/ scripts/ --exit-zero
+      - run: ruff check src/ packages/ app/ scripts/
+      - run: ruff format --check src/ packages/ app/ scripts/
 
   typecheck:
     name: Type Check (mypy)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-      - run: |
-          pip install -r requirements.txt 2>/dev/null || true
-          pip install mypy
-      - run: mypy src/ packages/core packages/nlp --config-file mypy.ini || true
+      - run: pip install -r requirements.txt
+      - run: pip install mypy
+      - run: mypy src/ packages/core packages/nlp --config-file mypy.ini
 
   test-critical:
     name: Critical Tests
@@ -64,10 +59,10 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-ara 2>/dev/null || true
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-ara
           pip install pytest pytest-cov rapidfuzz numpy
-          pip install -r requirements.txt 2>/dev/null || true
-      - run: pytest tests/ -x -q --tb=short -k "not integration and not e2e and not loadtest" --ignore=tests/integration --ignore=tests/loadtest 2>&1 || true
+          pip install -r requirements.txt
+      - run: pytest tests/ -x -q --tb=short -k "not integration and not e2e and not loadtest" --ignore=tests/integration --ignore=tests/loadtest
 
   mobile-smoke:
     name: Mobile Server Smoke
@@ -101,38 +96,49 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install bandit
-      - run: bandit -r src/ packages/ app/ scripts/ -ll -x packages/omniparse,packages/omni-ocr,packages/ocr_postprocess/vendor,tests || true
+      - run: bandit -r src/ packages/ app/ scripts/ -ll -x packages/omniparse,packages/omni-ocr,packages/ocr_postprocess/vendor,tests
 
   lfs-audit:
     name: LFS Coverage Audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
-      - run: bash scripts/audit-lfs-coverage.sh || true
+      - run: bash scripts/audit-lfs-coverage.sh
 
   rc-gate:
     name: RC Gate — All Checks
     runs-on: ubuntu-latest
-    needs: [lint, test-critical, mobile-smoke, security]
+    needs: [lint, typecheck, test-critical, mobile-smoke, security, lfs-audit]
     if: always()
     steps:
       - name: Evaluate gate
         run: |
           echo "## RC Gate Results" >> "$GITHUB_STEP_SUMMARY"
-          for job in lint test-critical mobile-smoke security; do
-            RESULT="${{ needs.$job.result }}"
+          for job in lint typecheck test-critical mobile-smoke security lfs-audit; do
+            RESULT="${{ needs.lint.result }}"
+            case "$job" in
+              typecheck) RESULT="${{ needs.typecheck.result }}" ;;
+              test-critical) RESULT="${{ needs.test-critical.result }}" ;;
+              mobile-smoke) RESULT="${{ needs.mobile-smoke.result }}" ;;
+              security) RESULT="${{ needs.security.result }}" ;;
+              lfs-audit) RESULT="${{ needs.lfs-audit.result }}" ;;
+            esac
             ICON=$([ "$RESULT" = "success" ] && echo "✅" || echo "❌")
             echo "| $job | $ICON $RESULT |" >> "$GITHUB_STEP_SUMMARY"
           done
-          if [[ "${{ needs.lint.result }}" == "failure" ]] || \
-             [[ "${{ needs.test-critical.result }}" == "failure" ]] || \
-             [[ "${{ needs.mobile-smoke.result }}" == "failure" ]] || \
-             [[ "${{ needs.security.result }}" == "failure" ]]; then
-            exit 1
-          fi
+          for result in \
+            "${{ needs.lint.result }}" \
+            "${{ needs.typecheck.result }}" \
+            "${{ needs.test-critical.result }}" \
+            "${{ needs.mobile-smoke.result }}" \
+            "${{ needs.security.result }}" \
+            "${{ needs.lfs-audit.result }}"; do
+            if [[ "$result" != "success" ]]; then
+              exit 1
+            fi
+          done
           echo "✅ RC Gate PASSED — ready for release tag"
