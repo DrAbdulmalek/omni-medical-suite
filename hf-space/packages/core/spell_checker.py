@@ -20,15 +20,32 @@ from difflib import get_close_matches
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
-ARABIC_FIXES_PATH = "data/arabic_fixes.json"
+ARABIC_FIXES_PATH = "data/dictionaries/ocr_corrections_safe.json"
 _AR_RE = re.compile(r'[\u0600-\u06ff]')
 _EN_RE = re.compile(r'[a-zA-Z]')
+
+# Medical safety boundaries: numbers/doses and negated clinical statements are
+# never passed through spell/dictionary correction. Drug-name OCR typos remain
+# correctable token-by-token (e.g. باراسيتبمول -> باراسيتامول).
+_DECIMAL_RE = re.compile(r"(?:\d+[.,]\d+|[٠-٩]+[٫٬،][٠-٩]+)")
+_DOSE_RE = re.compile(r"(?:\d+(?:[.,]\d+)?|[٠-٩]+(?:[٫٬،][٠-٩]+)?)\s*(?:mg|ml|g|mcg|µg|ug|IU|units?|ملغ|مغ|مل|جم|مجم)\b", re.IGNORECASE)
+_NEGATION_RE = re.compile(r"(?:^|\s)(?:لا\s+يعطى|لا\s+يوجد|ليس\s+لديه|لم\s+|لن\s+|غير\s+|بدون\s+)")
+
+
+def _is_medical_safety_token(word: str) -> bool:
+    """Return True for numeric/dose tokens that must remain byte-for-byte stable."""
+    stripped = word.strip(".,;:!?\"'()-")
+    return bool(stripped and (_DECIMAL_RE.fullmatch(stripped) or _DOSE_RE.fullmatch(stripped)))
+
+
+def _has_negated_statement(text: str) -> bool:
+    """Negated clinical statements are protected as complete statements."""
+    return bool(text and _NEGATION_RE.search(text.strip()))
 
 # ===================== قائمة المصطلحات المحمية =====================
 # هذه الكلمات لن يُقترح أي تصحيح لها — تحل مشكلة "تصحيح" الكلمات البرمجية
 
 TECHNICAL_KEYWORDS = {
-    # مصطلحات برمجية عامة
     "python", "pythonistas", "scraping", "parsing", "ocr",
     "batch", "programming", "script", "database", "configure",
     "setup", "env", "immutable", "concatenation", "tuples",
@@ -36,15 +53,12 @@ TECHNICAL_KEYWORDS = {
     "integers", "float", "boolean", "syntax", "web",
     "etl", "dataframe", "json", "csv", "yaml", "markdown",
     "mermaid", "repository", "clone", "commit", "push",
-    # اختصارات تقنية
     "repl", "dpi", "api", "gpu", "cpu", "ram", "rom",
     "lora", "huggingface", "transformers", "pytorch", "tensorboard",
-    # كلمات من ملاحظات المستخدم
     "printouts", "involve", "scattered", "skyrocketed", "stacked",
     "affectionately", "serpentine", "cryptic", "sophisticated",
     "intricate", "throwaway", "surreal", "conventions",
     "trade", "off", "boot", "camps",
-    # مفاهيم تقنية
     "comprehensions", "replication", "precedence", "modulo",
     "exponent", "traceback", "overriding",
 }
@@ -55,7 +69,6 @@ PYTHON_KEYWORDS = {
     "finally", "for", "from", "global", "if", "import", "in", "is",
     "lambda", "nonlocal", "not", "or", "pass", "raise", "return",
     "try", "while", "with", "yield",
-    # دوال مدمجة
     "print", "input", "len", "range", "type", "int", "str", "float",
     "list", "dict", "set", "tuple", "bool", "open", "file", "super",
     "self", "cls", "init", "repr", "main", "name", "args", "kwargs",
@@ -66,17 +79,14 @@ PYTHON_KEYWORDS = {
     "module", "package",
 }
 
-# مجموعة داخلية للحصول على أفضل أداء (كلها lowercase)
 _PROTECTED_WORDS_LOWER: set = set()
 
 
 def _rebuild_protected_set():
-    """إعادة بناء مجموعة الكلمات المحمية."""
     global _PROTECTED_WORDS_LOWER
     _PROTECTED_WORDS_LOWER = {k.lower() for k in TECHNICAL_KEYWORDS} | {k.lower() for k in PYTHON_KEYWORDS}
 
 
-# بناء المجموعة عند استيراد الوحدة
 _rebuild_protected_set()
 
 
@@ -87,7 +97,7 @@ class HybridSpellChecker:
         self._fixes_path = Path(arabic_fixes_path)
         self._arabic_fixes: dict = {}
         self._spell_en = self._spell_ar = self._spell_de = None
-        self._custom_protected: set = set()  # كلمات محمية إضافية من المستخدم
+        self._custom_protected: set = set()
         self._load_fixes()
 
     def _load_fixes(self) -> None:
@@ -102,13 +112,11 @@ class HybridSpellChecker:
         self._load_fixes()
 
     def _sc(self, lang: str):
-        """Lazy-load pyspellchecker for given language."""
         attr = f"_spell_{lang}"
         if getattr(self, attr) is None:
             try:
                 from spellchecker import SpellChecker
                 sc = SpellChecker(language=lang, distance=1)
-                # تحميل الكلمات المحمية في قاموس التردد لمنع اقتراح بدائلها
                 all_protected = list(TECHNICAL_KEYWORDS | PYTHON_KEYWORDS)
                 if all_protected:
                     sc.word_frequency.load_words(all_protected)
@@ -118,80 +126,57 @@ class HybridSpellChecker:
         obj = getattr(self, attr)
         return obj if obj else None
 
-    # ── حماية الكلمات البرمجية ──────────────────────────────────────
-
     @staticmethod
     def is_protected_word(word: str) -> bool:
-        """
-        التحقق مما إذا كانت الكلمة محمية (مصطلح برمجي/كلمة بايثون).
-        الكلمات المحمية لا تُصحَّح أبداً — تُعاد كما هي.
-        """
         if not word:
             return False
         return word.lower() in _PROTECTED_WORDS_LOWER
 
     def add_protected_words(self, words: list[str]) -> None:
-        """إضافة كلمات مخصصة للحماية من التصحيح."""
         new_words = [w.strip().lower() for w in words if w.strip()]
         if new_words:
             self._custom_protected.update(new_words)
-            # تحديث المجموعة العامة أيضاً
             global _PROTECTED_WORDS_LOWER
             _PROTECTED_WORDS_LOWER = _PROTECTED_WORDS_LOWER | self._custom_protected
             logger.debug("تم إضافة %d كلمة محمية مخصصة (المجموع: %d)", len(new_words), len(_PROTECTED_WORDS_LOWER))
 
     def _is_protected(self, word: str) -> bool:
-        """فحص محلي يشمل الكلمات المخصصة أيضاً."""
         if not word:
             return False
         return word.lower() in (_PROTECTED_WORDS_LOWER | self._custom_protected)
 
-    # ── اكتشاف اللغة ─────────────────────────────────────────────────
-
     def detect_language(self, text: str) -> str:
-        """
-        اكتشاف لغة النص من محتواه — بدون اختيار يدوي.
-        Returns: "ar" | "en" | "de" | "mixed"
-        """
         if not text or not text.strip():
             return "en"
         clean = text.replace(" ", "")
         ar = len(_AR_RE.findall(clean)) / max(len(clean), 1)
         en = len(_EN_RE.findall(clean)) / max(len(clean), 1)
-        if ar > 0.50:   return "ar"
+        if ar > 0.50:
+            return "ar"
         if en > 0.50:
             de_chars = len(re.findall(r'[äöüßÄÖÜ]', text))
-            de_words = sum(1 for w in ["der","die","das","und","ist","nicht"] if w in text.lower())
+            de_words = sum(1 for w in ["der", "die", "das", "und", "ist", "nicht"] if w in text.lower())
             return "de" if (de_chars > 0 or de_words >= 2) else "en"
         if ar > 0.15 or en > 0.15:
             return "mixed"
         return "en"
 
-    # ── الاقتراحات ───────────────────────────────────────────────────
-
     def get_suggestions(self, word: str, lang: str | None = None, n: int = 5) -> list:
-        """
-        اقتراحات تصحيح من أربعة مصادر: fixes + DB + spellchecker + difflib.
-        الكلمات المحمية تُتجاوز مباشرة وتُعاد كما هي.
-        """
         if not word or not word.strip():
             return []
-
-        # ⛔ تخطي الكلمات المحمية
-        if self._is_protected(word):
-            return []  # لا توجد اقتراحات لكلمة محمية
+        if self._is_protected(word) or _is_medical_safety_token(word) or _has_negated_statement(word):
+            return []
 
         if lang is None:
             lang = self.detect_language(word)
         suggestions = []
 
-        # 1. arabic_fixes.json (أعلى أولوية لأخطاء OCR)
+        # 1. Explicit safe OCR corrections. Exact-token lookup only; no str.replace.
         if lang in ("ar", "mixed") and word in self._arabic_fixes:
             fixed = self._arabic_fixes[word]
             if fixed != word:
                 suggestions.append(fixed)
 
-        # 2. WordCorrectionDB (تعلّم من تصحيحات المستخدم)
         try:
             from packages.core.word_trainer import WordCorrectionDB
             db = WordCorrectionDB()
@@ -204,7 +189,6 @@ class HybridSpellChecker:
         except Exception:
             pass
 
-        # 3. pyspellchecker
         lang_map = {"ar": "ar", "en": "en", "de": "de", "mixed": "en"}
         sc_lang = lang_map.get(lang, "en")
         sc = self._sc(sc_lang)
@@ -217,42 +201,33 @@ class HybridSpellChecker:
             except Exception:
                 pass
 
-        # 4. Difflib على arabic_fixes كـ fallback (صارم عمداً)
-        # ⚠️ إصلاح حرج: لا تُشغّل difflib إذا كانت الكلمة صحيحة أصلاً (قيمة في fixes)
-        # كان يُحوّل "المريض" → "الميه" لأنهما متقاربتان في arabic_fixes.keys()
-        # cutoff مرتفع 0.85 بدل 0.72 القديم + تجاهل الكلمات القصيرة <4 أحرف
         _is_known_correct = word in self._arabic_fixes.values()
         if (not suggestions and lang in ("ar", "mixed")
                 and not _is_known_correct and len(word) >= 4):
             pool = list(self._arabic_fixes.keys())
             for c in get_close_matches(word, pool, n=n, cutoff=0.85):
-                # تحقق إضافي: لا تقترح كلمة من المفاتيح (هي نفسها خطأ مطبوع)
-                # بل اقترح التصحيح المقابل
                 if c not in suggestions and c in self._arabic_fixes:
                     suggestions.append(self._arabic_fixes[c])
 
         seen, unique = set(), []
         for s in suggestions:
             if s not in seen:
-                seen.add(s); unique.append(s)
+                seen.add(s)
+                unique.append(s)
         return unique[:n]
 
-    def _try_digit_fix(self, word: str):
-        """
-        يحاول تفسير الكلمة كرقم OCR مشوَّه (مثل '5OO'→'500') قبل أي
-        محاولة تصحيح لغوي. يُرجع الرقم المُصحَّح إن نجح، وإلا None.
+    _DIGIT_CORRECTIONS = {
+        "O": "0", "o": "0", "I": "1", "l": "1", "|": "1",
+        "Z": "2", "z": "2", "S": "5", "s": "5", "G": "6",
+        "T": "7", "t": "7", "B": "8",
+    }
 
-        هذا يُستدعى أولاً في auto_correct() تحديداً لمنع مشكلة حقيقية:
-        بدون هذا الفحص المُبكِّر، كانت pyspellchecker (الإنجليزية) تتدخل
-        أولاً وتحوّل '5OO' لكلمة إنجليزية عشوائية غير ذات صلة (مثل
-        'goo'/'zoo') قبل أن تصل الفرصة لـ enhance_digit_recognition —
-        وهو خطر حقيقي في سياق جرعات دوائية.
-        """
+    def _try_digit_fix(self, word: str):
         clean = word.strip(".,;:!?\"'()-")
         if not clean or not all(c.isalnum() or c in "_-/" for c in clean):
             return None
         if not any(c.isdigit() for c in clean):
-            return None  # لا رقم في الكلمة أصلاً
+            return None
         fixed = clean
         for letter, digit in self._DIGIT_CORRECTIONS.items():
             fixed = fixed.replace(letter, digit)
@@ -261,33 +236,21 @@ class HybridSpellChecker:
         return None
 
     def auto_correct(self, word: str) -> tuple:
-        """
-        تصحيح تلقائي + كشف لغة. Returns: (corrected, lang)
-        الكلمات المحمية تُعاد كما هي مع lang=en.
-        ⚠️ v7.1: فحص أرقام OCR أولاً (من Patch) + حماية الكلمات الصحيحة.
-        """
-        # ⛔ فحص أرقام OCR أولاً — قبل أي تصحيح لغوي
-        # (من patch المستخدم — يمنع 5OO→zoo)
+        if _is_medical_safety_token(word) or _has_negated_statement(word):
+            return word, self.detect_language(word)
         digit_fix = self._try_digit_fix(word)
         if digit_fix is not None:
             return digit_fix, "en"
 
         lang = self.detect_language(word)
-
-        # ⛔ تخطي الكلمات المحمية
         if self._is_protected(word):
             return word, lang
-
         if lang in ("ar", "mixed") and word in self._arabic_fixes:
             return self._arabic_fixes[word], lang
         sugg = self.get_suggestions(word, lang=lang, n=1)
         return (sugg[0] if sugg else word), lang
 
     def check_text(self, text: str) -> dict:
-        """
-        فحص نص كامل. Returns: {lang, words: [...], total}
-        الكلمات المحمية تُعلَّم "protected": True.
-        """
         lang = self.detect_language(text)
         results = []
         for w in text.split():
@@ -300,24 +263,7 @@ class HybridSpellChecker:
             })
         return {"lang": lang, "words": results, "total": len(results)}
 
-    # ── تصحيح الأرقام البصري ───────────────────────────────────────
-
-    _DIGIT_CORRECTIONS = {
-        "O": "0", "o": "0",
-        "I": "1", "l": "1", "|": "1",
-        "Z": "2", "z": "2",
-        "S": "5", "s": "5",
-        "G": "6",
-        "T": "7", "t": "7",
-        "B": "8",
-    }
-
     def enhance_digit_recognition(self, text: str) -> str:
-        """
-        تصحيح حرفي للأرقام في النص (OCR artifact fix).
-        يحوّل الحروف المشابهة بصرياً للأرقام: O→0, I→1, S→5, ...
-        يعمل فقط على الكلمات الخالصة من الأرقام والحروف المشابهة.
-        """
         if not text:
             return text
         words = text.split()
@@ -334,13 +280,7 @@ class HybridSpellChecker:
             corrected.append(word)
         return " ".join(corrected)
 
-    # ── تصحيح نص كامل ───────────────────────────────────────────────
-
     def _looks_like_digit_corruption(self, word: str) -> bool:
-        """
-        هل تبدو الكلمة ناتجة عن خطأ OCR بصري في الأرقام؟
-        مثال: "5OO" (رقم + حروف مشابهة لأرقام)
-        """
         if not word:
             return False
         has_digit = any(c.isdigit() for c in word)
@@ -348,14 +288,11 @@ class HybridSpellChecker:
         return has_digit and has_letter_digit
 
     def correct_text(self, text: str) -> str:
-        """
-        تصحيح نص كامل كلمة بكلمة مع حفظ الكلمات المحمية + digit recognition.
-        ⚠️ v7.1: enhance_digit_recognition يُشغَّل *قبل* auto_correct للكلمات
-           التي تبدو كـ digit corruption (مثل 5OO). كان "5OO" يُحوَّل لـ"zoo"
-           لأن auto_correct يستدعي مصحح الإنجليزية أولاً.
-        بديل متوافق مع src/correction.correct_text().
-        """
         if not text or not text.strip():
+            return text
+        # Negated statements are protected as a whole: no token-level spell
+        # correction may alter the clinical meaning.
+        if _has_negated_statement(text):
             return text
         words = text.split()
         corrected = []
@@ -364,39 +301,28 @@ class HybridSpellChecker:
             if clean and self._is_protected(clean):
                 corrected.append(w)
                 continue
-            if not clean:
+            if not clean or _is_medical_safety_token(clean):
                 corrected.append(w)
                 continue
 
-            # v7.1: digit recognition أولاً لكلمات تحتوي أرقام + حروف مشابهة
             if self._looks_like_digit_corruption(clean):
                 digit_fixed = self.enhance_digit_recognition(clean)
-                # إذا تحولت لكلمة رقمية خالصة — لا حاجة لتصحيح إملائي
                 stripped = digit_fixed.strip(".,;:!?\"'()-")
                 if stripped and stripped.isdigit():
                     corrected.append(w.replace(clean, digit_fixed))
                     continue
-                # خلاف ذلك، استمر بالتصحيح العادي على النتيجة
                 clean = digit_fixed
 
             c, _ = self.auto_correct(clean)
             corrected.append(w.replace(clean, c))
-        # تصحيح أرقام نهائي على النص الكامل (للحالات التي لم تُمسكها الحلقة أعلاه)
-        result = self.enhance_digit_recognition(" ".join(corrected))
-        return result
+        return self.enhance_digit_recognition(" ".join(corrected))
 
     def spell_correct_word(self, word: str) -> str:
-        """
-        تصحيح سريع كلمة واحدة مع digit recognition.
-        v7.1: digit recognition أولاً مثل correct_text.
-        بديل متوافق مع src/correction.spell_correct_word().
-        """
         word = word.strip()
         if not word:
             return ""
-        if self._is_protected(word):
+        if _is_medical_safety_token(word) or _has_negated_statement(word) or self._is_protected(word):
             return word
-        # v7.1: digit recognition أولاً
         if self._looks_like_digit_corruption(word):
             digit_fixed = self.enhance_digit_recognition(word)
             stripped = digit_fixed.strip(".,;:!?\"'()-")
@@ -407,7 +333,6 @@ class HybridSpellChecker:
         return self.enhance_digit_recognition(corrected)
 
     def get_protected_count(self) -> dict:
-        """إرجاع عدد الكلمات المحمية لكل فئة."""
         return {
             "technical_keywords": len(TECHNICAL_KEYWORDS),
             "python_keywords": len(PYTHON_KEYWORDS),
