@@ -107,3 +107,12 @@ packages/desktop/.last_build_commit
 packages/desktop/AppDir/
 packages/desktop/*.AppImage
 packages/desktop/*.AppImage.sha256
+
+# ── Generated unified dictionary artifacts (regeneratable via scripts/export_unified_glossary.py) ──
+# These are large merged JSON/CSV files produced by packages/medical/medical_dictionary_loader.py
+# Re-generate with: python3 scripts/export_unified_glossary.py
+data/dictionaries/medical_glossary_merged.json
+data/dictionaries/medical_glossary_merged.csv
+data/dictionaries/malek_data_terms.json
+data/dictionaries/quarantined_entries.json
+data/dictionaries/conflicts.json

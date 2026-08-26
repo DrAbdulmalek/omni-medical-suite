@@ -2,15 +2,14 @@
 Advanced Medical OCR Reviewer — محسن لمعالجة الملاحظات الطبية بخط اليد
 يدعم: حماية مصطلحات طبية، عزل أرقام مرجعية، دعم نصوص كثيفة، تصدير بيانات التدريب
 """
-import cv2
-import numpy as np
+import json
 import os
 import re
-import json
 import zipfile
 from pathlib import Path
-from PIL import Image
-from typing import List, Dict, Optional, Tuple
+
+import cv2
+import numpy as np
 
 
 class AdvancedMedicalOCR:
@@ -56,7 +55,7 @@ class AdvancedMedicalOCR:
                 paragraph=False, min_size=10, contrast_ths=0.3
             )
 
-    def preprocess_image(self, img_path: str) -> Tuple[Optional[np.ndarray], Optional[Tuple[int, int]]]:
+    def preprocess_image(self, img_path: str) -> tuple[np.ndarray | None, tuple[int, int] | None]:
         """إصدار محسّن لإزالة خطوط الدفتر مع الحفاظ على التشكيل"""
         img = cv2.imread(img_path)
         if img is None:
@@ -96,7 +95,7 @@ class AdvancedMedicalOCR:
 
         return final, (margin_x, margin_y)
 
-    def segment_lines(self, image: np.ndarray) -> List[Tuple[int, int]]:
+    def segment_lines(self, image: np.ndarray) -> list[tuple[int, int]]:
         """تقسيم محسّن للنصوص الكثيفة"""
         _, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
@@ -137,7 +136,7 @@ class AdvancedMedicalOCR:
 
         return merged_lines
 
-    def protect_medical_terms(self, text: str) -> Tuple[str, Dict[str, str]]:
+    def protect_medical_terms(self, text: str) -> tuple[str, dict[str, str]]:
         """حماية المصطلحات الطبية من التعديل الخاطئ"""
         protected = text
         placeholders = {}
@@ -151,14 +150,14 @@ class AdvancedMedicalOCR:
 
         return protected, placeholders
 
-    def restore_medical_terms(self, text: str, placeholders: Dict[str, str]) -> str:
+    def restore_medical_terms(self, text: str, placeholders: dict[str, str]) -> str:
         """استعادة المصطلحات الطبية بعد المعالجة"""
         restored = text
         for placeholder, original in placeholders.items():
             restored = restored.replace(placeholder, original)
         return restored
 
-    def extract_reference_numbers(self, text: str) -> Tuple[str, List[str]]:
+    def extract_reference_numbers(self, text: str) -> tuple[str, list[str]]:
         """عزل الأرقام المرجعية عن النص الرئيسي"""
         references = []
         clean_text = text
@@ -174,7 +173,7 @@ class AdvancedMedicalOCR:
     def process_file(self, file_path: str) -> str:
         """معالجة ملف وتجهيزه للمراجعة"""
         self._ensure_reader()
-        img, margins = self.preprocess_image(file_path)
+        img, _margins = self.preprocess_image(file_path)
         if img is None:
             return "خطأ في قراءة الصورة"
 
@@ -209,20 +208,20 @@ class AdvancedMedicalOCR:
         self.current_idx = 0
         return f"تم تجهيز {len(self.lines_data)} سطر للمراجعة."
 
-    def get_current_line(self) -> Optional[Dict]:
+    def get_current_line(self) -> dict | None:
         """إرجاع بيانات السطر الحالي"""
         if not self.lines_data or self.current_idx >= len(self.lines_data):
             return None
         return self.lines_data[self.current_idx]
 
-    def save_correction_and_next(self, corrected_text: str) -> Optional[Dict]:
+    def save_correction_and_next(self, corrected_text: str) -> dict | None:
         """حفظ التعديل والانتقال للتالي"""
         if self.lines_data and self.current_idx < len(self.lines_data):
             self.lines_data[self.current_idx]['corrected_text'] = corrected_text
             self.current_idx += 1
         return self.get_current_line()
 
-    def save_correction_and_prev(self, corrected_text: str) -> Optional[Dict]:
+    def save_correction_and_prev(self, corrected_text: str) -> dict | None:
         """حفظ والعودة للخلف"""
         if self.lines_data and self.current_idx < len(self.lines_data):
             self.lines_data[self.current_idx]['corrected_text'] = corrected_text
@@ -274,7 +273,7 @@ class AdvancedMedicalOCR:
 
         return zip_name
 
-    def get_progress(self) -> Dict:
+    def get_progress(self) -> dict:
         """معلومات التقدم الحالي"""
         total = len(self.lines_data)
         medical_count = sum(1 for l in self.lines_data if l.get('has_medical_term', False))
