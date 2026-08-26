@@ -103,8 +103,10 @@ def test_loader_quarantines_pii_in_dictionary_content():
 
 def test_protected_lexicon_never_becomes_replacement_map():
     router = SpecialtyDictionaryRouter("general")
-    assert router.protected_lexicon()
-    assert all(spec.role != "protected_lexicon" or spec.role != "ocr_correction" for spec in router.specs)
+    protected = router.protected_lexicon()
+    corrections = router.ocr_corrections()
+    assert protected
+    assert not any(term in corrections for term in protected)
 
 
 def test_production_registry_excludes_training_and_ground_truth_resources():
