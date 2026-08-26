@@ -78,6 +78,7 @@ jobs:
               - "requirements.txt"
               - "requirements/**"
               - "pyproject.toml"
+              - ".github/workflows/docker.yml"
             api:
               - "deploy/Dockerfile.api"
               - "deploy/Dockerfile"
@@ -89,6 +90,7 @@ jobs:
               - "requirements.txt"
               - "requirements/**"
               - "pyproject.toml"
+              - ".github/workflows/docker.yml"
 
   # ===========================================================================
   # Build & Push — Gradio (HITL production image)
