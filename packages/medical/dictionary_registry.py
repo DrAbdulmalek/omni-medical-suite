@@ -28,7 +28,7 @@ DICTIONARY_REGISTRY: tuple[DictionarySpec, ...] = (
     DictionarySpec("arabic_ocr_fixes", ROOT / "data/arabic_fixes.json", "general", "ocr_correction", "json_map", "loaded", "OCR-safe spelling corrections"),
     DictionarySpec("safe_ocr_corrections", ROOT / "data/dictionaries/ocr_corrections_safe.json", "general", "ocr_correction", "json_map", "loaded", "audited OCR corrections"),
     DictionarySpec("general_correction_seed", ROOT / "data/correction_dict_seed.json", "general", "protected_lexicon", "json_map", "loaded", "general/technical vocabulary; not a replacement dictionary"),
-    DictionarySpec("medical_dictionary", ROOT / "data/medical_dictionary.json", "general_medical", "terminology", "medical_json", "loaded", "general medical and orthopedic terminology"),
+    DictionarySpec("medical_dictionary", ROOT / "data/medical_dictionary.json", "general_medical", "terminology", "medical_json", "loaded", "general medical terminology"),
     DictionarySpec("orthopedic_lexicon", ROOT / "data/ortho_lexicon.json", "orthopedic_surgery", "terminology", "ortho_json", "loaded", "orthopedic surgery terminology"),
     DictionarySpec("medical_glossary", ROOT / "data/arabic-medical-glossary/glossaries/final_unified_glossary.csv", "general_medical", "terminology", "csv", "loaded", "medical bilingual glossary"),
     DictionarySpec("malek_tmx", ROOT / "data/dictionaries/malek_data_terms.json", "general_medical", "translation_memory", "entries_json", "loaded", "extracted TMX translation memory"),
@@ -41,15 +41,29 @@ NON_DICTIONARY_RESOURCES = {
     "data/ground_truth_588.txt": "evaluation ground truth",
 }
 
+# Canonical names shared with MedicalClassifier.  The router must accept the
+# classifier's actual category names; otherwise specialty routing can silently
+# fall back to a non-existent namespace and become architectural dead code.
 SPECIALTY_ALIASES = {
     "ortho": "orthopedic_surgery",
     "orthopedics": "orthopedic_surgery",
     "orthopaedics": "orthopedic_surgery",
     "orthopedic": "orthopedic_surgery",
     "orthopedic surgery": "orthopedic_surgery",
+    "orthopedic_surgery": "orthopedic_surgery",
     "trauma": "orthopedic_surgery",
+    "cardiology": "cardiology",
+    "neurology": "neurology",
+    "general_surgery": "general_surgery",
+    "radiology": "radiology",
+    "pathology": "pathology",
+    "pharmacology": "pharmacology",
+    "research": "research",
+    "medical_admin": "medical_admin",
+    "engineering": "engineering",
     "medicine": "general_medical",
     "medical": "general_medical",
+    "general_medical": "general_medical",
     "general": "general",
 }
 
@@ -67,8 +81,6 @@ def specs_for_specialty(specialty: str | None) -> list[DictionarySpec]:
     elif specialty == "general_medical":
         allowed = {"general", "general_medical"}
     else:
-        # A clinical specialty inherits general-language and general-medical
-        # terminology, then adds its specialty-specific lexicon.
         allowed = {"general", "general_medical", specialty}
     return [s for s in DICTIONARY_REGISTRY if s.specialty in allowed]
 
@@ -94,36 +106,57 @@ def _read_json(path: Path) -> Any:
 
 
 def terminology_terms(spec: DictionarySpec) -> set[str]:
-    """Extract terms for protection/recognition, never replacement."""
+    """Extract terminology for recognition/protection, never replacement."""
     if not spec.path.exists() or spec.role != "terminology":
         return set()
     terms: set[str] = set()
     if spec.format == "medical_json":
         data = _read_json(spec.path)
-        terms.update((data.get("arabic_corrections") or {}).keys())
-        terms.update((data.get("arabic_corrections") or {}).values())
+        pairs = data.get("arabic_corrections") or {}
+        terms.update(pairs.keys())
+        terms.update(pairs.values())
     elif spec.format == "ortho_json":
         data = _read_json(spec.path)
         for category in (data.get("categories") or {}).values():
             for language in ("arabic", "english"):
                 terms.update(category.get(language) or [])
     elif spec.format == "csv":
-        # CSV terminology files (e.g., final_unified_glossary.csv) — extract
-        # 'en' and 'ar' columns. NOTE: this returns ALL terms as a set for
-        # protection/recognition only; it is NOT used as a replacement map.
         import csv as _csv
         with spec.path.open(encoding="utf-8", newline="") as f:
             reader = _csv.DictReader(f)
             for row in reader:
                 en = (row.get("en") or "").strip()
                 ar = (row.get("ar") or "").strip()
-                if en: terms.add(en)
-                if ar: terms.add(ar)
+                if en:
+                    terms.add(en)
+                if ar:
+                    terms.add(ar)
     return {t.strip() for t in terms if isinstance(t, str) and t.strip()}
+
+
+def protected_lexicon_terms(spec: DictionarySpec) -> set[str]:
+    """Extract protected vocabulary without turning it into replacement rules."""
+    if not spec.path.exists() or spec.role != "protected_lexicon":
+        return set()
+    data = _read_json(spec.path)
+    if not isinstance(data, dict):
+        return set()
+    terms: set[str] = set()
+    for key, value in data.items():
+        if isinstance(key, str) and key.strip():
+            terms.add(key.strip())
+        if isinstance(value, str) and value.strip():
+            terms.add(value.strip())
+        elif isinstance(value, list):
+            terms.update(str(v).strip() for v in value if str(v).strip())
+    return terms
 
 
 def protected_terms_for_specialty(specialty: str | None) -> set[str]:
     terms: set[str] = set()
     for spec in specs_for_specialty(specialty):
-        terms.update(terminology_terms(spec))
+        if spec.role == "terminology":
+            terms.update(terminology_terms(spec))
+        elif spec.role == "protected_lexicon":
+            terms.update(protected_lexicon_terms(spec))
     return terms
