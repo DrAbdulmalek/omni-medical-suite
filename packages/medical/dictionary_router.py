@@ -17,6 +17,7 @@ from typing import Any
 from .dictionary_registry import (
     DictionarySpec,
     canonical_specialty,
+    protected_lexicon_terms,
     protected_terms_for_specialty,
     specs_for_specialty,
 )
@@ -40,6 +41,14 @@ class SpecialtyDictionaryRouter:
 
     def protected_terms(self) -> set[str]:
         return protected_terms_for_specialty(self.specialty)
+
+    def protected_lexicon(self) -> set[str]:
+        """Return only protected-lexicon entries; never expose them as replacements."""
+        terms: set[str] = set()
+        for spec in self._specs:
+            if spec.role == "protected_lexicon":
+                terms.update(protected_lexicon_terms(spec))
+        return terms
 
     def _build_term_index(self) -> dict[str, list[dict[str, Any]]]:
         if self._term_index is not None:
