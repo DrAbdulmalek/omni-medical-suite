@@ -40,7 +40,7 @@ jobs:
         run: ruff check src/ packages/ app/ --output-format=github --exit-zero
 
       - name: Ruff format check (informational)
-        run: ruff format --check src/ packages/ app/ --exit-zero
+        run: ruff format --check src/ packages/ app/ 2>&1 || true
 
       - name: MyPy type check (informational)
         run: mypy src/ app/ --ignore-missing-imports || true
