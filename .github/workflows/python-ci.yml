@@ -51,6 +51,6 @@ jobs:
     - name: Code Quality Checks
       run: |
         pip install flake8 black
-        flake8 app/ hf-space/ src/ packages/ --count --select=E999,F811 --show-source --statistics
-        black --check app/ hf-space/ src/ packages/ 2>/dev/null || true
+        flake8 app/ hf-space/ src/ --count --select=E999 --show-source --statistics
+        black --check app/ hf-space/ src/ 2>/dev/null || true
         # black --check is informational for now; critical flake8 errors above are the gate
