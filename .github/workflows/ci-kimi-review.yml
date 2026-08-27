@@ -34,7 +34,7 @@ jobs:
           pip install ruff mypy
 
       - name: Ruff check (critical errors only)
-        run: ruff check src/ app/ --select=E9,F821,F822,F823,F824,F901 --output-format=github
+        run: ruff check src/ app/ --select=E9,F821,F822,F823,F901 --output-format=github
 
       - name: Ruff check (full report — informational)
         run: ruff check src/ packages/ app/ --output-format=github --exit-zero

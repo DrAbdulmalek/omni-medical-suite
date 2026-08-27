@@ -5,6 +5,7 @@ Provides liveness, readiness, and full health probes compatible with
 Kubernetes/Docker health checks and Prometheus alerting.
 """
 import asyncio
+import os
 from datetime import UTC, datetime
 from typing import Any
 
