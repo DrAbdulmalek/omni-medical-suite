@@ -58,6 +58,20 @@ The 159k-scale generated glossary artifact is not a runtime OCR replacement map.
 
 `app.core.decision_log.log_decision()` is implemented and used by `packages/core/engine_router.py`. The production OCR path must be treated separately until an explicit integration is implemented and covered by an end-to-end test.
 
+### Issue #94 — Production engine-selection decision logging
+
+The **existing production HF OCR selector** (in `hf-space/app_core.py:_select_ocr_result()`) remains the canonical selector. It has been instrumented to emit a structured decision log via `log_decision()` — **without changing OCR behavior**.
+
+Key points:
+
+- **The production selector is `_select_ocr_result()`**, not `EngineRouter`. `EngineRouter` exists in `packages/core/engine_router.py` but is **NOT used by the production HF OCR pipeline**.
+- The selection rule is unchanged: PaddleOCR is selected iff it produced text with stripped length > 5 characters; otherwise Tesseract.
+- The decision log records **only operational metadata** in `inputs`: `paddle_available`, `paddle_text_length`, `tesseract_available`, `tesseract_text_length`, `selection_rule`. **No OCR text, patient data, medical terms, image content, or raw OCR output** is ever logged.
+- `log_decision()` has a never-raise contract (errors are swallowed), so logging failures cannot break OCR processing. This is verified by `tests/test_pr94_production_engine_decision.py::TestSelectOcrResultLoggingNeverFails`.
+- A reproducible benchmark is at `scripts/benchmarks/benchmark_production_ocr_selection.py`. It measures the pure selection helper with deterministic mocked outputs — it does **not** fabricate PaddleOCR/Tesseract inference numbers.
+
+This is intentional until a separate architecture decision changes the selector to `EngineRouter` or another component.
+
 ## Performance
 
 No repository-wide P50/P95/P99 OCR production baseline is claimed by this document. A reproducible benchmark must be established before introducing additional NLP dependencies or making latency claims.

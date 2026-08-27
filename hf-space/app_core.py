@@ -255,6 +255,111 @@ def _run_tesseract(image: np.ndarray) -> Tuple[str, float]:
         return "", 0.0
 
 
+def _select_ocr_result(
+    paddle_text: str,
+    paddle_details: List[Dict],
+    tesseract_text: str,
+    tess_conf: float,
+) -> Tuple[str, float, Dict[str, str]]:
+    """Pure production OCR engine selector — preserves existing behavior.
+
+    This helper captures the deterministic engine-selection rule that was
+    previously inlined in ``full_process()`` and emits one structured
+    decision log via ``app.core.decision_log.log_decision()``.
+
+    Selection rule (unchanged from the previous inline logic):
+        - PaddleOCR is selected iff it produced text AND the stripped length
+          of that text exceeds 5 characters.
+        - Otherwise Tesseract is selected (if it produced text).
+        - If neither engine produced usable text, the fallback string
+          "[لم يتم اكتشاف نص]" is used (preserving existing behavior).
+
+    ``selected_confidence`` and ``engine_info`` are computed identically
+    to the previous inline logic — this helper does NOT change OCR
+    behavior, only instruments it with an audit record.
+
+    The decision log ``inputs`` contain ONLY non-PHI operational metadata
+    (text lengths, availability flags, selection rule). No OCR text,
+    patient data, medical terms, image content, or raw OCR output is ever
+    logged.
+
+    ``log_decision()`` has a never-raise contract (errors are swallowed),
+    so logging failures cannot break OCR processing.
+    """
+    # --- Selection logic (identical to previous inline code) ---
+    raw_text = paddle_text if (paddle_text and len(paddle_text.strip()) > 5) else tesseract_text
+    fallback_used = False
+    if not raw_text.strip():
+        raw_text = paddle_text or tesseract_text or "[لم يتم اكتشاف نص]"
+        fallback_used = True
+
+    selected_confidence = (
+        sum(float(d.get("confidence", 0.0)) for d in paddle_details) / len(paddle_details)
+        if paddle_text and paddle_details
+        else float(tess_conf)
+    )
+    engine_info: Dict[str, str] = {}
+    if paddle_text:
+        engine_info["PaddleOCR"] = f"{len(paddle_details)} lines"
+    if tesseract_text:
+        engine_info["Tesseract"] = f"confidence {tess_conf:.0f}%"
+
+    # --- Decision logging (non-fatal; never breaks OCR) ---
+    paddle_available = bool(paddle_text and paddle_text.strip())
+    tesseract_available = bool(tesseract_text and tesseract_text.strip())
+    paddle_stripped_len = len(paddle_text.strip()) if paddle_text else 0
+    tesseract_stripped_len = len(tesseract_text.strip()) if tesseract_text else 0
+
+    if paddle_available and paddle_stripped_len > 5:
+        outcome = ["PaddleOCR"]
+        reasons = [f"PaddleOCR produced usable text ({paddle_stripped_len} chars > 5 threshold)"]
+        skipped = []
+        if tesseract_available:
+            skipped.append("Tesseract")
+    elif tesseract_available:
+        outcome = ["Tesseract"]
+        if paddle_available:
+            reasons = [
+                f"PaddleOCR output insufficient ({paddle_stripped_len} chars <= 5 threshold); Tesseract selected"
+            ]
+            skipped = ["PaddleOCR"]
+        else:
+            reasons = ["PaddleOCR unavailable/insufficient output; Tesseract selected"]
+            skipped = ["PaddleOCR"]
+    else:
+        outcome = []  # no usable engine
+        if fallback_used:
+            reasons = ["No OCR engine produced text; fallback string used"]
+        else:
+            reasons = ["No OCR engine produced text"]
+        skipped = []
+        if paddle_text is not None or paddle_available:
+            skipped.append("PaddleOCR")
+        if tesseract_text is not None or tesseract_available:
+            skipped.append("Tesseract")
+
+    try:
+        from app.core.decision_log import log_decision
+
+        log_decision(
+            decision="engine_selection",
+            outcome=outcome,
+            reasons=reasons,
+            inputs={
+                "paddle_available": paddle_available,
+                "paddle_text_length": paddle_stripped_len,
+                "tesseract_available": tesseract_available,
+                "tesseract_text_length": tesseract_stripped_len,
+                "selection_rule": "paddle if paddle_text.strip() len > 5 else tesseract",
+            },
+            skipped=skipped or None,
+        )
+    except Exception as e:  # never break OCR for logging
+        logger.debug("engine_selection decision log failed (non-fatal): %s", e)
+
+    return raw_text, selected_confidence, engine_info
+
+
 def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
     """Apply OCR corrections + spell checker via the canonical HybridSpellChecker.
 
@@ -347,20 +452,16 @@ def full_process(image) -> Tuple:
         tesseract_text, tess_conf = _run_tesseract(cleaned)
 
         # 3. Ensemble: PaddleOCR primary, Tesseract supplement
-        raw_text = paddle_text if (paddle_text and len(paddle_text.strip()) > 5) else tesseract_text
-        if not raw_text.strip():
-            raw_text = paddle_text or tesseract_text or "[لم يتم اكتشاف نص]"
-
-        selected_confidence = (
-            sum(float(d.get("confidence", 0.0)) for d in paddle_details) / len(paddle_details)
-            if paddle_text and paddle_details
-            else float(tess_conf)
+        # Selection logic is centralized in _select_ocr_result() so it can
+        # be unit-tested and instrumented with a decision-log audit record.
+        # The selection rule itself is unchanged from the previous inline
+        # logic — this is a pure refactor that adds observability.
+        raw_text, selected_confidence, engine_info = _select_ocr_result(
+            paddle_text=paddle_text,
+            paddle_details=paddle_details,
+            tesseract_text=tesseract_text,
+            tess_conf=tess_conf,
         )
-        engine_info = {}
-        if paddle_text:
-            engine_info["PaddleOCR"] = f"{len(paddle_details)} lines"
-        if tesseract_text:
-            engine_info["Tesseract"] = f"confidence {tess_conf:.0f}%"
 
         # 4. Auto-correct OCR artifacts
         corrected, corrections = _auto_correct_ocr(raw_text)
