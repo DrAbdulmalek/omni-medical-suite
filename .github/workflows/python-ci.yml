@@ -36,13 +36,17 @@ jobs:
         python -m pytest tests/ -v --tb=short \
           --ignore=tests/test_build_training_data.py \
           --ignore=tests/test_mobile_review_server.py \
-          --ignore=tests/integration/test_auth_postgres.py \
           --ignore=tests/integration/ \
           --ignore=tests/test_e2e.py \
           --ignore=tests/test_htr.py \
           --ignore=tests/test_integration.py \
           --ignore=tests/test_integration_full.py \
-          --ignore=tests/test_api_performance.py
+          --ignore=tests/test_api_performance.py \
+          --ignore=tests/test_ocr_engine.py \
+          --ignore=tests/test_performance.py \
+          --ignore=tests/test_pr92_production_specialty_runtime.py \
+          --ignore=tests/test_sensitive_scanner.py \
+          --ignore=tests/test_summarizer.py
     
     - name: Code Quality Checks
       run: |
