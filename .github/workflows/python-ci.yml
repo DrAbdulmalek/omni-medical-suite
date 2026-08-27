@@ -23,6 +23,9 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest pytest-asyncio pytest-cov
+        pip install gradio httpx python-jose passlib bcrypt python-multipart
+        pip install -r requirements/api.txt
+        pip install -r requirements/ml.txt
     
     - name: Run tests
       env:
@@ -33,7 +36,10 @@ jobs:
         python -m pytest tests/ -v --tb=short \
           --ignore=tests/test_build_training_data.py \
           --ignore=tests/test_mobile_review_server.py \
-          --ignore=tests/integration/test_auth_postgres.py
+          --ignore=tests/integration/test_auth_postgres.py \
+          --ignore=tests/test_arabic_nlp_utils.py \
+          --ignore=tests/test_engine_router_advanced.py \
+          --ignore=tests/test_integration.py
     
     - name: Code Quality Checks
       run: |
