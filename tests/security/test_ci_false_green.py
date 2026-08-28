@@ -1,19 +1,7 @@
-"""Regression test: CI workflows must not mask failures with false-green suppressors.
+"""Regression tests for CI false-green protections in Issue #96.
 
-Issue #96: Remove false-green behavior from CI workflows.
-
-This test verifies that:
-1. Required-check-producing jobs do NOT use `|| true`, `|| echo "No tests..."`,
-   or `continue-on-error: true` to mask failures.
-2. Informational/advisory steps MAY use suppression, but only when explicitly
-   documented as informational AND when they are NOT the only gate in a
-   required-check-producing job.
-3. The Kimi review workflow's `test` and `appimage-build` jobs remain advisory
-   (Lenient) — they are NOT required branch-protection checks.
-4. The `lint-and-type` job (which IS a required check) must be fail-closed
-   for at least one critical command.
-5. The HF Space Drift Gate must run on ALL pull_requests (no path filter)
-   so the required check is never missing.
+Required checks must contain genuine fail-closed gates. Informational diagnostics
+may be non-blocking only when they are explicitly isolated from the required gate.
 """
 import re
 from pathlib import Path
@@ -29,115 +17,100 @@ def _read_workflow(filename: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _job_block(text: str, job_name: str) -> str:
+    match = re.search(rf"(  {re.escape(job_name)}:.*?)(\n  \w+:|\Z)", text, re.DOTALL)
+    assert match, f"Could not find {job_name} job"
+    return match.group(1)
+
+
 def test_lint_and_type_has_no_continue_on_error():
-    """The lint-and-type job must NOT have job-level continue-on-error."""
-    text = _read_workflow("ci-kimi-review.yml")
-    match = re.search(r"(  lint-and-type:.*?)(\n  \w+:|\Z)", text, re.DOTALL)
-    assert match, "Could not find lint-and-type job in ci-kimi-review.yml"
-    job_block = match.group(1)
-    lines = job_block.split("\n")
-    for line in lines:
-        stripped = line.strip()
-        if stripped == "continue-on-error: true":
-            assert False, (
-                "lint-and-type job has 'continue-on-error: true' at job level. "
-                "This makes the required check a complete false-green."
-            )
+    """The required lint-and-type job must NOT be job-level advisory."""
+    job_block = _job_block(_read_workflow("ci-kimi-review.yml"), "lint-and-type")
+    assert "\n    continue-on-error: true" not in job_block
 
 
 def test_lint_and_type_has_fail_closed_gate():
-    """The lint-and-type job must have at least one command that is NOT
-    suppressed with || true or --exit-zero."""
-    text = _read_workflow("ci-kimi-review.yml")
-    match = re.search(r"(  lint-and-type:.*?)(\n  \w+:|\Z)", text, re.DOTALL)
-    assert match, "Could not find lint-and-type job"
-    job_block = match.group(1)
+    """The required lint-and-type job must have an unsuppressed command."""
+    job_block = _job_block(_read_workflow("ci-kimi-review.yml"), "lint-and-type")
     run_lines = re.findall(r"run:\s*(.+)", job_block)
-    assert len(run_lines) >= 2, (
-        f"Expected at least 2 run commands in lint-and-type, found {len(run_lines)}"
-    )
-    has_fail_closed = False
-    for cmd in run_lines:
-        cmd_stripped = cmd.strip()
-        if "|| true" not in cmd_stripped and "--exit-zero" not in cmd_stripped:
-            has_fail_closed = True
-            break
-    assert has_fail_closed, (
-        "lint-and-type job has NO fail-closed command. Every run step uses "
-        "|| true or --exit-zero. A required check must be able to fail."
-    )
+    assert len(run_lines) >= 2
+    assert any(
+        "|| true" not in cmd and "--exit-zero" not in cmd for cmd in run_lines
+    ), "lint-and-type has no fail-closed command"
 
 
 def test_lint_and_type_ruff_check_is_fail_closed():
-    """The ruff critical-errors check must be fail-closed (no || true)."""
+    """The critical Ruff check must not suppress its exit status."""
+    job_block = _job_block(_read_workflow("ci-kimi-review.yml"), "lint-and-type")
+    commands = re.findall(r"ruff check.*--select=.*", job_block)
+    assert commands, "lint-and-type must have a critical Ruff check"
+    for cmd in commands:
+        assert "|| true" not in cmd
+        assert "--exit-zero" not in cmd
+
+
+def test_kimi_pull_request_trigger_is_unfiltered():
+    """The required lint-and-type check must be produced for every PR."""
     text = _read_workflow("ci-kimi-review.yml")
-    match = re.search(r"(  lint-and-type:.*?)(\n  \w+:|\Z)", text, re.DOTALL)
-    assert match, "Could not find lint-and-type job"
-    job_block = match.group(1)
-    ruff_critical = re.findall(r"ruff check.*--select=.*", job_block)
-    assert len(ruff_critical) >= 1, (
-        "lint-and-type must have a ruff check with --select= for critical errors"
-    )
-    for cmd in ruff_critical:
-        assert "|| true" not in cmd, (
-            f"ruff critical check must be fail-closed, but found || true: {cmd}"
-        )
-        assert "--exit-zero" not in cmd, (
-            f"ruff critical check must be fail-closed, but found --exit-zero: {cmd}"
-        )
+    match = re.search(r"  pull_request:\s*\n((?:    .+\n)*)", text)
+    assert match, "Could not find pull_request trigger"
+    assert "paths:" not in match.group(1)
 
 
 def test_code_quality_flake8_e999_is_fail_closed():
-    """The flake8 E999 (SyntaxError) check must NOT use || true or --exit-zero."""
+    """The required Code Quality syntax gate must be fail-closed."""
     text = _read_workflow("lint-test.yml")
-    e999_commands = re.findall(r"flake8.*--select=E999.*", text)
-    assert len(e999_commands) >= 1, "Code Quality must have flake8 --select=E999"
-    for cmd in e999_commands:
-        assert "|| true" not in cmd, (
-            f"flake8 E999 check must be fail-closed, but found || true: {cmd}"
-        )
-        assert "--exit-zero" not in cmd, (
-            f"flake8 E999 check must be fail-closed, but found --exit-zero: {cmd}"
-        )
+    job_block = _job_block(text, "lint")
+    commands = re.findall(r"flake8.*--select=E999.*", job_block)
+    assert commands, "Code Quality must have flake8 --select=E999"
+    for cmd in commands:
+        assert "|| true" not in cmd
+        assert "--exit-zero" not in cmd
+
+
+def test_code_quality_required_job_has_no_format_suppressors():
+    """Black/isort suppressors must not live inside the required Code Quality job."""
+    text = _read_workflow("lint-test.yml")
+    job_block = _job_block(text, "lint")
+    assert "black --check" not in job_block
+    assert "isort --check-only" not in job_block
+    assert "|| true" not in job_block
+
+
+def test_formatting_report_is_explicitly_informational():
+    """Formatting debt is isolated in a non-required informational job."""
+    text = _read_workflow("lint-test.yml")
+    job_block = _job_block(text, "format-report")
+    assert "name: Formatting Report (Informational)" in job_block
+    assert "black --check" in job_block
+    assert "isort --check-only" in job_block
+    assert job_block.count("|| true") == 2
+    assert "Informational only:" in job_block
 
 
 def test_hf_space_drift_runs_on_all_pull_requests():
-    """The HF Space Drift Gate must NOT have a paths filter on pull_request."""
+    """The HF Space Drift Gate must not have a pull_request paths filter."""
     text = _read_workflow("hf-space-drift.yml")
-    pr_match = re.search(r"  pull_request:\s*\n((?:    .+\n)*)", text)
-    assert pr_match, "Could not find pull_request: trigger in hf-space-drift.yml"
-    pr_block = pr_match.group(1)
-    assert "paths:" not in pr_block, (
-        "hf-space-drift.yml has a paths: filter on pull_request. "
-        "This causes the required check to be missing on PRs that don't "
-        "touch the filtered paths. Remove the paths filter so the check "
-        "always produces a check-run."
-    )
+    match = re.search(r"  pull_request:\s*\n((?:    .+\n)*)", text)
+    assert match, "Could not find pull_request trigger in hf-space-drift.yml"
+    assert "paths:" not in match.group(1)
 
 
 def test_android_build_has_no_continue_on_error():
-    """The Buildozer build step must NOT have continue-on-error."""
+    """The actual Buildozer build must be fail-closed."""
     text = _read_workflow("android-apk.yml")
     match = re.search(r"name: Build debug APK.*?run: buildozer", text, re.DOTALL)
-    assert match, "Could not find Buildozer build step in android-apk.yml"
-    step_block = match.group(0)
-    assert "continue-on-error" not in step_block, (
-        "Buildozer build step has continue-on-error. APK build failures "
-        "must cause the job to fail."
-    )
+    assert match, "Could not find Buildozer build step"
+    assert "continue-on-error" not in match.group(0)
 
 
 def test_kimi_test_job_remains_advisory():
-    """The Kimi 'test' and 'appimage-build' jobs are NOT required checks.
-    They may use continue-on-error since they are explicitly Lenient."""
+    """Kimi test/appimage jobs remain advisory because they are not required gates."""
     text = _read_workflow("ci-kimi-review.yml")
-    assert "continue-on-error: true" in text, (
-        "Kimi test/appimage jobs should remain advisory (Lenient) with "
-        "continue-on-error: true. Only the lint-and-type job must be fail-closed."
-    )
+    assert "continue-on-error: true" in text
 
 
 def test_kimi_workflow_is_named_lenient():
-    """The Kimi workflow must remain explicitly named 'Lenient'."""
+    """The Kimi workflow remains explicitly named Lenient."""
     text = _read_workflow("ci-kimi-review.yml")
     assert "name: CI — omni-medical-suite (Lenient)" in text
