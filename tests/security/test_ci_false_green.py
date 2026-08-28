@@ -18,7 +18,12 @@ def _read_workflow(filename: str) -> str:
 
 
 def _job_block(text: str, job_name: str) -> str:
-    match = re.search(rf"(  {re.escape(job_name)}:.*?)(\n  \w+:|\Z)", text, re.DOTALL)
+    """Extract one top-level GitHub Actions job, including hyphenated IDs."""
+    match = re.search(
+        rf"(  {re.escape(job_name)}:.*?)(\n  [\w-]+:|\Z)",
+        text,
+        re.DOTALL,
+    )
     assert match, f"Could not find {job_name} job"
     return match.group(1)
 
