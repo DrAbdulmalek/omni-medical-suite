@@ -12,11 +12,6 @@ on:
       - '.github/workflows/**'
   pull_request:
     branches: [main, develop]
-    paths:
-      - 'src/**'
-      - 'packages/**'
-      - 'app/**'
-      - 'tests/**'
 
 jobs:
   lint-and-type:
