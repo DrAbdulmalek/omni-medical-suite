@@ -15,31 +15,8 @@ name: HF Space Drift Gate
 
 on:
   pull_request:
-    paths:
-      - 'app/services/**'
-      - 'hf-space/app_core.py'
-      - 'hf-space/src/**'
-      - 'hf-space/packages/**'
-      - 'hf-space/config/**'
-      - 'src/ocr/**'
-      - 'packages/vision/**'
-      - 'packages/nlp/**'
-      - 'packages/core/**'
-      - 'config/**'
-      - 'scripts/sync-hf-space.sh'
-      - 'scripts/check_hf_space_drift.py'
-      - '.github/workflows/hf-space-drift.yml'
   push:
     branches: [main]
-    paths:
-      - 'app/services/**'
-      - 'hf-space/app_core.py'
-      - 'src/ocr/**'
-      - 'packages/vision/**'
-      - 'packages/nlp/**'
-      - 'packages/core/**'
-      - 'config/**'
-      - 'scripts/check_hf_space_drift.py'
   schedule:
     - cron: '30 6 * * *'
 
