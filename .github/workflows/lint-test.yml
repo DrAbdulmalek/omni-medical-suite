@@ -25,7 +25,7 @@ jobs:
 
       - name: Install lint tools
         run: |
-          pip install flake8 black isort mypy
+          pip install flake8
 
       - name: Run flake8 (critical errors only)
         run: flake8 desktop/ hf-space/ app/ --count --select=E999 --show-source --statistics
@@ -33,13 +33,28 @@ jobs:
       - name: Run flake8 (style report — informational)
         run: flake8 desktop/ hf-space/ app/ --count --statistics --exit-zero
 
+  format-report:
+    name: Formatting Report (Informational)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install formatting tools
+        run: |
+          pip install black isort
+
       - name: Run black check (informational)
         run: black --check desktop/ hf-space/ app/ 2>/dev/null || true
-        # black formatting is informational until the codebase is reformatted
+        # Informational only: 170 pre-existing Black violations are tracked separately.
 
       - name: Run isort check (informational)
         run: isort --check-only desktop/ hf-space/ app/ 2>/dev/null || true
-        # isort is informational until the codebase is reformatted
+        # Informational only: import-order cleanup is tracked separately.
 
   test:
     name: Unit Tests
