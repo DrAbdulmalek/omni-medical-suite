@@ -27,15 +27,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # مطلوب لاختبارات Git (diff, tracked, branch, SHA)
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Verify Python version
-        run: python --version
 
       - name: Run unit tests
         run: |
@@ -45,7 +42,10 @@ jobs:
 
       - name: Run CLI — tracked scope
         run: |
-          python tools/export_project_snapshot.py             --scope tracked             --output snapshot_tracked.txt             --purpose "CI tracked test"
+          python tools/export_project_snapshot.py \
+            --scope tracked \
+            --output snapshot_tracked.txt \
+            --purpose "CI tracked test"
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -54,18 +54,21 @@ jobs:
           test -f snapshot_tracked.txt
           echo "=== Tracked Snapshot Header ==="
           head -n 20 snapshot_tracked.txt
-          echo "=== Excluded Files ==="
-          grep -A 20 "EXCLUDED FILES" snapshot_tracked.txt || true
           echo "=== Redaction Check ==="
-          if grep -i "hf_" snapshot_tracked.txt | grep -v "REDACTED" | grep -v "HF_TOKEN"; then
-            echo "❌ Possible unredacted secret found!"
+          # Only flag actual secret VALUES (hf_ followed by 20+ chars), not variable names
+          if grep -oP 'hf_[A-Za-z0-9]{20,}' snapshot_tracked.txt | grep -v "REDACTED"; then
+            echo "❌ Possible unredacted HF token value found!"
             exit 1
           fi
-          echo "✅ No unredacted HF tokens found"
+          echo "✅ No unredacted HF token values found"
 
       - name: Run CLI — diff scope
         run: |
-          python tools/export_project_snapshot.py             --scope diff             --output snapshot_diff.txt             --purpose "CI diff test"             --with-prompt
+          python tools/export_project_snapshot.py \
+            --scope diff \
+            --output snapshot_diff.txt \
+            --purpose "CI diff test" \
+            --with-prompt
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -79,7 +82,11 @@ jobs:
 
       - name: Run CLI — selected scope
         run: |
-          python tools/export_project_snapshot.py             --scope selected             --include tools/export_project_snapshot.py tests/tools/test_export_project_snapshot.py             --output snapshot_selected.txt             --purpose "CI selected test"
+          python tools/export_project_snapshot.py \
+            --scope selected \
+            --include tools/export_project_snapshot.py tests/tools/test_export_project_snapshot.py \
+            --output snapshot_selected.txt \
+            --purpose "CI selected test"
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -92,7 +99,12 @@ jobs:
 
       - name: Run CLI — full scope (with size limits)
         run: |
-          python tools/export_project_snapshot.py             --scope full             --output snapshot_full.txt             --max-file-size 50000             --max-total-size 1000000             --purpose "CI full test"
+          python tools/export_project_snapshot.py \
+            --scope full \
+            --output snapshot_full.txt \
+            --max-file-size 50000 \
+            --max-total-size 1000000 \
+            --purpose "CI full test"
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -110,31 +122,28 @@ jobs:
 
       - name: Security regression — ensure no real secrets leak
         run: |
-          # هذا الاختبار يتحقق من أنه لا توجد قيم سرية حقيقية في أي snapshot
-          # يمكنك تخصيص هذه القائمة حسب أسرار مشروعك
-
           for snapshot in snapshot_*.txt; do
             echo "Checking $snapshot for secret leakage..."
 
-            # تحقق من عدم وجود مفاتيح Hugging Face غير محررة
-            if grep -oP 'hf_[A-Za-z0-9]{8,}' "$snapshot" | grep -v "REDACTED"; then
-              echo "❌ Unredacted HF token found in $snapshot"
+            # Check for actual HF token VALUES (hf_ + 20+ alphanumeric, not variable names)
+            if grep -oP 'hf_[A-Za-z0-9]{20,}' "$snapshot" | grep -v "REDACTED"; then
+              echo "❌ Unredacted HF token value found in $snapshot"
               exit 1
             fi
 
-            # تحقق من عدم وجود مفاتيح OpenAI
-            if grep -oP 'sk-[A-Za-z0-9]{8,}' "$snapshot" | grep -v "REDACTED"; then
-              echo "❌ Unredacted OpenAI key found in $snapshot"
+            # Check for OpenAI key VALUES
+            if grep -oP 'sk-[A-Za-z0-9]{20,}' "$snapshot" | grep -v "REDACTED"; then
+              echo "❌ Unredacted OpenAI key value found in $snapshot"
               exit 1
             fi
 
-            # تحقق من عدم وجود مفاتيح AWS
+            # Check for AWS keys
             if grep -oP 'AKIA[0-9A-Z]{16}' "$snapshot" | grep -v "REDACTED"; then
               echo "❌ Unredacted AWS key found in $snapshot"
               exit 1
             fi
 
-            # تحقق من عدم وجود كتلة مفتاح خاص كاملة
+            # Check for private key blocks
             if grep -E "BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY" "$snapshot"; then
               echo "❌ Private key block found in $snapshot"
               exit 1
