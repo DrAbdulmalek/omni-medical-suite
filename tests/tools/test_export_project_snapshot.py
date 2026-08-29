@@ -112,8 +112,9 @@ class TestGitMeta(unittest.TestCase):
 
     def test_explicit_base_ref(self):
         """--base-ref should be used for diff base."""
-        meta = GitMeta(PROJECT_ROOT, base_ref="HEAD~1")
-        self.assertEqual(meta.base_ref, "HEAD~1")
+        # Use a ref that definitely exists in the repo
+        meta = GitMeta(PROJECT_ROOT, base_ref="HEAD")
+        self.assertEqual(meta.base_ref, "HEAD")
 
     def test_explicit_base_sha(self):
         """--base-sha should take precedence over --base-ref."""
