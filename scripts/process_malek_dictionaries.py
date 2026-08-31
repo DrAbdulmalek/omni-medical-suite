@@ -120,12 +120,80 @@ def classify_specialty(filename: str) -> Optional[str]:
 
 SPECIALTY_CONTENT_KEYWORDS: Dict[str, List[re.Pattern]] = {
     "orthopedic_surgery": [
-        re.compile(r"\b(fracture|orthoped|orthopaed|bone|joint|ligament|tendon|"
-                   r"spine|femur|tibia|humerus|carpal|meta?tarsal|meta?carpal|"
-                   r"pelvis|clavicle|scapula|shoulder|knee|hip|elbow|wrist|ankle|"
-                   r"arthritis|osteopor|scoliosis|kyphosis|lordosis|"
-                   r"fasciotomy|arthroscopy|prosthesis|implant|cast|splint|"
-                   r"reduction|dislocation|subluxation)\b", re.IGNORECASE),
+        # Comprehensive orthopedic keyword list — expanded after specialist
+        # review (DrAbdulmalek is an orthopedic surgeon). The original
+        # narrow list missed many legitimate orthopedic terms found in
+        # the master_fractures.tmx translation memory.
+        re.compile(
+            r"\b("
+            # Basic bone/joint terms
+            r"fracture|orthoped|orthopaed|bone|joint|ligament|tendon|"
+            r"cartilage|menisc|labrum|chondral|osteochondral|subchondral|"
+            r"periosteum|endosteum|cortical.bone|cancellous|trabecular|"
+            r"medullary|callus|remodeling|union|nonunion|malunion|"
+            r"delayed.union|pseudarthrosis|osteoblast|osteoclast|osteocyte|"
+            # Specific bones
+            r"femur|femoral|tibia|tibial|humerus|humeral|fibula|fibular|"
+            r"radius|radial|ulna|ulnar|clavicle|scapula|pelvis|pelvic|"
+            r"ilium|ischium|pubis|acetabul|sacrum|sacral|coccyx|"
+            r"carpal|metatarsal|metacarpal|phalanx|phalangeal|"
+            r"calcane|talar|talus|navicular|cuboid|cuneiform|"
+            r"lunate|scaphoid|triquetrum|hamate|capitate|trapezoid|trapezium|"
+            r"pisiform|epiphys|metaphys|diaphys|apophy|trochant|"
+            r"malleol|epicondyl|condyle|intercondylar|intercondylar|"
+            # Joints
+            r"shoulder|knee|hip|elbow|wrist|ankle|articul|"
+            r"arthroscopy|arthrogram|glenohumeral|acromioclavicular|"
+            r"sternoclavicular|patellofemoral|tibiofemoral|talocrural|"
+            r"subtalar|radio.carpal|distal.radio.ulnar|"
+            # Foot & ankle
+            r"plantar|fascia|hindfoot|forefoot|midfoot|"
+            r"cavovarus|cavus|planus|flatfoot|pes|hallux|valgus|varus|"
+            r"equinus|equinovarus|clubfoot|tailor.s.bunion|bunion|"
+            r"morton.s.neuroma|metatarsalgia|sesamoid|"
+            # Hand
+            r"dupuytren|trigger.finger|de.quervain|carpal.tunnel|"
+            r"ganglion|mucous.cyst|swan.neck|boutonniere|"
+            r"boxer.s.fracture|gamekeeper|skier.s.thumb|"
+            # Spine
+            r"spine|spinal|spondyl|disc.herniation|radiculopath|"
+            r"sciatic|cauda.equina|cervical|thoracic|lumbar|sacral|"
+            r"scoliosis|kyphosis|lordosis|myelopath|paraplegia|"
+            r"quadriplegia|tetraplegia|hemiplegia|paralysis|"
+            # Pediatric ortho
+            r"dysplasia|osteogenesis|achondroplasia|growth.plate|physis|"
+            r"Legg.Calv|Perthes|SCFE|slipped.capital.femoral|"
+            r"developmental.dysplasia|DDH|clubfoot|Pavlik|"
+            r"Barlow|Ortolani|cerebral.palsy|"
+            # Procedures
+            r"arthroscop|arthroplast|osteotom|fusion|arthrodesis|"
+            r"ORIF|nailing|intramedullary|external.fixator|"
+            r"K-wire|Kirschner|Steinmann|Schanz|Hoffman|Ilizarov|"
+            r"Taylor.spatial.frame|TSF|fixation|hemiarthroplast|"
+            r"total.joint|TJR|THR|TKR|replacement|"
+            r"reduction|manipulation|immobilization|cast|splint|brace|"
+            r"crutch|wheelchair|prosthesis|orthosis|traction|"
+            # Trauma
+            r"amputation|بتر|debridement|wound|laceration|abrasion|"
+            r"contusion|hematoma|ecchymosis|compartment|fasciotomy|"
+            r"escharotomy|burn|frostbite|crush.injury|degloving|"
+            r"open.fracture|compound.fracture|closed.fracture|"
+            r"comminut|segmental|spiral|oblique|transverse|greenstick|"
+            r"pathologic.fracture|stress.fracture|insufficiency.fracture|"
+            r"avulsion|burst|wedge|teardrop|hangman|jefferson|"
+            r"odontoid|dens|atlanto.axial|subaxial|"
+            # Infections/inflammations
+            r"osteomyelitis|septic.arthritis|cellulitis|abscess|"
+            r"arthritis|osteopor|tenosynovitis|bursitis|epicondylitis|"
+            # Rotator cuff / sports medicine
+            r"rotator.cuff|ACL|PCL|MCL|LCL|meniscal|labral|"
+            r"tendinopath|tendinosis|sprain|strain|"
+            # Rehab
+            r"physical.therapy|occupational.therapy|rehabilitation|"
+            r"range.of.motion|ROM|propriocept|"
+            # Imaging (ortho-specific context)
+            r"X-ray|radiograph|fluoroscop|C-arm|image.intensifier|MRI"
+            r")\b", re.IGNORECASE),
     ],
     "anatomy": [
         re.compile(r"\b(anatomy|anatomical|artery|vein|nerve|muscle|brain|"
@@ -169,18 +237,49 @@ SPECIALTY_CONTENT_KEYWORDS: Dict[str, List[re.Pattern]] = {
     ],
 }
 
-# Politics/news content — should be EXCLUDED entirely from medical dictionaries
+# Politics/news content — should be EXCLUDED entirely from medical dictionaries.
+#
+# IMPORTANT (specialist review — DrAbdulmalek is an orthopedic surgeon):
+# The previous list was TOO AGGRESSIVE and quarantined 383 entries from
+# master_fractures.tmx. After specialist review, only ~10% of those 383 were
+# actually non-medical (genuine news/politics). The rest were medical entries
+# that happened to mention a country name or political figure in a medical
+# context (e.g. "Israeli study on fracture healing", "Iranian patients with
+# hip dysplasia").
+#
+# This list now uses CONTEXT-AWARE detection: a country name alone is NOT
+# enough to exclude — it must be combined with political/governmental context
+# (e.g. "government", "election", "minister", "president").
 NON_MEDICAL_PATTERNS: List[re.Pattern] = [
-    re.compile(r"\b(iran|iraqi?|israeli?|syrian?|trump|obama|biden|netanyahu|"
-               r"elections?|government|minister|presidents?|parliament|"
-               r"democrats?|republicans?|congress|senate|khamenei|"
-               r"ayatollah|revolutions?|bashir|abbas|netanyahu|hamas|hezbollah|"
-               r"fatah|palestinian|jihad|moussavi|ahmadinejad)\b", re.IGNORECASE),
-    re.compile(r"\b(plane crashes?|airplane|aviation|passenger flights?|"
-               r"flight attendants?|air crash|airliner|"
-               r"\bplane\b(?=.*\b(crash|crashing|crashed|about to|told to)\b))\b",
+    # Politics: country + political keyword in the same entry
+    re.compile(
+        r"\b(iran|iraq|israel|syria|palestin|lebanon|egypt|saudi|yemen|jordan|"
+        r"turkey|qatar|uae|kuwait|bahrain|oman)\b.*\b"
+        r"(election|government|minister|president|parliament|congress|senate|"
+        r"democrat|republican|revolution|coup|military|war|conflict|invasion|"
+        r"sanction|treaty|negotiat)\b",
+        re.IGNORECASE | re.DOTALL
+    ),
+    # Reverse: political keyword first, then country
+    re.compile(
+        r"\b(election|government|minister|president|parliament|congress|senate|"
+        r"democrat|republican|revolution|coup|military|war|conflict|invasion|"
+        r"sanction|treaty|negotiat)\b.*\b"
+        r"(iran|iraq|israel|syria|palestin|lebanon|egypt|saudi|yemen|jordan|"
+        r"turkey|qatar|uae|kuwait|bahrain|oman)\b",
+        re.IGNORECASE | re.DOTALL
+    ),
+    # Specific political figures (these are almost never mentioned in
+    # medical literature)
+    re.compile(r"\b(trump|obama|biden|netanyahu|khamenei|ayatollah|"
+               r"bashir|abbas|hamas|hezbollah|fatah|jihad|"
+               r"moussavi|ahmadinejad|khamenei)\b", re.IGNORECASE),
+    # Aviation accidents (genuinely non-medical context)
+    re.compile(r"\b(plane crashes?|airliner|air crash|"
+               r"aviation accident|passenger flight|flight attendant)\b",
                re.IGNORECASE),
-    re.compile(r"\b(lottery|jackpot|winning numbers?|sweepstakes?|"
+    # Lottery/scams (genuinely non-medical)
+    re.compile(r"\b(lottery|jackpot|sweepstakes?|winning numbers?|"
                r"customer services?|winning parameters)\b", re.IGNORECASE),
 ]
 

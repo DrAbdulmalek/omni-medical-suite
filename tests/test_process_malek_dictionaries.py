@@ -120,29 +120,42 @@ class TestContentClassification(unittest.TestCase):
 
 
 class TestNonMedicalDetection(unittest.TestCase):
-    """Tests for NON_MEDICAL_PATTERNS — content that should be EXCLUDED."""
+    """Tests for NON_MEDICAL_PATTERNS — content that should be EXCLUDED.
+
+    IMPORTANT (specialist review — DrAbdulmalek is an orthopedic surgeon):
+    The previous version quarantined 383 entries from master_fractures.tmx
+    based on country names alone (Iran, Israel, Syria, etc.). After
+    specialist review, most of those were legitimate medical entries that
+    happened to mention a country (e.g. "Israeli study on fracture healing").
+
+    The new context-aware detection requires BOTH a country name AND a
+    political/governmental keyword (or a specific political figure) to
+    exclude an entry. Country names alone are now allowed.
+    """
 
     def test_iran_politics_excluded(self):
-        """Entries about Iran politics should be excluded."""
-        text = "As an Egyptian, I just feel this is amazing! Obama is not just looking..."
+        """Iran + government/election context should be excluded."""
+        text = ("Iran's government announced new election results following "
+                "the revolution.")
         specialty, is_medical = classify_entry_by_content(text)
         self.assertFalse(is_medical, "Political content should be excluded")
 
-    def test_israel_syria_excluded(self):
-        """Entries about Israel/Syria conflicts should be excluded."""
-        text = "Eiland warns that the major Syrian threat to Israel is no longer..."
+    def test_israel_syria_war_excluded(self):
+        """Israel/Syria + war/conflict context should be excluded."""
+        text = "The Syrian conflict with Israel has escalated into open war."
+        specialty, is_medical = classify_entry_by_content(text)
+        self.assertFalse(is_medical)
+
+    def test_political_figure_excluded(self):
+        """Specific political figures (Obama, Trump, Netanyahu, etc.) should
+        be excluded — these are almost never mentioned in medical literature."""
+        text = "Obama didn't strive for any verbal pyrotechnics."
         specialty, is_medical = classify_entry_by_content(text)
         self.assertFalse(is_medical)
 
     def test_plane_crash_excluded(self):
-        """Aviation content should be excluded."""
-        text = "If your plane is about to crash, you may be told to adopt the brace position"
-        specialty, is_medical = classify_entry_by_content(text)
-        self.assertFalse(is_medical)
-
-    def test_election_content_excluded(self):
-        """Election/government content should be excluded."""
-        text = "Several candidates stood for elections for a second time."
+        """Genuine aviation accident content should be excluded."""
+        text = "The plane crash killed all passengers on the airliner."
         specialty, is_medical = classify_entry_by_content(text)
         self.assertFalse(is_medical)
 
@@ -151,6 +164,30 @@ class TestNonMedicalDetection(unittest.TestCase):
         text = "The patient was diagnosed with coronary artery disease."
         specialty, is_medical = classify_entry_by_content(text)
         self.assertTrue(is_medical, "Medical content should not be excluded")
+
+    def test_country_name_alone_not_excluded(self):
+        """REGRESSION (specialist review): a country name alone is NOT
+        enough to exclude — many medical studies mention countries
+        (e.g. 'Iranian patients with hip dysplasia', 'Israeli study
+        on fracture healing'). Only country + political context should
+        be excluded."""
+        text = "Iranian patients with hip dysplasia showed improved outcomes."
+        specialty, is_medical = classify_entry_by_content(text)
+        self.assertTrue(is_medical, "Medical content with country name should NOT be excluded")
+
+    def test_israeli_fracture_study_not_excluded(self):
+        """REGRESSION: 'Israeli study on fracture healing' should NOT be
+        excluded — this is legitimate orthopedic research."""
+        text = "An Israeli study on fracture healing in elderly patients."
+        specialty, is_medical = classify_entry_by_content(text)
+        self.assertTrue(is_medical, "Orthopedic research with country name should NOT be excluded")
+
+    def test_election_alone_not_excluded(self):
+        """The word 'election' alone is NOT enough to exclude — it may
+        appear in medical context (e.g. 'elective surgery')."""
+        text = "The patient underwent elective surgery for fracture fixation."
+        specialty, is_medical = classify_entry_by_content(text)
+        self.assertTrue(is_medical, "'Elective' in medical context should not be excluded")
 
 
 class TestSpecialtyClassificationByFilename(unittest.TestCase):
