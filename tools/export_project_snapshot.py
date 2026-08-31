@@ -157,7 +157,8 @@ def is_binary(path: Path) -> bool:
 
 
 def run_git(cmd: List[str], cwd: Path) -> Tuple[int, str, str]:
-    try:        result = subprocess.run(
+    try:
+        result = subprocess.run(
             ["git"] + cmd,
             cwd=cwd,
             capture_output=True,
@@ -326,7 +327,8 @@ class FileCollector:
                 f"Ensure the base ref '{base}' and its merge base with HEAD are accessible; "
                 f"fetch more history or provide a valid --base-ref/--base-sha. "
                 f"Refusing to fall back to two-dot diff semantics."
-            )        files = []
+            )
+        files = []
         for name in out.splitlines():
             if name:
                 files.append(self.root / name)
@@ -485,7 +487,8 @@ class SnapshotGenerator:
         self.redacted_count = 0
         self.file_records = []
 
-    def generate(self) -> None:        # Collect files — may raise RuntimeError on Git failures
+    def generate(self) -> None:
+        # Collect files — may raise RuntimeError on Git failures
         files = self.collector.collect()
         files = self.file_filter.filter(files)
 
@@ -644,7 +647,8 @@ class SnapshotGenerator:
             print("Review the manifest before uploading the snapshot.")
 
 
-# ---------------------------------------------------------------------------# CLI
+# ---------------------------------------------------------------------------
+# CLI
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(
