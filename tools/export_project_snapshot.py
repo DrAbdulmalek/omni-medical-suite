@@ -182,6 +182,7 @@ class GitMeta:
         self.base_sha = base_sha
         self.dirty = False
         self.commit_count = 0
+        self._explicit_base_invalid = False
 
         rc, _, _ = run_git(["rev-parse", "--git-dir"], cwd)
         if rc != 0:
@@ -206,7 +207,6 @@ class GitMeta:
         # Determine base for diff: explicit > auto-detect.
         # An explicit but invalid base is an error condition and must never
         # silently fall back to main/master.
-        self._explicit_base_invalid = False
         if self.base_sha is not None:
             rc, _, _ = run_git(["rev-parse", "--verify", self.base_sha], cwd)
             if rc != 0:
@@ -228,6 +228,8 @@ class GitMeta:
 
     def get_diff_base(self) -> Optional[str]:
         """Return the base ref/sha for diff, or None if unavailable."""
+        if self._explicit_base_invalid:
+            return None
         if self._explicit_base_invalid:
             return None
         if self.base_sha:
