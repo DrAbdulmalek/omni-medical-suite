@@ -566,8 +566,7 @@ class TestFailClosedScopes(unittest.TestCase):
                     (0, "1", ""),  # rev-list --count
                     (0, "", ""),  # status --porcelain
                     (0, "", ""),  # rev-parse --verify main
-                    (1, "", "fatal: bad revision"),  # diff fails
-                    (1, "", "fatal: bad revision"),  # fallback diff also fails
+                    (1, "", "fatal: bad revision"),  # required three-dot diff fails
                 ]
 
                 with self.assertRaises(RuntimeError) as ctx:
@@ -581,7 +580,7 @@ class TestFailClosedScopes(unittest.TestCase):
                         max_total_size=10_000_000,
                     )
                     gen.generate()
-                self.assertIn("diff", str(ctx.exception).lower())
+                self.assertIn("three-dot", str(ctx.exception).lower())
 
 
 # ---------------------------------------------------------------------------
