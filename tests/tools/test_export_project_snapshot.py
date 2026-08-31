@@ -595,7 +595,8 @@ class TestContainment(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             target = root / "subdir" / "file.txt"
-            target.parent.mkdir()            target.touch()
+            target.parent.mkdir()
+            target.touch()
             self.assertTrue(_is_within_directory(root, target))
 
     def test_path_outside_root(self):
