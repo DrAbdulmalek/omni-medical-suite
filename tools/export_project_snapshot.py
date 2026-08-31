@@ -230,8 +230,6 @@ class GitMeta:
         """Return the base ref/sha for diff, or None if unavailable."""
         if self._explicit_base_invalid:
             return None
-        if self._explicit_base_invalid:
-            return None
         if self.base_sha:
             return self.base_sha
         if self.base_ref:
