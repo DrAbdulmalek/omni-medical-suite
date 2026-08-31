@@ -157,8 +157,7 @@ def is_binary(path: Path) -> bool:
 
 
 def run_git(cmd: List[str], cwd: Path) -> Tuple[int, str, str]:
-    try:
-        result = subprocess.run(
+    try:        result = subprocess.run(
             ["git"] + cmd,
             cwd=cwd,
             capture_output=True,
@@ -204,18 +203,23 @@ class GitMeta:
         _, out, _ = run_git(["status", "--porcelain"], cwd)
         self.dirty = bool(out)
 
-        # Determine base for diff: explicit > auto-detect
-        if self.base_sha:
-            # Verify the SHA exists
+        # Determine base for diff: explicit > auto-detect.
+        # An explicit but invalid base is an error condition and must never
+        # silently fall back to main/master.
+        self._explicit_base_invalid = False
+        if self.base_sha is not None:
             rc, _, _ = run_git(["rev-parse", "--verify", self.base_sha], cwd)
             if rc != 0:
-                self.base_sha = None  # Will cause diff to fail explicitly
-        elif self.base_ref:
+                self._explicit_base_invalid = True
+        elif self.base_ref is not None:
             rc, _, _ = run_git(["rev-parse", "--verify", self.base_ref], cwd)
             if rc != 0:
-                self.base_ref = None  # Will cause diff to fail explicitly
+                self._explicit_base_invalid = True
 
-        if not self.base_sha and not self.base_ref:
+        if self._explicit_base_invalid:
+            return
+
+        if self.base_sha is None and self.base_ref is None:
             for candidate in ("main", "master"):
                 rc, _, _ = run_git(["rev-parse", "--verify", candidate], cwd)
                 if rc == 0:
@@ -224,6 +228,8 @@ class GitMeta:
 
     def get_diff_base(self) -> Optional[str]:
         """Return the base ref/sha for diff, or None if unavailable."""
+        if self._explicit_base_invalid:
+            return None
         if self.base_sha:
             return self.base_sha
         if self.base_ref:
@@ -246,7 +252,11 @@ class FileCollector:
         self.files: List[Path] = []
 
     def collect(self) -> List[Path]:
-        if self.scope == "selected" and self.include:
+        if self.scope == "selected":
+            if not self.include:
+                raise RuntimeError(
+                    "Scope 'selected' requires --include paths; refusing to broaden to full scope."
+                )
             self.files = self._collect_selected()
         elif self.scope == "tracked":
             if not self.git_meta.available:
@@ -310,15 +320,13 @@ class FileCollector:
 
         rc, out, err = run_git(["diff", "--name-only", f"{base}...HEAD"], self.root)
         if rc != 0:
-            # Try two-dot diff as fallback (some shallow clones don't support three-dot)
-            rc, out, err = run_git(["diff", "--name-only", base, "HEAD"], self.root)
-        if rc != 0:
             raise RuntimeError(
+                f"Three-dot diff is required for correct semantics: "
                 f"git diff --name-only {base}...HEAD failed (exit {rc}): {err}. "
-                f"Ensure the base ref '{base}' is accessible in the current checkout. "
-                f"You may need to use --base-sha with a full SHA, or fetch more history."
-            )
-        files = []
+                f"Ensure the base ref '{base}' and its merge base with HEAD are accessible; "
+                f"fetch more history or provide a valid --base-ref/--base-sha. "
+                f"Refusing to fall back to two-dot diff semantics."
+            )        files = []
         for name in out.splitlines():
             if name:
                 files.append(self.root / name)
@@ -477,8 +485,7 @@ class SnapshotGenerator:
         self.redacted_count = 0
         self.file_records = []
 
-    def generate(self) -> None:
-        # Collect files — may raise RuntimeError on Git failures
+    def generate(self) -> None:        # Collect files — may raise RuntimeError on Git failures
         files = self.collector.collect()
         files = self.file_filter.filter(files)
 
@@ -637,8 +644,7 @@ class SnapshotGenerator:
             print("Review the manifest before uploading the snapshot.")
 
 
-# ---------------------------------------------------------------------------
-# CLI
+# ---------------------------------------------------------------------------# CLI
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(
