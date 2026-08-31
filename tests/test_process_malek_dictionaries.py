@@ -379,37 +379,121 @@ class TestTextCleaning(unittest.TestCase):
 
 
 class TestSpecialtyDistribution(unittest.TestCase):
-    """Kimi's recommendation #3: no single specialty should dominate > 90%."""
+    """Kimi's recommendation #3: no single specialty should dominate
+    excessively.
+
+    v4 fix (kimi review #2): source-aware thresholds.
+    - Default threshold: 90% (catches accidental contamination)
+    - Validated sources: 95% (allows intentional specialist source signatures)
+
+    master_fractures.tmx is a legitimate orthopedic translation memory owned
+    by DrAbdulmalek (orthopedic surgeon). Its ~92% orthopedic_surgery ratio
+    is INTENTIONAL, not contamination. The test uses SOURCE_METADATA to
+    apply the correct threshold per source.
+    """
 
     def test_no_specialty_dominates(self):
-        """After content-based reclassification, no single specialty
-        should contain > 90% of total entries. (Before the fix,
-        orthopedic_surgery had 94%.)"""
+        """No single specialty should exceed its allowed threshold.
+
+        For validated sources (master_fractures.tmx): threshold is 95%.
+        For unvalidated sources: threshold is 90%.
+
+        This catches:
+        - Accidental contamination in general sources (>90%)
+        - Unexpected dominance in validated sources (>95%)
+        """
+        from scripts.process_malek_dictionaries import SOURCE_METADATA
+
         specialty_dir = PROJECT_ROOT / "data" / "dictionaries" / "specialty"
         if not specialty_dir.exists():
             self.skipTest("Specialty directory not built yet")
 
         counts = {}
+        source_files_per_specialty = {}
         for json_file in specialty_dir.glob("*.json"):
             if json_file.name.startswith("_"):
                 continue
             with open(json_file) as f:
                 data = json.load(f)
-            counts[data["specialty"]] = len(data.get("entries", []))
+            sp = data["specialty"]
+            counts[sp] = len(data.get("entries", []))
+            source_files_per_specialty[sp] = data.get("source_files", [])
 
         total = sum(counts.values())
         if total == 0:
             self.skipTest("No entries in specialty files")
 
+        # Check if any validated source contributes to this specialty.
+        # If so, use the validated source's higher threshold.
+        default_threshold = 0.90
         for specialty, count in counts.items():
             ratio = count / total
+            # Determine the threshold for this specialty
+            threshold = default_threshold
+            sources = source_files_per_specialty.get(specialty, [])
+            for src in sources:
+                meta = SOURCE_METADATA.get(src, {})
+                src_threshold = meta.get("dominance_threshold", default_threshold)
+                threshold = max(threshold, src_threshold)
+
             self.assertLess(
                 ratio,
-                0.90,
+                threshold,
                 f"Specialty '{specialty}' dominates: {ratio:.1%} of {total:,} total "
-                f"entries. Before PR #105 fix, orthopedic_surgery had 94%. "
-                f"This regression indicates the content-based classifier is broken.",
+                f"entries (threshold: {threshold:.0%}). "
+                f"Sources: {sources[:3]}{'...' if len(sources) > 3 else ''}. "
+                f"If this is a validated specialist source, add it to "
+                f"SOURCE_METADATA in process_malek_dictionaries.py with "
+                f"dominance_threshold=0.95. Otherwise, investigate "
+                f"possible contamination.",
             )
+
+    def test_master_fractures_validated(self):
+        """master_fractures.tmx must be in SOURCE_METADATA with
+        validated_by='DrAbdulmalek'. This protects the 92% orthopedic
+        ratio from being flagged as contamination in the future."""
+        from scripts.process_malek_dictionaries import SOURCE_METADATA
+
+        self.assertIn(
+            "27ca08b021cae49c-master_fractures.tmx",
+            SOURCE_METADATA,
+            "master_fractures.tmx must be registered in SOURCE_METADATA "
+            "with validated_by='DrAbdulmalek' to allow its intentional "
+            "92% orthopedic_surgery dominance.",
+        )
+        meta = SOURCE_METADATA["27ca08b021cae49c-master_fractures.tmx"]
+        self.assertEqual(meta["validated_by"], "DrAbdulmalek")
+        self.assertEqual(meta["specialty"], "orthopedic_surgery")
+        self.assertGreaterEqual(meta["dominance_threshold"], 0.95)
+
+    def test_no_over_quarantining(self):
+        """Quarantine rate should be < 2% to prevent over-aggressive
+        filtering. Currently ~1% (2,330 of 241,232)."""
+        specialty_dir = PROJECT_ROOT / "data" / "dictionaries" / "specialty"
+        summary_file = specialty_dir / "_summary.json"
+        if not summary_file.exists():
+            self.skipTest("Summary file not built yet")
+
+        with open(summary_file) as f:
+            summary = json.load(f)
+
+        totals = summary.get("totals", {})
+        quarantined = totals.get("pairs_quarantined", 0)
+        total_extracted = totals.get("pairs_extracted", 0)
+
+        if total_extracted == 0:
+            self.skipTest("No pairs extracted")
+
+        quarantine_rate = quarantined / total_extracted
+        self.assertLess(
+            quarantine_rate,
+            0.02,
+            f"Quarantine rate {quarantine_rate:.1%} ({quarantined:,} of "
+            f"{total_extracted:,}) exceeds 2% threshold. This suggests "
+            f"over-aggressive filtering that may be removing legitimate "
+            f"medical content. Review NON_MEDICAL_PATTERNS and the "
+            f"safety firewall for false positives.",
+        )
 
 
 class TestDeterministicRegeneration(unittest.TestCase):

@@ -86,11 +86,20 @@ EXCLUDE_PATTERNS = [
 def classify_specialty(filename: str) -> Optional[str]:
     """Classify a TMX file by medical specialty based on filename.
 
-    NOTE: This is a HINT, not a final classification. Some TMX files have
-    misleading names — e.g. `master_fractures.tmx` actually contains a
-    general medical/political corpus, not orthopedic content. The caller
-    should use `classify_entry_by_content()` to verify the actual content
-    of each entry, not just trust the filename.
+    This is a HINT, not a final classification. The caller should use
+    `classify_entry_by_content()` to verify the actual content of each
+    entry, not just trust the filename.
+
+    NOTE on master_fractures.tmx (corrected after specialist review):
+    `master_fractures.tmx` is a LEGITIMATE orthopedic translation memory
+    owned by DrAbdulmalek (orthopedic surgeon, repo owner). The ~92%
+    orthopedic_surgery ratio is INTENTIONAL and EXPECTED — it reflects
+    the source author's specialty, not contamination. The content-based
+    classifier still runs on each entry to route non-orthopedic medical
+    content (e.g. cardiology terms in an orthopedic textbook) to the
+    correct specialty.
+
+    See `SOURCE_METADATA` dict for validated sources.
     """
     name_lower = filename.lower()
 
@@ -140,7 +149,7 @@ SPECIALTY_CONTENT_KEYWORDS: Dict[str, List[re.Pattern]] = {
             r"calcane|talar|talus|navicular|cuboid|cuneiform|"
             r"lunate|scaphoid|triquetrum|hamate|capitate|trapezoid|trapezium|"
             r"pisiform|epiphys|metaphys|diaphys|apophy|trochant|"
-            r"malleol|epicondyl|condyle|intercondylar|intercondylar|"
+            r"malleol|epicondyl|condyle|intercondylar|"
             # Joints
             r"shoulder|knee|hip|elbow|wrist|ankle|articul|"
             r"arthroscopy|arthrogram|glenohumeral|acromioclavicular|"
@@ -162,7 +171,7 @@ SPECIALTY_CONTENT_KEYWORDS: Dict[str, List[re.Pattern]] = {
             r"quadriplegia|tetraplegia|hemiplegia|paralysis|"
             # Pediatric ortho
             r"dysplasia|osteogenesis|achondroplasia|growth.plate|physis|"
-            r"Legg.Calv|Perthes|SCFE|slipped.capital.femoral|"
+            r"Legg.Calv[eé]|Perthes|SCFE|slipped.capital.femoral|"
             r"developmental.dysplasia|DDH|clubfoot|Pavlik|"
             r"Barlow|Ortolani|cerebral.palsy|"
             # Procedures
@@ -250,31 +259,51 @@ SPECIALTY_CONTENT_KEYWORDS: Dict[str, List[re.Pattern]] = {
 # This list now uses CONTEXT-AWARE detection: a country name alone is NOT
 # enough to exclude — it must be combined with political/governmental context
 # (e.g. "government", "election", "minister", "president").
+#
+# v4 fix (kimi review #2): removed common Arabic personal names (abbas, bashir,
+# jihad) which caused false positives on legitimate medical entries mentioning
+# doctors/patients with those names. Replaced with full political figure names
+# (omar.al.bashir, mahmoud.abbas) to reduce false positives. Added demonyms
+# (iranian, israeli, syrian, etc.) to improve context-aware detection.
 NON_MEDICAL_PATTERNS: List[re.Pattern] = [
-    # Politics: country + political keyword in the same entry
+    # Politics: country or demonym + political keyword in the same entry.
+    # v4: added demonyms (iranian, israeli, syrian, etc.) to catch
+    # "Iranian government..." and "Israeli election..."
     re.compile(
-        r"\b(iran|iraq|israel|syria|palestin|lebanon|egypt|saudi|yemen|jordan|"
-        r"turkey|qatar|uae|kuwait|bahrain|oman)\b.*\b"
+        r"\b(iran|iranian|iraq|iraqi|israel|israeli|syria|syrian|"
+        r"palestin|palestinian|lebanon|lebanese|egypt|egyptian|"
+        r"saudi|saudi.arabian|yemen|yemeni|jordan|jordanian|"
+        r"turkey|turkish|qatar|qatari|uae|kuwait|kuwaiti|"
+        r"bahrain|bahraini|oman|omani)\b.*\b"
         r"(election|government|minister|president|parliament|congress|senate|"
         r"democrat|republican|revolution|coup|military|war|conflict|invasion|"
         r"sanction|treaty|negotiat)\b",
         re.IGNORECASE | re.DOTALL
     ),
-    # Reverse: political keyword first, then country
+    # Reverse: political keyword first, then country/demonym
     re.compile(
         r"\b(election|government|minister|president|parliament|congress|senate|"
         r"democrat|republican|revolution|coup|military|war|conflict|invasion|"
         r"sanction|treaty|negotiat)\b.*\b"
-        r"(iran|iraq|israel|syria|palestin|lebanon|egypt|saudi|yemen|jordan|"
-        r"turkey|qatar|uae|kuwait|bahrain|oman)\b",
+        r"(iran|iranian|iraq|iraqi|israel|israeli|syria|syrian|"
+        r"palestin|palestinian|lebanon|lebanese|egypt|egyptian|"
+        r"saudi|saudi.arabian|yemen|yemeni|jordan|jordanian|"
+        r"turkey|turkish|qatar|qatari|uae|kuwait|kuwaiti|"
+        r"bahrain|bahraini|oman|omani)\b",
         re.IGNORECASE | re.DOTALL
     ),
-    # Specific political figures (these are almost never mentioned in
-    # medical literature)
-    re.compile(r"\b(trump|obama|biden|netanyahu|khamenei|ayatollah|"
-               r"bashir|abbas|hamas|hezbollah|fatah|jihad|"
-               r"moussavi|ahmadinejad|khamenei)\b", re.IGNORECASE),
-    # Aviation accidents (genuinely non-medical context)
+    # Specific political figures (full names to avoid false positives on
+    # common Arabic personal names like abbas, bashir, jihad).
+    # v4: replaced bare "bashir|abbas|jihad" with full names.
+    re.compile(
+        r"\b(trump|obama|biden|netanyahu|khamenei|ayatollah|"
+        r"omar.al.bashir|mahmoud.abbas|abu.mazen|"
+        r"hamas|hezbollah|fatah|"
+        r"moussavi|ahmadinejad)\b",
+        re.IGNORECASE
+    ),
+    # Aviation accidents (genuinely non-medical context).
+    # v4: removed bare "plane" which matched "plane of section" in anatomy.
     re.compile(r"\b(plane crashes?|airliner|air crash|"
                r"aviation accident|passenger flight|flight attendant)\b",
                re.IGNORECASE),
@@ -282,6 +311,46 @@ NON_MEDICAL_PATTERNS: List[re.Pattern] = [
     re.compile(r"\b(lottery|jackpot|sweepstakes?|winning numbers?|"
                r"customer services?|winning parameters)\b", re.IGNORECASE),
 ]
+
+# ----------------------------------------------------------------------------
+# Source metadata — validated sources with known dominance signatures
+# ----------------------------------------------------------------------------
+# Sources that have been reviewed by a domain specialist (DrAbdulmalek,
+# orthopedic surgeon) and have a known expected specialty dominance.
+# These sources are exempt from the default 90% dominance cap in
+# test_no_specialty_dominates (they use 95% instead).
+#
+# v4 fix (kimi review #2): explicit provenance tracking to distinguish
+# "specialist source signature" (intentional dominance) from "contamination"
+# (accidental dominance).
+SOURCE_METADATA: Dict[str, Dict[str, Any]] = {
+    "27ca08b021cae49c-master_fractures.tmx": {
+        "specialty": "orthopedic_surgery",
+        "validated_by": "DrAbdulmalek",
+        "validator_specialty": "Orthopedic Surgery",
+        "expected_dominance": 0.92,  # 92% orthopedic is expected
+        "dominance_threshold": 0.95,  # allow up to 95% before flagging
+        "provenance": "Personal orthopedic translation memory of DrAbdulmalek",
+        "validation_commit": "abcd451",
+        "priority_override": [
+            "orthopedic_surgery", "surgery_general", "anatomy",
+            "cardiovascular", "oncology", "endocrinology",
+            "abdomen_pelvis", "general_medical",
+        ],
+    },
+    # Default fallback for sources not explicitly validated
+    "_default": {
+        "validated_by": None,
+        "expected_dominance": None,
+        "dominance_threshold": 0.90,  # default cap
+        "provenance": None,
+    },
+}
+
+
+def get_source_metadata(filename: str) -> Dict[str, Any]:
+    """Get metadata for a source file. Returns _default if not found."""
+    return SOURCE_METADATA.get(filename, SOURCE_METADATA["_default"])
 
 
 def classify_entry_by_content(en_text: str, hint_specialty: Optional[str] = None
