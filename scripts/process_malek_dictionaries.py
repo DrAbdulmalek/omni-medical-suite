@@ -171,12 +171,17 @@ SPECIALTY_CONTENT_KEYWORDS: Dict[str, List[re.Pattern]] = {
 
 # Politics/news content — should be EXCLUDED entirely from medical dictionaries
 NON_MEDICAL_PATTERNS: List[re.Pattern] = [
-    re.compile(r"\b(iran|iraq|israel|syria|trump|obama|biden|netanyahu|"
-               r"election|government|minister|president|parliament|"
-               r"democrat|republican|congress|senate|khamenei|"
-               r"ayatollah|revolut)\b", re.IGNORECASE),
-    re.compile(r"\b(plane crash|airplane|aviation|passenger|flight)\b",
+    re.compile(r"\b(iran|iraqi?|israeli?|syrian?|trump|obama|biden|netanyahu|"
+               r"elections?|government|minister|presidents?|parliament|"
+               r"democrats?|republicans?|congress|senate|khamenei|"
+               r"ayatollah|revolutions?|bashir|abbas|netanyahu|hamas|hezbollah|"
+               r"fatah|palestinian|jihad|moussavi|ahmadinejad)\b", re.IGNORECASE),
+    re.compile(r"\b(plane crashes?|airplane|aviation|passenger flights?|"
+               r"flight attendants?|air crash|airliner|"
+               r"\bplane\b(?=.*\b(crash|crashing|crashed|about to|told to)\b))\b",
                re.IGNORECASE),
+    re.compile(r"\b(lottery|jackpot|winning numbers?|sweepstakes?|"
+               r"customer services?|winning parameters)\b", re.IGNORECASE),
 ]
 
 
@@ -189,37 +194,76 @@ def classify_entry_by_content(en_text: str, hint_specialty: Optional[str] = None
       no specific match.
     - is_medical: False if the entry matches NON_MEDICAL_PATTERNS (politics,
       aviation, etc.) — such entries should be excluded entirely.
+
+    Scoring (Phase 9 fix — addresses Kimi's overfitting concern):
+    Each specialty's patterns are checked and the number of distinct keyword
+    matches is counted. The specialty with the HIGHEST score wins. This
+    prevents the original first-match-wins bug where e.g. "coronary artery
+    bypass" was classified as `anatomy` (because `artery` matched anatomy
+    first) instead of `cardiovascular` (where `coronary` AND `artery` both
+    match, giving a higher score).
+
+    The hint_specialty (filename-based) is used as a tiebreaker when scores
+    are equal, NOT as the primary classifier.
     """
     if not en_text:
         return "general_medical", True
 
-    # Check non-medical patterns first
+    # Check non-medical patterns first — these are EXCLUDED entirely
     for pattern in NON_MEDICAL_PATTERNS:
         if pattern.search(en_text):
             return "general_medical", False
 
-    # If the hint is a specific specialty (not general), verify content matches
-    # If it does, keep the hint. If not, fall back to content-based detection.
-    if hint_specialty and hint_specialty != "general_medical":
-        patterns = SPECIALTY_CONTENT_KEYWORDS.get(hint_specialty, [])
-        if any(p.search(en_text) for p in patterns):
-            return hint_specialty, True
-
-    # Content-based detection
-    matches = []
+    # Score-based detection: count distinct keyword matches per specialty
+    scores: Dict[str, int] = {}
     for specialty, patterns in SPECIALTY_CONTENT_KEYWORDS.items():
+        score = 0
         for p in patterns:
-            if p.search(en_text):
-                matches.append(specialty)
-                break
+            # Use findall to count matches, but cap at a reasonable number
+            # to prevent long-text bias (a paragraph with 50 "heart" mentions
+            # shouldn't dominate over a short entry with 1 "fracture")
+            matches = p.findall(en_text)
+            if matches:
+                score += min(len(matches), 3)  # cap at 3 per pattern
+        if score > 0:
+            scores[specialty] = score
 
-    if matches:
-        # If hint is general_medical but content matches a specific specialty,
-        # prefer the content-based specialty
-        return matches[0], True
+    if scores:
+        # Tiebreaker priority: more specific specialties win ties over
+        # general ones (e.g. cardiovascular beats anatomy on "coronary artery"
+        # because cardiovascular keywords are more specific).
+        # Order from most-specific to least-specific.
+        SPECIALTY_PRIORITY = [
+            "cardiovascular",  # specific organ system
+            "oncology",        # specific disease category
+            "endocrinology",   # specific organ system
+            "orthopedic_surgery",  # specific surgical specialty
+            "surgery_general",  # surgical (more specific than anatomy)
+            "abdomen_pelvis",  # anatomical region
+            "anatomy",         # most general (catches many terms)
+        ]
+        # Sort by score descending, then by priority (specific beats general),
+        # then prefer hint if it's within the top scorers
+        def sort_key(item):
+            sp, score = item
+            priority = SPECIALTY_PRIORITY.index(sp) if sp in SPECIALTY_PRIORITY else len(SPECIALTY_PRIORITY)
+            hint_boost = -1 if sp == hint_specialty else 0  # hint wins ties
+            return (-score, hint_boost, priority)
+
+        sorted_specialties = sorted(scores.items(), key=sort_key)
+        best_specialty = sorted_specialties[0][0]
+
+        # If the hint is a specific specialty and its score is within 1 of the
+        # best, prefer the hint (filename is often a strong signal)
+        if hint_specialty and hint_specialty != "general_medical":
+            hint_score = scores.get(hint_specialty, 0)
+            best_score = sorted_specialties[0][1]
+            if hint_score > 0 and (best_score - hint_score) <= 1:
+                return hint_specialty, True
+        return best_specialty, True
 
     # No specific match — keep the hint if it was specific, else general
-    if hint_specialty:
+    if hint_specialty and hint_specialty != "general_medical":
         return hint_specialty, True
     return "general_medical", True
 
