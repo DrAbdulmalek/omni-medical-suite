@@ -197,8 +197,7 @@ class TestBinaryAndSize(unittest.TestCase):
         gen = SnapshotGenerator(
             root=root,
             output=self.output,
-            scope="full",
-            purpose="Binary test",
+            scope="full",            purpose="Binary test",
             with_prompt=False,
             max_file_size=100_000,
             max_total_size=10_000_000,
@@ -397,8 +396,7 @@ class TestSymlinkEscape(unittest.TestCase):
             output=output,
             scope="full",
             purpose="Nested symlink test",
-            with_prompt=False,
-            max_file_size=100_000,
+            with_prompt=False,            max_file_size=100_000,
             max_total_size=10_000_000,
         )
         gen.generate()
@@ -597,8 +595,7 @@ class TestContainment(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             target = root / "subdir" / "file.txt"
-            target.parent.mkdir()
-            target.touch()
+            target.parent.mkdir()            target.touch()
             self.assertTrue(_is_within_directory(root, target))
 
     def test_path_outside_root(self):
@@ -641,6 +638,55 @@ class TestContainment(unittest.TestCase):
             resolved = _safe_resolve(link, root)
             self.assertIsNone(resolved)
 
+
+
+
+# ---------------------------------------------------------------------------
+# Regression: strict selected and diff semantics
+# ---------------------------------------------------------------------------
+
+class TestStrictScopeAndDiffSemantics(unittest.TestCase):
+    def test_selected_without_include_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "safe.txt").write_text("safe\n")
+            with self.assertRaisesRegex(RuntimeError, "requires --include"):
+                FileCollector(root, "selected", None, GitMeta(root)).collect()
+
+    def test_selected_empty_include_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "safe.txt").write_text("safe\n")
+            with self.assertRaisesRegex(RuntimeError, "requires --include"):
+                FileCollector(root, "selected", [], GitMeta(root)).collect()
+
+    def test_invalid_explicit_base_ref_does_not_autodetect(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("tools.export_project_snapshot.run_git") as mock_git:
+                mock_git.side_effect=[(0,".git",""),(0,"main",""),(0,"a"*40,""),(0,"1",""),(0,"",""),(1,"","bad ref")]
+                meta=GitMeta(Path(tmp), base_ref="missing")
+            self.assertIsNone(meta.get_diff_base())
+            self.assertTrue(meta._explicit_base_invalid)
+
+    def test_invalid_explicit_base_sha_does_not_autodetect(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("tools.export_project_snapshot.run_git") as mock_git:
+                mock_git.side_effect=[(0,".git",""),(0,"main",""),(0,"a"*40,""),(0,"1",""),(0,"",""),(1,"","bad sha")]
+                meta=GitMeta(Path(tmp), base_sha="deadbeef")
+            self.assertIsNone(meta.get_diff_base())
+            self.assertTrue(meta._explicit_base_invalid)
+
+    def test_three_dot_diff_failure_never_falls_back_to_two_dot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            meta=MagicMock()
+            meta.get_diff_base.return_value="main"
+            collector=FileCollector(root,"diff",None,meta)
+            with patch("tools.export_project_snapshot.run_git", return_value=(1,"","no merge base")) as mock_git:
+                with self.assertRaisesRegex(RuntimeError,"Three-dot diff is required"):
+                    collector._collect_diff()
+            self.assertEqual(mock_git.call_count,1)
+            self.assertEqual(mock_git.call_args.args[0],["diff","--name-only","main...HEAD"])
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
