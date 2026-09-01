@@ -63,6 +63,14 @@ Four TMX files in the source archive contain only Arabic articles with no Englis
 
 These may be useful as Arabic medical corpus for future terminology extraction, but they must NOT be loaded as bilingual translation memory.
 
+**Validated source files (specialist-reviewed):**
+
+| File | Specialty | Validated by | Expected dominance | Threshold | Provenance |
+|---|---|---|---|---|---|
+| `27ca08b021cae49c-master_fractures.tmx` | orthopedic_surgery | DrAbdulmalek (Orthopedic Surgeon) | 92% | 95% | Personal orthopedic translation memory of DrAbdulmalek |
+
+These sources have been reviewed by a domain specialist and have a known expected specialty dominance. They are exempt from the default 90% dominance cap (they use 95% instead). The `SOURCE_METADATA` dict in `scripts/process_malek_dictionaries.py` tracks this provenance explicitly.
+
 **Excluded source files (non-medical):**
 
 | File | Reason |

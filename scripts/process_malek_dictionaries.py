@@ -84,7 +84,23 @@ EXCLUDE_PATTERNS = [
 
 
 def classify_specialty(filename: str) -> Optional[str]:
-    """Classify a TMX file by medical specialty based on filename."""
+    """Classify a TMX file by medical specialty based on filename.
+
+    This is a HINT, not a final classification. The caller should use
+    `classify_entry_by_content()` to verify the actual content of each
+    entry, not just trust the filename.
+
+    NOTE on master_fractures.tmx (corrected after specialist review):
+    `master_fractures.tmx` is a LEGITIMATE orthopedic translation memory
+    owned by DrAbdulmalek (orthopedic surgeon, repo owner). The ~92%
+    orthopedic_surgery ratio is INTENTIONAL and EXPECTED — it reflects
+    the source author's specialty, not contamination. The content-based
+    classifier still runs on each entry to route non-orthopedic medical
+    content (e.g. cardiology terms in an orthopedic textbook) to the
+    correct specialty.
+
+    See `SOURCE_METADATA` dict for validated sources.
+    """
     name_lower = filename.lower()
 
     # Check exclusions first
@@ -99,6 +115,325 @@ def classify_specialty(filename: str) -> Optional[str]:
 
     # Default: general medical
     return "general_medical"
+
+
+# ----------------------------------------------------------------------------
+# Content-based classification (Phase 8 fix — addresses Kimi's review)
+# ----------------------------------------------------------------------------
+# The filename-based classifier above is a hint. For files that contain
+# mixed content (e.g. `master_fractures.tmx` which actually has general
+# medical + political + pharmaceutical entries mixed in), we re-classify
+# each individual entry by its content using keyword matching on the
+# English side. This ensures the specialty JSON files contain entries
+# that are actually about that specialty.
+
+SPECIALTY_CONTENT_KEYWORDS: Dict[str, List[re.Pattern]] = {
+    "orthopedic_surgery": [
+        # Comprehensive orthopedic keyword list — expanded after specialist
+        # review (DrAbdulmalek is an orthopedic surgeon). The original
+        # narrow list missed many legitimate orthopedic terms found in
+        # the master_fractures.tmx translation memory.
+        re.compile(
+            r"\b("
+            # Basic bone/joint terms
+            r"fracture|orthoped|orthopaed|bone|joint|ligament|tendon|"
+            r"cartilage|menisc|labrum|chondral|osteochondral|subchondral|"
+            r"periosteum|endosteum|cortical.bone|cancellous|trabecular|"
+            r"medullary|callus|remodeling|union|nonunion|malunion|"
+            r"delayed.union|pseudarthrosis|osteoblast|osteoclast|osteocyte|"
+            # Specific bones
+            r"femur|femoral|tibia|tibial|humerus|humeral|fibula|fibular|"
+            r"radius|radial|ulna|ulnar|clavicle|scapula|pelvis|pelvic|"
+            r"ilium|ischium|pubis|acetabul|sacrum|sacral|coccyx|"
+            r"carpal|metatarsal|metacarpal|phalanx|phalangeal|"
+            r"calcane|talar|talus|navicular|cuboid|cuneiform|"
+            r"lunate|scaphoid|triquetrum|hamate|capitate|trapezoid|trapezium|"
+            r"pisiform|epiphys|metaphys|diaphys|apophy|trochant|"
+            r"malleol|epicondyl|condyle|intercondylar|"
+            # Joints
+            r"shoulder|knee|hip|elbow|wrist|ankle|articul|"
+            r"arthroscopy|arthrogram|glenohumeral|acromioclavicular|"
+            r"sternoclavicular|patellofemoral|tibiofemoral|talocrural|"
+            r"subtalar|radio.carpal|distal.radio.ulnar|"
+            # Foot & ankle
+            r"plantar|fascia|hindfoot|forefoot|midfoot|"
+            r"cavovarus|cavus|planus|flatfoot|pes|hallux|valgus|varus|"
+            r"equinus|equinovarus|clubfoot|tailor.s.bunion|bunion|"
+            r"morton.s.neuroma|metatarsalgia|sesamoid|"
+            # Hand
+            r"dupuytren|trigger.finger|de.quervain|carpal.tunnel|"
+            r"ganglion|mucous.cyst|swan.neck|boutonniere|"
+            r"boxer.s.fracture|gamekeeper|skier.s.thumb|"
+            # Spine
+            r"spine|spinal|spondyl|disc.herniation|radiculopath|"
+            r"sciatic|cauda.equina|cervical|thoracic|lumbar|sacral|"
+            r"scoliosis|kyphosis|lordosis|myelopath|paraplegia|"
+            r"quadriplegia|tetraplegia|hemiplegia|paralysis|"
+            # Pediatric ortho
+            r"dysplasia|osteogenesis|achondroplasia|growth.plate|physis|"
+            r"Legg.Calv[eé]|Perthes|SCFE|slipped.capital.femoral|"
+            r"developmental.dysplasia|DDH|clubfoot|Pavlik|"
+            r"Barlow|Ortolani|cerebral.palsy|"
+            # Procedures
+            r"arthroscop|arthroplast|osteotom|fusion|arthrodesis|"
+            r"ORIF|nailing|intramedullary|external.fixator|"
+            r"K-wire|Kirschner|Steinmann|Schanz|Hoffman|Ilizarov|"
+            r"Taylor.spatial.frame|TSF|fixation|hemiarthroplast|"
+            r"total.joint|TJR|THR|TKR|replacement|"
+            r"reduction|manipulation|immobilization|cast|splint|brace|"
+            r"crutch|wheelchair|prosthesis|orthosis|traction|"
+            # Trauma
+            r"amputation|بتر|debridement|wound|laceration|abrasion|"
+            r"contusion|hematoma|ecchymosis|compartment|fasciotomy|"
+            r"escharotomy|burn|frostbite|crush.injury|degloving|"
+            r"open.fracture|compound.fracture|closed.fracture|"
+            r"comminut|segmental|spiral|oblique|transverse|greenstick|"
+            r"pathologic.fracture|stress.fracture|insufficiency.fracture|"
+            r"avulsion|burst|wedge|teardrop|hangman|jefferson|"
+            r"odontoid|dens|atlanto.axial|subaxial|"
+            # Infections/inflammations
+            r"osteomyelitis|septic.arthritis|cellulitis|abscess|"
+            r"arthritis|osteopor|tenosynovitis|bursitis|epicondylitis|"
+            # Rotator cuff / sports medicine
+            r"rotator.cuff|ACL|PCL|MCL|LCL|meniscal|labral|"
+            r"tendinopath|tendinosis|sprain|strain|"
+            # Rehab
+            r"physical.therapy|occupational.therapy|rehabilitation|"
+            r"range.of.motion|ROM|propriocept|"
+            # Imaging (ortho-specific context)
+            r"X-ray|radiograph|fluoroscop|C-arm|image.intensifier|MRI"
+            r")\b", re.IGNORECASE),
+    ],
+    "anatomy": [
+        re.compile(r"\b(anatomy|anatomical|artery|vein|nerve|muscle|brain|"
+                   r"heart|liver|kidney|lung|stomach|intestine|esophagus|"
+                   r"trachea|bronch|diaphragm|peritoneum|pleura|pericardium|"
+                   r"fascia|aponeurosis|ganglion|plexus|nucleus|cortex|medulla)\b",
+                   re.IGNORECASE),
+    ],
+    "cardiovascular": [
+        re.compile(r"\b(cardiovascular|cardiac|heart|coronary|myocardial|"
+                   r"pericardial|atrial|ventricular|valve|stenosis|"
+                   r"hypertension|hypotension|arrhythmia|fibrillation|"
+                   r"tachycardia|bradycardia|ECG|EKG|echocardiogram)\b",
+                   re.IGNORECASE),
+    ],
+    "oncology": [
+        re.compile(r"\b(cancer|oncolog|tumor|tumour|neoplasm|carcinoma|"
+                   r"sarcoma|lymphoma|leukemia|metastas|chemotherapy|"
+                   r"radiation therapy|biopsy|malignant|benign|cyst|"
+                   r"polyp|adenoma|papilloma)\b", re.IGNORECASE),
+    ],
+    "endocrinology": [
+        re.compile(r"\b(diabetes|endocrin|insulin|glucose|thyroid|"
+                   r"hyperglycemia|hypoglycemia|HbA1c|pituitary|adrenal|"
+                   r"cortisol|estrogen|testosterone|progesterone|hormone|"
+                   r"goiter|hyperthyroid|hypothyroid)\b", re.IGNORECASE),
+    ],
+    "surgery_general": [
+        re.compile(r"\b(surgery|surgical|incision|suture|anastomosis|"
+                   r"laparoscop|appendectomy|cholecystectomy|herniorrhaphy|"
+                   r"colostomy|ileostomy|resection|excision|biopsy|"
+                   r"anesthesia|laparotomy|thoracotomy|craniotomy)\b",
+                   re.IGNORECASE),
+    ],
+    "abdomen_pelvis": [
+        re.compile(r"\b(abdomen|abdominal|pelvis|pelvic|peritoneum|"
+                   r"peritoneal|intestine|colon|rectum|sigmoid|cecum|"
+                   r"appendix|gallbladder|pancreas|spleen|liver|"
+                   r"hepatic|renal|urinary|bladder|uterus|ovary|"
+                   r"fallopian|prostate)\b", re.IGNORECASE),
+    ],
+}
+
+# Politics/news content — should be EXCLUDED entirely from medical dictionaries.
+#
+# IMPORTANT (specialist review — DrAbdulmalek is an orthopedic surgeon):
+# The previous list was TOO AGGRESSIVE and quarantined 383 entries from
+# master_fractures.tmx. After specialist review, only ~10% of those 383 were
+# actually non-medical (genuine news/politics). The rest were medical entries
+# that happened to mention a country name or political figure in a medical
+# context (e.g. "Israeli study on fracture healing", "Iranian patients with
+# hip dysplasia").
+#
+# This list now uses CONTEXT-AWARE detection: a country name alone is NOT
+# enough to exclude — it must be combined with political/governmental context
+# (e.g. "government", "election", "minister", "president").
+#
+# v4 fix (kimi review #2): removed common Arabic personal names (abbas, bashir,
+# jihad) which caused false positives on legitimate medical entries mentioning
+# doctors/patients with those names. Replaced with full political figure names
+# (omar.al.bashir, mahmoud.abbas) to reduce false positives. Added demonyms
+# (iranian, israeli, syrian, etc.) to improve context-aware detection.
+NON_MEDICAL_PATTERNS: List[re.Pattern] = [
+    # Politics: country or demonym + political keyword in the same entry.
+    # v4: added demonyms (iranian, israeli, syrian, etc.) to catch
+    # "Iranian government..." and "Israeli election..."
+    re.compile(
+        r"\b(iran|iranian|iraq|iraqi|israel|israeli|syria|syrian|"
+        r"palestin|palestinian|lebanon|lebanese|egypt|egyptian|"
+        r"saudi|saudi.arabian|yemen|yemeni|jordan|jordanian|"
+        r"turkey|turkish|qatar|qatari|uae|kuwait|kuwaiti|"
+        r"bahrain|bahraini|oman|omani)\b.*\b"
+        r"(election|government|minister|president|parliament|congress|senate|"
+        r"democrat|republican|revolution|coup|military|war|conflict|invasion|"
+        r"sanction|treaty|negotiat)\b",
+        re.IGNORECASE | re.DOTALL
+    ),
+    # Reverse: political keyword first, then country/demonym
+    re.compile(
+        r"\b(election|government|minister|president|parliament|congress|senate|"
+        r"democrat|republican|revolution|coup|military|war|conflict|invasion|"
+        r"sanction|treaty|negotiat)\b.*\b"
+        r"(iran|iranian|iraq|iraqi|israel|israeli|syria|syrian|"
+        r"palestin|palestinian|lebanon|lebanese|egypt|egyptian|"
+        r"saudi|saudi.arabian|yemen|yemeni|jordan|jordanian|"
+        r"turkey|turkish|qatar|qatari|uae|kuwait|kuwaiti|"
+        r"bahrain|bahraini|oman|omani)\b",
+        re.IGNORECASE | re.DOTALL
+    ),
+    # Specific political figures (full names to avoid false positives on
+    # common Arabic personal names like abbas, bashir, jihad).
+    # v4: replaced bare "bashir|abbas|jihad" with full names.
+    re.compile(
+        r"\b(trump|obama|biden|netanyahu|khamenei|ayatollah|"
+        r"omar.al.bashir|mahmoud.abbas|abu.mazen|"
+        r"hamas|hezbollah|fatah|"
+        r"moussavi|ahmadinejad)\b",
+        re.IGNORECASE
+    ),
+    # Aviation accidents (genuinely non-medical context).
+    # v4: removed bare "plane" which matched "plane of section" in anatomy.
+    re.compile(r"\b(plane crashes?|airliner|air crash|"
+               r"aviation accident|passenger flight|flight attendant)\b",
+               re.IGNORECASE),
+    # Lottery/scams (genuinely non-medical)
+    re.compile(r"\b(lottery|jackpot|sweepstakes?|winning numbers?|"
+               r"customer services?|winning parameters)\b", re.IGNORECASE),
+]
+
+# ----------------------------------------------------------------------------
+# Source metadata — validated sources with known dominance signatures
+# ----------------------------------------------------------------------------
+# Sources that have been reviewed by a domain specialist (DrAbdulmalek,
+# orthopedic surgeon) and have a known expected specialty dominance.
+# These sources are exempt from the default 90% dominance cap in
+# test_no_specialty_dominates (they use 95% instead).
+#
+# v4 fix (kimi review #2): explicit provenance tracking to distinguish
+# "specialist source signature" (intentional dominance) from "contamination"
+# (accidental dominance).
+SOURCE_METADATA: Dict[str, Dict[str, Any]] = {
+    "27ca08b021cae49c-master_fractures.tmx": {
+        "specialty": "orthopedic_surgery",
+        "validated_by": "DrAbdulmalek",
+        "validator_specialty": "Orthopedic Surgery",
+        "expected_dominance": 0.92,  # 92% orthopedic is expected
+        "dominance_threshold": 0.95,  # allow up to 95% before flagging
+        "provenance": "Personal orthopedic translation memory of DrAbdulmalek",
+        "validation_commit": "abcd451",
+        "priority_override": [
+            "orthopedic_surgery", "surgery_general", "anatomy",
+            "cardiovascular", "oncology", "endocrinology",
+            "abdomen_pelvis", "general_medical",
+        ],
+    },
+    # Default fallback for sources not explicitly validated
+    "_default": {
+        "validated_by": None,
+        "expected_dominance": None,
+        "dominance_threshold": 0.90,  # default cap
+        "provenance": None,
+    },
+}
+
+
+def get_source_metadata(filename: str) -> Dict[str, Any]:
+    """Get metadata for a source file. Returns _default if not found."""
+    return SOURCE_METADATA.get(filename, SOURCE_METADATA["_default"])
+
+
+def classify_entry_by_content(en_text: str, hint_specialty: Optional[str] = None
+                              ) -> Tuple[str, bool]:
+    """Classify a single entry by its English content.
+
+    Returns (specialty, is_medical).
+    - specialty: the best-matching specialty name, or "general_medical" if
+      no specific match.
+    - is_medical: False if the entry matches NON_MEDICAL_PATTERNS (politics,
+      aviation, etc.) — such entries should be excluded entirely.
+
+    Scoring (Phase 9 fix — addresses Kimi's overfitting concern):
+    Each specialty's patterns are checked and the number of distinct keyword
+    matches is counted. The specialty with the HIGHEST score wins. This
+    prevents the original first-match-wins bug where e.g. "coronary artery
+    bypass" was classified as `anatomy` (because `artery` matched anatomy
+    first) instead of `cardiovascular` (where `coronary` AND `artery` both
+    match, giving a higher score).
+
+    The hint_specialty (filename-based) is used as a tiebreaker when scores
+    are equal, NOT as the primary classifier.
+    """
+    if not en_text:
+        return "general_medical", True
+
+    # Check non-medical patterns first — these are EXCLUDED entirely
+    for pattern in NON_MEDICAL_PATTERNS:
+        if pattern.search(en_text):
+            return "general_medical", False
+
+    # Score-based detection: count distinct keyword matches per specialty
+    scores: Dict[str, int] = {}
+    for specialty, patterns in SPECIALTY_CONTENT_KEYWORDS.items():
+        score = 0
+        for p in patterns:
+            # Use findall to count matches, but cap at a reasonable number
+            # to prevent long-text bias (a paragraph with 50 "heart" mentions
+            # shouldn't dominate over a short entry with 1 "fracture")
+            matches = p.findall(en_text)
+            if matches:
+                score += min(len(matches), 3)  # cap at 3 per pattern
+        if score > 0:
+            scores[specialty] = score
+
+    if scores:
+        # Tiebreaker priority: more specific specialties win ties over
+        # general ones (e.g. cardiovascular beats anatomy on "coronary artery"
+        # because cardiovascular keywords are more specific).
+        # Order from most-specific to least-specific.
+        SPECIALTY_PRIORITY = [
+            "cardiovascular",  # specific organ system
+            "oncology",        # specific disease category
+            "endocrinology",   # specific organ system
+            "orthopedic_surgery",  # specific surgical specialty
+            "surgery_general",  # surgical (more specific than anatomy)
+            "abdomen_pelvis",  # anatomical region
+            "anatomy",         # most general (catches many terms)
+        ]
+        # Sort by score descending, then by priority (specific beats general),
+        # then prefer hint if it's within the top scorers
+        def sort_key(item):
+            sp, score = item
+            priority = SPECIALTY_PRIORITY.index(sp) if sp in SPECIALTY_PRIORITY else len(SPECIALTY_PRIORITY)
+            hint_boost = -1 if sp == hint_specialty else 0  # hint wins ties
+            return (-score, hint_boost, priority)
+
+        sorted_specialties = sorted(scores.items(), key=sort_key)
+        best_specialty = sorted_specialties[0][0]
+
+        # If the hint is a specific specialty and its score is within 1 of the
+        # best, prefer the hint (filename is often a strong signal)
+        if hint_specialty and hint_specialty != "general_medical":
+            hint_score = scores.get(hint_specialty, 0)
+            best_score = sorted_specialties[0][1]
+            if hint_score > 0 and (best_score - hint_score) <= 1:
+                return hint_specialty, True
+        return best_specialty, True
+
+    # No specific match — keep the hint if it was specific, else general
+    if hint_specialty and hint_specialty != "general_medical":
+        return hint_specialty, True
+    return "general_medical", True
 
 
 # ----------------------------------------------------------------------------
@@ -425,143 +760,191 @@ def main():
             json.dump(mono_data, f, ensure_ascii=False, indent=2, sort_keys=True)
 
     # ------------------------------------------------------------------
-    # Phase 2: Parse + clean + quarantine + dedup per specialty
+    # Phase 2: Parse + clean + quarantine ALL files (collecting entries)
     # ------------------------------------------------------------------
+    # Phase 8 fix (Kimi review): Instead of processing files per-specialty
+    # (file-hint based), we process ALL files in one pass and let
+    # classify_entry_by_content() route each entry to its correct specialty
+    # via entry.section. This catches misclassified files like
+    # master_fractures.tmx which actually contain general/political content.
     loader = MedicalDictionaryLoader()  # For safety firewall methods
 
     specialty_stats: Dict[str, SpecialtyStats] = {}
     all_quarantined: List[Dict[str, Any]] = []
     file_stats_list: List[FileStats] = []
+    # entries_by_specialty: maps content-detected specialty -> list of entries
+    entries_by_specialty: Dict[str, List[DictionaryEntry]] = defaultdict(list)
+    # source_files_by_specialty: tracks which source files contributed to each specialty
+    source_files_by_specialty: Dict[str, set] = defaultdict(set)
 
+    # Iterate over ALL bilingual TMX files (regardless of file-hint specialty)
+    all_tmx_files = []
+    for sp_name_file_hint, files in classified.items():
+        for f in files:
+            all_tmx_files.append((f, sp_name_file_hint))
+
+    for tmx_path, file_hint_specialty in all_tmx_files:
+        file_stat = FileStats(
+            file=tmx_path.name,
+            specialty=file_hint_specialty,
+            size_bytes=tmx_path.stat().st_size,
+        )
+
+        # Parse
+        pairs, parse_method = parse_tmx_file(tmx_path)
+        file_stat.pairs_extracted = len(pairs)
+        file_stat.parse_method = parse_method
+
+        # Process each pair
+        valid_count = 0
+        quarantined_count = 0
+        non_medical_count = 0
+        for en, ar in pairs:
+            # Clean
+            en_clean = clean_text(en)
+            ar_clean = clean_text(ar)
+
+            # Validate
+            is_valid, reason = is_valid_pair(en_clean, ar_clean)
+            if not is_valid:
+                quarantined_count += 1
+                all_quarantined.append({
+                    "file": tmx_path.name,
+                    "specialty": file_hint_specialty,
+                    "en": en_clean[:200],
+                    "ar": ar_clean[:200],
+                    "reason": f"invalid:{reason}",
+                })
+                continue
+
+            # Phase 8 fix (Kimi review): content-based re-classification.
+            # Some files (esp. master_fractures.tmx) contain mixed content
+            # that does not match their filename-based specialty hint.
+            # Re-classify each entry by content and route to the right
+            # specialty. If content matches NON_MEDICAL_PATTERNS, exclude
+            # the entry entirely (don't add to any specialty).
+            entry_specialty, is_medical = classify_entry_by_content(
+                en_clean, hint_specialty=file_hint_specialty
+            )
+            if not is_medical:
+                non_medical_count += 1
+                all_quarantined.append({
+                    "file": tmx_path.name,
+                    "specialty": file_hint_specialty,
+                    "en": en_clean[:200],
+                    "ar": ar_clean[:200],
+                    "reason": "non_medical_content",
+                })
+                continue
+
+            # Build DictionaryEntry
+            entry = DictionaryEntry(
+                key=en_clean,
+                value=ar_clean,
+                normalized_key=normalize_arabic_key(en_clean),
+                source=f"malek_data:{tmx_path.name}",
+                category="translation_memory",
+                confidence="medium",
+            )
+            # Override the file-level specialty hint with content-based
+            # classification when they disagree
+            entry.section = entry_specialty
+
+            # Phase 8 fix (Kimi review): context-aware firewall.
+            # The original is_dangerous_key() is designed for str.replace
+            # context (HybridSpellChecker). For exact-match lookup context
+            # (ExactTranslationMemory), decimal_dose / concentration_percent
+            # / drug_dose_unit are NOT dangerous — they are legitimate
+            # medical content (e.g. "Refer to Fig. 3.10", "ICD 754.71",
+            # "5mg dose", "0.9% saline").
+            #
+            # We still quarantine the genuinely dangerous categories:
+            #   - critical_medical_term_as_key (high-risk drug names as keys)
+            #   - PII (emails, phone numbers)
+            #   - arabic_indic_digits (locale-ambiguous)
+            #   - numeric_only, too_short, whitespace_padding
+            # But we ALLOW:
+            #   - decimal_dose, concentration_percent, drug_dose_unit
+            #   - negation patterns (safe for exact-match lookup)
+            # Because exact-match lookup cannot corrupt these values.
+
+            if not entry.value.strip():
+                quarantined_count += 1
+                continue
+
+            if contains_pii(entry.key) or contains_pii(entry.value):
+                quarantined_count += 1
+                all_quarantined.append({
+                    "file": tmx_path.name,
+                    "specialty": entry_specialty,
+                    "en": en_clean[:200],
+                    "ar": ar_clean[:200],
+                    "reason": "pii_or_contact",
+                })
+                continue
+
+            if is_critical_medical_term(entry.key):
+                quarantined_count += 1
+                all_quarantined.append({
+                    "file": tmx_path.name,
+                    "specialty": entry_specialty,
+                    "en": en_clean[:200],
+                    "ar": ar_clean[:200],
+                    "reason": "critical_medical_term_as_key",
+                })
+                continue
+
+            # Run is_dangerous_key but only quarantine for the categories
+            # that are still dangerous in exact-match context.
+            dangerous, dreason = is_dangerous_key(entry.key)
+            if dangerous and dreason in (
+                "arabic_indic_digits",
+                "numeric_only",
+                "too_short",
+                "whitespace_padding",
+            ):
+                quarantined_count += 1
+                all_quarantined.append({
+                    "file": tmx_path.name,
+                    "specialty": entry_specialty,
+                    "en": en_clean[:200],
+                    "ar": ar_clean[:200],
+                    "reason": f"dangerous:{dreason}",
+                })
+                continue
+            # Allow: decimal_dose, concentration_percent, drug_dose_unit, negation:*
+
+            # Passed firewall — route to content-detected specialty
+            valid_count += 1
+            entries_by_specialty[entry_specialty].append(entry)
+            source_files_by_specialty[entry_specialty].add(tmx_path.name)
+
+        file_stat.pairs_valid = valid_count
+        file_stat.pairs_quarantined = quarantined_count
+        file_stats_list.append(file_stat)
+
+        print(f"  hint={file_hint_specialty:25s} | {tmx_path.name[:50]:50s} | "
+              f"extracted={file_stat.pairs_extracted:>6} | "
+              f"valid={valid_count:>6} | "
+              f"quarantined={quarantined_count:>4} | "
+              f"non_medical={non_medical_count:>4}")
+
+    # ------------------------------------------------------------------
+    # Phase 3: Build per-specialty JSON files (after content-based routing)
+    # ------------------------------------------------------------------
     for sp_name, sp_keywords, sp_desc in SPECIALTY_RULES:
-        if sp_name not in classified:
-            continue
+        # Get all entries routed to this specialty (via content classification)
+        all_entries = entries_by_specialty.get(sp_name, [])
+        files = sorted(source_files_by_specialty.get(sp_name, set()))
 
-        files = classified[sp_name]
         sp_stats = SpecialtyStats(
             specialty=sp_name,
             description=sp_desc,
             files_count=len(files),
-            files=[f.name for f in files],
+            files=files,
+            total_pairs_extracted=len(all_entries),  # post-firewall count
+            total_pairs_valid=len(all_entries),
         )
-
-        # Collect all entries for this specialty
-        all_entries: List[DictionaryEntry] = []
-
-        for tmx_path in files:
-            file_stat = FileStats(
-                file=tmx_path.name,
-                specialty=sp_name,
-                size_bytes=tmx_path.stat().st_size,
-            )
-
-            # Parse
-            pairs, parse_method = parse_tmx_file(tmx_path)
-            file_stat.pairs_extracted = len(pairs)
-            file_stat.parse_method = parse_method
-
-            # Process each pair
-            valid_count = 0
-            quarantined_count = 0
-            for en, ar in pairs:
-                # Clean
-                en_clean = clean_text(en)
-                ar_clean = clean_text(ar)
-
-                # Validate
-                is_valid, reason = is_valid_pair(en_clean, ar_clean)
-                if not is_valid:
-                    quarantined_count += 1
-                    sp_stats.total_pairs_quarantined += 1
-                    sp_stats.quarantined_reasons[f"invalid:{reason}"] = \
-                        sp_stats.quarantined_reasons.get(f"invalid:{reason}", 0) + 1
-                    all_quarantined.append({
-                        "file": tmx_path.name,
-                        "specialty": sp_name,
-                        "en": en_clean[:200],
-                        "ar": ar_clean[:200],
-                        "reason": f"invalid:{reason}",
-                    })
-                    continue
-
-                # Build DictionaryEntry
-                entry = DictionaryEntry(
-                    key=en_clean,
-                    value=ar_clean,
-                    normalized_key=normalize_arabic_key(en_clean),
-                    source=f"malek_data:{tmx_path.name}",
-                    category="translation_memory",
-                    confidence="medium",
-                )
-
-                # Apply safety firewall
-                dangerous, dreason = is_dangerous_key(entry.key)
-                if dangerous:
-                    quarantined_count += 1
-                    sp_stats.total_pairs_quarantined += 1
-                    sp_stats.quarantined_reasons[f"dangerous:{dreason}"] = \
-                        sp_stats.quarantined_reasons.get(f"dangerous:{dreason}", 0) + 1
-                    all_quarantined.append({
-                        "file": tmx_path.name,
-                        "specialty": sp_name,
-                        "en": en_clean[:200],
-                        "ar": ar_clean[:200],
-                        "reason": f"dangerous:{dreason}",
-                    })
-                    continue
-
-                if not entry.value.strip():
-                    quarantined_count += 1
-                    sp_stats.total_pairs_quarantined += 1
-                    sp_stats.quarantined_reasons["empty_value"] = \
-                        sp_stats.quarantined_reasons.get("empty_value", 0) + 1
-                    continue
-
-                if contains_pii(entry.key) or contains_pii(entry.value):
-                    quarantined_count += 1
-                    sp_stats.total_pairs_quarantined += 1
-                    sp_stats.quarantined_reasons["pii"] = \
-                        sp_stats.quarantined_reasons.get("pii", 0) + 1
-                    all_quarantined.append({
-                        "file": tmx_path.name,
-                        "specialty": sp_name,
-                        "en": en_clean[:200],
-                        "ar": ar_clean[:200],
-                        "reason": "pii_or_contact",
-                    })
-                    continue
-
-                if is_critical_medical_term(entry.key):
-                    quarantined_count += 1
-                    sp_stats.total_pairs_quarantined += 1
-                    sp_stats.quarantined_reasons["critical_medical_term"] = \
-                        sp_stats.quarantined_reasons.get("critical_medical_term", 0) + 1
-                    all_quarantined.append({
-                        "file": tmx_path.name,
-                        "specialty": sp_name,
-                        "en": en_clean[:200],
-                        "ar": ar_clean[:200],
-                        "reason": "critical_medical_term_as_key",
-                    })
-                    continue
-
-                # Passed firewall
-                valid_count += 1
-                all_entries.append(entry)
-
-            file_stat.pairs_valid = valid_count
-            file_stat.pairs_quarantined = quarantined_count
-            sp_stats.total_pairs_extracted += file_stat.pairs_extracted
-            sp_stats.total_pairs_valid += valid_count
-
-            # Dedup within this file's contribution (and across files in specialty)
-            file_stat.pairs_added = 0  # Will count after dedup below
-            file_stats_list.append(file_stat)
-
-            print(f"  {sp_name:25s} | {tmx_path.name[:50]:50s} | "
-                  f"extracted={file_stat.pairs_extracted:>6} | "
-                  f"valid={valid_count:>6} | "
-                  f"quarantined={quarantined_count:>4}")
 
         # Deduplicate within the specialty by normalized_key
         # Keep first occurrence (preserve file order; later duplicates lose)
@@ -579,28 +962,22 @@ def main():
             deduped_entries.append(winner)
 
         sp_stats.total_pairs_after_dedup = len(deduped_entries)
-
-        # Distribute duplicates count to files (approximate)
-        if duplicates_count > 0:
-            ratio = duplicates_count / max(len(all_entries), 1)
-            for fs in file_stats_list:
-                if fs.specialty == sp_name:
-                    fs.pairs_duplicate = int(fs.pairs_valid * ratio)
-                    fs.pairs_added = fs.pairs_valid - fs.pairs_duplicate
+        sp_stats.total_pairs_quarantined = sum(
+            1 for q in all_quarantined if q.get("specialty") == sp_name
+        )
 
         # Save per-specialty JSON
         # Note: generated_at is omitted for deterministic regeneration (sha256 stable)
         output_data = {
             "specialty": sp_name,
             "description": sp_desc,
-            "source_files": [f.name for f in files],
+            "source_files": files,
             "stats": {
                 "files_count": sp_stats.files_count,
                 "total_pairs_extracted": sp_stats.total_pairs_extracted,
                 "total_pairs_valid_after_firewall": sp_stats.total_pairs_valid,
                 "total_pairs_quarantined": sp_stats.total_pairs_quarantined,
                 "total_pairs_after_dedup": sp_stats.total_pairs_after_dedup,
-                "quarantined_reasons": dict(sorted(sp_stats.quarantined_reasons.items())),
             },
             "entries": [
                 {
