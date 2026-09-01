@@ -19,6 +19,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field, asdict
@@ -27,7 +28,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 # Add project root for medical_dictionary_loader import
-PROJECT_ROOT = Path("/home/z/my-project/repos/omni-medical-suite")
+# Use relative path from this script's location (not hardcoded absolute path)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from packages.medical.medical_dictionary_loader import (  # noqa: E402
@@ -42,11 +44,25 @@ from packages.medical.medical_dictionary_loader import (  # noqa: E402
 # ----------------------------------------------------------------------------
 # Paths
 # ----------------------------------------------------------------------------
-SOURCE_DIR = Path("/tmp/my-project/work/malek_data_extracted/New Folder")
+# Source directory: can be overridden via MALEK_DATA_DIR env var or
+# defaults to the local extraction path. In CI/production, set this env var.
+SOURCE_DIR = Path(os.environ.get(
+    "MALEK_DATA_DIR",
+    "/tmp/my-project/work/malek_data_extracted/New Folder"
+))
 OUTPUT_DIR = PROJECT_ROOT / "data" / "dictionaries" / "specialty"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-DOWNLOAD_DIR = Path("/home/z/my-project/download")
+# Download directory for artifacts (only used when running locally)
+DOWNLOAD_DIR = Path(os.environ.get(
+    "MALEK_DOWNLOAD_DIR",
+    "/home/z/my-project/download"
+))
+if DOWNLOAD_DIR.exists() and DOWNLOAD_DIR.is_dir():
+    pass  # Directory exists, OK to use
+else:
+    # In CI or environments where the download dir doesn't exist, use a temp dir
+    DOWNLOAD_DIR = Path(tempfile.gettempdir()) / "malek_dictionaries_download"
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # ----------------------------------------------------------------------------
