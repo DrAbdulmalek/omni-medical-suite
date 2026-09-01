@@ -116,3 +116,11 @@ data/dictionaries/medical_glossary_merged.csv
 data/dictionaries/malek_data_terms.json
 data/dictionaries/quarantined_entries.json
 data/dictionaries/conflicts.json
+
+# ── Specialty TMX dictionaries (regeneratable via scripts/process_malek_dictionaries.py) ──
+# These 64MB of JSON files are produced deterministically from the malek_data
+# TMX archive. Re-generate with:
+#   python3 scripts/process_malek_dictionaries.py
+# See docs/audits/MALEK_DICTIONARIES_AUDIT.md for the full pipeline audit.
+data/dictionaries/specialty/*.json
+!data/dictionaries/specialty/.gitkeep
