@@ -60,6 +60,12 @@ def test_cd_builds_canonical_api_image_after_installing_tm():
     )
 
 
+def test_release_builds_same_canonical_api_image():
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "file: deploy/Dockerfile.api" in release
+    assert "file: Dockerfile.api" not in release
+
+
 def test_production_dockerfile_copies_repository_data():
     dockerfile = (ROOT / "deploy" / "Dockerfile.api").read_text(encoding="utf-8")
     assert "COPY . ." in dockerfile
