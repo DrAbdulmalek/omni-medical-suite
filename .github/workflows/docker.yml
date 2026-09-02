@@ -29,6 +29,8 @@ on:
       - "pyproject.toml"
       - "alembic.ini"
       - "migrations/**"
+      - "scripts/setup_dictionaries.sh"
+      - ".dockerignore"
       - ".github/workflows/docker.yml"
   pull_request:
     paths:
@@ -42,6 +44,8 @@ on:
       - "pyproject.toml"
       - "alembic.ini"
       - "migrations/**"
+      - "scripts/setup_dictionaries.sh"
+      - ".dockerignore"
       - ".github/workflows/docker.yml"
 
 env:
@@ -78,6 +82,8 @@ jobs:
               - "requirements.txt"
               - "requirements/**"
               - "pyproject.toml"
+              - "scripts/setup_dictionaries.sh"
+              - ".dockerignore"
               - ".github/workflows/docker.yml"
             api:
               - "deploy/Dockerfile.api"
@@ -90,6 +96,8 @@ jobs:
               - "requirements.txt"
               - "requirements/**"
               - "pyproject.toml"
+              - "scripts/setup_dictionaries.sh"
+              - ".dockerignore"
               - ".github/workflows/docker.yml"
 
   # ===========================================================================
@@ -176,7 +184,7 @@ jobs:
         if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
