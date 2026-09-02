@@ -54,7 +54,10 @@ def test_cd_builds_canonical_api_image_after_installing_tm():
     docker = cd.index("docker/build-push-action@v5")
     assert install < docker
     assert "file: deploy/Dockerfile.api" in cd
-    assert "kubectl apply -f k8s/" not in cd
+    assert not any(
+        "kubectl apply -f k8s/" in line and not line.lstrip().startswith("#")
+        for line in cd.splitlines()
+    )
 
 
 def test_production_dockerfile_copies_repository_data():
