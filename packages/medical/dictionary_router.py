@@ -158,8 +158,38 @@ class SpecialtyDictionaryRouter:
                     result[key] = value
         return result
 
-    def translation_memory_sources(self) -> list[Path]:
-        return [s.path for s in self._specs if s.role == "translation_memory" and s.path.exists()]
+    def translation_memory_specs(self) -> tuple[DictionarySpec, ...]:
+        """Return all configured TM sources, including unavailable artifacts."""
+        return tuple(s for s in self._specs if s.role == "translation_memory")
+
+    def missing_translation_memory_artifacts(self) -> list[DictionarySpec]:
+        """Return configured optional specialty artifacts that are not installed."""
+        return [
+            s for s in self.translation_memory_specs()
+            if s.runtime == "optional_artifact" and not s.path.exists()
+        ]
+
+    def specialty_translation_memory_specs(self) -> tuple[DictionarySpec, ...]:
+        """Return configured TM resources for the exact canonical specialty."""
+        return tuple(
+            s for s in self.translation_memory_specs()
+            if s.specialty == self.specialty and s.runtime == "optional_artifact"
+        )
+
+    def translation_memory_sources(self, *, require_specialty_artifact: bool = False) -> list[Path]:
+        """Return installed TM paths with optional fail-closed specialty validation."""
+        specialty_specs = self.specialty_translation_memory_specs()
+        missing_specialty = [s for s in specialty_specs if not s.path.exists()]
+        if require_specialty_artifact and specialty_specs and missing_specialty:
+            names = ", ".join(
+                str(s.path.relative_to(Path(__file__).resolve().parents[2]))
+                for s in missing_specialty
+            )
+            raise RuntimeError(
+                f"Specialty translation-memory artifact is not installed for "
+                f"{self.specialty!r}: {names}"
+            )
+        return [s.path for s in self.translation_memory_specs() if s.path.exists()]
 
     def translation_rule_sources(self) -> list[Path]:
         return [s.path for s in self._specs if s.role == "translation_rule" and s.path.exists()]
