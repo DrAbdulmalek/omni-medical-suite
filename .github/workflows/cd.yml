@@ -16,6 +16,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Install pinned specialty translation memory
+        run: |
+          chmod +x scripts/setup_dictionaries.sh
+          bash scripts/setup_dictionaries.sh malek-dictionaries-v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GHCR
