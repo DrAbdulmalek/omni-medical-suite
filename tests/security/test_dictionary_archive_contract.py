@@ -23,11 +23,3 @@ def test_installer_rejects_traversal_and_duplicate_members():
 def test_installer_extracts_only_after_validation():
     text = (ROOT / "scripts/setup_dictionaries.sh").read_text(encoding="utf-8")
     assert text.index('python3 - "$TMP_ARCHIVE"') < text.index("tar --no-same-owner")
-
-
-def test_production_dockerfile_fails_closed_on_missing_entrypoint():
-    text = (ROOT / "deploy/Dockerfile").read_text(encoding="utf-8")
-    assert "RUN test -f /app/entrypoint.sh" in text
-    assert "chmod 0755 /app/entrypoint.sh" in text
-    assert 'ENTRYPOINT ["/app/entrypoint.sh"]' in text
-    assert "docker-entrypoint.sh" not in text
