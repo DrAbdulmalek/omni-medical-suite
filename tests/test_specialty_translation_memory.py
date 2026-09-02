@@ -149,13 +149,10 @@ def test_registered_but_missing_artifact_fails_closed():
 
 
 def test_library_layer_runtime_error_propagates():
-    """Finding #1 production-level regression: When translate_text()
-    receives a RuntimeError from the specialty TM path, it must surface
-    the error to the user instead of silently falling back to MarianMT.
-
-    This test verifies that RuntimeError propagates as a visible error
-    return, not a silent warning log + MT fallback.
-    """
+    """Library-layer regression: missing specialty artifacts raise RuntimeError
+    from ExactTranslationMemory.from_specialty(). The production-caller
+    behavior (translate_text surfacing the error) is tested separately in
+    test_translate_text_surfaces_specialty_tm_runtime_error."""
     # We can't import translate_text directly without heavy deps (torch, etc.),
     # so we verify the contract at the translation_memory layer:
     # from_specialty() raises RuntimeError for missing artifacts.
@@ -232,17 +229,32 @@ def test_translate_text_surfaces_specialty_tm_runtime_error(monkeypatch):
         specialty="orthopedics",
     )
 
+    # Verify MarianMT was NOT invoked by setting load_translator to
+    # raise AssertionError if called — this directly proves the security
+    # property (no model loading after RuntimeError) rather than inferring
+    # it from the result string.
+    def _load_translator_must_not_be_called(*args, **kwargs):
+        raise AssertionError(
+            "load_translator must not be called when specialty TM "
+            "raises RuntimeError — the error should surface to the user"
+        )
+
+    monkeypatch.setattr(
+        translation_service, "load_translator", _load_translator_must_not_be_called
+    )
+
+    # Re-call translate_text with the RuntimeError stub in place.
+    # If load_translator is ever reached, the AssertionError fires.
+    result = translation_service.translate_text(
+        "fracture healing",
+        "English → Arabic",
+        specialty="orthopedics",
+    )
+
     # The user must see a visible error, not a silent MT fallback
     assert "❌" in result, f"Expected visible error, got: {result[:100]}"
     assert "artifact is not installed" in result, (
         f"Error message should mention the missing artifact, got: {result[:200]}"
-    )
-
-    # Verify MarianMT was NOT invoked (load_translator was never called)
-    # by checking that the result is NOT a model-translation output
-    assert "المصدر" not in result, "Should not have produced a TM/dictionary hit"
-    assert "فشل تحميل النموذج" not in result, (
-        "Should not have reached model-loading path at all"
     )
 
 
