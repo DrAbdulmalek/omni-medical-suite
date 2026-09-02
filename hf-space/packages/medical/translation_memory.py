@@ -60,10 +60,19 @@ class ExactTranslationMemory:
 
     @classmethod
     def from_specialty(cls, specialty: str | None = "general_medical") -> "ExactTranslationMemory":
-        """Build TM from only TMX sources applicable to the selected specialty."""
-        router = SpecialtyDictionaryRouter(canonical_specialty(specialty))
+        """Build TM from sources applicable to the selected specialty.
+
+        A configured specialty artifact is fail-closed: requesting a specific
+        specialty must not silently degrade to general TM when that specialty's
+        generated artifact has not been installed.
+        """
+        canonical = canonical_specialty(specialty)
+        router = SpecialtyDictionaryRouter(canonical)
+        require_specialty_artifact = canonical not in {"general", "general_medical"}
         all_entries: list[dict] = []
-        for path in router.translation_memory_sources():
+        for path in router.translation_memory_sources(
+            require_specialty_artifact=require_specialty_artifact
+        ):
             data = json.loads(path.read_text(encoding="utf-8"))
             entries = data.get("entries", data) if isinstance(data, dict) else data
             for entry in entries:
