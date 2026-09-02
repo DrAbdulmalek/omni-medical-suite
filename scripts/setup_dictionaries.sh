@@ -56,6 +56,18 @@ if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
 fi
 echo "Verified SHA-256: ${ACTUAL_SHA256}"
 
+# Reject unsafe archive member paths before extraction. The checksum protects
+# the published bytes; this additionally makes the extraction contract explicit
+# and prevents future installer changes from turning path traversal into a live
+# filesystem write.
+while IFS= read -r member; do
+    member="${member#./}"
+    if [[ "$member" = /* || "$member" == ".." || "$member" == ../* || "$member" == */../* || "$member" == */.. ]]; then
+        echo "ERROR: Archive contains an unsafe path: $member" >&2
+        exit 1
+    fi
+done < <(tar -tzf "$TMP_ARCHIVE")
+
 # Extract into an isolated directory first so a bad/incomplete archive cannot
 # partially modify the live dictionary directory. Do not preserve archive
 # ownership/permissions in the build environment.
