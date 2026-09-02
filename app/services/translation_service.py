@@ -78,11 +78,27 @@ def get_exact_translation_memory(specialty: str | None = "general_medical"):
 
 
 def _lookup_exact_dictionary(text: str, direction: str, specialty: str) -> str | None:
-    """Use exact dictionaries only; never rewrite a substring of a sentence."""
-    if not text or len(text.split()) > 8:
+    """Use exact dictionaries only; never rewrite a substring of a sentence.
+
+    The specialty TM artifact is validated FIRST, before the 8-word
+    optimization. This ensures that a missing specialty artifact raises
+    RuntimeError regardless of input length — a long input must NOT
+    silently bypass the fail-closed contract by returning None early.
+    """
+    if not text:
         return None
 
+    # Validate specialty TM artifact before the word-count optimization.
+    # This raises RuntimeError if the specialty artifact is missing,
+    # which translate_text() catches and surfaces as a visible error.
     tm = get_exact_translation_memory(specialty)
+
+    # 8-word optimization: exact TM is only useful for short phrases.
+    # This is AFTER the specialty validation, so missing artifacts
+    # still fail closed even for long inputs.
+    if len(text.split()) > 8:
+        return None
+
     tm_target = tm.translate_exact(text)
     if tm_target is not None:
         logger.info("Exact TM hit: specialty=%s direction=%s", specialty, direction)

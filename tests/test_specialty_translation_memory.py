@@ -327,3 +327,233 @@ def test_translate_text_exact_hit_returns_translation(monkeypatch):
 
     assert "التئام الكسر" in result
     assert "exact dictionary/TMX" in result
+
+
+# ── Finding #4 regression: long input bypasses fail-closed ────────────────
+#
+# Finding #4: The 8-word check in _lookup_exact_dictionary() was placed
+# BEFORE get_exact_translation_memory(), so a 9+ word input returned None
+# without ever validating the specialty artifact. This allowed MarianMT
+# fallback even when the specialty artifact was missing.
+#
+# Fix: Move get_exact_translation_memory() BEFORE the 8-word check.
+#
+# CRITICAL TEST DESIGN: These tests do NOT monkeypatch
+# _lookup_exact_dictionary() itself. They monkeypatch only the lower-level
+# dependency get_exact_translation_memory() to raise RuntimeError, then let
+# the REAL _lookup_exact_dictionary() execute. This ensures the test
+# has discriminating power: it will FAIL if the 8-word check is restored
+# before get_exact_translation_memory().
+
+
+def test_translate_text_long_input_still_fails_closed_when_specialty_artifact_missing(monkeypatch):
+    """Finding #4 — production path: when a specialty TM artifact is missing
+    AND the input is longer than 8 words, translate_text() must STILL
+    return a visible error. The 8-word optimization must NOT bypass
+    the specialty artifact validation.
+
+    This test exercises the REAL _lookup_exact_dictionary() by patching
+    only the lower-level get_exact_translation_memory() dependency.
+    It WILL FAIL if the 8-word check is moved back before
+    get_exact_translation_memory().
+    """
+    from app.services import translation_service
+
+    # 9-word input — exceeds the 8-word limit
+    long_text = "patient has a fracture of the femur requiring immediate surgery"
+
+    # Patch the LOWER-LEVEL dependency, not _lookup_exact_dictionary itself.
+    # This forces get_exact_translation_memory() to raise RuntimeError
+    # (same as what happens when the specialty artifact is missing).
+    def _raise_runtime_error(specialty):
+        raise RuntimeError(
+            "Specialty translation-memory artifact is not installed for "
+            "'orthopedic_surgery': .../orthopedic_surgery.json"
+        )
+
+    monkeypatch.setattr(
+        translation_service, "get_exact_translation_memory", _raise_runtime_error
+    )
+
+    # load_translator must NOT be called
+    def _load_translator_must_not_be_called(*args, **kwargs):
+        raise AssertionError(
+            "load_translator must not be called when specialty TM "
+            "raises RuntimeError — even for long input"
+        )
+
+    monkeypatch.setattr(
+        translation_service, "load_translator", _load_translator_must_not_be_called
+    )
+
+    # Call the REAL production entry point — _lookup_exact_dictionary
+    # is NOT monkeypatched, so the real code path executes.
+    result = translation_service.translate_text(
+        long_text,
+        "English → Arabic",
+        specialty="orthopedics",
+    )
+
+    # Must see visible error, NOT silent MT fallback
+    assert "❌" in result, f"Expected visible error for long input, got: {result[:100]}"
+    assert "artifact is not installed" in result, (
+        f"Error should mention missing artifact even for long input, got: {result[:200]}"
+    )
+
+
+def test_translate_text_short_input_fails_closed_when_specialty_artifact_missing(monkeypatch):
+    """Baseline: short input (<=8 words) with missing specialty artifact
+    also fails closed. Uses the same real-path approach: patches only
+    get_exact_translation_memory(), not _lookup_exact_dictionary().
+    """
+    from app.services import translation_service
+
+    short_text = "fracture healing"  # 2 words
+
+    def _raise_runtime_error(specialty):
+        raise RuntimeError(
+            "Specialty translation-memory artifact is not installed for "
+            "'orthopedic_surgery': .../orthopedic_surgery.json"
+        )
+
+    monkeypatch.setattr(
+        translation_service, "get_exact_translation_memory", _raise_runtime_error
+    )
+
+    def _load_translator_must_not_be_called(*args, **kwargs):
+        raise AssertionError("load_translator must not be called")
+
+    monkeypatch.setattr(
+        translation_service, "load_translator", _load_translator_must_not_be_called
+    )
+
+    result = translation_service.translate_text(
+        short_text,
+        "English → Arabic",
+        specialty="orthopedics",
+    )
+
+    assert "❌" in result
+    assert "artifact is not installed" in result
+
+
+def test_translate_text_long_input_general_medical_does_not_fail(monkeypatch):
+    """General medical with long input must NOT fail closed — general
+    specialties don't require a specialty artifact. The 8-word optimization
+    should still return None (allowing MarianMT) without raising.
+
+    Uses the real _lookup_exact_dictionary() path by patching only
+    get_exact_translation_memory() to return an empty TM (no error).
+    """
+    from app.services import translation_service
+
+    long_text = "patient has a fracture of the femur requiring immediate surgery"
+
+    # Return a real (empty) TM object — no RuntimeError for general_medical
+    from packages.medical.translation_memory import ExactTranslationMemory
+
+    empty_tm = ExactTranslationMemory.__new__(ExactTranslationMemory)
+    empty_tm._index = {}
+    empty_tm._entries = []
+
+    monkeypatch.setattr(
+        translation_service, "get_exact_translation_memory", lambda s: empty_tm
+    )
+
+    # Also patch get_dictionary_router to return an empty router
+    class _EmptyRouter:
+        def lookup_translation_exact(self, *a, **k):
+            return []
+
+    monkeypatch.setattr(
+        translation_service, "get_dictionary_router", lambda s: _EmptyRouter()
+    )
+
+    # load_translator IS expected to be called for general_medical
+    monkeypatch.setattr(
+        translation_service, "load_translator", lambda model: (None, None)
+    )
+
+    result = translation_service.translate_text(
+        long_text,
+        "English → Arabic",
+        specialty="general_medical",
+    )
+
+    # Should NOT contain a specialty artifact error
+    assert "artifact is not installed" not in result
+    # Should have degraded gracefully (model load failure is expected from mock)
+    assert "❌" in result or "فشل" in result  # graceful degradation
+
+
+def test_translate_text_exact_hit_short_input(monkeypatch):
+    """Exact TM hit with short input returns translation immediately,
+    without calling load_translator. Uses the real _lookup_exact_dictionary()
+    by patching only get_exact_translation_memory() to return a TM
+    that yields a hit.
+    """
+    from app.services import translation_service
+    from packages.medical.translation_memory import ExactTranslationMemory
+
+    # Create a real TM that will match "fracture healing"
+    hit_tm = ExactTranslationMemory([
+        {"en": "fracture healing", "ar": "التئام الكسر"}
+    ])
+
+    monkeypatch.setattr(
+        translation_service, "get_exact_translation_memory", lambda s: hit_tm
+    )
+
+    def _should_not_be_called(*args, **kwargs):
+        raise AssertionError("load_translator should not be called on exact hit")
+
+    monkeypatch.setattr(
+        translation_service, "load_translator", _should_not_be_called
+    )
+
+    result = translation_service.translate_text(
+        "fracture healing",
+        "English → Arabic",
+        specialty="orthopedics",
+    )
+
+    assert "التئام الكسر" in result
+    assert "exact dictionary/TMX" in result
+
+
+def test_translate_text_unregistered_specialty_long_input_fails_closed(monkeypatch):
+    """Finding #2 + #4 interaction: an unregistered specialty (e.g. neurology)
+    with long input must still fail closed — the 'no spec registered' error
+    must fire even for 9+ word inputs.
+
+    Uses the real _lookup_exact_dictionary() by patching only
+    get_exact_translation_memory() to raise RuntimeError.
+    """
+    from app.services import translation_service
+
+    long_text = "patient has a fracture of the femur requiring immediate surgery"
+
+    def _raise_runtime_error(specialty):
+        raise RuntimeError(
+            "No specialty translation-memory spec is registered for 'neurology'"
+        )
+
+    monkeypatch.setattr(
+        translation_service, "get_exact_translation_memory", _raise_runtime_error
+    )
+
+    def _must_not_be_called(*args, **kwargs):
+        raise AssertionError("load_translator must not be called")
+
+    monkeypatch.setattr(
+        translation_service, "load_translator", _must_not_be_called
+    )
+
+    result = translation_service.translate_text(
+        long_text,
+        "English → Arabic",
+        specialty="neurology",
+    )
+
+    assert "❌" in result
+    assert "No specialty translation-memory spec" in result or "not registered" in result
