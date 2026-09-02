@@ -95,10 +95,6 @@ jobs:
   # ===========================================================================
   # Build & Push — Gradio (HITL production image)
   # ===========================================================================
-  # On pull_request: push=false (build only, no GHCR push)
-  # On push to main: push=true  (build and push to GHCR)
-  # This ensures both Dockerfiles are validated on every PR that touches
-  # docker-related files, without polluting GHCR with unmerged images.
   docker-gradio:
     name: Docker Build (Gradio)
     runs-on: ubuntu-latest
@@ -112,6 +108,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install pinned specialty translation memory
+        run: |
+          chmod +x scripts/setup_dictionaries.sh
+          bash scripts/setup_dictionaries.sh malek-dictionaries-v1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -162,6 +163,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install pinned specialty translation memory
+        run: |
+          chmod +x scripts/setup_dictionaries.sh
+          bash scripts/setup_dictionaries.sh malek-dictionaries-v1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
