@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# ═══════════════════════════════════════════════════════════════════════════
-# setup_dictionaries.sh — Download and validate Specialty TM dictionaries
-#
-# Usage:
-#   bash scripts/setup_dictionaries.sh                 # pinned production release
-#   bash scripts/setup_dictionaries.sh malek-dictionaries-v1
-# ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
 REPO="DrAbdulmalek/omni-medical-suite"
@@ -14,7 +7,18 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DICT_DIR="$ROOT_DIR/data/dictionaries"
 SPECIALTY_DIR="$DICT_DIR/specialty"
 ARCHIVE="malek-specialty-dictionaries.tar.gz"
-EXPECTED_V1_SHA256="377f65f33d52df03a44dd759ac3cb145f22718dd446fd6e5cba4f14278c78820"
+
+# Production-consumable releases must have an explicit immutable checksum.
+case "$TAG" in
+    malek-dictionaries-v1)
+        EXPECTED_SHA256="377f65f33d52df03a44dd759ac3cb145f22718dd446fd6e5cba4f14278c78820"
+        ;;
+    *)
+        echo "ERROR: No pinned SHA-256 is registered for release tag '${TAG}'." >&2
+        echo "Add the release and its verified SHA-256 to this installer before use." >&2
+        exit 1
+        ;;
+esac
 
 EXPECTED_FILES=(
     orthopedic_surgery.json
@@ -43,16 +47,14 @@ if ! curl -fSL --progress-bar -o "$TMP_ARCHIVE" "$URL"; then
     exit 1
 fi
 
-if [ "$TAG" = "malek-dictionaries-v1" ]; then
-    ACTUAL_SHA256="$(sha256sum "$TMP_ARCHIVE" | awk '{print $1}')"
-    if [ "$ACTUAL_SHA256" != "$EXPECTED_V1_SHA256" ]; then
-        echo "ERROR: SHA-256 mismatch for ${TAG}." >&2
-        echo "Expected: ${EXPECTED_V1_SHA256}" >&2
-        echo "Actual:   ${ACTUAL_SHA256}" >&2
-        exit 1
-    fi
-    echo "Verified SHA-256: ${ACTUAL_SHA256}"
+ACTUAL_SHA256="$(sha256sum "$TMP_ARCHIVE" | awk '{print $1}')"
+if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+    echo "ERROR: SHA-256 mismatch for ${TAG}." >&2
+    echo "Expected: ${EXPECTED_SHA256}" >&2
+    echo "Actual:   ${ACTUAL_SHA256}" >&2
+    exit 1
 fi
+echo "Verified SHA-256: ${ACTUAL_SHA256}"
 
 # Extract into an isolated directory first so a bad/incomplete archive cannot
 # partially modify the live dictionary directory.
