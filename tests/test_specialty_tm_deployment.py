@@ -10,7 +10,7 @@ def test_specialty_installer_is_pinned_and_uses_published_asset():
     assert 'ARCHIVE="malek-specialty-dictionaries.tar.gz"' in script
     assert "EXPECTED_SHA256=\"377f65f33d52df03a44dd759ac3cb145f22718dd446fd6e5cba4f14278c78820\"" in script
     assert 'sha256sum "$TMP_ARCHIVE"' in script
-    assert 'tar xzf "$TMP_ARCHIVE" -C "$EXTRACT_DIR"' in script
+    assert 'tar --no-same-owner --no-same-permissions -xzf "$TMP_ARCHIVE" -C "$EXTRACT_DIR"' in script
 
 
 def test_specialty_installer_rejects_unpinned_release_tags():
@@ -38,6 +38,14 @@ def test_specialty_installer_validates_every_published_artifact():
         "_hashes.json",
     ):
         assert name in script
+
+
+def test_specialty_installer_does_not_assume_archive_directory_prefix():
+    script = (ROOT / "scripts" / "setup_dictionaries.sh").read_text(encoding="utf-8")
+    assert 'find "$EXTRACT_DIR" -type d -print' in script
+    assert 'FOUND_SPECIALTY_DIR="$candidate"' in script
+    assert '[ -L "$candidate/$file" ]' in script
+    assert "complete expected specialty artifact set" in script
 
 
 def test_docker_context_keeps_specialty_json_artifacts():
