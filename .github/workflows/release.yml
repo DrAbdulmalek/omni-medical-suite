@@ -47,7 +47,7 @@ jobs:
             packages/scanner_fixer/pyproject.toml
       - run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-ara poppler-utils libfuse2 libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0 libgl1 wget
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-ara poppler-utils libfuse2 libxcb-xinerama0 libxcb-cursor0 libgl1 wget
       - run: |
           python -m pip install --upgrade pip
           pip install "numpy>=1.24.0,<2.0.0"
@@ -163,7 +163,7 @@ jobs:
       - uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.api
+          file: deploy/Dockerfile.api
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/omni-medical-api:${{ steps.meta.outputs.version }}
