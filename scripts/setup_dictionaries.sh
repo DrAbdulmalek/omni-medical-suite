@@ -1,51 +1,21 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════
-# setup_dictionaries.sh — Download Specialty TM dictionaries from GitHub Release
+# setup_dictionaries.sh — Download and validate Specialty TM dictionaries
 #
 # Usage:
-#   bash scripts/setup_dictionaries.sh          # latest release
-#   bash scripts/setup_dictionaries.sh v0.1     # specific tag
+#   bash scripts/setup_dictionaries.sh                 # pinned production release
+#   bash scripts/setup_dictionaries.sh malek-dictionaries-v1
 # ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
 REPO="DrAbdulmalek/omni-medical-suite"
-TAG="${1:-latest}"
-DICT_DIR="$(cd "$(dirname "$0")/.." && pwd)/data/dictionaries"
+TAG="${1:-malek-dictionaries-v1}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+DICT_DIR="$ROOT_DIR/data/dictionaries"
+SPECIALTY_DIR="$DICT_DIR/specialty"
 ARCHIVE="malek-specialty-dictionaries.tar.gz"
 EXPECTED_V1_SHA256="377f65f33d52df03a44dd759ac3cb145f22718dd446fd6e5cba4f14278c78820"
 
-mkdir -p "$DICT_DIR"
-
-if [ "$TAG" = "latest" ]; then
-    URL="https://github.com/${REPO}/releases/latest/download/${ARCHIVE}"
-else
-    URL="https://github.com/${REPO}/releases/download/${TAG}/${ARCHIVE}"
-fi
-
-echo "Downloading specialty dictionaries from: $URL"
-if ! curl -fSL --progress-bar -o "/tmp/${ARCHIVE}" "$URL"; then
-    echo "ERROR: Download failed. Check the tag/release exists and contains ${ARCHIVE}." >&2
-    exit 1
-fi
-
-# The published v1 artifact has a recorded SHA-256 digest. Verify it whenever
-# that exact release is requested; do not silently accept a modified archive.
-if [ "$TAG" = "malek-dictionaries-v1" ]; then
-    ACTUAL_SHA256="$(sha256sum "/tmp/${ARCHIVE}" | awk '{print $1}')"
-    if [ "$ACTUAL_SHA256" != "$EXPECTED_V1_SHA256" ]; then
-        echo "ERROR: SHA-256 mismatch for ${TAG}." >&2
-        echo "Expected: ${EXPECTED_V1_SHA256}" >&2
-        echo "Actual:   ${ACTUAL_SHA256}" >&2
-        rm -f "/tmp/${ARCHIVE}"
-        exit 1
-    fi
-    echo "Verified SHA-256: ${ACTUAL_SHA256}"
-fi
-
-tar xzf "/tmp/${ARCHIVE}" -C "$DICT_DIR"
-rm -f "/tmp/${ARCHIVE}"
-
-SPECIALTY_DIR="$DICT_DIR/specialty"
 EXPECTED_FILES=(
     orthopedic_surgery.json
     anatomy.json
@@ -61,11 +31,62 @@ EXPECTED_FILES=(
     _hashes.json
 )
 
+mkdir -p "$DICT_DIR"
+URL="https://github.com/${REPO}/releases/download/${TAG}/${ARCHIVE}"
+TMP_DIR="$(mktemp -d)"
+TMP_ARCHIVE="$TMP_DIR/$ARCHIVE"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+echo "Downloading specialty dictionaries from: $URL"
+if ! curl -fSL --progress-bar -o "$TMP_ARCHIVE" "$URL"; then
+    echo "ERROR: Download failed. Check that release ${TAG} contains ${ARCHIVE}." >&2
+    exit 1
+fi
+
+if [ "$TAG" = "malek-dictionaries-v1" ]; then
+    ACTUAL_SHA256="$(sha256sum "$TMP_ARCHIVE" | awk '{print $1}')"
+    if [ "$ACTUAL_SHA256" != "$EXPECTED_V1_SHA256" ]; then
+        echo "ERROR: SHA-256 mismatch for ${TAG}." >&2
+        echo "Expected: ${EXPECTED_V1_SHA256}" >&2
+        echo "Actual:   ${ACTUAL_SHA256}" >&2
+        exit 1
+    fi
+    echo "Verified SHA-256: ${ACTUAL_SHA256}"
+fi
+
+# Extract into an isolated directory first so a bad/incomplete archive cannot
+# partially modify the live dictionary directory.
+EXTRACT_DIR="$TMP_DIR/extracted"
+mkdir -p "$EXTRACT_DIR"
+tar xzf "$TMP_ARCHIVE" -C "$EXTRACT_DIR"
+
+FOUND_SPECIALTY_DIR=""
+if [ -d "$EXTRACT_DIR/data/dictionaries/specialty" ]; then
+    FOUND_SPECIALTY_DIR="$EXTRACT_DIR/data/dictionaries/specialty"
+elif [ -d "$EXTRACT_DIR/specialty" ]; then
+    FOUND_SPECIALTY_DIR="$EXTRACT_DIR/specialty"
+else
+    CANDIDATE="$(find "$EXTRACT_DIR" -type d -path '*/data/dictionaries/specialty' -print -quit)"
+    if [ -n "$CANDIDATE" ]; then
+        FOUND_SPECIALTY_DIR="$CANDIDATE"
+    fi
+fi
+
+if [ -z "$FOUND_SPECIALTY_DIR" ]; then
+    echo "ERROR: Archive does not contain a data/dictionaries/specialty directory." >&2
+    exit 1
+fi
+
 for file in "${EXPECTED_FILES[@]}"; do
-    if [ ! -f "$SPECIALTY_DIR/$file" ]; then
-        echo "ERROR: Missing required specialty dictionary artifact: $SPECIALTY_DIR/$file" >&2
+    if [ ! -f "$FOUND_SPECIALTY_DIR/$file" ]; then
+        echo "ERROR: Missing required specialty dictionary artifact: $file" >&2
         exit 1
     fi
 done
 
-echo "Done — validated ${#EXPECTED_FILES[@]} specialty dictionary artifacts in $SPECIALTY_DIR"
+mkdir -p "$SPECIALTY_DIR"
+for file in "${EXPECTED_FILES[@]}"; do
+    install -m 0644 "$FOUND_SPECIALTY_DIR/$file" "$SPECIALTY_DIR/$file"
+done
+
+echo "Done — validated and installed ${#EXPECTED_FILES[@]} specialty dictionary artifacts in $SPECIALTY_DIR"
