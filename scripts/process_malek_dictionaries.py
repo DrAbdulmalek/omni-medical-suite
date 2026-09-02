@@ -1022,10 +1022,16 @@ def main():
     total_quarantined = sum(s.total_pairs_quarantined for s in specialty_stats.values())
     total_deduped = sum(s.total_pairs_after_dedup for s in specialty_stats.values())
 
-    # Use a stable build_id based on the source directory's file inventory (not wall clock).
-    # This makes the output fully deterministic: same inputs → same build_id → same hashes.
-    source_inventory = sorted([(f.name, f.stat().st_size, int(f.stat().st_mtime)) for f in SOURCE_DIR.iterdir() if f.is_file()])
-    build_id = hashlib.sha256(json.dumps(source_inventory, ensure_ascii=False).encode()).hexdigest()[:16]
+    # Build identity is content-addressed, not metadata-addressed.  mtime is
+    # deliberately excluded so copying the same archive to another machine does
+    # not change the build_id.
+    source_inventory = []
+    for source_file in sorted((f for f in SOURCE_DIR.iterdir() if f.is_file()), key=lambda p: p.name):
+        digest = hashlib.sha256(source_file.read_bytes()).hexdigest()
+        source_inventory.append((source_file.name, source_file.stat().st_size, digest))
+    build_id = hashlib.sha256(
+        json.dumps(source_inventory, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()[:16]
 
     summary = {
         "build_id": build_id,
