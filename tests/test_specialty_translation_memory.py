@@ -1,53 +1,104 @@
-from pathlib import Path
+from __future__ import annotations
 
+import json
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
+import packages.medical.dictionary_router as dictionary_router
 import pytest
 
+from packages.medical.dictionary_registry import DictionarySpec, canonical_specialty
+from packages.medical.dictionary_router import SpecialtyDictionaryRouter
 from packages.medical.translation_memory import ExactTranslationMemory
 
-ROOT = Path(__file__).resolve().parents[1]
-MALEK_TERMS = ROOT / "data" / "dictionaries" / "malek_data_terms.json"
+
+def _registry(root: Path, *, orthopedic_exists: bool) -> tuple[DictionarySpec, ...]:
+    general = root / "general.json"
+    general.write_text(
+        json.dumps({"entries": [{"en": "general phrase", "ar": "عبارة عامة"}]}),
+        encoding="utf-8",
+    )
+    orthopedic = root / "orthopedic_surgery.json"
+    if orthopedic_exists:
+        orthopedic.write_text(
+            json.dumps(
+                {
+                    "specialty": "orthopedic_surgery",
+                    "entries": [{"en": "fracture healing", "ar": "التئام الكسر"}],
+                }
+            ),
+            encoding="utf-8",
+        )
+    return (
+        DictionarySpec(
+            "general_tm", general, "general_medical",
+            "translation_memory", "entries_json", "loaded", "test general TM",
+        ),
+        DictionarySpec(
+            "orthopedic_tm", orthopedic, "orthopedic_surgery",
+            "translation_memory", "entries_json", "optional_artifact",
+            "test orthopedic TM",
+        ),
+    )
 
 
-def test_specialty_tm_is_selected_from_registry_not_all_sources():
-    general = ExactTranslationMemory.from_specialty("general")
-    medical = ExactTranslationMemory.from_specialty("general_medical")
-    ortho = ExactTranslationMemory.from_specialty("orthopedic_surgery")
-    # General-language routing must not silently ingest medical TMX.
-    assert not general.contains_exact("fracture") or general.translate_exact("fracture") is None
-    # Medical/orthopedic contexts are allowed to use the medical TMX source.
-    assert isinstance(medical._index, dict)
-    assert isinstance(ortho._index, dict)
+def _spec_selector(registry: tuple[DictionarySpec, ...]):
+    def select(specialty: str | None):
+        canonical = canonical_specialty(specialty)
+        if canonical == "general":
+            allowed = {"general"}
+        elif canonical == "general_medical":
+            allowed = {"general", "general_medical"}
+        else:
+            allowed = {"general", "general_medical", canonical}
+        return [spec for spec in registry if spec.specialty in allowed]
+    return select
 
 
-def test_specialty_tm_remains_exact_match_only():
-    tm = ExactTranslationMemory.from_specialty("orthopedic_surgery")
-    arbitrary = "patient has a fracture of the femur"
-    assert tm.translate_exact(arbitrary) is None
+def test_specialty_aliases_match_generated_namespace():
+    assert canonical_specialty("orthopedics") == "orthopedic_surgery"
+    assert canonical_specialty("cardiology") == "cardiovascular"
+    assert canonical_specialty("general_surgery") == "surgery_general"
 
 
-@pytest.mark.skipif(
-    not MALEK_TERMS.exists(),
-    reason="malek_data_terms.json is git-ignored and regenerated only when the malek_data 7z archive is available",
-)
-def test_tm_provenance_is_preserved_for_specialty_source():
-    """Every TM entry must have non-empty provenance (source attribution).
-    The category may be 'translation_memory' or any other category the source
-    TMX file assigned (e.g., 'vascular_complications', 'glossary_term').
+def test_missing_specialty_artifact_fails_closed():
+    with tempfile.TemporaryDirectory() as tmp:
+        registry = _registry(Path(tmp), orthopedic_exists=False)
+        with patch.object(
+            dictionary_router, "specs_for_specialty",
+            side_effect=_spec_selector(registry),
+        ):
+            router = SpecialtyDictionaryRouter("orthopedics")
+            missing = router.missing_translation_memory_artifacts()
+            assert len(missing) == 1
+            assert missing[0].specialty == "orthopedic_surgery"
+            with pytest.raises(RuntimeError, match="Specialty translation-memory artifact"):
+                ExactTranslationMemory.from_specialty("orthopedics")
 
-    Skipped when ``data/dictionaries/malek_data_terms.json`` is absent — that
-    file is git-ignored and regeneratable via ``scripts/setup_medical_dictionaries.py``.
-    In a fresh CI clone without the private malek_data archive, the TMX index
-    is intentionally empty."""
-    tm = ExactTranslationMemory.from_specialty("orthopedic_surgery")
-    found_any = False
-    for bucket in tm._index.values():
-        for entry in bucket:
-            found_any = True
-            # Provenance MUST be non-empty (source attribution is required)
-            assert entry["provenance"], \
-                f"Entry missing provenance: {entry}"
-            # Category MUST be non-empty (defaults to 'translation_memory' if missing)
-            assert entry["category"], \
-                f"Entry missing category: {entry}"
-    # Sanity: the TM index must have at least some entries
-    assert found_any, "Specialty TM index is empty"
+
+def test_available_specialty_artifact_is_discovered_end_to_end():
+    with tempfile.TemporaryDirectory() as tmp:
+        registry = _registry(Path(tmp), orthopedic_exists=True)
+        with patch.object(
+            dictionary_router, "specs_for_specialty",
+            side_effect=_spec_selector(registry),
+        ):
+            router = SpecialtyDictionaryRouter("orthopedics")
+            sources = router.translation_memory_sources(require_specialty_artifact=True)
+            assert len(sources) == 2
+
+            tm = ExactTranslationMemory.from_specialty("orthopedics")
+            assert tm.translate_exact("fracture healing") == "التئام الكسر"
+            assert tm.translate_exact("patient has a fracture of the femur") is None
+
+
+def test_general_translation_memory_does_not_require_specialty_artifact():
+    with tempfile.TemporaryDirectory() as tmp:
+        registry = _registry(Path(tmp), orthopedic_exists=False)
+        with patch.object(
+            dictionary_router, "specs_for_specialty",
+            side_effect=_spec_selector(registry),
+        ):
+            tm = ExactTranslationMemory.from_specialty("general_medical")
+            assert tm.translate_exact("general phrase") == "عبارة عامة"

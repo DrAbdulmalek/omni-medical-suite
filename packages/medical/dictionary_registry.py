@@ -32,6 +32,18 @@ DICTIONARY_REGISTRY: tuple[DictionarySpec, ...] = (
     DictionarySpec("orthopedic_lexicon", ROOT / "data/ortho_lexicon.json", "orthopedic_surgery", "terminology", "ortho_json", "loaded", "orthopedic surgery terminology"),
     DictionarySpec("medical_glossary", ROOT / "data/arabic-medical-glossary/glossaries/final_unified_glossary.csv", "general_medical", "terminology", "csv", "loaded", "medical bilingual glossary"),
     DictionarySpec("malek_tmx", ROOT / "data/dictionaries/malek_data_terms.json", "general_medical", "translation_memory", "entries_json", "loaded", "extracted TMX translation memory"),
+    # Generated specialty TM artifacts. They are optional repository artifacts:
+    # the registry exposes them when installed, while runtime validation can
+    # report an explicit missing artifact instead of silently pretending that a
+    # specialty-specific TM is available.
+    DictionarySpec("malek_tm_general_medical", ROOT / "data/dictionaries/specialty/general_medical.json", "general_medical", "translation_memory", "entries_json", "optional_artifact", "generated general medical TM"),
+    DictionarySpec("malek_tm_orthopedic_surgery", ROOT / "data/dictionaries/specialty/orthopedic_surgery.json", "orthopedic_surgery", "translation_memory", "entries_json", "optional_artifact", "generated orthopedic surgery TM"),
+    DictionarySpec("malek_tm_anatomy", ROOT / "data/dictionaries/specialty/anatomy.json", "anatomy", "translation_memory", "entries_json", "optional_artifact", "generated anatomy TM"),
+    DictionarySpec("malek_tm_cardiovascular", ROOT / "data/dictionaries/specialty/cardiovascular.json", "cardiovascular", "translation_memory", "entries_json", "optional_artifact", "generated cardiovascular TM"),
+    DictionarySpec("malek_tm_oncology", ROOT / "data/dictionaries/specialty/oncology.json", "oncology", "translation_memory", "entries_json", "optional_artifact", "generated oncology TM"),
+    DictionarySpec("malek_tm_endocrinology", ROOT / "data/dictionaries/specialty/endocrinology.json", "endocrinology", "translation_memory", "entries_json", "optional_artifact", "generated endocrinology TM"),
+    DictionarySpec("malek_tm_surgery_general", ROOT / "data/dictionaries/specialty/surgery_general.json", "surgery_general", "translation_memory", "entries_json", "optional_artifact", "generated general surgery TM"),
+    DictionarySpec("malek_tm_abdomen_pelvis", ROOT / "data/dictionaries/specialty/abdomen_pelvis.json", "abdomen_pelvis", "translation_memory", "entries_json", "optional_artifact", "generated abdomen/pelvis TM"),
     DictionarySpec("translation_rules", ROOT / "data/translation_rules.json", "general", "translation_rule", "rules_json", "loaded", "structural and grammatical translation rules"),
 )
 
@@ -52,9 +64,16 @@ SPECIALTY_ALIASES = {
     "orthopedic surgery": "orthopedic_surgery",
     "orthopedic_surgery": "orthopedic_surgery",
     "trauma": "orthopedic_surgery",
-    "cardiology": "cardiology",
+    "cardiology": "cardiovascular",
+    "cardiovascular": "cardiovascular",
     "neurology": "neurology",
-    "general_surgery": "general_surgery",
+    "anatomy": "anatomy",
+    "oncology": "oncology",
+    "endocrinology": "endocrinology",
+    "abdomen_pelvis": "abdomen_pelvis",
+    "general_surgery": "surgery_general",
+    "surgery": "surgery_general",
+    "surgery_general": "surgery_general",
     "radiology": "radiology",
     "pathology": "pathology",
     "pharmacology": "pharmacology",
