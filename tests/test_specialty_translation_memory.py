@@ -148,7 +148,7 @@ def test_registered_but_missing_artifact_fails_closed():
                 ExactTranslationMemory.from_specialty("orthopedics")
 
 
-def test_runtime_error_not_swallowed_by_caller():
+def test_library_layer_runtime_error_propagates():
     """Finding #1 production-level regression: When translate_text()
     receives a RuntimeError from the specialty TM path, it must surface
     the error to the user instead of silently falling back to MarianMT.
@@ -187,3 +187,131 @@ def test_general_specialty_does_not_fail_closed():
             # general_medical must work without any specialty artifacts
             tm = ExactTranslationMemory.from_specialty("general_medical")
             assert tm.translate_exact("general phrase") == "عبارة عامة"
+
+
+# ── Production-caller tests for Finding #1 ──────────────────────────────────
+#
+# These tests exercise app.services.translation_service.translate_text() —
+# the actual Gradio-facing production entry point — not just the library
+# layer. They verify the security property end-to-end:
+#
+#   requested specialty + missing artifact → visible error (NOT silent MT fallback)
+#
+# Heavy dependencies (torch, transformers, MarianMT model loading) are
+# monkeypatched so we never reach the model-loading path. This lets us
+# test in CI without GPU or model downloads.
+
+
+def test_translate_text_surfaces_specialty_tm_runtime_error(monkeypatch):
+    """Finding #1 — production path: when a specialty TM artifact is missing,
+    translate_text() must return a visible error containing the RuntimeError
+    message, NOT silently fall back to MarianMT.
+
+    This test exercises the actual `except RuntimeError` branch in
+    translation_service.py by making _lookup_exact_dictionary raise
+    RuntimeError (which is what happens when from_specialty() encounters
+    a missing artifact).
+    """
+    from app.services import translation_service
+
+    # Force _lookup_exact_dictionary to raise RuntimeError
+    def _raise_runtime_error(*args, **kwargs):
+        raise RuntimeError(
+            "Specialty translation-memory artifact is not installed for "
+            "'orthopedic_surgery': .../orthopedic_surgery.json"
+        )
+
+    monkeypatch.setattr(
+        translation_service, "_lookup_exact_dictionary", _raise_runtime_error
+    )
+
+    # Call the actual production entry point
+    result = translation_service.translate_text(
+        "fracture healing",
+        "English → Arabic",
+        specialty="orthopedics",
+    )
+
+    # The user must see a visible error, not a silent MT fallback
+    assert "❌" in result, f"Expected visible error, got: {result[:100]}"
+    assert "artifact is not installed" in result, (
+        f"Error message should mention the missing artifact, got: {result[:200]}"
+    )
+
+    # Verify MarianMT was NOT invoked (load_translator was never called)
+    # by checking that the result is NOT a model-translation output
+    assert "المصدر" not in result, "Should not have produced a TM/dictionary hit"
+    assert "فشل تحميل النموذج" not in result, (
+        "Should not have reached model-loading path at all"
+    )
+
+
+def test_translate_text_recoverable_exception_still_falls_back(monkeypatch):
+    """Inverse of Finding #1: when a non-RuntimeError exception occurs
+    (ImportError, JSON decode error, etc.), translate_text() should
+    gracefully degrade to MarianMT, not crash.
+
+    This verifies the `except Exception` branch still works correctly
+    and that we didn't over-tighten the error handling.
+    """
+    from app.services import translation_service
+
+    # Force _lookup_exact_dictionary to raise ImportError (recoverable)
+    def _raise_import_error(*args, **kwargs):
+        raise ImportError("Some optional dependency not found")
+
+    monkeypatch.setattr(
+        translation_service, "_lookup_exact_dictionary", _raise_import_error
+    )
+
+    # Mock load_translator to avoid actually loading a model
+    def _fake_load(model_name):
+        return None, None  # signals "model load failed"
+
+    monkeypatch.setattr(translation_service, "load_translator", _fake_load)
+
+    result = translation_service.translate_text(
+        "fracture healing",
+        "English → Arabic",
+        specialty="general_medical",
+    )
+
+    # Should NOT contain the RuntimeError error marker
+    assert "artifact is not installed" not in result, (
+        "ImportError should not surface as a specialty artifact error"
+    )
+    # Should have gracefully degraded (model load failure message is expected
+    # since we mocked load_translator to return None)
+    assert "❌ فشل تحميل النموذج" in result or "فشل" in result, (
+        f"Expected graceful degradation, got: {result[:200]}"
+    )
+
+
+def test_translate_text_exact_hit_returns_translation(monkeypatch):
+    """Positive test: when _lookup_exact_dictionary finds a hit,
+    translate_text() returns the translation immediately without
+    invoking MarianMT.
+    """
+    from app.services import translation_service
+
+    def _fake_lookup(text, direction, specialty):
+        return "التئام الكسر"
+
+    monkeypatch.setattr(
+        translation_service, "_lookup_exact_dictionary", _fake_lookup
+    )
+
+    # Mock load_translator to detect if it's wrongly called
+    def _should_not_be_called(model_name):
+        raise AssertionError("load_translator should not be called when exact hit found")
+
+    monkeypatch.setattr(translation_service, "load_translator", _should_not_be_called)
+
+    result = translation_service.translate_text(
+        "fracture healing",
+        "English → Arabic",
+        specialty="orthopedics",
+    )
+
+    assert "التئام الكسر" in result
+    assert "exact dictionary/TMX" in result
