@@ -181,10 +181,7 @@ class SpecialtyDictionaryRouter:
         specialty_specs = self.specialty_translation_memory_specs()
         missing_specialty = [s for s in specialty_specs if not s.path.exists()]
         if require_specialty_artifact and specialty_specs and missing_specialty:
-            names = ", ".join(
-                str(s.path.relative_to(Path(__file__).resolve().parents[2]))
-                for s in missing_specialty
-            )
+            names = ", ".join(str(s.path) for s in missing_specialty)
             raise RuntimeError(
                 f"Specialty translation-memory artifact is not installed for "
                 f"{self.specialty!r}: {names}"
