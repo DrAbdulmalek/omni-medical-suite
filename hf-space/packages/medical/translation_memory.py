@@ -73,14 +73,21 @@ class ExactTranslationMemory:
         for path in router.translation_memory_sources(
             require_specialty_artifact=require_specialty_artifact
         ):
-            data = json.loads(path.read_text(encoding="utf-8"))
-            entries = data.get("entries", data) if isinstance(data, dict) else data
-            for entry in entries:
-                if isinstance(entry, dict):
-                    enriched = dict(entry)
-                    enriched.setdefault("source", f"{path.name}:tmx")
-                    enriched.setdefault("category", "translation_memory")
-                    all_entries.append(enriched)
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                entries = data.get("entries", data) if isinstance(data, dict) else data
+                if not isinstance(entries, list):
+                    raise ValueError("expected a JSON list of translation-memory entries")
+                for entry in entries:
+                    if isinstance(entry, dict):
+                        enriched = dict(entry)
+                        enriched.setdefault("source", f"{path.name}:tmx")
+                        enriched.setdefault("category", "translation_memory")
+                        all_entries.append(enriched)
+            except (json.JSONDecodeError, OSError, UnicodeError, TypeError, ValueError) as e:
+                raise RuntimeError(
+                    f"Specialty TM artifact is corrupted or unreadable: {path}: {e}"
+                ) from e
         return cls(all_entries)
 
     def lookup_exact(self, text: str) -> List[dict]:

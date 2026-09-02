@@ -38,7 +38,7 @@ jobs:
           python -m pip install -e packages/scanner_fixer 2>/dev/null || true
       - name: Run core hardening tests
         run: |
-          python -m pytest tests/test_scanner_tab.py tests/test_decision_log.py tests/test_translation_service.py tests/test_hf_dataset_staging.py tests/test_lazy_ocr_service.py -q --tb=short
+          python -m pytest tests/test_scanner_tab.py tests/test_decision_log.py tests/test_translation_service.py tests/test_hf_dataset_staging.py tests/test_lazy_ocr_service.py tests/test_specialty_tm_deployment.py tests/test_translation_memory_fail_closed.py -q --tb=short
 
   manjaro-smoke:
     name: Arch smoke (imports + scanner_fixer)
@@ -54,8 +54,6 @@ jobs:
           set -euxo pipefail
           pacman-key --init
           pacman-key --populate archlinux
-          # Avoid a partial-upgrade state: refresh the keyring and perform one
-          # complete system upgrade before installing the CI dependencies.
           pacman -Sy --noconfirm archlinux-keyring
           pacman -Su --noconfirm
           pacman -S --noconfirm --needed \

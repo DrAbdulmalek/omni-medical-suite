@@ -236,8 +236,10 @@ def translate_text(
         logger.error("Specialty TM fail-closed: %s", e)
         return f"❌ {e}"
     except Exception as e:
-        # Other exceptions (ImportError, JSON decode, etc.) are recoverable:
-        # degrade to MarianMT-only with a warning.
+        # Non-artifact lookup failures are recoverable: degrade to MarianMT
+        # with a warning. Specialty artifact corruption/read failures are
+        # wrapped as RuntimeError by ExactTranslationMemory and therefore
+        # never reach this fallback path.
         logger.warning("Dictionary lookup unavailable: %s", e)
 
     progress = progress or _noop_progress

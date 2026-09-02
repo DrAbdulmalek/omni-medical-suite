@@ -1,7 +1,10 @@
 .git
 __pycache__
 *.pyc
-data/
+data/*
+!data/dictionaries/
+!data/dictionaries/specialty/
+!data/dictionaries/specialty/*.json
 outputs/
 debug_*
 *.log
