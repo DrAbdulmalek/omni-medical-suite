@@ -57,34 +57,36 @@ fi
 echo "Verified SHA-256: ${ACTUAL_SHA256}"
 
 # Extract into an isolated directory first so a bad/incomplete archive cannot
-# partially modify the live dictionary directory.
+# partially modify the live dictionary directory. Do not preserve archive
+# ownership/permissions in the build environment.
 EXTRACT_DIR="$TMP_DIR/extracted"
 mkdir -p "$EXTRACT_DIR"
-tar xzf "$TMP_ARCHIVE" -C "$EXTRACT_DIR"
+tar --no-same-owner --no-same-permissions -xzf "$TMP_ARCHIVE" -C "$EXTRACT_DIR"
 
+# The published archive is the authoritative artifact, but its internal
+# directory prefix is not part of the runtime contract. Locate the one
+# directory that contains the complete expected artifact set. This supports
+# archives produced with either data/dictionaries/specialty/, specialty/, or a
+# release-specific top-level prefix without weakening the filename whitelist.
 FOUND_SPECIALTY_DIR=""
-if [ -d "$EXTRACT_DIR/data/dictionaries/specialty" ]; then
-    FOUND_SPECIALTY_DIR="$EXTRACT_DIR/data/dictionaries/specialty"
-elif [ -d "$EXTRACT_DIR/specialty" ]; then
-    FOUND_SPECIALTY_DIR="$EXTRACT_DIR/specialty"
-else
-    CANDIDATE="$(find "$EXTRACT_DIR" -type d -path '*/data/dictionaries/specialty' -print -quit)"
-    if [ -n "$CANDIDATE" ]; then
-        FOUND_SPECIALTY_DIR="$CANDIDATE"
+while IFS= read -r candidate; do
+    complete=true
+    for file in "${EXPECTED_FILES[@]}"; do
+        if [ ! -f "$candidate/$file" ] || [ -L "$candidate/$file" ]; then
+            complete=false
+            break
+        fi
+    done
+    if [ "$complete" = true ]; then
+        FOUND_SPECIALTY_DIR="$candidate"
+        break
     fi
-fi
+done < <(find "$EXTRACT_DIR" -type d -print)
 
 if [ -z "$FOUND_SPECIALTY_DIR" ]; then
-    echo "ERROR: Archive does not contain a data/dictionaries/specialty directory." >&2
+    echo "ERROR: Archive does not contain the complete expected specialty artifact set." >&2
     exit 1
 fi
-
-for file in "${EXPECTED_FILES[@]}"; do
-    if [ ! -f "$FOUND_SPECIALTY_DIR/$file" ]; then
-        echo "ERROR: Missing required specialty dictionary artifact: $file" >&2
-        exit 1
-    fi
-done
 
 mkdir -p "$SPECIALTY_DIR"
 for file in "${EXPECTED_FILES[@]}"; do
