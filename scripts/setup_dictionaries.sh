@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════
-# setup_dictionaries.sh — Download dictionary CSVs from GitHub Releases
+# setup_dictionaries.sh — Download Specialty TM dictionaries from GitHub Release
 #
 # Usage:
 #   bash scripts/setup_dictionaries.sh          # latest release
@@ -11,7 +11,7 @@ set -euo pipefail
 REPO="DrAbdulmalek/omni-medical-suite"
 TAG="${1:-latest}"
 DICT_DIR="$(cd "$(dirname "$0")/.." && pwd)/data/dictionaries"
-ARCHIVE="dictionaries.tar.gz"
+ARCHIVE="malek-specialty-dictionaries.tar.gz"
 
 mkdir -p "$DICT_DIR"
 
@@ -21,12 +21,36 @@ else
     URL="https://github.com/${REPO}/releases/download/${TAG}/${ARCHIVE}"
 fi
 
-echo "Downloading dictionaries from: $URL"
+echo "Downloading specialty dictionaries from: $URL"
 if curl -fSL --progress-bar -o "/tmp/${ARCHIVE}" "$URL"; then
     tar xzf "/tmp/${ARCHIVE}" -C "$DICT_DIR"
     rm -f "/tmp/${ARCHIVE}"
-    echo "Done — $(ls "$DICT_DIR"/*.csv 2>/dev/null | wc -l) CSV files in $DICT_DIR"
 else
-    echo "ERROR: Download failed. Check the tag/release exists."
+    echo "ERROR: Download failed. Check the tag/release exists and contains ${ARCHIVE}." >&2
     exit 1
 fi
+
+SPECIALTY_DIR="$DICT_DIR/specialty"
+EXPECTED_FILES=(
+    orthopedic_surgery.json
+    anatomy.json
+    general_medical.json
+    surgery_general.json
+    cardiovascular.json
+    oncology.json
+    abdomen_pelvis.json
+    endocrinology.json
+    _summary.json
+    _quarantined.json
+    _monolingual_corpus.json
+    _hashes.json
+)
+
+for file in "${EXPECTED_FILES[@]}"; do
+    if [ ! -f "$SPECIALTY_DIR/$file" ]; then
+        echo "ERROR: Missing required specialty dictionary artifact: $SPECIALTY_DIR/$file" >&2
+        exit 1
+    fi
+done
+
+echo "Done — validated ${#EXPECTED_FILES[@]} specialty dictionary artifacts in $SPECIALTY_DIR"
