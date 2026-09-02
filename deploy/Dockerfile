@@ -89,8 +89,10 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy application code
 COPY --chown=omni:omni . .
 
-# Ensure entrypoint is executable
-RUN chmod +x /app/docker-entrypoint.sh 2>/dev/null || true
+# Ensure the production entrypoint exists and is executable. Do not allow a
+# missing or unusable entrypoint to produce a green image build.
+RUN test -f /app/docker-entrypoint.sh \
+    && chmod 0755 /app/docker-entrypoint.sh
 
 # Switch to non-root user
 USER omni
