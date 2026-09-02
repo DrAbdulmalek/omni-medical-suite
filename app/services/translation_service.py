@@ -213,7 +213,15 @@ def translate_text(
                 f"{exact}\n\n---\n"
                 f"**المصدر**: exact dictionary/TMX  |  **التخصص**: `{resolved_specialty}`"
             )
+    except RuntimeError as e:
+        # Fail-closed specialty-TM errors must propagate to the caller.
+        # Silently swallowing them would violate the "no silent fallback"
+        # contract: a missing specialty artifact must be visible, not hidden.
+        logger.error("Specialty TM fail-closed: %s", e)
+        return f"❌ {e}"
     except Exception as e:
+        # Other exceptions (ImportError, JSON decode, etc.) are recoverable:
+        # degrade to MarianMT-only with a warning.
         logger.warning("Dictionary lookup unavailable: %s", e)
 
     progress = progress or _noop_progress
