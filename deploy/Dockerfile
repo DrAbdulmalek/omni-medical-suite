@@ -89,10 +89,10 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy application code
 COPY --chown=omni:omni . .
 
-# Ensure the production entrypoint exists and is executable. Do not allow a
-# missing or unusable entrypoint to produce a green image build.
-RUN test -f /app/docker-entrypoint.sh \
-    && chmod 0755 /app/docker-entrypoint.sh
+# The repository provides the production entrypoint as entrypoint.sh.
+# Fail the image build if it is missing instead of producing a broken image.
+RUN test -f /app/entrypoint.sh \
+    && chmod 0755 /app/entrypoint.sh
 
 # Switch to non-root user
 USER omni
@@ -102,5 +102,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--loop", "uvloop", "--http", "httptools"]
