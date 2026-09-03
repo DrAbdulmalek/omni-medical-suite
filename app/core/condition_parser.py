@@ -20,7 +20,7 @@ ALLOWED_OPERATORS: dict[type, Any] = {
 
 ALLOWED_FUNCTIONS: dict[str, Any] = {
     "int": int, "float": float, "str": str, "bool": bool,
-    "abs": abs, "min": min, "max": max, "sum": sum, "round": round, "pow": pow,
+    "abs": abs, "min": min, "max": max, "sum": sum, "round": round,
     "len": len, "lower": str.lower, "upper": str.upper, "strip": str.strip,
     "startswith": str.startswith, "endswith": str.endswith,
     "contains": lambda s, sub: sub in s, "all": all, "any": any,
@@ -47,6 +47,7 @@ class ConditionParser:
         max_nodes: int = 256,
         max_expression_length: int = 4096,
         max_power_exponent: int = 32,
+        max_sequence_repeat: int = 100_000,
     ) -> None:
         self.allowed_operators = allowed_operators or ALLOWED_OPERATORS
         self.allowed_functions = allowed_functions or ALLOWED_FUNCTIONS
@@ -55,6 +56,7 @@ class ConditionParser:
         self.max_nodes = max_nodes
         self.max_expression_length = max_expression_length
         self.max_power_exponent = max_power_exponent
+        self.max_sequence_repeat = max_sequence_repeat
 
     def evaluate(self, condition: str, context: dict[str, Any] | None = None, fail_closed: bool = True) -> bool:
         try:
@@ -64,6 +66,7 @@ class ConditionParser:
             if sum(1 for _ in ast.walk(tree)) > self.max_nodes:
                 raise ValueError("condition exceeds the AST node limit")
             self._validate_ast(tree)
+            self._validate_runtime_cost(tree, context or {})
             code = compile(tree, "<condition>", "eval")
             safe_globals: dict[str, Any] = {"__builtins__": {}, **self.allowed_functions}
             if context:
@@ -77,6 +80,48 @@ class ConditionParser:
             if fail_closed:
                 return False
             raise
+
+    def _validate_runtime_cost(self, tree: ast.AST, context: dict[str, Any]) -> None:
+        """Reject sequence repetition that could allocate unbounded memory."""
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.BinOp) or not isinstance(node.op, ast.Mult):
+                continue
+
+            left = self._resolve_static_value(node.left, context)
+            right = self._resolve_static_value(node.right, context)
+
+            for sequence, multiplier in ((left, right), (right, left)):
+                if isinstance(sequence, (str, bytes, list, tuple)) and isinstance(multiplier, int):
+                    if abs(multiplier) > self.max_sequence_repeat:
+                        raise ValueError("sequence repetition exceeds safety limit")
+
+            # If either side cannot be proven numeric, reject the multiplication
+            # rather than allowing an unknown string/list from context or a
+            # function call to become an allocation primitive.
+            if left is _UNKNOWN or right is _UNKNOWN:
+                continue
+            if not self._is_numeric_value(left) or not self._is_numeric_value(right):
+                raise ValueError("non-numeric multiplication is not allowed")
+
+    @staticmethod
+    def _is_numeric_value(value: Any) -> bool:
+        return isinstance(value, (int, float, complex)) and not isinstance(value, bool)
+
+    @staticmethod
+    def _resolve_static_value(node: ast.AST, context: dict[str, Any]) -> Any:
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Name):
+            return context.get(node.id, _UNKNOWN)
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+            value = ConditionParser._resolve_static_value(node.operand, context)
+            if value is _UNKNOWN:
+                return _UNKNOWN
+            try:
+                return -value if isinstance(node.op, ast.USub) else +value
+            except Exception:
+                return _UNKNOWN
+        return _UNKNOWN
 
     def _validate_ast(self, node: ast.AST, depth: int = 0) -> None:
         if depth > self.max_depth:
@@ -167,6 +212,7 @@ class ConditionParser:
             return set()
 
 
+_UNKNOWN = object()
 condition_parser = ConditionParser()
 
 
