@@ -56,24 +56,45 @@ if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
 fi
 echo "Verified SHA-256: ${ACTUAL_SHA256}"
 
-# Reject unsafe archive member paths before extraction. The checksum protects
-# the published bytes; this additionally makes the extraction contract explicit
-# and prevents future installer changes from turning path traversal into a live
-# filesystem write.
-while IFS= read -r member; do
-    member="${member#./}"
-    if [[ "$member" = /* || "$member" == ".." || "$member" == ../* || "$member" == */../* || "$member" == */.. ]]; then
-        echo "ERROR: Archive contains an unsafe path: $member" >&2
-        exit 1
-    fi
-done < <(tar -tzf "$TMP_ARCHIVE")
+# Validate every member before extraction. Reject traversal, links, special
+# files, unexpected executable files, and duplicate names. The validator reads
+# metadata only; it never executes archive content.
+python3 - "$TMP_ARCHIVE" <<'PY'
+import pathlib
+import sys
+import tarfile
+
+archive = pathlib.Path(sys.argv[1])
+seen = set()
+
+with tarfile.open(archive, "r:gz") as tf:
+    for member in tf.getmembers():
+        name = member.name
+        path = pathlib.PurePosixPath(name)
+
+        if name in seen:
+            raise SystemExit(f"ERROR: duplicate archive member: {name}")
+        seen.add(name)
+
+        if path.is_absolute() or ".." in path.parts:
+            raise SystemExit(f"ERROR: unsafe archive path: {name}")
+
+        if member.issym() or member.islnk() or member.isdev() or member.isfifo():
+            raise SystemExit(f"ERROR: unsafe archive member type: {name}")
+
+        if not (member.isdir() or member.isfile()):
+            raise SystemExit(f"ERROR: unsupported archive member type: {name}")
+
+        if member.isfile() and (member.mode & 0o111):
+            raise SystemExit(f"ERROR: executable archive member: {name}")
+PY
 
 # Extract into an isolated directory first so a bad/incomplete archive cannot
 # partially modify the live dictionary directory. Do not preserve archive
 # ownership/permissions in the build environment.
 EXTRACT_DIR="$TMP_DIR/extracted"
 mkdir -p "$EXTRACT_DIR"
-tar --no-same-owner --no-same-permissions -xzf "$TMP_ARCHIVE" -C "$EXTRACT_DIR"
+tar --no-same-owner --no-same-permissions --no-overwrite-dir -xzf "$TMP_ARCHIVE" -C "$EXTRACT_DIR"
 
 # The published archive is the authoritative artifact, but its internal
 # directory prefix is not part of the runtime contract. Locate the one
