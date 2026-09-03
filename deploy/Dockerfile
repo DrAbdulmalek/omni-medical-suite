@@ -90,7 +90,8 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --chown=omni:omni . .
 
 # Ensure entrypoint is executable
-RUN chmod +x /app/docker-entrypoint.sh 2>/dev/null || true
+RUN test -f /app/docker-entrypoint.sh \
+    && chmod 0755 /app/docker-entrypoint.sh
 
 # Switch to non-root user
 USER omni
