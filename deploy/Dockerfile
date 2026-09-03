@@ -89,9 +89,10 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy application code
 COPY --chown=omni:omni . .
 
-# Ensure entrypoint is executable
-RUN test -f /app/docker-entrypoint.sh \
-    && chmod 0755 /app/docker-entrypoint.sh
+# Ensure entrypoint exists and is executable (fail-closed: no || true)
+RUN test -f /app/deploy/docker-entrypoint.sh \
+    && chmod 0755 /app/deploy/docker-entrypoint.sh \
+    && test -x /app/deploy/docker-entrypoint.sh
 
 # Switch to non-root user
 USER omni
@@ -101,5 +102,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ENTRYPOINT ["/app/deploy/docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--loop", "uvloop", "--http", "httptools"]
