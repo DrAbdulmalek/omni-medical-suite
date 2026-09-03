@@ -53,6 +53,34 @@ The `pull_request` trigger is intentionally unfiltered so the required `lint-and
 
 The `pull_request` trigger is intentionally unfiltered so the required `Verify hf-space ↔ app/services mirror` check is always produced. The verification commands are fail-closed.
 
+### `mirror-verify.yml`
+
+**Classification: required repo-integrity gate — contains a HIGH-severity false-green that must be tracked for follow-up.**
+
+The `Mirror Verify` workflow runs on every PR and on push to main, and is one of the required checks on this repository. Its `verify` job currently contains three steps:
+
+1. `Check git remotes` — informational display.
+2. `Verify submodule integrity` — informational display.
+3. `Check for broken gitlinks (mode 160000 without .gitmodules entry)` — **the actual safety check**.
+
+Step 3 runs a bash script that:
+- Lists all gitlinks via `git ls-tree -r HEAD | grep '^160000'`
+- For each gitlink, verifies it has a corresponding entry in `.gitmodules`
+- If not, emits `::error:: Gitlink '$path' has no .gitmodules entry (will break checkout)` and calls `exit 1`
+
+**The bug:** Step 3 has `continue-on-error: true` set at the step level. This tells GitHub Actions to ignore the step's exit code, so even when `exit 1` is called because a broken gitlink was detected, the step is reported as "successful" and the workflow passes. The `::error::` annotation is still emitted (it appears in the PR's annotations panel), but the **check-run conclusion is `success`** regardless.
+
+This means:
+- A broken gitlink (which would silently break `actions/checkout@v4` for end users cloning the repo) can be merged to `main` while `Mirror Verify` reports green.
+- The check-run conclusion that branch protection enforces is "success", not "failure".
+- The PR #100 audit ("fix(ci): remove false-green CI suppressors") covered `lint-test.yml`, `python-ci.yml`, `ci-kimi-review.yml`, and `android-apk.yml`, but **`mirror-verify.yml` was not in scope** at that time. This file was missed.
+
+**History:** The `continue-on-error: true` was added in commit `6d228f5` (PR #76, "ci: harden remaining workflows"). It was not addressed by PR #100 because PR #100's scope explicitly excluded `mirror-verify.yml` (see the original audit above).
+
+**Recommended fix:** Remove `continue-on-error: true` from the gitlinks step. The `::error::` annotation already correctly identifies the problem; the only thing missing is letting the exit code propagate to the check-run conclusion. A separate follow-up issue/PR should track this — it is out of scope for the snapshot-security PR (#102) but should be addressed before the next RC.
+
+**Mitigation in the meantime:** Reviewers should manually inspect the `Mirror Verify` job's annotations on every PR. If any `::error:: Gitlink '...' has no .gitmodules entry` annotation appears, the PR must not be merged even though `Mirror Verify` shows green.
+
 ## Principle
 
 A required check must contain a genuine fail-closed gate. Informational diagnostics may be non-blocking, but they must be isolated from the required gate or explicitly documented as informational and must never be represented as proof of success.
@@ -63,3 +91,7 @@ A required check must contain a genuine fail-closed gate. Informational diagnost
 - No changes to the canonical RC/production gates.
 - No attempt to make every optional diagnostic workflow required.
 - No bulk reformatting of the existing codebase in this CI hardening PR.
+
+## Follow-up tracked
+
+- **HIGH:** `mirror-verify.yml` step `Check for broken gitlinks` — remove `continue-on-error: true`. Tracked as a separate follow-up issue (snapshot-security PR #102 explicitly does not modify `mirror-verify.yml` because its scope is the snapshot exporter tool only).

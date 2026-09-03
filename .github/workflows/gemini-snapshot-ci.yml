@@ -66,6 +66,7 @@ jobs:
         run: |
           python tools/export_project_snapshot.py \
             --scope diff \
+            --base-ref origin/main \
             --output snapshot_diff.txt \
             --purpose "CI diff test" \
             --with-prompt
