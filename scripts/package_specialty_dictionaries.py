@@ -84,69 +84,64 @@ class ArchivePolicyError(Exception):
 
 
 def validate_archive(path: Path) -> None:
-    """Validate an archive against the security policy.
+    """Validate an archive against the release security policy.
 
-    Raises ArchivePolicyError on any violation.
+    The validator deliberately enforces the archive layout as well as member
+    safety. Checking only basenames would allow duplicate or misplaced members
+    to satisfy the expected-file set while carrying unrelated content.
     """
     errors: list[str] = []
+    expected_root = ARCHIVE_ROOT
+    expected_dir = f"{ARCHIVE_ROOT}/{SPECIALTY_SUBDIR}"
+    expected_paths = {
+        f"{expected_dir}/{name}" for name in EXPECTED_FILES
+    }
+    seen_paths: set[str] = set()
 
     with tarfile.open(path, "r:gz") as tar:
         members = tar.getmembers()
-
-        found_files: set[str] = set()
-
         for m in members:
-            # Check member type
-            if m.issym():
-                errors.append(f"Symlink member rejected: {m.name} -> {m.linkname}")
-                continue
-            if m.islnk():
-                errors.append(f"Hardlink member rejected: {m.name} -> {m.linkname}")
-                continue
-            if m.isfifo():
-                errors.append(f"FIFO member rejected: {m.name}")
-                continue
-            if m.ischr() or m.isblk():
-                errors.append(f"Device member rejected: {m.name}")
+            name = m.name.rstrip("/")
+            if m.name.startswith("/") or ".." in Path(m.name).parts:
+                errors.append(f"Unsafe archive path rejected: {m.name}")
                 continue
 
-            # Check path safety
-            if m.name.startswith("/"):
-                errors.append(f"Absolute path rejected: {m.name}")
+            if m.issym() or m.islnk() or m.isfifo() or m.ischr() or m.isblk():
+                errors.append(f"Unsupported archive member type rejected: {m.name}")
                 continue
-            if ".." in m.name.split("/"):
-                errors.append(f"Path traversal rejected: {m.name}")
+            if not (m.isdir() or m.isfile()):
+                errors.append(f"Unknown archive member type rejected: {m.name}")
                 continue
 
-            # Check permissions for regular files
-            if m.isfile():
-                # Extract just the filename for expected-file check
-                basename = os.path.basename(m.name)
-                if basename:
-                    found_files.add(basename)
+            if m.isdir():
+                if name not in {expected_root, expected_dir}:
+                    errors.append(f"Unexpected directory in archive: {m.name}")
+                if m.mode != 0o755:
+                    errors.append(f"Directory mode must be 0755: {m.name} ({oct(m.mode)})")
+                continue
 
-                # Regular data files must not be executable
-                mode = m.mode
-                if mode & 0o111:
-                    errors.append(
-                        f"Executable data file rejected: {m.name} (mode={oct(mode)})"
-                    )
+            # Regular files must live exactly under the canonical specialty path.
+            if name not in expected_paths:
+                errors.append(f"Unexpected file path in archive: {m.name}")
+                continue
+            if name in seen_paths:
+                errors.append(f"Duplicate archive member: {m.name}")
+                continue
+            seen_paths.add(name)
 
-        # Check expected files are present
-        missing = EXPECTED_FILES - found_files
+            if m.mode != 0o644:
+                errors.append(f"Regular file mode must be 0644: {m.name} ({oct(m.mode)})")
+            if m.uid != 0 or m.gid != 0 or m.uname != "root" or m.gname != "root":
+                errors.append(f"Non-normalized ownership rejected: {m.name}")
+
+        missing = expected_paths - seen_paths
         if missing:
             errors.append(f"Missing expected files: {sorted(missing)}")
-
-        # Check for unexpected files
-        unexpected = found_files - EXPECTED_FILES
-        if unexpected:
-            errors.append(f"Unexpected files in archive: {sorted(unexpected)}")
 
     if errors:
         raise ArchivePolicyError(
             "Archive policy validation failed:\n  " + "\n  ".join(errors)
         )
-
 
 def create_archive(source_dir: Path, output: Path) -> str:
     """Create a deterministic .tar.gz archive.
