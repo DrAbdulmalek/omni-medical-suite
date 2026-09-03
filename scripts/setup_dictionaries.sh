@@ -56,17 +56,58 @@ if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
 fi
 echo "Verified SHA-256: ${ACTUAL_SHA256}"
 
-# Reject unsafe archive member paths before extraction. The checksum protects
-# the published bytes; this additionally makes the extraction contract explicit
-# and prevents future installer changes from turning path traversal into a live
-# filesystem write.
-while IFS= read -r member; do
+# Validate member paths, types, and executable bits before extraction. SHA-256
+# authenticates the exact bytes, but it does not establish that those bytes
+# satisfy the archive's security policy.
+while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    mode="${line:0:10}"
+    type="${line:0:1}"
+    member="${line##* }"
     member="${member#./}"
+
+    case "$type" in
+        d)
+            # Directories are allowed; permissions are not restored because
+            # extraction uses --no-same-permissions.
+            ;;
+        -)
+            if [[ "$mode" == *x* ]]; then
+                echo "ERROR: Archive contains an executable regular file: $member" >&2
+                exit 1
+            fi
+            ;;
+        l)
+            echo "ERROR: Archive contains a symlink: $member" >&2
+            exit 1
+            ;;
+        h)
+            echo "ERROR: Archive contains a hardlink: $member" >&2
+            exit 1
+            ;;
+        p)
+            echo "ERROR: Archive contains a FIFO: $member" >&2
+            exit 1
+            ;;
+        c|b)
+            echo "ERROR: Archive contains a device node: $member" >&2
+            exit 1
+            ;;
+        s)
+            echo "ERROR: Archive contains a socket: $member" >&2
+            exit 1
+            ;;
+        *)
+            echo "ERROR: Archive contains an unsupported member type '${type}': $member" >&2
+            exit 1
+            ;;
+    esac
+
     if [[ "$member" = /* || "$member" == ".." || "$member" == ../* || "$member" == */../* || "$member" == */.. ]]; then
         echo "ERROR: Archive contains an unsafe path: $member" >&2
         exit 1
     fi
-done < <(tar -tzf "$TMP_ARCHIVE")
+done < <(tar -tvzf "$TMP_ARCHIVE")
 
 # Extract into an isolated directory first so a bad/incomplete archive cannot
 # partially modify the live dictionary directory. Do not preserve archive
