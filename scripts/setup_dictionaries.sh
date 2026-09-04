@@ -56,15 +56,25 @@ if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
 fi
 echo "Verified SHA-256: ${ACTUAL_SHA256}"
 
-# Validate member paths, types, and executable bits before extraction. SHA-256
+# Validate member paths from tar's machine-readable name listing before any
+# extraction. Do not parse filenames from `tar -tv` columns: that format is a
+# human-readable display and whitespace in a filename would make it ambiguous.
+while IFS= read -r member; do
+    [ -z "$member" ] && continue
+    member="${member#./}"
+    if [[ "$member" = /* || "$member" == ".." || "$member" == ../* || "$member" == */../* || "$member" == */.. ]]; then
+        echo "ERROR: Archive contains an unsafe path: $member" >&2
+        exit 1
+    fi
+done < <(tar -tzf "$TMP_ARCHIVE")
+
+# Validate member types and permission bits before extraction. SHA-256
 # authenticates the exact bytes, but it does not establish that those bytes
 # satisfy the archive's security policy.
 while IFS= read -r line; do
     [ -z "$line" ] && continue
     mode="${line:0:10}"
     type="${line:0:1}"
-    member="${line##* }"
-    member="${member#./}"
 
     case "$type" in
         d)
@@ -73,40 +83,35 @@ while IFS= read -r line; do
             ;;
         -)
             if [[ "$mode" == *x* ]]; then
-                echo "ERROR: Archive contains an executable regular file: $member" >&2
+                echo "ERROR: Archive contains an executable regular file" >&2
                 exit 1
             fi
             ;;
         l)
-            echo "ERROR: Archive contains a symlink: $member" >&2
+            echo "ERROR: Archive contains a symlink" >&2
             exit 1
             ;;
         h)
-            echo "ERROR: Archive contains a hardlink: $member" >&2
+            echo "ERROR: Archive contains a hardlink" >&2
             exit 1
             ;;
         p)
-            echo "ERROR: Archive contains a FIFO: $member" >&2
+            echo "ERROR: Archive contains a FIFO" >&2
             exit 1
             ;;
         c|b)
-            echo "ERROR: Archive contains a device node: $member" >&2
+            echo "ERROR: Archive contains a device node" >&2
             exit 1
             ;;
         s)
-            echo "ERROR: Archive contains a socket: $member" >&2
+            echo "ERROR: Archive contains a socket" >&2
             exit 1
             ;;
         *)
-            echo "ERROR: Archive contains an unsupported member type '${type}': $member" >&2
+            echo "ERROR: Archive contains an unsupported member type '${type}'" >&2
             exit 1
             ;;
     esac
-
-    if [[ "$member" = /* || "$member" == ".." || "$member" == ../* || "$member" == */../* || "$member" == */.. ]]; then
-        echo "ERROR: Archive contains an unsafe path: $member" >&2
-        exit 1
-    fi
 done < <(tar -tvzf "$TMP_ARCHIVE")
 
 # Extract into an isolated directory first so a bad/incomplete archive cannot
