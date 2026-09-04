@@ -2,16 +2,34 @@
 set -euo pipefail
 
 REPO="DrAbdulmalek/omni-medical-suite"
-TAG="${1:-malek-dictionaries-v1}"
+TAG="${1:-malek-dictionaries-v2}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DICT_DIR="$ROOT_DIR/data/dictionaries"
 SPECIALTY_DIR="$DICT_DIR/specialty"
 ARCHIVE="malek-specialty-dictionaries.tar.gz"
 
 # Production-consumable releases must have an explicit immutable checksum.
+# malek-dictionaries-v2 is the only production-allowed release: its archive
+# passes the deterministic packager's security policy (0644 data files, 0755
+# directories, normalized root:root ownership, no symlinks/hardlinks/FIFO/
+# device, no .gitkeep, no executable regular files, no path traversal).
+#
+# malek-dictionaries-v1 is REJECTED by validate_archive (12 executable JSON
+# files + .gitkeep). The v1 case below is intentionally omitted: pinning
+# the SHA would allow callers to install v1 by passing the tag explicitly,
+# bypassing the security policy. The installer must refuse v1 outright.
 case "$TAG" in
+    malek-dictionaries-v2)
+        EXPECTED_SHA256="dfb3167b3f05f35f955d70741d5917a8c6f34ac590c92090358e127e351cecd2"
+        ;;
     malek-dictionaries-v1)
-        EXPECTED_SHA256="377f65f33d52df03a44dd759ac3cb145f22718dd446fd6e5cba4f14278c78820"
+        # v1 is a known-insecure artifact (12 executable JSON files + .gitkeep).
+        # Refuse it explicitly — no SHA pin, no fallback, no bypass.
+        echo "ERROR: malek-dictionaries-v1 is a deprecated, policy-violating release." >&2
+        echo "       Its archive contains 12 executable JSON files + .gitkeep," >&2
+        echo "       which fail scripts/package_specialty_dictionaries.py --validate-only." >&2
+        echo "       Use malek-dictionaries-v2 (the production default) instead." >&2
+        exit 1
         ;;
     *)
         echo "ERROR: No pinned SHA-256 is registered for release tag '${TAG}'." >&2
