@@ -1,69 +1,55 @@
 # src/api/ocr_routes.py
-"""
-FastAPI routes for OCR processing of uploaded medical images.
-
-Endpoints:
-  POST /ocr/process
-    Accepts a single image upload (png/jpg/jpeg/tif/tiff/bmp).
-    Runs the MedicalImageProcessor full_pipeline, then OCR.
-    Returns JSON: {"filename": ..., "text": ...}
-
-Hardening:
-  * Strict allowlist of file extensions.
-  * Hard cap on upload size (10 MB default).
-  * Upload is written to a NamedTemporaryFile in the system temp dir
-    (not the project data dir), and unlinked in a ``finally`` block.
-  * Any pipeline/OCR exception becomes HTTP 500 with the exception
-    message (no stacktrace leak in production deployments that
-    configure FastAPI's exception handlers).
-"""
+"""Hardened FastAPI OCR upload route."""
 from __future__ import annotations
-
-import os
-import tempfile
+import logging, os, tempfile
 from pathlib import Path
-
 from fastapi import APIRouter, File, HTTPException, UploadFile
-
+from PIL import Image, UnidentifiedImageError
 from src.processors.image_processor import MedicalImageProcessor
 from src.processors.ocr_engine import MedicalOCREngine
 
+router=APIRouter(); log=logging.getLogger(__name__)
+ALLOWED_EXTENSIONS={".png",".jpg",".jpeg",".tif",".tiff",".bmp"}
+MAX_UPLOAD_SIZE=10*1024*1024
+MAX_IMAGE_PIXELS=40_000_000
+UPLOAD_CHUNK_SIZE=1024*1024
 
-router = APIRouter()
-
-ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
-
+def _validate_image(path:str)->None:
+    try:
+        with Image.open(path) as image:
+            width,height=image.size
+            if width<1 or height<1 or width*height>MAX_IMAGE_PIXELS:
+                raise ValueError("Image dimensions exceed policy")
+            image.verify()
+    except (UnidentifiedImageError,OSError,ValueError) as exc:
+        raise HTTPException(status_code=400,detail="Invalid or unsupported image") from exc
 
 @router.post("/ocr/process")
-async def process_image(file: UploadFile = File(...)):
-    filename = file.filename or "upload.png"
-    suffix = Path(filename).suffix.lower()
-
+async def process_image(file:UploadFile=File(...)):
+    filename=file.filename or "upload.png"; suffix=Path(filename).suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Unsupported file type")
-
-    content = await file.read()
-    if len(content) > MAX_UPLOAD_SIZE:
-        raise HTTPException(status_code=413, detail="File too large")
-
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(content)
-        tmp_path = tmp.name
-
+        raise HTTPException(status_code=400,detail="Unsupported file type")
+    tmp_path=None; total=0
     try:
-        processed_image = MedicalImageProcessor.full_pipeline(tmp_path)
-        engine = MedicalOCREngine(
-            languages=("ar", "en"),
-            use_easyocr=True,
-            tesseract_lang="ara+eng",
-        )
-        text = engine.extract_text(processed_image)
-        return {"filename": filename, "text": text}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        with tempfile.NamedTemporaryFile(suffix=suffix,delete=False) as tmp:
+            tmp_path=tmp.name
+            while True:
+                chunk=await file.read(UPLOAD_CHUNK_SIZE)
+                if not chunk: break
+                total+=len(chunk)
+                if total>MAX_UPLOAD_SIZE:
+                    raise HTTPException(status_code=413,detail="File too large")
+                tmp.write(chunk)
+        _validate_image(tmp_path)
+        processed=MedicalImageProcessor.full_pipeline(tmp_path)
+        engine=MedicalOCREngine(languages=("ar","en"),use_easyocr=True,tesseract_lang="ara+eng")
+        return {"filename":filename,"text":engine.extract_text(processed)}
+    except HTTPException: raise
+    except Exception:
+        log.exception("OCR processing failed")
+        raise HTTPException(status_code=500,detail="OCR processing failed")
     finally:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
+        await file.close()
+        if tmp_path:
+            try: os.unlink(tmp_path)
+            except FileNotFoundError: pass
