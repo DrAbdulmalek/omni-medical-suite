@@ -1,0 +1,20 @@
+# requirements-ocr.txt
+# Optional dependencies for the Calibre + OCR + image-processing feature.
+# Install with:
+#   pip install -r requirements-ocr.txt
+#
+# Heavyweight OCR backends (easyocr) are intentionally NOT included here.
+# Enable them per-deployment via a separate requirements file.
+#
+# The versions below are lower bounds; CI will resolve to the latest
+# compatible release.
+
+opencv-python-headless>=4.9.0.80
+numpy>=1.26.0
+pytesseract>=0.3.10
+pillow>=10.3.0
+scikit-image>=0.22.0
+
+# Optional — uncomment in deployments that need EasyOCR. It pulls in PyTorch
+# and significantly increases image size, so it is NOT enabled by default.
+# easyocr>=1.7.1
