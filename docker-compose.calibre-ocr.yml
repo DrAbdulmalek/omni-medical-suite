@@ -1,51 +1,23 @@
-# docker-compose.calibre-ocr.yml
-#
-# Development overlay for the medical-OCR + Calibre library stack.
-# Intended to be used together with the base docker-compose.yml:
-#
-#   docker-compose -f docker-compose.yml -f docker-compose.calibre-ocr.yml up
-#
-# Or standalone for ad-hoc OCR + Calibre development:
-#
-#   docker-compose -f docker-compose.calibre-ocr.yml up
-#
-# Production notes:
-#   * Image tags MUST be pinned to a digest or explicit version tag — never
-#     `:latest`. The `calibre-web` image below uses `:latest` for development
-#     convenience only; replace with a pinned tag before deploying to production.
-#   * The `app` service builds from deploy/Dockerfile.gradio (which already
-#     enforces test -f / chmod 0755 / test -x on the entrypoint).
-
 services:
   app:
     build:
       context: .
       dockerfile: deploy/Dockerfile.gradio
       target: production
-    ports:
-      - "7860:7860"
-    volumes:
-      - ./data:/app/data
-      - ./calibre_library:/app/calibre_library
+    ports: ["7860:7860"]
+    volumes: ["./data:/app/data","./calibre_library:/app/calibre_library"]
     environment:
-      - CALIBRE_LIBRARY_PATH=/app/calibre_library
-      - ENVIRONMENT=production
-    depends_on:
-      - calibre-web
+      CALIBRE_LIBRARY_PATH: /app/calibre_library
+      ENVIRONMENT: production
+    depends_on: [calibre-web]
     restart: unless-stopped
-
   calibre-web:
-    # DEVELOPMENT ONLY. Pin to a digest before production deployment, e.g.:
-    #   image: lscr.io/linuxserver/calibre-web:0.6.21@sha256:<digest>
-    image: lscr.io/linuxserver/calibre-web:latest
+    image: lscr.io/linuxserver/calibre-web:0.6.24
     container_name: calibre-web
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/London
-    volumes:
-      - ./calibre_config:/config
-      - ./calibre_library:/books
-    ports:
-      - "8083:8083"
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/London
+    volumes: ["./calibre_config:/config","./calibre_library:/books"]
+    ports: ["8083:8083"]
     restart: unless-stopped
