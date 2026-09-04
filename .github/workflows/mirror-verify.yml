@@ -37,23 +37,23 @@ jobs:
 
       - name: Check for broken gitlinks (mode 160000 without .gitmodules entry)
         run: |
+          set -euo pipefail
           echo '=== Gitlink check ==='
-          GITLINKS=$(git ls-tree -r HEAD | grep '^160000' || true)
-          if [ -n "$GITLINKS" ]; then
+          git ls-tree -r HEAD | awk '$1 == "160000" {print $4}' > /tmp/gitlinks.txt
+          if [ -s /tmp/gitlinks.txt ]; then
             echo 'Found gitlinks:'
-            echo "$GITLINKS"
+            cat /tmp/gitlinks.txt
             echo ''
-            for path in $(echo "$GITLINKS" | awk '{print $4}'); do
-              if ! grep -q "path = $path" .gitmodules 2>/dev/null; then
+            while IFS= read -r path; do
+              if ! grep -Fq "path = $path" .gitmodules 2>/dev/null; then
                 echo "::error:: Gitlink '$path' has no .gitmodules entry (will break checkout)"
                 exit 1
               fi
-            done
+            done < /tmp/gitlinks.txt
             echo 'All gitlinks have .gitmodules entries'
           else
             echo 'No gitlinks found'
           fi
-        continue-on-error: true
 
       - name: Summary
         if: always()
