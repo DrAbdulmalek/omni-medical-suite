@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 
@@ -15,27 +16,39 @@ def test_specialty_installer_is_pinned_and_uses_published_asset():
 
 
 def test_specialty_installer_rejects_deprecated_v1_tag():
-    """v1 is a known-insecure artifact (12 executable JSON files + .gitkeep).
-    The installer must REFUSE v1 outright, not pin its SHA — pinning would
-    allow callers to bypass the security policy by passing the tag explicitly.
-    """
-    script = (ROOT / "scripts" / "setup_dictionaries.sh").read_text(encoding="utf-8")
-    assert "malek-dictionaries-v1)" in script
-    assert "deprecated" in script.lower()
-    assert "exit 1" in script
-    # The v1 SHA must NOT be present — that would re-introduce the bypass
-    assert "377f65f33d52df03a44dd759ac3cb145f22718dd446fd6e5cba4f14278c78820" not in script, (
-        "v1 SHA must NOT be pinned in the installer — pinning would allow callers "
-        "to install the policy-violating v1 archive by passing the tag explicitly."
+    """v1 is a known-insecure artifact and must be refused before download."""
+    script = ROOT / "scripts" / "setup_dictionaries.sh"
+    result = subprocess.run(
+        ["bash", str(script), "malek-dictionaries-v1"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
     )
+    assert result.returncode != 0
+    assert "deprecated" in result.stderr.lower()
+    assert "policy-violating" in result.stderr.lower()
+
+    source = script.read_text(encoding="utf-8")
+    assert "377f65f33d52df03a44dd759ac3cb145f22718dd446fd6e5cba4f14278c78820" not in source
 
 
 def test_specialty_installer_rejects_unpinned_release_tags():
-    script = (ROOT / "scripts" / "setup_dictionaries.sh").read_text(encoding="utf-8")
-    assert 'case "$TAG" in' in script
-    assert "No pinned SHA-256 is registered" in script
-    assert "*)" in script
-    assert "exit 1" in script
+    script = ROOT / "scripts" / "setup_dictionaries.sh"
+    result = subprocess.run(
+        ["bash", str(script), "malek-dictionaries-unknown"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "no pinned sha-256 is registered" in result.stderr.lower()
+
+    source = script.read_text(encoding="utf-8")
+    assert 'case "$TAG" in' in source
+    assert "No pinned SHA-256 is registered" in source
+    assert "*)" in source
 
 
 def test_specialty_installer_validates_every_published_artifact():
@@ -97,10 +110,7 @@ def test_cd_builds_canonical_api_image_after_installing_tm():
 
 
 def test_ci_workflows_rotate_off_v1():
-    """All CI workflows that invoke the installer must call malek-dictionaries-v2,
-    not the deprecated v1. This prevents accidental regression to the policy-
-    violating v1 archive.
-    """
+    """All CI workflows that invoke the installer must call v2, not v1."""
     for wf_name in ("cd.yml", "docker.yml", "release.yml"):
         wf = (ROOT / ".github" / "workflows" / wf_name).read_text(encoding="utf-8")
         assert "bash scripts/setup_dictionaries.sh malek-dictionaries-v2" in wf, (
