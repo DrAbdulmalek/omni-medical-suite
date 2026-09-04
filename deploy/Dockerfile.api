@@ -23,7 +23,9 @@ RUN pip install --no-cache-dir -r requirements/api.txt
 
 COPY . .
 
-RUN chmod +x entrypoint.sh
+RUN test -f /app/entrypoint.sh \
+    && chmod 0755 /app/entrypoint.sh \
+    && test -x /app/entrypoint.sh
 
 EXPOSE 8000
 

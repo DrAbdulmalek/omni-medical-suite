@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest pytest-cov pytest-asyncio rapidfuzz numpy pillow opencv-python-headless
-          python -m pip install -e packages/scanner_fixer 2>/dev/null || true
+          python -m pip install -e packages/scanner_fixer
       - name: Run core hardening tests
         run: |
           python -m pytest tests/test_scanner_tab.py tests/test_decision_log.py tests/test_translation_service.py tests/test_hf_dataset_staging.py tests/test_lazy_ocr_service.py tests/test_specialty_tm_deployment.py tests/test_translation_memory_fail_closed.py -q --tb=short
