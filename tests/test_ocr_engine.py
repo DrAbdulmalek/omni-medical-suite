@@ -71,3 +71,13 @@ def test_tesseract_only_when_easyocr_disabled(monkeypatch):
     )
     image = np.zeros((50, 50), dtype=np.uint8)
     assert engine.extract_text(image) == "tesseract text"
+
+
+def test_easyocr_download_disabled_by_default():
+    engine = MedicalOCREngine()
+    assert engine.allow_easyocr_download is False
+
+def test_easyocr_model_directory_configuration():
+    engine = MedicalOCREngine(easyocr_model_storage_directory='/models', allow_easyocr_download=False)
+    assert engine.easyocr_model_storage_directory == '/models'
+    assert engine.allow_easyocr_download is False
