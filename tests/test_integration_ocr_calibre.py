@@ -59,13 +59,10 @@ def test_ocr_engine_easyocr_then_tesseract_fallback(monkeypatch):
     assert call_log == ["easyocr", "tesseract"]
 
 
-def test_calibre_search_returns_empty_when_calibredb_missing(tmp_path):
-    """Integration: a missing calibredb binary must not raise; search returns []."""
+def test_calibre_search_fails_closed_when_calibredb_missing(tmp_path):
+    """A missing Calibre binary must raise rather than silently return []."""
     from src.integrations.calibre_manager import CalibreManager, CalibreError
 
     manager = CalibreManager(tmp_path, calibredb_executable="/nonexistent/calibredb")
-    # search_ids with non-empty query invokes _run, which raises CalibreError
-    # because the binary is missing. This is the expected hard-fail behavior —
-    # the manager surfaces the error rather than silently returning empty.
     with pytest.raises(CalibreError):
-        manager.search_ids("anything")
+        manager._search_ids("anything")
