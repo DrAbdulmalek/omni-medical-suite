@@ -11,7 +11,7 @@ OmniFile AI Processor v4.2.0 - Entry Point
 """
 
 import argparse
-import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -80,9 +80,20 @@ def run_colab_setup():
     print("📦 تثبيت الحزم...")
     req_file = PROJECT_ROOT / "requirements.txt"
     if req_file.exists():
-        os.system(f"pip install -q -r {req_file}")
+        subprocess.run(
+            ["pip", "install", "-q", "-r", str(req_file)],
+            check=True,
+        )
     else:
-        os.system("pip install -q streamlit pandas numpy Pillow opencv-python-headless easyocr PyMuPDF transformers torch")
+        subprocess.run(
+            [
+                "pip", "install", "-q",
+                "streamlit", "pandas", "numpy", "Pillow",
+                "opencv-python-headless", "easyocr", "PyMuPDF",
+                "transformers", "torch",
+            ],
+            check=True,
+        )
 
     print()
     print("✅ اكتمل الإعداد!")

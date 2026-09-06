@@ -25,6 +25,7 @@ OmniFile AI Processor v5.0 - الإعدادات المركزية
 """
 
 import os
+import subprocess
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -286,9 +287,18 @@ class OmniFileConfig:
 
         # إعداد Git
         if self.github_username and self.github_email:
-            os.system(f'git config --global user.name "{self.github_username}"')
-            os.system(f'git config --global user.email "{self.github_email}"')
-            os.system('git config --global init.defaultBranch main')
+            subprocess.run(
+                ["git", "config", "--global", "user.name", self.github_username],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "--global", "user.email", self.github_email],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "--global", "init.defaultBranch", "main"],
+                check=True,
+            )
 
     def save(self, path: Optional[str] = None) -> None:
         """حفظ الإعدادات كملف JSON"""
