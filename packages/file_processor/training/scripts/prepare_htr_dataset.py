@@ -17,8 +17,8 @@ prepare_htr_dataset.py
 import argparse
 import json
 import lmdb
-import pickle
 import shutil
+from base64 import b64encode
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -413,11 +413,16 @@ class LMDBFormatter(BaseFormatter):
                 
                 # تخزين
                 key = f"{idx:08d}".encode()
-                value = pickle.dumps({
-                    'image': image_bytes,
+                # Security note: value is JSON (UTF-8), not pickle. The
+                # matching consumers (train_trocr_lora.py, evaluate_checkpoint.py)
+                # json.loads() the value. A tampered LMDB can at most
+                # produce a JSONDecodeError, never arbitrary code exec.
+                # ``image`` is raw bytes — base64-encode for JSON storage.
+                value = json.dumps({
+                    'image': b64encode(image_bytes).decode('ascii'),
                     'text': sample['text'],
                     'source': sample.get('source', 'unknown')
-                })
+                }).encode('utf-8')
                 txn.put(key, value)
             
             # تخزين العدد
