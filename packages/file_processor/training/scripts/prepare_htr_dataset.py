@@ -395,40 +395,28 @@ class BaseFormatter:
 
 class LMDBFormatter(BaseFormatter):
     """تنسيق LMDB للتدريب السريع."""
-    
+
     def format(self, samples: List[Dict], split: str = 'train'):
-        output_path = self.output_dir / f'{split}.lmdb'
-        
-        # حذف القديم
-        if output_path.exists():
-            shutil.rmtree(output_path)
-        
-        env = lmdb.open(str(output_path), map_size=LMDB_MAP_SIZE)
-        
-        with env.begin(write=True) as txn:
-            for idx, sample in enumerate(tqdm(samples, desc=f"💾 LMDB {split}")):
-                # قراءة الصورة
-                with open(sample['image_path'], 'rb') as f:
-                    image_bytes = f.read()
-                
-                # تخزين
-                key = f"{idx:08d}".encode()
-                # Security note: value is JSON (UTF-8), not pickle. The
-                # matching consumers (train_trocr_lora.py, evaluate_checkpoint.py)
-                # json.loads() the value. A tampered LMDB can at most
-                # produce a JSONDecodeError, never arbitrary code exec.
-                # ``image`` is raw bytes — base64-encode for JSON storage.
-                value = json.dumps({
-                    'image': b64encode(image_bytes).decode('ascii'),
-                    'text': sample['text'],
-                    'source': sample.get('source', 'unknown')
-                }).encode('utf-8')
-                txn.put(key, value)
-            
-            # تخزين العدد
-            txn.put(b'__len__', str(len(samples)).encode())
-        
-        env.close()
+        # Delegates the safe JSON+base64 LMDB serialization to
+        # ``_lmdb_safe_format.write_sample_lmdb``. The producer contract
+        # (LMDB layout, keys, JSON schema, base64 encoding) is preserved
+        # verbatim — this is a mechanical extraction of the serialization
+        # boundary, not a schema change.
+        #
+        # Progress reporting stays at this layer (via tqdm) so the
+        # serialization helper remains dependency-light (no tqdm import).
+        from tqdm import tqdm
+        from _lmdb_safe_format import write_sample_lmdb
+
+        def _progress(idx: int, total: int) -> None:
+            tqdm.write(f"💾 LMDB {split}: {idx+1}/{total}", end="\r")
+
+        output_path = write_sample_lmdb(
+            output_path=self.output_dir,
+            samples=samples,
+            split=split,
+            progress_callback=_progress,
+        )
         print(f"✅ LMDB {split}: {len(samples)} عينة → {output_path}")
         return output_path
 

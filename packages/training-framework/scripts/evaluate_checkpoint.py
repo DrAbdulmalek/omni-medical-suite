@@ -407,51 +407,24 @@ class HTREvaluator:
             # LMDB format — values are JSON (UTF-8), not pickle.
             # Old pickle-based LMDBs are rejected with an explicit error
             # directing the operator to regenerate via prepare_htr_dataset.py.
-            import lmdb
+            # Delegates JSON+base64 decoding to the lightweight
+            # serialization helper; the PIL Image reconstruction stays
+            # here because that's where the bytes are consumed.
+            from _lmdb_safe_format import read_sample_lmdb
 
-            env = lmdb.open(str(path), readonly=True)
-            with env.begin() as txn:
-                n = int(txn.get(b'__len__'))
-                for i in range(n):
-                    key = f"{i:08d}".encode()
-                    raw = txn.get(key)
-                    if raw is None:
-                        continue
-                    # Security: only JSON is accepted. If the value does
-                    # not start with '{', it is either corrupt or a legacy
-                    # pickle LMDB — reject explicitly. No pickle fallback.
-                    if not raw or raw[0:1] != b'{':
-                        raise ValueError(
-                            f"LMDB value at key {key!r} is not JSON "
-                            f"(first byte={raw[0:1]!r}). Legacy pickle-based "
-                            f"LMDBs are no longer supported; regenerate the "
-                            f"dataset via prepare_htr_dataset.py."
-                        )
-                    data = json.loads(raw.decode('utf-8'))
-                    # ``image`` was base64-encoded by the producer.
-                    if 'image' in data and isinstance(data['image'], str):
-                        from base64 import b64decode
-                        data['image'] = b64decode(data['image'])
+            for data in read_sample_lmdb(path):
+                # Reconstruct the PIL image from the raw image bytes
+                # stored in the LMDB. The producer (prepare_htr_dataset.py)
+                # writes the ORIGINAL image file bytes (PNG/JPEG/etc.),
+                # NOT pre-decoded pixel buffers, so we use Image.open()
+                # on a BytesIO wrapper — PIL auto-detects the format
+                # and dimensions from the byte-stream header.
+                img = Image.open(io.BytesIO(data['image']))
 
-                    # Reconstruct the PIL image from the raw image bytes
-                    # stored in the LMDB. The producer (prepare_htr_dataset.py)
-                    # writes the ORIGINAL image file bytes (PNG/JPEG/etc.),
-                    # NOT pre-decoded pixel buffers, so we use Image.open()
-                    # on a BytesIO wrapper — PIL auto-detects the format
-                    # and dimensions from the byte-stream header.
-                    #
-                    # The previous code gated on `if 'size' in data else
-                    # Image.open(data['image_path'])` — but the producer
-                    # never writes `size` or `image_path`, so the legacy
-                    # branch always raised KeyError('image_path'). The
-                    # new code works for any image format/dimensions.
-                    img = Image.open(io.BytesIO(data['image']))
-
-                    samples.append({
-                        'image': img,
-                        'text': data['text']
-                    })
-            env.close()
+                samples.append({
+                    'image': img,
+                    'text': data['text']
+                })
 
         elif path.is_dir():
             # مجلد صور + labels.txt

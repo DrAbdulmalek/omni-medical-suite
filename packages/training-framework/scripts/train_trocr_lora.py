@@ -77,33 +77,13 @@ class HTRDataset(Dataset):
             # LMDB format — values are JSON (UTF-8), not pickle.
             # Old pickle-based LMDBs are rejected with an explicit error
             # directing the operator to regenerate via prepare_htr_dataset.py.
-            import lmdb
+            # Delegates to the lightweight serialization helper so that
+            # the deserialization boundary does NOT pull in the heavy ML
+            # stack (torch/transformers/peft/datasets) at module load.
+            from _lmdb_safe_format import read_sample_lmdb
 
-            env = lmdb.open(str(data_path), readonly=True)
-            with env.begin() as txn:
-                n = int(txn.get(b'__len__'))
-                for i in range(n):
-                    key = f"{i:08d}".encode()
-                    raw = txn.get(key)
-                    if raw is None:
-                        continue
-                    # Security: only JSON is accepted. If the value does
-                    # not start with '{', it is either corrupt or a legacy
-                    # pickle LMDB — reject explicitly. No pickle fallback.
-                    if not raw or raw[0:1] != b'{':
-                        raise ValueError(
-                            f"LMDB value at key {key!r} is not JSON "
-                            f"(first byte={raw[0:1]!r}). Legacy pickle-based "
-                            f"LMDBs are no longer supported; regenerate the "
-                            f"dataset via prepare_htr_dataset.py."
-                        )
-                    data = json.loads(raw.decode('utf-8'))
-                    # ``image`` was base64-encoded by the producer.
-                    if 'image' in data and isinstance(data['image'], str):
-                        from base64 import b64decode
-                        data['image'] = b64decode(data['image'])
-                    samples.append(data)
-            env.close()
+            for data in read_sample_lmdb(data_path):
+                samples.append(data)
 
         elif data_path.suffix == '.jsonl':
             # JSON Lines
