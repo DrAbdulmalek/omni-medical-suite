@@ -550,23 +550,33 @@ def test_g2_missing_len_key_raises(
 def test_g3_positive_lmdb_roundtrip_with_image(
     file_path: Path, module_name: str, tmp_path: Path
 ) -> None:
-    """Producer writes JSON LMDB values with image bytes + size; consumer
-    reads them back and reconstructs a PIL Image via Image.frombytes."""
-    # Build a small real RGB image so Image.frombytes works
+    """Producer writes JSON LMDB values with the ORIGINAL image file bytes
+    (PNG/JPEG/etc., NOT pre-decoded pixel buffers); consumer reconstructs
+    the PIL Image via Image.open(io.BytesIO(...)), letting PIL auto-detect
+    the format and dimensions from the byte-stream header.
+
+    This test reflects the ACTUAL producer contract: the producer reads
+    image_path and writes the raw file bytes (base64-encoded for JSON
+    storage). No ``size`` or ``image_path`` field is serialized — the
+    consumer relies on PIL's format auto-detection, exactly as
+    Image.open(path) would have done."""
+    # Build a small real RGB image and save as PNG (file bytes, not raw pixel buffer)
     from PIL import Image
-    img = Image.new("RGB", (4, 4), color=(255, 0, 0))
-    img_bytes = img.tobytes()
-    size = (4, 4)
+    img = Image.new("RGB", (50, 30), color=(123, 45, 67))
+    img_file = tmp_path / "sample.png"
+    img.save(img_file, format="PNG")
+    img_file_bytes = img_file.read_bytes()  # PNG file bytes (with header)
 
     module = _load_module(file_path, module_name)
     lmdb_path = tmp_path / "eval_test.lmdb"
     _build_lmdb(lmdb_path, [
         (b"__len__", b"1"),
         (b"00000000", _safe_lmdb_value({
-            "image": b64encode(img_bytes).decode("ascii"),
+            "image": b64encode(img_file_bytes).decode("ascii"),
             "text": "hello",
-            "size": list(size),  # JSON-friendly
             "source": "test",
+            # NOTE: NO 'size' field — the real producer never writes it
+            # NOTE: NO 'image_path' field — the real producer never writes it
         })),
     ])
 
@@ -584,9 +594,14 @@ def test_g3_positive_lmdb_roundtrip_with_image(
     assert len(samples) == 1
     s = samples[0]
     assert s["text"] == "hello"
-    # Image was reconstructed via Image.frombytes
+    # Image was reconstructed via Image.open(io.BytesIO(...))
     assert isinstance(s["image"], Image.Image)
-    assert s["image"].size == size
+    assert s["image"].mode == "RGB"
+    assert s["image"].size == (50, 30), (
+        f"expected (50, 30), got {s['image'].size}"
+    )
+    # Pixel-level equivalence
+    assert list(s["image"].getdata()) == list(img.getdata())
 
 
 @pytest.mark.parametrize(
