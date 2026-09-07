@@ -13,6 +13,7 @@ evaluate_checkpoint.py
 """
 
 import argparse
+import io
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -432,11 +433,19 @@ class HTREvaluator:
                         from base64 import b64decode
                         data['image'] = b64decode(data['image'])
 
-                    img = Image.frombytes(
-                        'RGB',
-                        data.get('size', (384, 384)),
-                        data['image']
-                    ) if 'size' in data else Image.open(data['image_path'])
+                    # Reconstruct the PIL image from the raw image bytes
+                    # stored in the LMDB. The producer (prepare_htr_dataset.py)
+                    # writes the ORIGINAL image file bytes (PNG/JPEG/etc.),
+                    # NOT pre-decoded pixel buffers, so we use Image.open()
+                    # on a BytesIO wrapper — PIL auto-detects the format
+                    # and dimensions from the byte-stream header.
+                    #
+                    # The previous code gated on `if 'size' in data else
+                    # Image.open(data['image_path'])` — but the producer
+                    # never writes `size` or `image_path`, so the legacy
+                    # branch always raised KeyError('image_path'). The
+                    # new code works for any image format/dimensions.
+                    img = Image.open(io.BytesIO(data['image']))
 
                     samples.append({
                         'image': img,
