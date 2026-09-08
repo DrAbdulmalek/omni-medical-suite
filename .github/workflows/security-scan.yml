@@ -39,12 +39,34 @@ jobs:
           pip install safety pip-audit
 
       - name: Run pip-audit
+        # Audit declared production dependency surfaces via requirements files
+        # rather than the installed environment. This prevents scanner-tool
+        # transitive dependencies (e.g., `nltk` pulled by `safety`) from
+        # being audited as application vulnerabilities.
+        #
+        # Three production surfaces are audited:
+        #   1. requirements.txt (core/API/ML — recursively includes api.txt,
+        #      ml.txt, and base.txt via nested -r references)
+        #   2. requirements/gradio.txt (production Gradio Docker image,
+        #      used by deploy/Dockerfile.gradio)
+        #   3. hf-space/requirements.txt (HuggingFace Space production,
+        #      used by root Dockerfile.gradio + deploy-to-hf.yml)
+        #
+        # --skip-editable excludes scanner-fixer (local editable package,
+        # not published on PyPI) from the audit target.
+        #
         # python-jose pulls ecdsa transitively. The reported Minerva/side-channel
         # advisories have no upstream fix, and ecdsa verification is unaffected.
         # This project signs/verifies JWTs with HS256 and does not use ECDSA/ECDH.
         # Keep the exceptions explicit and reviewable rather than making the
         # entire dependency scan non-blocking.
-        run: pip-audit --desc --ignore PYSEC-2026-1325
+        run: >
+          pip-audit
+          -r requirements.txt
+          -r requirements/gradio.txt
+          -r hf-space/requirements.txt
+          --skip-editable
+          --ignore PYSEC-2026-1325
 
       - name: Run safety check
         # Safety reports the same unfixable ecdsa advisories under its own IDs.
