@@ -16,11 +16,19 @@ PyMuPDF>=1.23.0
 pdf2image>=1.16.0
 pytesseract>=0.3.10
 opencv-python-headless>=4.8.0
-Pillow>=10.0.0
+Pillow>=12.3.0
 scikit-image>=0.21.0
 scikit-learn>=1.3.0
 rapidfuzz>=3.0.0
 imagehash>=4.3.0
+
+# === Training Dataset Storage ===
+# lmdb is required by packages/training-framework/scripts/prepare_htr_dataset.py:LMDBFormatter
+# and the lightweight serialization helper _lmdb_safe_format.py (also used by
+# train_trocr_lora.py and evaluate_checkpoint.py). It is a small (~1MB) pure-Python
+# + C-extension package — NOT a heavy ML model dependency — so it lives here in
+# ml.txt rather than in optional.txt (which holds torch/transformers/peft/datasets).
+lmdb>=1.4.0
 
 # === NLP & Arabic Processing ===
 langdetect>=1.0.9
