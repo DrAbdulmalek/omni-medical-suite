@@ -1,0 +1,86 @@
+# API Registry — External API Integrations
+#
+# This file documents all external API providers integrated into the
+# omni-medical-suite project. It is declarative documentation — no secrets.
+#
+# Security rules:
+#   - All providers use HTTPS
+#   - No secrets in this file
+#   - API keys are provided via environment variables
+#   - External responses are treated as UNTRUSTED DATA
+#   - Fixed base URLs (no user-supplied URLs — SSRF prevention)
+#   - Bounded timeouts, retries, and response size limits
+
+apis:
+  openfda:
+    category: medical
+    priority: P0
+    enabled: true
+    provider: OpenFDAProvider
+    base_url: https://api.fda.gov
+    documentation_url: https://open.fda.gov
+    auth: apiKey
+    auth_optional: true
+    auth_env_var: OPENFDA_API_KEY
+    free: true
+    rate_limit: "240 req/min (without key), 120,000 req/day (with key)"
+    https: true
+    data_privacy: "Drug name queries only — no patient data sent"
+    license: "Open FDA data — public domain (US Government work)"
+    cache_ttl: 604800  # 7 days (drug metadata is stable)
+    fallback: "Local glossary + malek-dictionaries + TMX"
+    projects:
+      - medical-translation-bot
+      - omni-medical-suite
+    endpoints:
+      - /drug/label.json
+      - /drug/ndc.json
+      - /drug/drugsfda.json
+
+  rxnorm:
+    category: medical
+    priority: P0
+    enabled: true
+    provider: RxNormProvider
+    base_url: https://rxnav.nlm.nih.gov/REST
+    documentation_url: https://rxnav.nlm.nih.gov/
+    auth: none
+    free: true
+    rate_limit: "~20 req/sec (reasonable use)"
+    https: true
+    data_privacy: "Drug name queries only — no patient data sent"
+    license: "NLM public data — terms of use apply"
+    cache_ttl: 86400  # 24 hours (terminology is relatively stable)
+    fallback: "Local drug dictionary + openFDA"
+    projects:
+      - medical-translation-bot
+      - omni-medical-suite
+    endpoints:
+      - /rxcui.json
+      - /rxcui/{rxcui}/allProperties.json
+      - /rxcui/{rxcui}/allrelated.json
+
+  pubmed:
+    category: biomedical
+    priority: P0
+    enabled: true
+    provider: PubMedProvider
+    base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
+    documentation_url: https://www.ncbi.nlm.nih.gov/books/NBK25501/
+    auth: apiKey
+    auth_optional: true
+    auth_env_var: NCBI_API_KEY
+    free: true
+    rate_limit: "3 req/sec (without key), 10 req/sec (with key)"
+    https: true
+    data_privacy: "Search terms are medical terminology — NOT patient data"
+    license: "NCBI terms of use — metadata only, no full text redistribution"
+    cache_ttl: 604800  # 7 days (article metadata is immutable)
+    fallback: "Local medical glossary"
+    projects:
+      - medical-translation-bot
+      - omni-medical-suite
+    endpoints:
+      - /esearch.fcgi
+      - /esummary.fcgi
+      - /efetch.fcgi

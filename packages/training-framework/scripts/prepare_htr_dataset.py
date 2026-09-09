@@ -15,8 +15,8 @@ prepare_htr_dataset.py
 
 import argparse
 import json
-import pickle
 import shutil
+from base64 import b64encode
 from pathlib import Path
 
 import cv2
@@ -395,33 +395,28 @@ class LMDBFormatter(BaseFormatter):
     """تنسيق LMDB للتدريب السريع."""
 
     def format(self, samples: list[dict], split: str = 'train'):
-        output_path = self.output_dir / f'{split}.lmdb'
+        # Delegates the safe JSON+base64 LMDB serialization to
+        # ``_lmdb_safe_format.write_sample_lmdb``. The producer contract
+        # (LMDB layout, keys, JSON schema, base64 encoding) is preserved
+        # verbatim — this is a mechanical extraction of the serialization
+        # boundary, not a schema change.
+        #
+        # Progress reporting stays at this layer (via tqdm) so the
+        # serialization helper remains dependency-light (no tqdm import).
+        from tqdm import tqdm
+        # Local import keeps the module-level import surface unchanged
+        # for callers that only use other formatters/readers.
+        from _lmdb_safe_format import write_sample_lmdb
 
-        # حذف القديم
-        if output_path.exists():
-            shutil.rmtree(output_path)
+        def _progress(idx: int, total: int) -> None:
+            tqdm.write(f"💾 LMDB {split}: {idx+1}/{total}", end="\r")
 
-        env = lmdb.open(str(output_path), map_size=LMDB_MAP_SIZE)
-
-        with env.begin(write=True) as txn:
-            for idx, sample in enumerate(tqdm(samples, desc=f"💾 LMDB {split}")):
-                # قراءة الصورة
-                with open(sample['image_path'], 'rb') as f:
-                    image_bytes = f.read()
-
-                # تخزين
-                key = f"{idx:08d}".encode()
-                value = pickle.dumps({
-                    'image': image_bytes,
-                    'text': sample['text'],
-                    'source': sample.get('source', 'unknown')
-                })
-                txn.put(key, value)
-
-            # تخزين العدد
-            txn.put(b'__len__', str(len(samples)).encode())
-
-        env.close()
+        output_path = write_sample_lmdb(
+            output_path=self.output_dir,
+            samples=samples,
+            split=split,
+            progress_callback=_progress,
+        )
         print(f"✅ LMDB {split}: {len(samples)} عينة → {output_path}")
         return output_path
 
