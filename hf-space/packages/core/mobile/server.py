@@ -323,7 +323,7 @@ def process_image() -> Response:
 
         # 4. Auto-correct OCR artifacts (canonical single correction — the
         # spell checker already runs inside _auto_correct_ocr; the previous
-        # second correct_text() call was removed, P0-B double-correction fix)
+        # second spell-check call was removed, P0-B double-correction fix)
         corrected, corrections, correction_failed = _auto_correct_ocr_with_status(raw_text)
         ocr_status["correction_failed"] = correction_failed
 

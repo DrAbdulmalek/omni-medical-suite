@@ -51,8 +51,12 @@ def _enable_push(svc, monkeypatch):
     monkeypatch.setattr(svc, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(svc, "HF_TOKEN", "test-token")
     fake_dataset = MagicMock()
-    monkeypatch.setattr(svc, "Dataset", fake_dataset)
-    monkeypatch.setattr(svc, "load_dataset", MagicMock(side_effect=RuntimeError("no network")))
+    # raising=False: the service only defines Dataset/load_dataset at module
+    # level when the optional HF libs are importable. CI does not install
+    # `datasets`, so the attributes may be absent — inject them anyway (the
+    # runtime resolves them as module globals inside flush_queue()).
+    monkeypatch.setattr(svc, "Dataset", fake_dataset, raising=False)
+    monkeypatch.setattr(svc, "load_dataset", MagicMock(side_effect=RuntimeError("no network")), raising=False)
     return fake_dataset
 
 
@@ -67,8 +71,8 @@ def test_flush_queue_does_not_push_when_export_disabled(monkeypatch, tmp_path):
     svc = _fresh_service(monkeypatch, tmp_path)
     fake_dataset = MagicMock()
     monkeypatch.setattr(svc, "HAS_HF", True)
-    monkeypatch.setattr(svc, "Dataset", fake_dataset)
-    monkeypatch.setattr(svc, "load_dataset", MagicMock(side_effect=RuntimeError("no network")))
+    monkeypatch.setattr(svc, "Dataset", fake_dataset, raising=False)
+    monkeypatch.setattr(svc, "load_dataset", MagicMock(side_effect=RuntimeError("no network")), raising=False)
     monkeypatch.setattr(svc, "HF_TOKEN", "test-token")
 
     msg = svc.save_to_hf("نص مصحح", "نص خام", {}, "prescription", consent=True)
@@ -88,7 +92,7 @@ def test_flush_queue_refuses_without_token(monkeypatch, tmp_path):
     monkeypatch.setattr(svc, "HAS_HF", True)
     monkeypatch.setattr(svc, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(svc, "HF_TOKEN", "")
-    monkeypatch.setattr(svc, "Dataset", fake_dataset)
+    monkeypatch.setattr(svc, "Dataset", fake_dataset, raising=False)
 
     svc.save_to_hf("c1", "o1", {}, "prescription", consent=True)
     result = svc.flush_queue()
