@@ -23,6 +23,7 @@ Environment Variables:
   HF_TOKEN=hf_xxx       HuggingFace token for dataset upload
 """
 import json
+import hashlib
 import logging
 import os
 import re
@@ -44,6 +45,24 @@ ENABLE_LLM = os.getenv("ENABLE_LLM", "false").lower() == "true"
 HF_TOKEN = os.getenv("HF_TOKEN", "")
 HF_DATASET = "DrAbdulmalek/arabic-medical-ocr-corrections"
 HF_DATASET_PRIVATE = os.getenv("HF_DATASET_PRIVATE", "true").lower() == "true"
+
+# P0-A fail-closed egress policy (mirrors app/services/hf_dataset_service.py):
+#   - Hub export is OPT-IN and DISABLED by default (master kill-switch).
+#   - The Hub payload is metadata-only unless the operator explicitly opts
+#     in to raw-text export. Raw OCR/correction/entity text stays local.
+#   - Dataset visibility stays governed by HF_DATASET_PRIVATE (default true,
+#     private). Making it public is an explicit operator decision.
+def _omni_env_flag(name: str, default: bool) -> bool:
+    """Fail-closed boolean env parse: anything but literal "true" is False."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() == "true"
+
+
+OMNI_HF_EXPORT_ENABLED = _omni_env_flag("OMNI_HF_EXPORT_ENABLED", False)
+OMNI_HF_EXPORT_RAW_TEXT = _omni_env_flag("OMNI_HF_EXPORT_RAW_TEXT", False)
+
 MEDICAL_MIN_CONFIDENCE = float(os.getenv("MEDICAL_MIN_CONFIDENCE", "70"))
 
 # ── Conditional Imports ─────────────────────────────────────────────────────
@@ -214,10 +233,20 @@ def _preprocess_image(image: np.ndarray) -> Tuple[np.ndarray, List[str]]:
     return cleaned, steps
 
 
-def _run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict]]:
-    """Run PaddleOCR. Returns (full_text, line_details)."""
+def _run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict], str]:
+    """Run PaddleOCR. Returns (full_text, line_details, status).
+
+    P0-B fail-visible contract: ``status`` ∈ ok/unavailable/error/empty so a
+    crashed engine can never masquerade as a successful empty scan.
+    Line-detail confidences are percent-native (0..100): Paddle's 0..1
+    values are converted here at the boundary exactly once, which is why
+    this function carries the ``_omni_confidence_normalized`` marker — the
+    production confidence patch in ``app.py`` sees it and skips itself,
+    preventing any double conversion.
+    """
     if paddle_ocr is None:
-        return "", []
+        logger.warning("PaddleOCR unavailable — returning explicit status")
+        return "", [], "unavailable"
     try:
         img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         result = paddle_ocr.ocr(img_bgr, cls=True)
@@ -229,30 +258,53 @@ def _run_paddle_ocr(image: np.ndarray) -> Tuple[str, List[Dict]]:
                 if text:
                     lines.append(text)
                     details.append({"line": idx + 1, "text": text,
-                                    "confidence": round(float(conf), 4)})
-        return "\n".join(lines), details
+                                    "confidence": _to_percent(conf)})
+        if not lines:
+            return "", [], "empty"
+        return "\n".join(lines), details, "ok"
     except Exception as e:
         logger.error(f"PaddleOCR error: {e}")
-        return "", []
+        return "", [], "error"
 
 
-def _run_tesseract(image: np.ndarray) -> Tuple[str, float]:
-    """Run Tesseract. Returns (text, avg_confidence)."""
+# Percent-native marker (P0-B/B3): app.py's install_production_confidence_
+# contract() checks this attribute and skips its own 0..1 → percent wrapper
+# when set, so the conversion happens exactly once (here, at the boundary).
+_run_paddle_ocr._omni_confidence_normalized = True  # type: ignore[attr-defined]
+
+
+def _to_percent(conf: float) -> float:
+    """Normalize a PaddleOCR 0..1 confidence to the shared 0..100 percent unit."""
+    value = float(conf)
+    if 0.0 <= value <= 1.0:
+        value *= 100.0
+    return round(max(0.0, min(100.0, value)), 2)
+
+
+def _run_tesseract(image: np.ndarray) -> Tuple[str, float, str]:
+    """Run Tesseract. Returns (text, avg_confidence, status).
+
+    ``avg_confidence`` is already percent-native (0..100). ``status`` uses
+    the same fail-visible contract as ``_run_paddle_ocr`` (P0-B).
+    """
     if not HAS_TESSERACT:
-        return "", 0.0
+        return "", 0.0, "unavailable"
     try:
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         text = pytesseract.image_to_string(gray, lang="ara+eng", config="--psm 6")
+        text = text.strip()
         try:
             data = pytesseract.image_to_data(gray, lang="ara+eng", output_type=pytesseract.Output.DICT)
             confs = [int(c) for c in data["conf"] if int(c) > 0]
             avg_conf = sum(confs) / len(confs) if confs else 0.0
         except Exception:
             avg_conf = 0.0
-        return text.strip(), round(avg_conf, 2)
+        if not text:
+            return "", round(avg_conf, 2), "empty"
+        return text, round(avg_conf, 2), "ok"
     except Exception as e:
         logger.error(f"Tesseract error: {e}")
-        return "", 0.0
+        return "", 0.0, "error"
 
 
 def _select_ocr_result(
@@ -407,6 +459,21 @@ def _auto_correct_ocr(text: str) -> Tuple[str, List[Dict]]:
     return corrected, changes
 
 
+def _auto_correct_ocr_with_status(text: str) -> Tuple[str, List[Dict], bool]:
+    """Fail-visible variant of :func:`_auto_correct_ocr` (P0-B).
+
+    Returns ``(corrected, changes, correction_failed)``. ``correction_failed``
+    is True when the correction stage raised unexpectedly — the best-effort
+    output is still returned, but the caller MUST surface the degraded state.
+    """
+    try:
+        corrected, changes = _auto_correct_ocr(text)
+        return corrected, changes, False
+    except Exception as e:
+        logger.warning("_auto_correct_ocr failed (correction_failed=True): %s", e)
+        return text, [], True
+
+
 def _extract_ner(text: str) -> Dict[str, List[str]]:
     """Extract medical entities by dictionary matching."""
     entities = {"medications": [], "diseases": [], "symptoms": [], "dosages": []}
@@ -437,19 +504,29 @@ def _format_ner_table(entities: Dict) -> str:
 def full_process(image) -> Tuple:
     """
     Complete processing pipeline:
-    Image → Preprocess → OCR Ensemble → Spell Check → LLM Proofread → NER
+    Image → Preprocess → OCR Ensemble → Spell Check → NER
+
+    P0-B (fail-visible): returns an 8-tuple ending in a structured
+    ``ocr_status`` dict. The fallback placeholder ("[لم يتم اكتشاف نص]")
+    produced by ``_select_ocr_result`` when both engines come up empty is
+    NEVER fed into correction — both-engines-empty is a FAILURE with an
+    empty corrected/raw output and an explicit user-visible error.
     """
     if image is None:
-        return None, None, "لم يتم رفع صورة", "", "", "يرجى رفع صورة طبية", 0.0
+        return (None, None, "لم يتم رفع صورة", "", "", "يرجى رفع صورة طبية", 0.0,
+                {"selected_engine": "none", "paddle_status": "unavailable",
+                 "tesseract_status": "unavailable", "fallback_used": False,
+                 "fallback_reason": None, "correction_failed": False,
+                 "user_visible_error": "لم يتم رفع صورة"})
 
     t0 = time.time()
     try:
         # 1. Preprocessing
         cleaned, prep_steps = _preprocess_image(image)
 
-        # 2. OCR — run all available engines
-        paddle_text, paddle_details = _run_paddle_ocr(cleaned)
-        tesseract_text, tess_conf = _run_tesseract(cleaned)
+        # 2. OCR — run all available engines (3-tuple: text, payload, status)
+        paddle_text, paddle_details, paddle_status = _run_paddle_ocr(cleaned)
+        tesseract_text, tess_conf, tess_status = _run_tesseract(cleaned)
 
         # 3. Ensemble: PaddleOCR primary, Tesseract supplement
         # Selection logic is centralized in _select_ocr_result() so it can
@@ -463,19 +540,56 @@ def full_process(image) -> Tuple:
             tess_conf=tess_conf,
         )
 
-        # 4. Auto-correct OCR artifacts
-        corrected, corrections = _auto_correct_ocr(raw_text)
+        ocr_status: Dict[str, object] = {
+            "paddle_status": paddle_status,
+            "tesseract_status": tess_status,
+            "fallback_used": False,
+            "fallback_reason": None,
+            "correction_failed": False,
+            "user_visible_error": "",
+        }
+        paddle_usable = paddle_status == "ok" and len(paddle_text.strip()) > 5
+        tesseract_usable = tess_status == "ok" and bool(tesseract_text.strip())
+        if paddle_usable:
+            ocr_status["selected_engine"] = "paddle"
+        elif tesseract_usable:
+            ocr_status["selected_engine"] = "tesseract"
+            ocr_status["fallback_used"] = True
+            ocr_status["fallback_reason"] = (
+                f"paddle {paddle_status} / len<=5 heuristic"
+                if paddle_status == "ok"
+                else f"paddle {paddle_status}"
+            )
+        else:
+            # P0-B: both engines failed or produced nothing → FAILURE.
+            # _select_ocr_result's placeholder string is dropped here and is
+            # never allowed to enter the correction pipeline.
+            ocr_status["selected_engine"] = "none"
+            ocr_status["fallback_used"] = True
+            ocr_status["fallback_reason"] = f"paddle {paddle_status}, tesseract {tess_status}"
+            ocr_status["user_visible_error"] = (
+                f"Text extraction FAILED: no OCR engine produced text "
+                f"(Paddle: {paddle_status} / Tesseract: {tess_status})."
+            )
+            elapsed = time.time() - t0
+            parts = [
+                f"Preprocess: {' + '.join(prep_steps)}",
+                f"FAILED: {ocr_status['user_visible_error']}",
+                f"Time: {elapsed:.1f}s",
+            ]
+            return cleaned, image, "", "", "", "\n".join(parts), 0.0, ocr_status
 
-        # 4.5 Spell check
+        # 4. Auto-correct OCR artifacts (single canonical correction; input
+        # is REAL engine text — never the placeholder).
+        corrected, corrections, correction_failed = _auto_correct_ocr_with_status(raw_text)
+        ocr_status["correction_failed"] = correction_failed
+
+        # 4.5 Spell check info — the spell checker already ran inside
+        # _auto_correct_ocr (P0-B: the previous second correct_text() call
+        # here was removed; running the checker twice was redundant risk).
         spell_info = ""
         if spell_checker:
-            try:
-                before_spell = corrected
-                corrected = spell_checker.correct_text(corrected)
-                if before_spell != corrected:
-                    spell_info = f"SpellChecker: modifications applied"
-            except Exception as e:
-                logger.warning(f"Spell check failed: {e}")
+            spell_info = "SpellChecker: applied via _auto_correct_ocr"
 
         # 5. LLM Proofreading (optional, GPU required)
         if proofreader:
@@ -500,14 +614,14 @@ def full_process(image) -> Tuple:
         elapsed = time.time() - t0
         parts = [f"Preprocess: {' + '.join(prep_steps)}"]
 
-        if not HAS_TESSERACT and paddle_ocr is None:
-            parts.append("No OCR engine available")
-        elif not raw_text.strip():
-            parts.append("No text detected (check image quality)")
+        if paddle_status != "ok" and tess_status != "ok":
+            parts.append("WARNING: both engines reported a degraded status — text may be partial")
 
         parts.extend(f"{k}: {v}" for k, v in engine_info.items())
         parts.append(f"OCR confidence: {selected_confidence:.1f}%")
         parts.append(f"OCR corrections: {len(corrections)}")
+        if correction_failed:
+            parts.append("WARNING: spell-correction failed partway — text shown as-is")
         if spell_info:
             parts.append(spell_info)
         parts.append(f"Entities found: {sum(len(v) for v in entities.values())}")
@@ -518,19 +632,43 @@ def full_process(image) -> Tuple:
 
         ner_markdown = _format_ner_table(entities)
 
-        return cleaned, image, corrected, raw_text, ner_markdown, "\n".join(parts), selected_confidence
+        return (cleaned, image, corrected, raw_text, ner_markdown, "\n".join(parts),
+                selected_confidence, ocr_status)
 
     except Exception as e:
         logger.error(f"Processing error: {e}", exc_info=True)
-        return None, None, f"Error: {str(e)}", "", "", f"An error occurred: {str(e)}", 0.0
+        return (None, None, f"Error: {str(e)}", "", "", f"An error occurred: {str(e)}", 0.0,
+                {"selected_engine": "none", "paddle_status": "unavailable",
+                 "tesseract_status": "unavailable", "fallback_used": False,
+                 "fallback_reason": None, "correction_failed": False,
+                 "user_visible_error": f"An error occurred: {str(e)}"})
 
 
 # ── Save to HuggingFace ────────────────────────────────────────────────────
 
 def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category: str, approved: bool, confidence: float) -> str:
-    """Persist a reviewed correction only after mandatory approval and confidence gate."""
+    """Persist a reviewed correction only after mandatory approval and confidence gate.
+
+    P0-A fail-closed egress policy (mirrors app/services/hf_dataset_service.py):
+      1. Master kill-switch: no Hub push unless OMNI_HF_EXPORT_ENABLED=true.
+      2. The approved flag doubles as the per-row consent marker.
+      3. The payload is metadata-only (content_hash/category/timestamp/consent/
+         raw_retained_locally) unless OMNI_HF_EXPORT_RAW_TEXT=true — raw OCR
+         text, corrected text and NER entities never leave this Space by
+         default.
+      4. Dataset visibility: private by default via HF_DATASET_PRIVATE;
+         public requires the explicit literal "false" opt-in.
+    """
     if not HAS_HF:
         return "HuggingFace libraries not available. Install datasets and huggingface_hub."
+
+    if not OMNI_HF_EXPORT_ENABLED:
+        logger.warning("save_to_hf refused: Hub export is disabled (OMNI_HF_EXPORT_ENABLED)")
+        return (
+            "BLOCKED: Hub export is disabled by default (OMNI_HF_EXPORT_ENABLED != true). "
+            "No data was uploaded. Enabling it is an explicit operator decision with "
+            "PHI implications."
+        )
 
     if not approved:
         return "BLOCKED: Human approval is required before saving corrected medical text."
@@ -544,7 +682,9 @@ def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category:
         return "No text to save"
 
     try:
-        row = {
+        import pandas as pd
+
+        full_row = {
             "incorrect_ocr_output": str(original_text or ""),
             "correct_text": str(corrected_text),
             "category": str(category),
@@ -552,20 +692,47 @@ def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category:
             "timestamp": datetime.now().isoformat(),
         }
 
+        # P0-A raw-text gate: metadata-only payload unless explicitly opted in.
+        if OMNI_HF_EXPORT_RAW_TEXT:
+            payload_row = dict(full_row)
+            payload_row["content_hash"] = hashlib.md5(
+                (str(original_text or "") + str(corrected_text)).encode()
+            ).hexdigest()[:12]
+            payload_row["consent"] = bool(approved)
+        else:
+            payload_row = {
+                "content_hash": hashlib.md5(
+                    (str(original_text or "") + str(corrected_text)).encode()
+                ).hexdigest()[:12],
+                "category": str(category),
+                "timestamp": full_row["timestamp"],
+                "consent": bool(approved),
+                "raw_retained_locally": True,
+            }
+
+        # No-column-loss merge: concat with a pandas union so pushing to an
+        # existing dataset with different columns can never silently drop
+        # the old rows (the previous dict-append lost columns on mismatch).
         try:
-            existing = load_dataset(HF_DATASET, split="train")
-            existing_dict = {k: existing[k] + [v] for k, v in row.items()}
-            new_ds = Dataset.from_dict(existing_dict)
+            existing_df = load_dataset(HF_DATASET, split="train").to_pandas()
+            new_df = pd.DataFrame([payload_row])
+            merged_df = pd.concat([existing_df, new_df], ignore_index=True)
         except Exception:
-            new_ds = Dataset.from_dict({k: [v] for k, v in row.items()})
+            merged_df = pd.DataFrame([payload_row])
+
+        new_ds = Dataset.from_pandas(merged_df)
 
         push_kwargs = {"repo_id": HF_DATASET, "private": HF_DATASET_PRIVATE}
+        if not HF_DATASET_PRIVATE:
+            logger.warning(
+                "Hub dataset will be PUBLIC — explicit HF_DATASET_PRIVATE=false opt-in"
+            )
         if HF_TOKEN:
             push_kwargs["token"] = HF_TOKEN
         new_ds.push_to_hub(**push_kwargs)
 
         total = len(new_ds)
-        logger.info(f"Saved to HF: {total} total samples")
+        logger.info(f"Saved to HF: {total} total samples (raw_text_export={OMNI_HF_EXPORT_RAW_TEXT})")
         return f"Saved successfully! Total samples: {total}"
     except Exception as e:
         logger.error(f"Save error: {e}")
@@ -752,6 +919,8 @@ with gr.Blocks(
 
             ner_output = gr.Markdown(label="Extracted Entities (NER)")
 
+            ocr_status_output = gr.JSON(label="OCR Engine Status (diagnostics — P0)")
+
             with gr.Row():
                 category = gr.Dropdown(
                     choices=["prescription", "report", "handwriting", "lab_result", "other"],
@@ -765,7 +934,7 @@ with gr.Blocks(
             process_btn.click(
                 fn=full_process,
                 inputs=[input_image],
-                outputs=[cleaned_img, before_img, corrected, raw_ocr, ner_output, status, confidence],
+                outputs=[cleaned_img, before_img, corrected, raw_ocr, ner_output, status, confidence, ocr_status_output],
             )
             save_btn.click(
                 fn=save_to_hf,
