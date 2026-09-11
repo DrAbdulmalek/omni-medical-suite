@@ -40,6 +40,20 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Cloud OCR gate (P0-A5, fail-closed)
+# ---------------------------------------------------------------------------
+
+def _cloud_ocr_allowed() -> bool:
+    """True only when the operator explicitly set OMNI_ALLOW_CLOUD_OCR=true.
+
+    Cloud OCR engines upload the document to a third-party API — an explicit
+    PHI-egress decision. Unset/empty/garbage values all evaluate to False so
+    the cloud path can never be enabled by accident.
+    """
+    return os.getenv("OMNI_ALLOW_CLOUD_OCR", "").strip().lower() == "true"
+
 # ---------------------------------------------------------------------------
 # Type aliases
 # ---------------------------------------------------------------------------
@@ -666,6 +680,11 @@ class UnifiedOCR:
     ) -> OCRResult:
         """Run Mistral OCR 3 (cloud API).
 
+        P0-A5 cloud gate (fail-closed): cloud OCR sends the document to a
+        third-party API — that is an explicit PHI-egress decision. Unless
+        ``OMNI_ALLOW_CLOUD_OCR=true``, this method returns an error result
+        WITHOUT calling the API and WITHOUT uploading any file.
+
         Mistral requires a file on disk, so if *file_path* is ``None``
         the PIL image is written to a temporary file and cleaned up
         afterwards.
@@ -680,6 +699,22 @@ class UnifiedOCR:
             Normalised :class:`OCRResult`.
         """
         start = time.time()
+
+        if not _cloud_ocr_allowed():
+            logger.warning(
+                "Mistral OCR refused: cloud OCR is disabled by default "
+                "(OMNI_ALLOW_CLOUD_OCR != true) — file not uploaded"
+            )
+            return OCRResult(
+                engine=OCREngineID.MISTRAL,
+                error=(
+                    "Cloud OCR is denied by default (OMNI_ALLOW_CLOUD_OCR != true); "
+                    "file not uploaded. Set OMNI_ALLOW_CLOUD_OCR=true to explicitly "
+                    "enable cloud egress."
+                ),
+                processing_time=time.time() - start,
+            )
+
         cleanup = False
 
         engine = self._load_mistral()
