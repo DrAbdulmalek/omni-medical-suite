@@ -72,6 +72,10 @@ class OCRResult:
             downstream consumers that need extra metadata.
         error: Non-empty string when the engine raised an exception;
             empty string on success.
+        provenance: Optional provenance payload (AHW-02D): engine,
+            profile, language, script_kind (handwriting/printed),
+            selection/reasons, attempts (explicit fallback trail),
+            fallback_used, normalization state. Empty by default.
     """
 
     text: str = ""
@@ -82,6 +86,7 @@ class OCRResult:
     words: List[Dict[str, Any]] = field(default_factory=list)
     raw_result: Optional[Dict[str, Any]] = None
     error: str = ""
+    provenance: Dict[str, Any] = field(default_factory=dict)
 
     # -- convenience helpers ------------------------------------------------
 
@@ -100,6 +105,7 @@ class OCRResult:
             "processing_time": self.processing_time,
             "words": self.words,
             "error": self.error,
+            "provenance": self.provenance,
         }
 
 

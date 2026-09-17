@@ -123,7 +123,8 @@ class EWCRegularizer:
         if not os.path.exists(path):
             return False
         try:
-            state = torch.load(path, map_location="cpu")
+            # AHW-02E1: weights_only=True — EWC state is tensors + floats only.
+            state = torch.load(path, map_location="cpu", weights_only=True)
             self.lambda_ewc = state.get("lambda_ewc", self.lambda_ewc)
             self.fisher_information = {n: t.to(self.model.device) for n, t in state.get("fisher", {}).items()}
             self.optimal_params = {n: t.to(self.model.device) for n, t in state.get("optimal", {}).items()}

@@ -10,6 +10,19 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# AHW-02E3 — cloud disabled by default / explicit opt-in.
+# Even when MISTRAL_API_KEY exists, no cloud client is created unless the
+# operator explicitly opts in via OMNI_ENABLE_CLOUD_OCR.  This prevents the
+# UnifiedOCR fallback chain from silently egressing raw medical files to a
+# cloud service (PHI-gate prerequisite, AHW-01 §M-2).
+_CLOUD_OPT_IN_VALUES = {"1", "true", "yes"}
+
+
+def _cloud_opt_in_enabled() -> bool:
+    """Return True only if cloud OCR was explicitly opted in by the operator."""
+    return os.getenv("OMNI_ENABLE_CLOUD_OCR", "false").strip().lower() in _CLOUD_OPT_IN_VALUES
+
+
 # Try to import mistral client
 try:
     from mistralai import Mistral
@@ -25,7 +38,7 @@ class MistralOCR:
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("MISTRAL_API_KEY")
         self.client = None
-        if self.api_key and HAS_MISTRAL:
+        if self.api_key and HAS_MISTRAL and _cloud_opt_in_enabled():
             self.client = Mistral(api_key=self.api_key)
 
     def is_available(self) -> bool:
@@ -129,7 +142,7 @@ pathology_report, unknown
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("MISTRAL_API_KEY")
         self.client = None
-        if self.api_key and HAS_MISTRAL:
+        if self.api_key and HAS_MISTRAL and _cloud_opt_in_enabled():
             self.client = Mistral(api_key=self.api_key)
 
     def is_available(self) -> bool:
@@ -212,7 +225,7 @@ class StructuredExtractor:
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("MISTRAL_API_KEY")
         self.client = None
-        if self.api_key and HAS_MISTRAL:
+        if self.api_key and HAS_MISTRAL and _cloud_opt_in_enabled():
             self.client = Mistral(api_key=self.api_key)
 
     def is_available(self) -> bool:

@@ -407,7 +407,9 @@ class OnlineLearner:
     
     def load_checkpoint(self, path: Path):
         """تحميل checkpoint."""
-        checkpoint = torch.load(path, map_location=self.device)
+        # AHW-02E1: weights_only=True — payload is tensors/primitives only
+        # (same checkpoint schema as the canonical copy).
+        checkpoint = torch.load(path, map_location=self.device, weights_only=True)
         
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.ewc_params = checkpoint.get('ewc_params', {})

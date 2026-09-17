@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "hf-space"))
+sys.path.append(str(ROOT / "hf-space"))  # AHW-02G fix: append (not insert) — inserting hf-space first shadowed canonical packages.core with the hf-space copy (no router_executor) and would run E3 against the unpatched mistral_integration
 import app_core
 
 def test_tramadol_dose_separator_preserved():

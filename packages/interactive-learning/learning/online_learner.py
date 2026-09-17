@@ -402,7 +402,10 @@ class OnlineLearner:
 
     def load_checkpoint(self, path: Path):
         """تحميل checkpoint."""
-        checkpoint = torch.load(path, map_location=self.device)
+        # AHW-02E1: weights_only=True — this checkpoint only contains
+        # tensors / primitives / dicts (model_state_dict, ewc_params, ints),
+        # so restricted deserialization is safe and blocks pickle code execution.
+        checkpoint = torch.load(path, map_location=self.device, weights_only=True)
 
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.ewc_params = checkpoint.get('ewc_params', {})

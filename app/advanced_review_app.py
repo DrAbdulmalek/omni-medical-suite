@@ -79,6 +79,15 @@ try:
 except ImportError:
     CORE_AVAILABLE = False
 
+# AHW-02B: router execution bridge (selection → actual adapter execution).
+# Optional import — the app degrades gracefully if the executor is absent.
+try:
+    from packages.core.router_executor import build_default_executor
+
+    EXECUTOR_AVAILABLE = True
+except ImportError:
+    EXECUTOR_AVAILABLE = False
+
 # ---------------------------------------------------------------------------
 # Optional PDF generation (requires img2pdf or Pillow)
 # ---------------------------------------------------------------------------
@@ -579,6 +588,64 @@ def run_review(
 
 
 # ===========================================================================
+# Tab 7: OCR execution (AHW-02B — router selection → actual engine run)
+# ===========================================================================
+_EXECUTORS: dict[str, "object"] = {}
+
+
+def _get_executor(profile: str):
+    """Cache one RouterExecutor per profile (no engine state is shared)."""
+    if profile not in _EXECUTORS:
+        _EXECUTORS[profile] = build_default_executor(profile=profile)
+    return _EXECUTORS[profile]
+
+
+def run_htr_execution(
+    image,
+    language: str,
+    block_type: str,
+    profile: str,
+) -> tuple[str, dict[str, Any]]:
+    """AHW-02B: execute the router's selected engine on an image.
+
+    NO SILENT FALLBACK (AHW-02 §10): only engines returned by
+    ``EngineRouter.select()`` are attempted, in the router's order;
+    every skip/failure is visible in the returned provenance JSON.
+    """
+    if not EXECUTOR_AVAILABLE:
+        return "❌ محرك التنفيذ غير متاح (router_executor import failed)", {}
+    if image is None:
+        return "⚠️ ارفع صورة أولًا", {}
+
+    executor = _get_executor(profile)
+    result = executor.execute(
+        image=image,
+        language=language,
+        block_type=block_type,
+    )
+
+    lines = ["## نتيجة التنفيذ (AHW-02)"]
+    if result.success:
+        lines.append(f"- **المحرك المُنفِّذ:** {result.engine}")
+        lines.append(f"- **الثقة:** {result.confidence:.2f}")
+        lines.append(f"- **عدد الكلمات:** {result.word_count}")
+        lines.append(f"- **fallback مُعلَن:** {'نعم' if result.provenance.get('fallback_used') else 'لا'}")
+        lines.append("")
+        lines.append("```text")
+        lines.append(result.text)
+        lines.append("```")
+    else:
+        lines.append(f"- **الحالة:** فشل صريح (بدون fallback صامت)")
+        lines.append(f"- **الخطأ:** {result.error}")
+    for attempt in result.provenance.get("attempts", []):
+        lines.append(
+            f"- `{attempt['engine']}` → {attempt['status']}"
+            + (f" — {attempt['reason']}" if attempt.get("reason") else "")
+        )
+    return "\n".join(lines), result.to_dict()
+
+
+# ===========================================================================
 # Build the Gradio interface
 # ===========================================================================
 def build_app() -> gr.Blocks:
@@ -870,6 +937,42 @@ def build_app() -> gr.Blocks:
                     document_type, force_review_fix,
                 ],
                 outputs=[normalized_text, extracted_fields, routing_advice],
+            )
+
+        # ===================================================================
+        # Tab 7: OCR execution (AHW-02B)
+        # ===================================================================
+        with gr.Tab("✍️ تنفيذ OCR (يدوي)"):
+            gr.Markdown(
+                "### تنفيذ التوجيه ← المحرك (AHW-02B)\n"
+                "يختار الـrouter المحرك ثم **يُنفِّذه فعليًا** عبر `RouterExecutor`.\n\n"
+                "⚠️ **بدون fallback صامت:** المحركات المتاحة فقط تُجرَّب بترتيب التوجيه، "
+                "وكل تخطٍ/فشل يظهر في Provenance. في هذه البيئة (CPU-only، بدون torch) "
+                "سينتهي التنفيذ بفشل صريح — هذا هو السلوك المُصمَّم."
+            )
+            with gr.Row():
+                exec_image = gr.Image(label="الصورة", type="pil")
+                with gr.Column():
+                    exec_language = gr.Dropdown(
+                        choices=["ar", "en", "mixed"], value="ar", label="اللغة"
+                    )
+                    exec_block = gr.Dropdown(
+                        choices=["handwriting", "paragraph", "table", "form"],
+                        value="handwriting",
+                        label="نوع الكتلة",
+                    )
+                    exec_profile = gr.Dropdown(
+                        choices=["low", "balanced", "high"],
+                        value="balanced",
+                        label="البروفايل",
+                    )
+            exec_btn = gr.Button("🚀 تنفيذ التوجيه ← المحرك", variant="primary")
+            exec_output_md = gr.Markdown(elem_classes=["omni-card"])
+            exec_output_json = gr.JSON(label="Provenance (engine / attempts / fallback)")
+            exec_btn.click(
+                fn=run_htr_execution,
+                inputs=[exec_image, exec_language, exec_block, exec_profile],
+                outputs=[exec_output_md, exec_output_json],
             )
 
     return demo

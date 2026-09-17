@@ -124,3 +124,13 @@ data/dictionaries/conflicts.json
 # See docs/audits/MALEK_DICTIONARIES_AUDIT.md for the full pipeline audit.
 data/dictionaries/specialty/*.json
 !data/dictionaries/specialty/.gitkeep
+
+# ── Model weights & checkpoints (AHW-02E2 — never commit trained weights) ──
+# Trained/finetuned model binaries must live in external storage (HF Hub /
+# artifact store), never in git.  See .gitattributes for LFS policy.
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
