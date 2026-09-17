@@ -20,6 +20,7 @@
 | 12 | SESSION-22 | scripts/ahw02_router_chain_smoke.py | bdd6bf43c9a69a2b671349e9db62e645bfbacbfc7aaa9c2340dcc67579e795b5 | 59a9813d1e69d8713f1308f4adf4da8791890662 | Live router→executor→engine→OCRResult chain smoke (real router names) |
 | 13 | SESSION-22 | scripts/ahw02_router_chain_smoke_output.json | a7296a3688da7cf3853f9080f620d0efa4e26d4de8a247a177be9c0925c8e90d | 59a9813d1e69d8713f1308f4adf4da8791890662 | Both scenarios ALL ASSERTIONS PASSED (declared fallback + explicit failure) |
 | 14 | SESSION-22 | scripts/ahw02_targeted_tests_output.txt | 579b1c37f5a97746b35a17d08253811d5c741ed070980a0037880e0c71eb1302 | 59a9813d1e69d8713f1308f4adf4da8791890662 | 74 passed (63 AHW-02 + 11 legacy router baseline parity) |
+| 15 | SESSION-23 | docs/SESSION_ARTIFACTS_POLICY.md | ef1145ecb794213814ff836020bbf2c76d0e9cc76b0bc6100d9ae68bc36f906d | db50ddd7772226130651b5dd1eacc6cadfd0a8b8 | SUPERSEDES row 5 — adds §2 SESSION CLOSE push sequence + §4 UNPUSHED WORK IS NOT PERSISTED WORK (PERSISTENCE GATE step G) |
 
 Infra note: the ledger and `scripts/verify_session_artifacts.py` are protocol
 infrastructure — their integrity rests on the git commit graph; the final
