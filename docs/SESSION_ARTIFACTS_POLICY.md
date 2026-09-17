@@ -40,6 +40,10 @@
 
 ## 2. إجراء الإغلاق القياسي لكل جلسة (Checklist)
 
+> **التسلسل القانوني للإغلاق (SESSION CLOSE) — ملزم حرفيًا وبالترتيب:**
+>
+> **TEST → ARTIFACTS → COMMIT → VERIFY → PUSH → VERIFY REMOTE → RECORD SHA → CLEAN WORKTREE**
+
 ```
 [ ] 1. كل الأصول الإثباتية مكتوبة تحت مسارات مُلتزَمة داخل المستودع
         (docs/… أو scripts/… أو evidence/) وليس فقط في مجلدات عابرة.
@@ -49,8 +53,15 @@
 [ ] 4. تحديث صف الـ commit في السجل بعد معرفة الـ SHA النهائية
         (commit إغلاق أخير إذا لزم).
 [ ] 5. تشغيل scripts/verify_session_artifacts.py → يجب PASS، ولصق المخرجات في worklog.md.
-[ ] 6. تحديث مرايا download/ من الملفات الملتزَمة.
-[ ] 7. إدخال worklog (Task ID + Work Log + Stage Summary) يذكر التزام الأصول.
+[ ] 6. PUSH لفرع العمل إلى remote (push عادي فقط — لا force، لا main) —
+        الجلسة ليست منتهية قبل أن ينجح الـ push.
+[ ] 7. VERIFY REMOTE: إثبات أن remote HEAD == local HEAD
+        (git ls-remote أو GitHub API) وأن الأصول موجودة في remote tree.
+[ ] 8. RECORD SHA: تسجيل SHA النهائي لرأس الفرع في worklog.md ورسالة
+        الإغلاق للمالك (قاعدة §3).
+[ ] 9. CLEAN WORKTREE: git status نظيف، لا uncommitted ولا untracked.
+[ ] 10. تحديث مرايا download/ من الملفات الملتزَمة.
+[ ] 11. إدخال worklog (Task ID + Work Log + Stage Summary) يذكر التزام الأصول والـ push.
 ```
 
 ## 3. ملاحظة على الـ self-reference
@@ -58,3 +69,16 @@
 لا يمكن لملف أن يسجّل SHA الـ commit الحاوي له قبل إنشائه؛ لذلك يُسمح بصف مؤقت
 بدون SHA يُستكمل في **commit إغلاق لاحق** (ليس amend)، أو يُسجَّل SHA الـ commit
 الأخير في `worklog.md` ورسالة الإغلاق للمالك. `git log` يبقى المصدر الأعلى.
+
+## 4. قاعدة الجدوى الدائمة (PERSISTENCE RULE)
+
+> **«UNPUSHED WORK IS NOT PERSISTED WORK»**
+> لا يوجد عمل "منجز" ما لم يصبح محفوظًا في Git remote ويمكن استعادته من fresh clone.
+
+- commit محلي بلا push = عمل معرض للفقد عند أي إعادة ضبط للبيئة — **لا يُعتبر حفظًا**.
+- إثبات الحفظ الوحيد المقبول: remote HEAD == local HEAD **و** استعادة ناجحة من
+  fresh clone تعيد إنتاج نتائج الـ verifier نفسها.
+- سابقة التطبيق (PERSISTENCE GATE، 2026-09-17): الفرع
+  `feat/ahw-02-controlled-handwriting-ocr` رُفع بالكامل إلى remote، وHEAD =
+  `4bc4ba4d43ae5bea8a535a64809a5abbc21dee2f` (+ كل commit تالٍ يحدَّث SHA في
+  worklog)، وأُثبتت الاستعادة عبر fresh clone بنتيجة verifier مطابقة (14/14 PASS).
