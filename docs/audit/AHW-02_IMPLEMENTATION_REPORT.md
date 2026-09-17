@@ -303,6 +303,27 @@ all present and classified (§C.2).
 
 ---
 
+## L. Evidence persistence (SESSION-22, owner persistence directive)
+
+The §K.2/§K.5/§K.6 evidence originally existed only as run artifacts and was
+lost after SESSION-21. Per `docs/SESSION_ARTIFACTS_POLICY.md` (committed
+policy), the evidence was RE-CREATED live 2026-09-17 and is now COMMITTED to
+this branch (`59a9813d…`):
+
+| Artifact | Re-creation result |
+|---|---|
+| `scripts/ahw02_recon_{base,branch}.json` + `ahw02_recon_compare.py` + `_result.json` | same table as §K.2; failed/error/skipped set sha256 **identical to the pre-loss fingerprints** (`7f24cfbf…`/`744d313a…`/`d94dd923…`) ⇒ §K.2 identity independently re-proven |
+| `scripts/ahw02a_torchload_scan.{py,json}` | 16 declared scope dirs / 753 files / 6 hits ALL SAFE, same paths+lines as §K.5 |
+| `scripts/ahw02_router_chain_smoke.{py,_output.json}` | both §K.6 scenarios ALL ASSERTIONS PASSED (real router names, incl. declared fallback `fallback_used=True`) |
+| `scripts/ahw02_targeted_tests_output.txt` | 74 passed (63 AHW-02 + 11 legacy router) |
+
+Mandatory final closure record (directive item 8):
+`docs/audit/AHW-02_GATE_CLOSURE_REPORT.md`. All artifact hashes are registered
+in the append-only `docs/SESSION_ARTIFACTS_LEDGER.md` and machine-verified by
+`scripts/verify_session_artifacts.py`.
+
+---
+
 ## GATE
 
 | Sub-phase | Status |
