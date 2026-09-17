@@ -1,0 +1,67 @@
+{
+  "method": {
+    "plugin": "pytest-json-report",
+    "id_hash_method": "sha256 over '\\n'.join(sorted(node_ids)) (utf-8)",
+    "re_created": "2026-09-17 SESSION-22 per docs/SESSION_ARTIFACTS_POLICY.md",
+    "command": "python -m pytest -q --continue-on-collection-errors --json-report --json-report-file=<scripts/ahw02_recon_{base,branch}.json>"
+  },
+  "base": {
+    "label": "BASE (clean @ 39640a6d)",
+    "exitcode": 1,
+    "duration_s": 19.15,
+    "collected": 1004,
+    "passed": 868,
+    "failed": 81,
+    "skipped": 51,
+    "test_level_errors": 4,
+    "collection_errors": 5,
+    "failed_set_sha256": "7f24cfbf4d3a95e979513a9660fe0370d4090cd2f9a0fe011e2865616854b792",
+    "error_set_sha256": "744d313a6e3ffbde21760bded7d43c7c38837057723b9a9184307dee0549b4e5",
+    "skipped_set_sha256": "d94dd923b5b1cd6c57b804894dd81955707744b29d95cb94c084a6fcc9345848",
+    "collector_error_modules": [
+      "tests/integration/test_auth_postgres.py",
+      "tests/test_auth_security.py",
+      "tests/test_build_training_data.py",
+      "tests/test_mobile_review_server.py",
+      "tests/test_security_hardening.py"
+    ]
+  },
+  "branch": {
+    "label": "AHW-02 (branch HEAD)",
+    "exitcode": 1,
+    "duration_s": 19.13,
+    "collected": 1067,
+    "passed": 931,
+    "failed": 81,
+    "skipped": 51,
+    "test_level_errors": 4,
+    "collection_errors": 5,
+    "failed_set_sha256": "7f24cfbf4d3a95e979513a9660fe0370d4090cd2f9a0fe011e2865616854b792",
+    "error_set_sha256": "744d313a6e3ffbde21760bded7d43c7c38837057723b9a9184307dee0549b4e5",
+    "skipped_set_sha256": "d94dd923b5b1cd6c57b804894dd81955707744b29d95cb94c084a6fcc9345848",
+    "collector_error_modules": [
+      "tests/integration/test_auth_postgres.py",
+      "tests/test_auth_security.py",
+      "tests/test_build_training_data.py",
+      "tests/test_mobile_review_server.py",
+      "tests/test_security_hardening.py"
+    ]
+  },
+  "delta": {
+    "collected": 63,
+    "passed": 63,
+    "failed": 0,
+    "skipped": 0,
+    "collection_errors": 0,
+    "test_level_errors": 0,
+    "duration_s": -0.019999999999999574
+  },
+  "identifier_identity": {
+    "failed_set_equal": true,
+    "error_set_equal": true,
+    "skipped_set_equal": true,
+    "collector_error_modules_equal": true
+  },
+  "base_failure_set_equals_ahw02_failure_set": true,
+  "regression": "ZERO"
+}

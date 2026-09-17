@@ -1,0 +1,71 @@
+{
+  "scope_dirs": [
+    "packages/core",
+    "packages/vision",
+    "packages/omni_ocr",
+    "packages/interactive-learning",
+    "packages/file_processor",
+    "packages/handwriting",
+    "packages/medical",
+    "packages/segmentation",
+    "packages/ocr_postprocess",
+    "packages/scanner_fixer",
+    "packages/training",
+    "app",
+    "apps",
+    "src/ocr",
+    "hf-space/packages/core",
+    "hf-space/packages/vision"
+  ],
+  "files_scanned": 753,
+  "elapsed_s": 2.1,
+  "time_budget_s": 60.0,
+  "timed_out": false,
+  "hits": [
+    {
+      "path": "packages/vision/htr/line_segmenter.py",
+      "line": 283,
+      "weights_only": true,
+      "safe": true,
+      "remediated_by_ahw02": "pre-existing safe"
+    },
+    {
+      "path": "packages/interactive-learning/learning/online_learner.py",
+      "line": 408,
+      "weights_only": true,
+      "safe": true,
+      "remediated_by_ahw02": "YES (E1)"
+    },
+    {
+      "path": "packages/file_processor/interactive_learning/learning/online_learner.py",
+      "line": 412,
+      "weights_only": true,
+      "safe": true,
+      "remediated_by_ahw02": "YES (E1)"
+    },
+    {
+      "path": "packages/file_processor/modules/vision/htr/line_segmenter.py",
+      "line": 283,
+      "weights_only": true,
+      "safe": true,
+      "remediated_by_ahw02": "pre-existing safe"
+    },
+    {
+      "path": "apps/handwriting-demo/training/continual_trainer.py",
+      "line": 127,
+      "weights_only": true,
+      "safe": true,
+      "remediated_by_ahw02": "YES (E1)"
+    },
+    {
+      "path": "hf-space/packages/vision/htr/line_segmenter.py",
+      "line": 283,
+      "weights_only": true,
+      "safe": true,
+      "remediated_by_ahw02": "pre-existing safe"
+    }
+  ],
+  "unsafe_count": 0,
+  "verdict": "ZERO unsafe torch.load sites remain within the declared scope",
+  "re_created": "2026-09-17 SESSION-22 per docs/SESSION_ARTIFACTS_POLICY.md"
+}

@@ -1,0 +1,71 @@
+{
+  "verdict": "ALL ASSERTIONS PASSED",
+  "failures": [],
+  "environment": {
+    "torch": "absent (CPU-only)",
+    "olmocr": "absent"
+  },
+  "re_created": "2026-09-17 SESSION-22 per docs/SESSION_ARTIFACTS_POLICY.md",
+  "scenario_1": {
+    "engine": "QARI",
+    "fallback_used": true,
+    "attempts": [
+      {
+        "engine": "Arabic-handwritten-OCR (Qwen)",
+        "status": "failed",
+        "reason": "RuntimeError: simulated runtime failure in Arabic-handwritten-OCR (Qwen)",
+        "duration_ms": 0.0
+      },
+      {
+        "engine": "QARI",
+        "status": "executed",
+        "reason": "",
+        "duration_ms": 0.0,
+        "confidence": 0.9
+      }
+    ],
+    "to_dict_keys": [
+      "confidence",
+      "engine",
+      "error",
+      "processing_time",
+      "provenance",
+      "text",
+      "word_count",
+      "words"
+    ],
+    "provenance_keys": [
+      "attempts",
+      "block_type",
+      "engine",
+      "fallback_used",
+      "language",
+      "normalization",
+      "profile",
+      "reasons",
+      "script_kind",
+      "selection"
+    ]
+  },
+  "scenario_2": {
+    "engine": "router-executor",
+    "fallback_used": false,
+    "attempts": [
+      {
+        "engine": "Arabic-handwritten-OCR (Qwen)",
+        "status": "skipped",
+        "reason": "no_executable_adapter"
+      },
+      {
+        "engine": "EasyOCR",
+        "status": "skipped",
+        "reason": "no_executable_adapter"
+      }
+    ],
+    "selection": [
+      "Arabic-handwritten-OCR (Qwen)",
+      "EasyOCR"
+    ],
+    "error_state": "no-engine-produced-text"
+  }
+}
