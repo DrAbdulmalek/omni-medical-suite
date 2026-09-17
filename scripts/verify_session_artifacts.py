@@ -2,14 +2,21 @@
 """verify_session_artifacts.py — الإثبات الآلي لقاعدة الحفظ الدائم.
 
 Reads docs/SESSION_ARTIFACTS_LEDGER.md and verifies, for every row:
-  1. the artifact file exists (repo-root-relative),
-  2. its sha256 matches the ledger value exactly,
-  3. the file is git-TRACKED (committed) — an untracked artifact fails,
-  4. the containing-commit SHA recorded in the ledger is a real ancestor
-     commit that actually contains the file (verified via `git log -1`).
+  1. the artifact exists in git at the RECORDED containing commit
+     (`git cat-file -e <commit>:<path>`),
+  2. sha256 of the blob `git show <commit>:<path>` matches the ledger hash
+     EXACTLY (git-blob verification keeps the ledger append-only: rows for
+     superseded historical versions stay valid forever),
+  3. the file is git-TRACKED in HEAD — an uncommitted artifact fails,
+  4. the recorded commit actually touched the file
+     (`git log -n 1 <commit> -- <path>` resolves to that commit).
 
 Exit code: 0 = PASS (all rows verified), 1 = FAIL (any check broken).
 Run before ending EVERY session (docs/SESSION_ARTIFACTS_POLICY.md, rule 3).
+
+Note: the ledger and this verifier are protocol INFRASTRUCTURE; their own
+integrity rests on the git commit graph (final commit SHA is recorded in
+worklog.md + the owner-facing closure message), not on self-referential rows.
 """
 import hashlib
 import re
@@ -20,14 +27,6 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 LEDGER = REPO / "docs" / "SESSION_ARTIFACTS_LEDGER.md"
 ROW_RE = re.compile(r"^\|\s*(\d+)\s*\|")
-
-
-def sha256_of(path: Path) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def git(*args: str) -> subprocess.CompletedProcess:
@@ -71,29 +70,28 @@ def main() -> int:
     failures = 0
     print(f"verify_session_artifacts: {len(rows)} ledger row(s)")
     for r in rows:
-        path = REPO / r["path"]
         problems = []
 
-        # 1. existence
-        if not path.is_file():
-            problems.append("FILE MISSING")
+        # 1+2. blob exists at recorded commit + sha256 matches
+        blob = git("show", f"{r['commit']}:{r['path']}")
+        if blob.returncode != 0:
+            problems.append(f"BLOB MISSING AT COMMIT: {r['commit']}:{r['path']}")
+        else:
+            actual = hashlib.sha256(blob.stdout.encode("utf-8")).hexdigest()
+            if actual != r["sha256"]:
+                problems.append(f"SHA MISMATCH (blob@commit={actual})")
 
-        # 2. sha256
-        actual = sha256_of(path) if path.is_file() else None
-        if actual != r["sha256"]:
-            problems.append(f"SHA MISMATCH (actual={actual})")
-
-        # 3. tracked by git
+        # 3. tracked by git in HEAD
         tracked = git("ls-files", "--error-unmatch", r["path"])
         if tracked.returncode != 0:
             problems.append("NOT GIT-TRACKED (uncommitted artifact!)")
 
-        # 4. recorded commit exists and contains the file
-        contains = git(
-            "log", "--format=%H", "-n", "1", r["commit"], "--", r["path"]
-        )
-        if not contains.stdout.strip():
-            problems.append(f"COMMIT DOES NOT CONTAIN FILE: {r['commit']}")
+        # 4. recorded commit actually touched the file
+        touches = git("log", "--format=%H", "-n", "1", r["commit"], "--", r["path"])
+        if touches.stdout.strip() != r["commit"]:
+            problems.append(
+                f"COMMIT DID NOT TOUCH FILE (last toucher: {touches.stdout.strip()})"
+            )
 
         status = "PASS" if not problems else "FAIL"
         if problems:
@@ -105,8 +103,9 @@ def main() -> int:
     if failures:
         print(f"RESULT: FAIL ({failures}/{len(rows)} rows broken)")
         return 1
-    print("RESULT: PASS — all ledger artifacts exist, hash-match, "
-          "are git-tracked, and are contained in their recorded commits.")
+    print("RESULT: PASS — all ledger artifacts exist at their recorded commits, "
+          "hash-match (git blob sha256), are git-tracked, and their recorded "
+          "commits touched them.")
     return 0
 
 
