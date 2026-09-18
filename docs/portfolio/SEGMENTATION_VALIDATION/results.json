@@ -1,0 +1,77 @@
+{
+  "generated_utc": "2026-09-18T15:31:26.638591+00:00",
+  "base_commit": "a8f829add290132287bfcc26b087772606108898",
+  "branch": "feat/seg-eval-gt588",
+  "gt_file": "packages/gt_core/ground_truth_588.txt",
+  "gt_lines_nonempty": 23,
+  "page_image_in_repo": false,
+  "method": "SYNTHETIC-RENDER PROXY (GT text rendered with known bands; 1-D interval IoU)",
+  "font": "/usr/share/fonts/opentype/fonts-hosny-amiri/AmiriQuran.ttf",
+  "results": {
+    "projection": {
+      "detected_lines": 23,
+      "expected_lines": 23,
+      "matched_at_iou05": 23,
+      "mean_band_iou": 0.6573,
+      "band_precision": 1.0,
+      "band_recall": 1.0,
+      "word_lines_agree": 11,
+      "word_lines_total": 23,
+      "det_bands_sample": [
+        [
+          111,
+          140
+        ],
+        [
+          227,
+          259
+        ],
+        [
+          345,
+          377
+        ],
+        [
+          463,
+          495
+        ],
+        [
+          581,
+          613
+        ]
+      ]
+    },
+    "contour": {
+      "detected_lines": 23,
+      "expected_lines": 23,
+      "matched_at_iou05": 23,
+      "mean_band_iou": 0.6478,
+      "band_precision": 1.0,
+      "band_recall": 1.0,
+      "word_lines_agree": 11,
+      "word_lines_total": 23,
+      "det_bands_sample": [
+        [
+          112,
+          140
+        ],
+        [
+          229,
+          258
+        ],
+        [
+          347,
+          380
+        ],
+        [
+          464,
+          498
+        ],
+        [
+          583,
+          616
+        ]
+      ]
+    }
+  },
+  "disclaimer": "SYNTHETIC-RENDER proxy — NOT real-scan accuracy. Real-scan IoU BLOCKED (page image absent from repo)."
+}
