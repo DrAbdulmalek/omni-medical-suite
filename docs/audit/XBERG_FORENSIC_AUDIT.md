@@ -277,3 +277,49 @@ Evidence: live inspection of `packages/doc_processor/`, `packages/file_processor
 ## A.3 — XB-02 Authorization Record
 
 Owner directive: «نفذ ب ثم أ» (2026-09-18). (ب) executed = A.1 + A.2 above. (أ) authorized = **XB-02: Isolated installation / snapshot** — to be executed in `/home/z/tools-sandbox/` only: pinned PyPI install into a dedicated venv, checksum-verified per A.1, smoke tests on synthetic non-PHI files, offline-egress verification, full snapshot manifest. No Omni repo/runtime changes; `OMNI_XBERG_ENABLED` concept remains not-applicable (nothing integrated).
+
+---
+
+# ADDENDUM 2 — XB-02 EXECUTION RECORD (owner-authorized «نفذ ب ثم أ», 2026-09-18)
+
+Scope executed: (ب) = Addendum 1 (OQ-2+OQ-9) → (أ) = XB-02 Isolated Installation / Snapshot. All activity in `/home/z/tools-sandbox/` — zero Omni repo/runtime changes.
+
+## B.1 — Installation (isolated, pinned, checksum-gated)
+
+| Item | Value |
+|---|---|
+| Method | Python venv `/home/z/tools-sandbox/xberg-venv` (NO global install; no Omni pollution) |
+| LIBRARY | `xberg==1.2.3` (PyPI; PyO3 binding — matches upstream pin `19a189d3` exactly) |
+| CLI | `xberg-cli==1.2.3` (PyPI wrapper; native binary fetched from GitHub Releases **with mandatory SHA256 verification** per OQ-2 downloader forensics) |
+| Toolchain | NO rustc in environment → prebuilt-binary path mandatory (by design) |
+| Venv size | 315 MB |
+| Bundled native libs (hashes, sha256[:16]) | `libaom-…3.6.1` 4944211d1d0a2d59 · `libheif-…1.23.0` 2ddf3e072bd727f2 · `libonnxruntime-…1.24.2` 0efed01c2ca3342b |
+
+**License nuance discovered at install time**: the PyPI wheel BUNDLES `libheif 1.23.0` (LGPL) and `libonnxruntime` inside `xberg.libs/` — i.e., LGPL component ships by default in the Python artifact even though `heic` is opt-in at the Rust feature level. License posture for any future redistribution must treat the wheel as LGPL-containing (dynamic linking per libheif LGPL terms); this refines §4/A.1 of the main report (label: PARTIALLY PROVEN → refined evidence recorded here).
+
+## B.2 — Runtime Smoke Evidence (synthetic non-PHI file only)
+
+1. **Library path (async API)**: `import xberg` → `__version__=1.2.3`; `xberg.extract(ExtractInput(kind=URI, uri='file:///…/xb-smoke.md'))` → `ExtractionResult.results[0]: ExtractedDocument` with unified keys: `content, djot_content, chunks, code_intelligence, elements, entities, extraction_confidence, extraction_method, formulas, images, metadata, mime_type, ocr_elements, pages, form_fields, annotations…` → **CONTENT_OK=True**. API notes: `extract()` is async-only; string paths are rejected (must pass `ExtractInput`); result is batch-shaped (`.results`). **PROVEN**.
+2. **CLI path**: `xberg --version` → `xberg 1.2.3` (exit 0; first run downloaded platform binary and verified SHA256 — OQ-2 behavior exercised live). `xberg extract xb-smoke.md` with `HF_HUB_OFFLINE=1` → correct text + envelope: `mime type: text/markdown; tables: 1; quality score: 1.00; extraction time: 3.41 ms`. **PROVEN (offline-capable for native formats; no model download triggered)**.
+3. **Egress posture observed**: extraction of a native markdown file required NO network (HF_HUB_OFFLINE=1 honored); OCR/VLM backends were NOT invoked (would be the network/opt-in surface).
+
+## B.3 — XB-02 Record (persistence-policy fields)
+
+```
+COMMIT_SHA:   <this addendum's commit> (docs-only)
+PARENT_SHA:   fb93bbc… (XB-01.5 addendum) ← ea3bf3de… (OCR-CR-01 recreation) ← 39640a6 (main)
+BRANCH:       feat/ocr-cr-01-opencodereview-audit
+CHANGED_FILES: docs/audit/XBERG_FORENSIC_AUDIT.md (this addendum only)
+TEST_RESULTS: smoke tests above (synthetic file; NO PHI; NO real patient data)
+SECURITY_RESULTS: no credentials touched; no secrets in artifacts; venv isolated in tools-sandbox
+ENVIRONMENT:  Linux container; Python 3.12.14; pip 25.0.1; no rustc
+REMOTE_SHA:   branch NOT on remote (PUSH=BLOCKED — no credentials); bundle updated
+WORKTREE:     clean after this commit
+```
+
+**XB-02 = COMPLETE (isolated install + snapshot + minimal runtime evidence).**
+**NEXT: STOP — awaiting owner authorization for XB-03** (deep security/license/dataflow audit incl. OQ-3/4/5/6/7/8) **and/or XB-04** (Omni architecture mapping incl. ingestion-gap bridge design).
+
+## B.4 — Updated Open Questions status
+
+OQ-2 **RESOLVED** (A.1) · OQ-9 **RESOLVED** (A.2) · OQ-5 **RESOLVED** (B.1: cli-proxy behavior = mandatory-SHA256 PyPI path; npm warn-only path NOT used) · Remaining: OQ-1, OQ-3, OQ-4, OQ-6, OQ-7, OQ-8, OQ-10 (+ new: OQ-11 full LGPL/redistribution posture of bundled wheel libs → folds into XB-03 license audit).
