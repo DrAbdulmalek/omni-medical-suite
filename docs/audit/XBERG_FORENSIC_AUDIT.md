@@ -242,3 +242,38 @@ LEVEL 2 EXECUTED — separate model instance via fresh SDK invocation (`scripts/
 ```
 
 **XB-01 = COMPLETE. XB-02 AUTHORIZED by owner (2026-09-18) after OQ-2 + OQ-9 closure.**
+
+---
+
+# ADDENDUM (XB-01.5) — OQ-2 + OQ-9 Closure (owner-directed, 2026-09-18)
+
+Scope: owner ordered «نفذ ب ثم أ» — close OQ-2 + OQ-9 before starting XB-02. Both closed below from source evidence + live Omni inspection. Environment note: reset #5 destroyed the sandbox clone, Omni repo, and handovers mid-task; audit branch recreated as `ea3bf3de` (OCR-CR-01, re-parented onto main — original parent `4845e8e9` lineage LOST) and this report as `d0dd5325`; upstream re-cloned at exact pin `19a189d3` (verified match). Bundle: `download/OMNI-EXECUTION/handovers/audit-branch-ea3bf3de-d0dd5325.bundle` (sha256 prefix `ab9c1a21…`) + `/tmp` mirror.
+
+## A.1 — OQ-2 RESOLVED: Release-binary integrity (PyPI/npm cli-proxy)
+
+Evidence (pinned `19a189d3…`):
+- `cli-proxy/pypi/xberg_cli/downloader.py`: fetches release `SHA256SUMS` asset; `_verify_or_warn` **REFUSES install** when the digest entry is missing ("refusing to install unverified binary") and **fails on mismatch** (`hashlib.sha256` compare, downloader.py:124-157). HTTPS-only enforced for both direct URLs and redirects (downloader.py:66-76).
+- `cli-proxy/npm/install.js`: same SHA256SUMS mechanism (install.js:157-181) but **WARN-ONLY** when SHA256SUMS asset is absent — npm path continues installation without checksum coverage. Weaker posture, recorded.
+- **No signature layer** on `SHA256SUMS` itself (no minisign/cosign/GPG/`.sig` verification in either downloader).
+- `.github/workflows/publish.yaml`: `provenance: "true"` configured (5 occurrences) — sigstore provenance attestations generated at publish time.
+
+**Verdict**: OQ-2 = **RESOLVED — PARTIALLY PROVEN**. Integrity: PROVEN (SHA256, mandatory on PyPI path). Authenticity: PARTIALLY PROVEN (sigstore provenance configured upstream; no in-downloader signature verification of the checksum manifest; residual risk = compromised release pipeline shipping matched binary+SUMS). **XB-02 mandate**: install via PyPI path (mandatory checksum), pinned version only; npm path prohibited for Omni use unless warn-only behavior patched or provenance attestation verified externally.
+
+## A.2 — OQ-9 RESOLVED: Overlap quantification (Xberg vs Omni packages)
+
+Evidence: live inspection of `packages/doc_processor/`, `packages/file_processor/`, `packages/ai-fuel/` @ main `39640a6`.
+
+| Capability axis | Omni today (evidence) | Xberg | Overlap verdict |
+|---|---|---|---|
+| Document INGESTION: DOCX/XLSX/PPTX/EPUB/Email/Archives | **No real equivalent** — `doc_processor` = legacy Next.js/Prisma web APP (`LEGACY_NOTICE.md` "Merge In Progress"; UI deps: dnd-kit/mdxeditor/radix, not extraction libs); `ai-fuel` = `openpyxl` only | Core value surface (100+ formats) | **LOW overlap — genuine gap** |
+| PDF ingestion | partial (`ai-fuel` reqs reference PyMuPDF/pdfplumber family; depth unquantified) | native-pdf + pdfium-render crates | PARTIAL |
+| OCR orchestration | STRONG (`omni_ocr` mixed_engine: Tesseract/EasyOCR/Surya/TrOCR + adapter registry) | tesseract/paddle/candle wrappers | **HIGH overlap — excluded anyway** (Omni keeps its router; master §14) |
+| Table extraction | CV heuristics (`file_processor` README: "Hough line detection + contour analysis") | DL models (TATR/SLANet) | PARTIAL — different technique class, potentially complementary for complex tables (XB-05 question) |
+| Office EXPORT (DOCX RTL/HTML/PDF/Excel/JSON+BBox) | OWNS it (`file_processor`: "6 Export Formats" incl. searchable PDF, RTL DOCX) | ingestion-side only | **NONE — opposite direction; complementary** |
+| Arabic HTR | OWNS it (AHW: LineSegmenter→TrOCR→DottedRecovery, LoRA) | UNPROVEN | NONE assumed |
+
+**Verdict**: OQ-9 = **RESOLVED**. Xberg's extraction-layer hypothesis is **STRENGTHENED**: the P0 owner priority (format ingestion breadth) targets the axis where Omni has NO real equivalent; the axes where Xberg would duplicate Omni (OCR orchestration) are already excluded by the architectural boundary. doc_processor/file_processor = legacy merge-in-progress apps whose value is export/UI, not ingestion.
+
+## A.3 — XB-02 Authorization Record
+
+Owner directive: «نفذ ب ثم أ» (2026-09-18). (ب) executed = A.1 + A.2 above. (أ) authorized = **XB-02: Isolated installation / snapshot** — to be executed in `/home/z/tools-sandbox/` only: pinned PyPI install into a dedicated venv, checksum-verified per A.1, smoke tests on synthetic non-PHI files, offline-egress verification, full snapshot manifest. No Omni repo/runtime changes; `OMNI_XBERG_ENABLED` concept remains not-applicable (nothing integrated).
