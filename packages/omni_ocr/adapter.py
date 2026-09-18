@@ -36,7 +36,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,7 @@ class OCRResult:
             empty string on success.
     """
 
+    # -- v1.0 fields (positional order preserved - never reorder) -----------
     text: str = ""
     confidence: float = 0.0
     engine: str = ""
@@ -82,6 +83,21 @@ class OCRResult:
     words: List[Dict[str, Any]] = field(default_factory=list)
     raw_result: Optional[Dict[str, Any]] = None
     error: str = ""
+    # -- TASK 005 (contract v1.1): additive optional fields ------------------
+    blocks: List[Dict[str, Any]] = field(default_factory=list)
+    lines: List[Dict[str, Any]] = field(default_factory=list)
+    characters: List[Dict[str, Any]] = field(default_factory=list)
+    language: str = ""
+    script: str = ""
+    page: Optional[int] = None
+    engine_version: str = ""
+    model: str = ""
+    model_version: str = ""
+    provenance: Dict[str, Any] = field(default_factory=dict)
+    warnings: List[str] = field(default_factory=list)
+    fallback_status: str = "none"
+
+    CONTRACT_VERSION: ClassVar[str] = "1.1"
 
     # -- convenience helpers ------------------------------------------------
 
@@ -100,6 +116,20 @@ class OCRResult:
             "processing_time": self.processing_time,
             "words": self.words,
             "error": self.error,
+            # contract v1.1 (TASK 005) - additive keys, old keys unchanged
+            "contract_version": self.CONTRACT_VERSION,
+            "blocks": self.blocks,
+            "lines": self.lines,
+            "characters": self.characters,
+            "language": self.language,
+            "script": self.script,
+            "page": self.page,
+            "engine_version": self.engine_version,
+            "model": self.model,
+            "model_version": self.model_version,
+            "provenance": self.provenance,
+            "warnings": self.warnings,
+            "fallback_status": self.fallback_status,
         }
 
 
