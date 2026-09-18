@@ -1,0 +1,117 @@
+{
+  "generated_utc": "2026-09-18T14:59:03.711700+00:00",
+  "environment": {
+    "python": "3.12.3",
+    "platform": "Linux-6.18.15-x86_64-with-glibc2.39",
+    "gpu": "not audited in this environment"
+  },
+  "engines": [
+    {
+      "engine": "Tesseract",
+      "registered": true,
+      "imports_ok": true,
+      "probes": [
+        {
+          "probe": "pytesseract",
+          "found": true,
+          "detail": "version=0.3.13"
+        },
+        {
+          "probe": "tesseract-binary",
+          "found": true,
+          "detail": "/usr/bin/tesseract"
+        }
+      ],
+      "runtime_status": "UNVERIFIED"
+    },
+    {
+      "engine": "EasyOCR",
+      "registered": true,
+      "imports_ok": false,
+      "probes": [
+        {
+          "probe": "easyocr",
+          "found": false,
+          "detail": "ModuleNotFoundError"
+        }
+      ],
+      "runtime_status": "UNVERIFIED"
+    },
+    {
+      "engine": "PaddleOCR",
+      "registered": true,
+      "imports_ok": false,
+      "probes": [
+        {
+          "probe": "paddleocr",
+          "found": false,
+          "detail": "ModuleNotFoundError"
+        },
+        {
+          "probe": "paddlepaddle",
+          "found": false,
+          "detail": "ModuleNotFoundError"
+        }
+      ],
+      "runtime_status": "UNVERIFIED"
+    },
+    {
+      "engine": "TrOCR",
+      "registered": true,
+      "imports_ok": false,
+      "probes": [
+        {
+          "probe": "transformers",
+          "found": false,
+          "detail": "ModuleNotFoundError"
+        },
+        {
+          "probe": "torch",
+          "found": false,
+          "detail": "ModuleNotFoundError"
+        }
+      ],
+      "runtime_status": "UNVERIFIED"
+    },
+    {
+      "engine": "Surya",
+      "registered": true,
+      "imports_ok": false,
+      "probes": [
+        {
+          "probe": "surya",
+          "found": false,
+          "detail": "ModuleNotFoundError"
+        }
+      ],
+      "runtime_status": "UNVERIFIED"
+    },
+    {
+      "engine": "Nougat",
+      "registered": true,
+      "imports_ok": false,
+      "probes": [
+        {
+          "probe": "nougat",
+          "found": false,
+          "detail": "ModuleNotFoundError"
+        }
+      ],
+      "runtime_status": "UNVERIFIED"
+    },
+    {
+      "engine": "QARI",
+      "registered": true,
+      "imports_ok": false,
+      "probes": [
+        {
+          "probe": "qari",
+          "found": false,
+          "detail": "ModuleNotFoundError"
+        }
+      ],
+      "runtime_status": "UNVERIFIED"
+    }
+  ],
+  "disclaimer": "IMPORT-ONLY probe. No engine was executed, no model loaded, no benchmark run. Every runtime_status stays UNVERIFIED until proven in a real environment."
+}

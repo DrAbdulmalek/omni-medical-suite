@@ -74,6 +74,11 @@ class EngineRouter:
         self.available_ram_gb = available_ram_gb
         self._registry = registry
         self._allowed = PROFILE_ENGINES.get(profile, PROFILE_ENGINES["balanced"])
+        # TASK 004 (no-silent-fallback): every fallback is explicit + recorded.
+        self._init_fallback_status = "none"
+        self._init_fallback_reason = ""
+        self._last_fallback_status = "none"
+        self._last_fallback_reason = ""
 
         # If a registry is provided, intersect allowed engines with actually available ones
         if registry and registry._probed:
@@ -81,6 +86,8 @@ class EngineRouter:
             self._allowed = [e for e in self._allowed if e in available_names]
             if not self._allowed:
                 self._allowed = [ENGINE_TESSERACT]
+                self._init_fallback_status = "explicit"
+                self._init_fallback_reason = "no engines from profile passed availability check — Tesseract fallback"
                 logger.warning("No engines from profile passed availability check — falling back to Tesseract")
 
         logger.info("EngineRouter init: profile=%s gpu=%s max=%d allowed=%s", profile, use_gpu, max_engines, self._allowed)
@@ -105,11 +112,16 @@ class EngineRouter:
         # Track which candidates were considered but skipped (for the
         # structured decision log). Reset per call.
         skipped: list[str] = []
+        # TASK 004 (no-silent-fallback): explicit fallback status for provenance.
+        fallback_status = "none"
+        fallback_reason = ""
 
         if self.profile == "low":
             fallback = [engine for engine in [ENGINE_TESSERACT, ENGINE_EASYOCR] if engine in self._allowed]
             chosen = fallback[:1]
             chosen_reasons = ["low-end profile — single engine mode"]
+            fallback_status = "none"
+            fallback_reason = "low profile selects a single engine by design"
             log_decision(
                 decision="engine_selection",
                 outcome=chosen,
@@ -123,10 +135,14 @@ class EngineRouter:
                     "document_type": document_type,
                     "prefer_structured_output": prefer_structured_output,
                     "allowed": self._allowed,
+                    "fallback_status": fallback_status,
+                    "fallback_reason": fallback_reason,
                 },
                 skipped=[e for e in self._allowed if e not in chosen],
                 duration_ms=(_time.perf_counter() - t0) * 1000,
             )
+            self._last_fallback_status = fallback_status
+            self._last_fallback_reason = fallback_reason
             return chosen, chosen_reasons
 
         if block_type == "handwriting":
@@ -184,10 +200,16 @@ class EngineRouter:
             fallback = [engine for engine in [ENGINE_EASYOCR, ENGINE_TESSERACT] if engine in self._allowed]
             recommendations = fallback[: self.max_engines]
             reasons = ["default fallback — no specific signal"] * len(recommendations)
+            if recommendations:
+                fallback_status = "explicit"
+                fallback_reason = "default fallback — no specific signal"
 
         pre_ram_recommendations = list(recommendations)
         pre_ram_reasons = list(reasons)
         recommendations, reasons = self._filter_by_ram(recommendations, reasons)
+        if recommendations != pre_ram_recommendations:
+            fallback_status = "explicit"
+            fallback_reason = "RAM-constrained fallback"
         # Anything dropped by the RAM filter is recorded as skipped
         for engine in pre_ram_recommendations:
             if engine not in recommendations:
@@ -226,11 +248,32 @@ class EngineRouter:
                 "allowed": self._allowed,
                 "max_engines": self.max_engines,
                 "available_ram_gb": self.available_ram_gb,
+                "fallback_status": fallback_status,
+                "fallback_reason": fallback_reason,
             },
             skipped=skipped,
             duration_ms=(_time.perf_counter() - t0) * 1000,
         )
+        self._last_fallback_status = fallback_status
+        self._last_fallback_reason = fallback_reason
         return recommendations, reasons
+
+    def select_with_provenance(self, *args: object, **kwargs: object) -> dict:
+        """TASK 004: select() + explicit fallback provenance.
+
+        Returns ``{"engines", "reasons", "fallback_status", "fallback_reason"}``.
+        ``fallback_status`` is one of ``"none" | "explicit"``. Silent fallback
+        is forbidden: whenever a fallback chain substitutes the primary
+        recommendation, status is ``"explicit"`` with a reason, mirrored into
+        the structured decision log.
+        """
+        engines, reasons = self.select(*args, **kwargs)  # type: ignore[arg-type]
+        return {
+            "engines": engines,
+            "reasons": reasons,
+            "fallback_status": self._last_fallback_status,
+            "fallback_reason": self._last_fallback_reason,
+        }
 
     def estimate_time(self, engines: list[str]) -> float:
         estimates = {
