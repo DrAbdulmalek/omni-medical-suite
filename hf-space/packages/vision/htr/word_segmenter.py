@@ -199,9 +199,16 @@ class ArabicWordSegmenter:
         # حساب المسقط الرأسي
         v_profile = np.sum(binary, axis=0).astype(np.float64)
 
-        # حساب عتبة الفجوة
+        # حساب عتبة الفجوة — TASK 012 fix (no-silent-quality-regression)
+        # السابق: line_height * self._gap_factor * 255.0 → عتبة أعلى من قمة
+        # عمود الحبر نفسها (9180 > 5100 عند ارتفاع 72px) فتُصنَّف كل أعمدة
+        # الحبر "فجوات" → 0 كلمات (مثبت على GT588: توافق 1/23).
+        # الهدف الموثّق في docstring: الفاصل = عمود شبه فارغ من الحبر.
+        # بعد التنعيم (نافذة ≤ 7) تبقى أعمدة الحبر ذات كتلة عالية وأعمدة
+        # المسافات قرب الصفر، فالعتبة: max(peak*0.015, 127.5).
         line_height = h
-        gap_threshold = line_height * self._gap_factor * 255.0
+        peak = float(v_profile.max()) if v_profile.size else 0.0
+        gap_threshold = max(peak * 0.015, 255.0 * 0.5)
 
         # تنعيم المسقط
         kernel_size = max(3, min(7, w // 20))

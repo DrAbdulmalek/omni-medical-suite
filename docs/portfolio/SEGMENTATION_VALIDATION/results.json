@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-09-18T15:23:28.908726+00:00",
+  "generated_utc": "2026-09-18T15:31:26.638591+00:00",
   "base_commit": "a8f829add290132287bfcc26b087772606108898",
   "branch": "feat/seg-eval-gt588",
   "gt_file": "packages/gt_core/ground_truth_588.txt",
@@ -15,7 +15,7 @@
       "mean_band_iou": 0.6573,
       "band_precision": 1.0,
       "band_recall": 1.0,
-      "word_lines_agree": 1,
+      "word_lines_agree": 11,
       "word_lines_total": 23,
       "det_bands_sample": [
         [
@@ -47,7 +47,7 @@
       "mean_band_iou": 0.6478,
       "band_precision": 1.0,
       "band_recall": 1.0,
-      "word_lines_agree": 1,
+      "word_lines_agree": 11,
       "word_lines_total": 23,
       "det_bands_sample": [
         [

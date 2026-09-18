@@ -1,6 +1,6 @@
 # Segmentation validation — GT588 (PHASE 2 / TASK 011)
 
-Generated: 2026-09-18T15:23:28.908726+00:00 · branch `feat/seg-eval-gt588` · base `a8f829a`
+Generated: 2026-09-18T15:31:26.638591+00:00 · branch `feat/seg-eval-gt588` · base `a8f829a`
 
 ## Reality check (PROVEN)
 
@@ -17,7 +17,7 @@ Generated: 2026-09-18T15:23:28.908726+00:00 · branch `feat/seg-eval-gt588` · b
 | mean band IoU | 0.6573 | 0.6478 |
 | band precision | 1.0 | 1.0 |
 | band recall | 1.0 | 1.0 |
-| word-count agree (±1) / total | 1/23 | 1/23 |
+| word-count agree (±1) / total | 11/23 | 11/23 |
 
 ## LIMITS
 
