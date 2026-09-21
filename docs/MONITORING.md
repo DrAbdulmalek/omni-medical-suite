@@ -600,7 +600,7 @@ Alert rules are loaded from `/etc/prometheus/prometheus-rules.yml` (mapped from 
 | `LOG_FILE` | *(none)* | Optional file path for rotating log handler |
 | `SENTRY_DSN` | *(none)* | Sentry DSN for error tracking (enables Sentry if set) |
 | `GRAFANA_DB_PASSWORD` | *(required for PostgreSQL datasource)* | Password for Grafana's PostgreSQL datasource |
-| `POSTGRES_PASSWORD` | `omni_dev_pass` | PostgreSQL password |
+| `POSTGRES_PASSWORD` | *(REQUIRED — no default)* | PostgreSQL password (set in `.env`; compose refuses to start without it) |
 | `GRAFANA_PASSWORD` | `admin` | Grafana admin password |
 
 ---
