@@ -62,6 +62,18 @@ logger = logging.getLogger(__name__)
 HF_TOKEN = os.getenv("HF_TOKEN", "")
 HF_DATASET = "DrAbdulmalek/arabic-medical-ocr-corrections"
 
+# Privacy gate (Wave 1.3b, master prompt): uploading medical-adjacent
+# corrections is DISABLED by default. Operators must opt in explicitly.
+_UPLOAD_ENABLED = os.getenv("OMNI_HF_UPLOAD_ENABLED", "0").strip().lower() in {
+    "1", "true", "yes", "on"
+}
+
+# Dataset visibility applied on creation by push_to_hub. Medical data
+# defaults to PRIVATE; publishing is an explicit operator decision.
+_DATASET_PRIVATE = os.getenv("OMNI_HF_DATASET_PRIVATE", "true").strip().lower() in {
+    "1", "true", "yes", "on"
+}
+
 # Staging directory: where pending rows live until they're pushed.
 # Default: ``~/.omni/hf_dataset_queue/``. Override with ``$OMNI_HF_QUEUE_DIR``.
 _STAGE_DIR = Path(
@@ -73,6 +85,31 @@ _UPLOADED_DIR = _STAGE_DIR / "uploaded"
 # Flush automatically once this many rows are staged.
 # 25 = ~one push per 25 user corrections, balancing latency vs. network cost.
 _FLUSH_THRESHOLD = int(os.environ.get("OMNI_HF_FLUSH_THRESHOLD", "25"))
+
+# ── De-identification (Wave 1.3b) ─────────────────────────────
+# Applied to every staged row BEFORE hashing/storing: Saudi mobile numbers,
+# national-ID-shaped 10-digit numbers, e-mails, and any long digit run
+# (MRN / file numbers) are replaced with structural tags. Deterministic —
+# no value is retained or derived. The content_hash is computed AFTER
+# scrubbing so identical de-identified texts dedup correctly.
+import re as _re
+
+_ANON_PATTERNS: tuple[tuple[_re.Pattern[str], str], ...] = (
+    (_re.compile(r"(?:\+?966|0)5\d{8}\b"), "[PHONE]"),
+    (_re.compile(r"\b[12]\d{9}\b"), "[NATIONAL_ID]"),
+    (_re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+"), "[EMAIL]"),
+    (_re.compile(r"\b\d{7,}\b"), "[NUMBER]"),
+)
+
+
+def _anonymize_text(text) -> str:
+    """Replace direct identifiers with structural tags (privacy before storage)."""
+    if not text:
+        return text if isinstance(text, str) else ""
+    out = str(text)
+    for rx, tag in _ANON_PATTERNS:
+        out = rx.sub(tag, out)
+    return out
 
 # ── Conditional Imports ─────────────────────────────────────────────────────
 HAS_HF = False
@@ -176,6 +213,13 @@ def save_to_hf(corrected_text: str, original_text: str, entities, category: str)
     if not corrected_text or not corrected_text.strip():
         return "⚠️ لا يوجد نص مصحح للحفظ. الرجاء معالجة صورة أولاً."
 
+    # Wave 1.3b: de-identify BEFORE hashing/storage (both sides of the pair
+    # plus entities — direct identifiers never touch the staging file).
+    corrected_text = _anonymize_text(corrected_text)
+    original_text = _anonymize_text(original_text)
+    if isinstance(entities, dict):
+        entities = {k: _anonymize_text(v) if isinstance(v, str) else v for k, v in entities.items()}
+
     content_hash = _compute_content_hash(original_text, corrected_text)
     row = {
         "incorrect_ocr_output": str(original_text or ""),
@@ -196,8 +240,8 @@ def save_to_hf(corrected_text: str, original_text: str, entities, category: str)
         content_hash, pending_count, _PENDING_FILE,
     )
 
-    # Opportunistic flush
-    if HAS_HF and pending_count >= _FLUSH_THRESHOLD:
+    # Opportunistic flush — now also gated by the explicit upload opt-in.
+    if HAS_HF and _UPLOAD_ENABLED and pending_count >= _FLUSH_THRESHOLD:
         try:
             flush_result = flush_queue()
             return (
@@ -221,6 +265,11 @@ def save_to_hf(corrected_text: str, original_text: str, entities, category: str)
     flush_note = ""
     if not HAS_HF:
         flush_note = "\n⚠️ مكتبات HuggingFace غير متاحة — سيبقى التصحيح مرحّلاً محلياً."
+    elif not _UPLOAD_ENABLED:
+        flush_note = (
+            "\n🔒 الرفع إلى HuggingFace معطّل افتراضياً (سياسة الخصوصية). "
+            "فعّله صراحة بـ OMNI_HF_UPLOAD_ENABLED=1 — الصفوف تبقى مرحّلة محلياً."
+        )
     return (
         f"✅ تم حفظ التصحيح محلياً!\n\n"
         f"📊 التفاصيل:\n"
@@ -239,6 +288,14 @@ def flush_queue() -> str:
     """
     if not HAS_HF:
         return "⚠️ مكتبات HuggingFace غير متاحة — لا يمكن الرفع."
+
+    # Wave 1.3b privacy gate: no upload without explicit operator opt-in.
+    if not _UPLOAD_ENABLED:
+        return (
+            "⛔ الرفع إلى HuggingFace معطّل افتراضياً (سياسة الخصوصية). "
+            "فعّله صراحة بـ OMNI_HF_UPLOAD_ENABLED=1. "
+            "الصفوف المرحّلة تبقى محلياً بأمان."
+        )
 
     with _flush_lock:
         pending = _read_pending()
@@ -283,7 +340,7 @@ def flush_queue() -> str:
                 df = new_df
 
             new_ds = Dataset.from_pandas(df)
-            push_kwargs = {"repo_id": HF_DATASET, "private": False}
+            push_kwargs = {"repo_id": HF_DATASET, "private": _DATASET_PRIVATE}
             if HF_TOKEN:
                 push_kwargs["token"] = HF_TOKEN
             new_ds.push_to_hub(**push_kwargs)

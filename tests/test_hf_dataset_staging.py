@@ -164,7 +164,16 @@ def test_flush_queue_returns_message_when_hf_unavailable(isolated_queue, monkeyp
 
 
 def test_flush_queue_empty_returns_info_message(isolated_queue, monkeypatch):
-    """flush_queue() with no pending rows returns an info message."""
+    """flush_queue() with no pending rows returns an info message.
+
+    Wave 1.3b: upload is disabled by default, so this test opts in
+    explicitly to exercise the post-gate empty-queue path.
+    """
+    monkeypatch.setenv("OMNI_HF_UPLOAD_ENABLED", "1")
+    # Re-import so the module-level gate picks up the env var
+    for mod in list(sys.modules):
+        if "hf_dataset_service" in mod:
+            del sys.modules[mod]
     import app.services.hf_dataset_service as svc
 
     monkeypatch.setattr(svc, "HAS_HF", True)  # even if HF is available
