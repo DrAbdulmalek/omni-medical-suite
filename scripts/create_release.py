@@ -151,7 +151,7 @@ bash build_appimage.sh --version-from-git --smoke-test
 
 ## 📚 References
 
-- [Release Candidate Checklist](https://github.com/DrAbdulmalek/omni-medical-suite/blob/main/RELEASE_CANDIDATE_CHECKLIST.md)
+- [Release Candidate Checklist](https://github.com/DrAbdulmalek/omni-medical-suite/blob/main/docs/archive/RELEASE_CANDIDATE_CHECKLIST.md)
 - [AppImage Manjaro Build Guide](https://github.com/DrAbdulmalek/omni-medical-suite/blob/main/docs/APPIIMAGE_MANJARO.md)
 - [LFS Migration Plan](https://github.com/DrAbdulmalek/omni-medical-suite/blob/main/docs/LFS_MIGRATION_PLAN.md)
 - [Deployment Source of Truth](https://github.com/DrAbdulmalek/omni-medical-suite/blob/main/docs/DEPLOYMENT.md)
