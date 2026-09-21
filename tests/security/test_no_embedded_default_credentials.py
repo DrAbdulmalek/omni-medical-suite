@@ -6,7 +6,8 @@ letting any stack boot with a publicly-known credential.
 
 Policy:
 - docker-compose.yml must use required-variable syntax ``${POSTGRES_PASSWORD:?...}``
-- no known default credential string may appear anywhere in tracked files
+- no known default credential string may appear anywhere in tracked files, outside
+  declared fixtures (see DECLARED_FIXTURES below)
 - documented tables must mark POSTGRES_PASSWORD as REQUIRED (no default)
 """
 
@@ -20,6 +21,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Any future default credential added here must also be removed from all tracked files.
 KNOWN_FORBIDDEN_DEFAULTS: tuple[str, ...] = ("omni_dev_pass",)
+
+# Declared fixtures (SEC policy): files whose *purpose* is to declare forbidden
+# strings. Their own bytes are not an embedded credential; excluding them keeps
+# the sweep at full strength for every other tracked file. Computed from
+# __file__ so the exclusion follows any future rename of this test module.
+DECLARED_FIXTURES: frozenset[str] = frozenset(
+    {str(Path(__file__).resolve().relative_to(REPO_ROOT))}
+)
 
 COMPOSE_FILE = REPO_ROOT / "docker-compose.yml"
 REQUIRED_SYNTAX_MARKERS = ("${POSTGRES_PASSWORD:?",)
@@ -43,6 +52,8 @@ def _iter_text_files():
                 tracked.add(str(p.relative_to(REPO_ROOT)))
 
     for rel in sorted(tracked):
+        if rel in DECLARED_FIXTURES:
+            continue
         path = REPO_ROOT / rel
         if not path.is_file():
             continue
