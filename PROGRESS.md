@@ -14,14 +14,29 @@
 | ATR-04 | F3 Training UI — train_server.py + dashboard | ADOPTED | 21b0ba5 | 15/15 (Qwen) + تحقق Z.ai 15/15 (transformers 5.12.1) | **تولّت Qwen** (توقف Z.ai بعد ATR-03 @15:02:59Z)؛ +correction_server.py + نواة ahw/train_trocr.py (smoke/full) + smoke حقيقي داخل الاختبارات |
 | ATR-05 | F2 Docker — Dockerfile.atr + docker-compose.atr.yml | ADOPTED | 70e5982 | 12/12 (Qwen) + تحقق Z.ai 12/12 | STRUCTURE_ONLY (لا docker في البيئتين)؛ أسماء ATR منفصلة كي لا تستبدل Dockerfile/docker-compose.yml الجذرية؛ sidecar `Dockerfile.atr.dockerignore` (لا لمس لـ .dockerignore القائم)؛ + requirements-atr.txt |
 | ATR-06 | Integration Smoke Test | DONE | (هذا الـcommit) | 3/3 (+ سكربت مستقل PASS) | PDF اصطناعي 3ص → دفعات → دمج → تصحيحات → تدريب dry_run؛ **أصلح درز تكامل**: مسار القصاصة batch-aware (`<batch>/crops/x.png`) في train_trocr + correction_server؛ loss تنازلي 2.85→2.69؛ 0 تنزيل/0 شبكة/0 PHI |
-| ATR-04b | مصالحة Z.ai — توافق transformers 5.x + إصلاح مسارات الدمج + سكربت probe | DONE | (هذا الـcommit) | **35/35 + تكاملي الجلسة الموازية** | إصلاح dry_run لـ5.x (PreTrainedTokenizerFast)؛ crop_path: اعتُمد عقد ATR-06 (مسار عارٍ + حل batch-aware عند المستهلك) وإلغى إصلاح المنتِج في merge_batches بعد فشل اختبار ATR-06 التكاملي — عقد واحد موحد؛ التزام scripts/atr_probe_models.py؛ تعارض دليل الـpin موثق في requirements-atr.txt |
-| ATR-07 | Final Report | DONE | (هذا الـcommit) | n/a | `docs/atr/ATR-07-FINAL-REPORT.md` — الطقم الكامل 38/38، PERSISTENCE=OK، الجلسة الموازية موثقة | |
+| ATR-04b | مصالحة Z.ai — توافق transformers 5.x + إصلاح مسارات الدمج + سكربت probe | DONE | cc9fea8+bc6f740 | **35/35 + تكاملي الجلسة الموازية** | إصلاح dry_run لـ5.x (PreTrainedTokenizerFast)؛ crop_path: اعتُمد عقد ATR-06 (مسار عارٍ + حل batch-aware عند المستهلك) وإلغى إصلاح المنتِج في merge_batches بعد فشل اختبار ATR-06 التكاملي — عقد واحد موحد؛ التزام scripts/atr_probe_models.py؛ تعارض دليل الـpin موثق في requirements-atr.txt |
+| ATR-07 | Final Report (UNIFIED dual-session) | DONE | (هذا الـcommit) | n/a | `docs/atr/ATR-07-FINAL-REPORT.md` — تقرير موحَّد (Z.ai+Qwen): الطقم 38/38 على 4.57.6 و5.12.1، real-load 2.67GB (Z.ai)، ATR-04c، PERSISTENCE=OK، HOW TO RUN |
+
+## ✅ المهمة مكتملة (ATR-01 → ATR-07)
+
+كل المراحل السبع DONE ومدفوعة لـ origin/feature/atr-trocr-advanced. إجمالي اختبارات ATR:
+**38/38 خضراء**؛ المجموعة الكاملة **793 passed** مع مجموعة فشل مطابقة لـ baseline (صفر انحدار).
+التفاصيل والحالات (PROVEN/PARTIALLY/BLOCKED): `docs/atr/ATR-07-FINAL-REPORT.md`.
+
+**نقطتا انتباه للمالك:**
+1. ⚠️ التوكن المستخدم للـ push مكشوف في السجلات — **ألغِه/دوّره فورًا**.
+2. F1 real-weight training (2.67GB) و F2 docker build: PARTIALLY PROVEN — يتطلبان
+   بيئة بـ RAM/GPU + docker (sandbox الحالي محدوده 1GB RAM وبلا docker). الكود كامل
+   ومُختبَر بنيويًا/dry_run؛ يبقى الإثبات الحقيقي على بيئة المالك.
 
 ## ما تبقى (Remaining)
 
-- ATR-05 (Docker STRUCTURE_ONLY) → ATR-06 (smoke تكاملي) → ATR-07 (تقرير نهائي) — تنفذها جلسة Qwen (تولّت القيادة بعد توقف Z.ai ~30 دقيقة؛ آخر دفعاتها acf86b3 @ 15:02:59Z).
-- ملاحظة تدقيق: docstring في `ahw/arabic_trocr.py` يشير إلى `scripts/atr_probe_models.py` وهو **غير مُلتزم** (بقي في بيئة Z.ai) — مرجع معلق موثق، لا يعطل أي اختبار.
-- تدوير التوكن المؤقت من المالك بعد انتهاء المهمة.
+- ✅ **لا شيء — المهمة مكتملة** (ATR-01→ATR-07 كلها DONE ومدفوعة).
+- ما يبقى على المالك (خارج نطاق sandbox): (أ) إلغاء/تدوير التوكن المكشوف؛
+  (ب) إثبات real-weight training (F1) و docker build (F2) على بيئة بـ RAM/GPU/docker؛
+  (ج) مراجعة PR ودمج `feature/atr-trocr-advanced` ← main عند الموافقة.
+- ملاحظة تدقيق: docstring في `ahw/arabic_trocr.py` يشير إلى `scripts/atr_probe_models.py`
+  وهو **غير مُلتزم** (بقي في بيئة Z.ai) — مرجع معلق موثق، لا يعطل أي اختبار.
 
 ## بيئة Pre-Flight (مثبتة 2026-09-23)
 
