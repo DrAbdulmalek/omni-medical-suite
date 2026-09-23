@@ -36,6 +36,15 @@ def merge_all(out_dir: str) -> Tuple[str, str, int]:
         df[REQUIRED_COL] = df[REQUIRED_COL].fillna(batch_name)
         frames.append(df)
     all_df = pd.concat(frames, ignore_index=True)
+    # مسارات القصاصات تُجعل نسبية لجذر الـsample (batch_NNN/crops/...) ليخدمها
+    # correction_server من /crops/<path> مباشرة
+    if "crop_path" in all_df.columns and "batch" in all_df.columns:
+        def _rel(r):
+            cp = str(r["crop_path"])
+            if cp.startswith("batch_"):
+                return cp
+            return f"{r['batch']}/{cp}"
+        all_df["crop_path"] = all_df.apply(_rel, axis=1)
     # الترتيب المستقر: دفعة -> صفحة -> سطر -> كلمة
     sort_cols = [c for c in ("batch", "page", "line", "word") if c in all_df.columns]
     all_df = all_df.sort_values(sort_cols).reset_index(drop=True)

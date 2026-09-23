@@ -14,23 +14,27 @@
       - ArabicTrOCRProcessor (image_processor + tokenizer) مع save/from_pretrained
       - dry_run=True: أوزان عشوائية صغيرة للتحقق من الأشكال فقط (بلا شبكة)
 
-توافق الإصدار (موثق): كُيِّف هذا الملف لـ transformers==4.48.3 (المثبتة في
-venv المشروع، وهي نفسها pin المستودع في apps/handwriting-demo). ملاحظات:
+توافق الإصدار (موثق بالتنفيذ): أُنفّذ أصلًا على transformers==4.48.3 ثم قُيّد
+على 5.12.1 (حدّ المستودع الموثق من binary-search لتوافق TrOCR+Trainer —
+worklog TASK-02D). الفروق الموثقة:
   - ArabicTrOCRProcessor ترث TrOCRProcessor الجاهزة (إعادة استخدام بدل إعادة
     تنفيذ) — save/from_pretrained سليمة عبر ProcessorMixin.
-  - lm_head مربوط (tied) بـ embed_tokens في مفكك TrOCR/BERT/RoBERTa؛ لذا
-    تتم إعادة تهيئة embed_tokens أولاً ثم يُفحص data_ptr — إن كانا نفس
-    الموتر يُسجل "tied" (وليس إعادة تهيئة مزدوجة مضللة)، وإلا يُعاد تهيئة
-    lm_head مستقلة.
-  - embed_positions يُكتشف عبر مسارات معروفة (bert.embed_positions /
-    roberta.embed_positions) مع تجاهل آمن إن غاب.
+  - 4.48: Trainer يمرر num_items_in_batch وViTModel.forward يرفضه — تدريب
+    TrOCR عبر Trainer مكسور (مثبت تجريبيًا)؛ السبب في انتقال 5.x.
+  - 4.48: VisionEncoderDecoderModel لا يعرّف get_input_embeddings ويرفض resize
+    — النفاذ عبر model.decoder (الكود يحافظ على هذا المسار وهو متوافق مع 5.x).
+  - 5.x: المفككات البطيئة أُزيلت — dry_run يبني WordPiece في الذاكرة عبر
+    tokenizers + PreTrainedTokenizerFast (راجع _build_dry_run).
+  - lm_head مربوط (tied) بـ embed_tokens؛ تتم إعادة التهيئة ثم فحص data_ptr
+    — tied يُسجل ولا تُعاد التهيئة المزدوجة.
+  - embed_positions يُكتشف عبر مسارات معروفة (TrOCR 5.x:
+    model.decoder.embed_positions) مع تجاهل آمن إن غاب.
 
 بلا شبكة في وضع dry_run تمامًا (مفردات مصغّرة مبنية في الذاكرة).
 """
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -135,9 +139,10 @@ def _build_dry_run(base: str, arabic: str) -> Tuple[Any, Any, Dict[str, Any]]:
     يمر عبر نفس مسار _apply_arabic_decoder_vocab (resize + special tokens +
     إعادة تهيئة) ليتحقق الاختبار من الأشكال الفعلية لا من وهمها.
     """
-    from transformers import (BertConfig, BertTokenizer, ViTConfig,
+    from transformers import (BertConfig, PreTrainedTokenizerFast, ViTConfig,
                               ViTImageProcessor, VisionEncoderDecoderConfig,
                               VisionEncoderDecoderModel)
+    from tokenizers import Tokenizer, models, pre_tokenizers
 
     base_chars = "ابجدهوزحطيكلمنسعفصقرشتثخذضظغءآأإئىة"
     vocab = {"[PAD]": 0, "[UNK]": 1, "[CLS]": 2, "[SEP]": 3, "[MASK]": 4}
@@ -146,18 +151,21 @@ def _build_dry_run(base: str, arabic: str) -> Tuple[Any, Any, Dict[str, Any]]:
         vocab.setdefault("##" + ch, len(vocab))  # استمراريات WordPiece
     for w in ["الجراحة", "العظمية", "المريض", "ألم", "ضغط", "الدواء"]:
         vocab.setdefault(w, len(vocab))
-    # transformers 4.48.3: المفكك البطيء لـ BERT يقرأ vocab.txt (رمز لكل سطر بالترتيب
-    # الرقمي) — لا يقبل القاموس في الذاكرة ولا vocab.json. نكتب vocab.txt بمسار
-    # صريح ونبني مباشرة (from_pretrained(local_dir) يفشل في هذه البيئة: يبحث عن
-    # vocab.txt ثم stat(None)) — مكافئ تمامًا وبلا شبكة.
-    import tempfile
-    tok_dir = tempfile.mkdtemp(prefix="atr_dryrun_tok_")
-    vocab_file = os.path.join(tok_dir, "vocab.txt")
-    with open(vocab_file, "w", encoding="utf-8") as fh:
-        for tok, _idx in sorted(vocab.items(), key=lambda kv: kv[1]):
-            fh.write(tok + "\n")
-    tokenizer = BertTokenizer(vocab_file=vocab_file, do_lower_case=False,
-                              do_basic_tokenize=True)
+    # توافق الإصدارات (موثق):
+    #  - transformers 4.48.3: المفكك البطيء لـ BERT يقرأ vocab.txt حصرًا ولا
+    #    يقبل قاموسًا في الذاكرة (from_pretrained(local_dir) يفشل: stat(None)).
+    #  - transformers 5.x: المفككات البطيئة أُزيلت — vocab.txt يُقرأ جزئيًا
+    #    (فشل IndexError في الـembedding مثبت). الحل المشترك للإصدارين:
+    #    مفردات WordPiece مبنية في الذاكرة عبر tokenizers +
+    #    PreTrainedTokenizerFast (بلا شبكة وبلا ملفات مؤقتة).
+    wp = models.WordPiece(vocab=vocab, unk_token="[UNK]",
+                          continuing_subword_prefix="##", max_input_chars_per_word=100)
+    tk = Tokenizer(wp)
+    tk.pre_tokenizer = pre_tokenizers.BertPreTokenizer()
+    tokenizer = PreTrainedTokenizerFast(
+        tokenizer_object=tk, do_lower_case=False, model_max_length=64,
+        unk_token="[UNK]", pad_token="[PAD]", cls_token="[CLS]",
+        sep_token="[SEP]", mask_token="[MASK]")
 
     encoder_cfg = ViTConfig(hidden_size=32, num_hidden_layers=1,
                             num_attention_heads=2, intermediate_size=64,

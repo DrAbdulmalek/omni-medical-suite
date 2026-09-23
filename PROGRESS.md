@@ -11,9 +11,10 @@
 | ATR-01b | Parallel-Session Reconciliation (Qwen) | DONE | (هذا الـcommit) | n/a | تبنّي عمل Z.ai + تحقق مستقل من ATR-02 في بيئة Qwen — `docs/atr/ATR-01b-RECONCILIATION.md` |
 | ATR-02 | F4 Batch PDF — segment_batch.py + merge_batches.py | DONE | b49a742 | 4/4 (مُدّعى) → **4/4 مُتحقَّق مستقلًا** في بيئة Qwen (py3.11/transformers 4.57.6)؛ المجموعة الكاملة 759 passed، صفر انحدار | + إعادة بناء ahw/segment.py موثقة + GT prefill RTL |
 | ATR-03 | F1 AraBERT Tokenizer — ahw/arabic_trocr.py | DONE | acf86b3 | 4/4 dry_run (Z.ai) | real-load مُثبت (Z.ai): resize 50265→64000 + reinit كامل + forward 0.8s CPU |
-| ATR-04 | F3 Training UI — train_server.py + dashboard | DONE | (هذا الـcommit) | 15/15 | **تولّت Qwen** (توقف Z.ai بعد ATR-03 @15:02:59Z)؛ +correction_server.py + نواة ahw/train_trocr.py (smoke/full) + smoke حقيقي داخل الاختبارات |
-| ATR-05 | F2 Docker — Dockerfile.atr + docker-compose.atr.yml | DONE | (هذا الـcommit) | 12/12 | STRUCTURE_ONLY (لا docker في البيئتين)؛ أسماء ATR منفصلة كي لا تستبدل Dockerfile/docker-compose.yml الجذرية؛ sidecar `Dockerfile.atr.dockerignore` (لا لمس لـ .dockerignore القائم)؛ + requirements-atr.txt |
+| ATR-04 | F3 Training UI — train_server.py + dashboard | ADOPTED | 21b0ba5 | 15/15 (Qwen) + تحقق Z.ai 15/15 (transformers 5.12.1) | **تولّت Qwen** (توقف Z.ai بعد ATR-03 @15:02:59Z)؛ +correction_server.py + نواة ahw/train_trocr.py (smoke/full) + smoke حقيقي داخل الاختبارات |
+| ATR-05 | F2 Docker — Dockerfile.atr + docker-compose.atr.yml | ADOPTED | 70e5982 | 12/12 (Qwen) + تحقق Z.ai 12/12 | STRUCTURE_ONLY (لا docker في البيئتين)؛ أسماء ATR منفصلة كي لا تستبدل Dockerfile/docker-compose.yml الجذرية؛ sidecar `Dockerfile.atr.dockerignore` (لا لمس لـ .dockerignore القائم)؛ + requirements-atr.txt |
 | ATR-06 | Integration Smoke Test | DONE | (هذا الـcommit) | 3/3 (+ سكربت مستقل PASS) | PDF اصطناعي 3ص → دفعات → دمج → تصحيحات → تدريب dry_run؛ **أصلح درز تكامل**: مسار القصاصة batch-aware (`<batch>/crops/x.png`) في train_trocr + correction_server؛ loss تنازلي 2.85→2.69؛ 0 تنزيل/0 شبكة/0 PHI |
+| ATR-04b | مصالحة Z.ai — توافق transformers 5.x + إصلاح مسارات الدمج + سكربت probe | DONE | (هذا الـcommit) | **35/35 + تكاملي الجلسة الموازية** | إصلاح dry_run لـ5.x (PreTrainedTokenizerFast)؛ crop_path مسبوق بالدفعة في merge_batches (مكمل لإصلاح المستهلكين في ATR-06)؛ التزام scripts/atr_probe_models.py؛ تعارض دليل الـpin موثق في requirements-atr.txt |
 | ATR-07 | Final Report | PENDING | - | 0/0 | |
 
 ## ما تبقى (Remaining)
