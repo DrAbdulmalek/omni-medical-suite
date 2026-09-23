@@ -19,8 +19,10 @@ torch>=2.1.0
 #     real-load 2.67GB) — proven by commit cc9fea8/bc6f740.
 #   * 4.48.3 AVOID: Trainer passes num_items_in_batch which ViTModel.forward
 #     rejects (Z.ai traceback) — fixed in later 4.5x.
-#   Repo pyproject allows transformers>=4.40.0 (uncapped); no upper pin needed
-#   now that dry_run is version-neutral. CI should still gate both 4.57.x & 5.1x.
+#   Repo pyproject allows transformers>=4.40.0 (uncapped); no upper pin needed.
+#   NOTE (audit ATR-07c): ">=4.46.0" is the DECLARED range, NOT a fully-validated
+#   one. Only 4.57.6 and 5.12.1 are proven (38/38 each); 4.48.3 is known-bad and
+#   4.46–4.57.5 / 5.0–5.12.0 are UNVERIFIED. CI must gate on 4.57.x AND 5.1x.
 transformers>=4.46.0
 accelerate>=0.30.0
 

@@ -17,6 +17,7 @@
 | ATR-04b | مصالحة Z.ai — توافق transformers 5.x + إصلاح مسارات الدمج + سكربت probe | DONE | cc9fea8+bc6f740 | **35/35 + تكاملي الجلسة الموازية** | إصلاح dry_run لـ5.x (PreTrainedTokenizerFast)؛ crop_path: اعتُمد عقد ATR-06 (مسار عارٍ + حل batch-aware عند المستهلك) وإلغى إصلاح المنتِج في merge_batches بعد فشل اختبار ATR-06 التكاملي — عقد واحد موحد؛ التزام scripts/atr_probe_models.py؛ تعارض دليل الـpin موثق في requirements-atr.txt |
 | ATR-04c | مصالحة Qwen — إصلاح dry_run عبر الإصدارات (post-processor [CLS]/[SEP]) | DONE | ba77ba4 | **38/38 على transformers 4.57.6** | rebuild Z.ai لـ5.x جعل الكلمة المفردة توكنًا واحدًا بلا CLS/SEP → **loss=0 على 4.57.6** (يعمل صدفةً على 5.12.1)؛ أُضيف `TemplateProcessing` — وفيّ للـ AraBERT الحقيقي ويعبر 4.x+5.x؛ **لم يُرفع transformers** (قاعدة 1.3)؛ pin `<5` أُزيل (dual-evidence) |
 | ATR-07 | Final Report (UNIFIED dual-session) | DONE | 8f2235f+1ce2d7a+ba77ba4 | n/a | `docs/atr/ATR-07-FINAL-REPORT.md` — تقرير موحَّد (Z.ai+Qwen): الطقم 38/38 على 4.57.6 و5.12.1، real-load 2.67GB (Z.ai)، ATR-04c، PERSISTENCE=OK، HOW TO RUN |
+| ATR-07c | Report-Integrity Corrections (مراجعة تدقيقية خارجية) | DONE | (this commit) | n/a | 9 تصحيحات توثيقية: VERIFICATION block بـ SHAs كاملة + MATCH؛ فصل declared-vs-validated لـ transformers؛ صياغة Git دقيقة للـadditive؛ تقسيم deps (جديد vs معاد استخدامه)؛ إزالة بصمة التوكن؛ tiered persistence (Git PROVEN / bundles local / remote archival NOT ESTABLISHED)؛ ATR-03 real-load "Z.ai-env only"؛ لا تغيير كود/اختبارات بعد ba77ba4 |
 
 ## ✅ المهمة مكتملة (ATR-01 → ATR-07)
 
