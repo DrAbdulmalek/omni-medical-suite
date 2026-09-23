@@ -11,14 +11,15 @@
 | ATR-01b | Parallel-Session Reconciliation (Qwen) | DONE | (هذا الـcommit) | n/a | تبنّي عمل Z.ai + تحقق مستقل من ATR-02 في بيئة Qwen — `docs/atr/ATR-01b-RECONCILIATION.md` |
 | ATR-02 | F4 Batch PDF — segment_batch.py + merge_batches.py | DONE | b49a742 | 4/4 (مُدّعى) → **4/4 مُتحقَّق مستقلًا** في بيئة Qwen (py3.11/transformers 4.57.6)؛ المجموعة الكاملة 759 passed، صفر انحدار | + إعادة بناء ahw/segment.py موثقة + GT prefill RTL |
 | ATR-03 | F1 AraBERT Tokenizer — ahw/arabic_trocr.py | DONE | acf86b3 | 4/4 dry_run (Z.ai) | real-load مُثبت (Z.ai): resize 50265→64000 + reinit كامل + forward 0.8s CPU |
-| ATR-04 | F3 Training UI — train_server.py + dashboard | PENDING | - | 0/0 | + correction_server.py (تتطلبها F2) |
+| ATR-04 | F3 Training UI — train_server.py + dashboard | DONE | (هذا الـcommit) | 15/15 | **تولّت Qwen** (توقف Z.ai بعد ATR-03 @15:02:59Z)؛ +correction_server.py + نواة ahw/train_trocr.py (smoke/full) + smoke حقيقي داخل الاختبارات |
 | ATR-05 | F2 Docker — Dockerfile.atr + docker-compose.yml | PENDING | - | 0/0 | STRUCTURE_ONLY: لا docker في البيئة |
 | ATR-06 | Integration Smoke Test | PENDING | - | 0/0 | PDF اصطناعي 3 صفحات، بلا PHI |
 | ATR-07 | Final Report | PENDING | - | 0/0 | |
 
 ## ما تبقى (Remaining)
 
-- تنفيذ ATR-02 → ATR-07 بالترتيب دون توقف (AUTONOMOUS MODE).
+- ATR-05 (Docker STRUCTURE_ONLY) → ATR-06 (smoke تكاملي) → ATR-07 (تقرير نهائي) — تنفذها جلسة Qwen (تولّت القيادة بعد توقف Z.ai ~30 دقيقة؛ آخر دفعاتها acf86b3 @ 15:02:59Z).
+- ملاحظة تدقيق: docstring في `ahw/arabic_trocr.py` يشير إلى `scripts/atr_probe_models.py` وهو **غير مُلتزم** (بقي في بيئة Z.ai) — مرجع معلق موثق، لا يعطل أي اختبار.
 - تدوير التوكن المؤقت من المالك بعد انتهاء المهمة.
 
 ## بيئة Pre-Flight (مثبتة 2026-09-23)
