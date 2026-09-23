@@ -115,8 +115,10 @@ def test_requirements_atr_present_with_key_deps():
                 "pymupdf", "pandas", "openpyxl", "jiwer",
                 "opencv-python-headless"):
         assert dep in text, f"{dep} ناقص من requirements-atr.txt"
-    # pin الموثق لـ transformers (<5)
-    assert "<5" in text
+    # ATR-04c: pin صار محايد الإصدار (dual-evidence 4.57.6 + 5.12.1) — لا <5 cap.
+    # نتحقق أن التوثيق مزدوج-الدليل موجود بدل الـcap القديم.
+    assert "dual-evidence" in text or "4.57.6" in text or "5.12.1" in text, \
+        "requirements-atr.txt يجب أن يوثّق دليل الإصدارين (ATR-04c)"
 
 
 @pytest.mark.parametrize("path", [COMPOSE, DOCKERFILE, DOCKERIGNORE,

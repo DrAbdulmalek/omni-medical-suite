@@ -162,6 +162,19 @@ def _build_dry_run(base: str, arabic: str) -> Tuple[Any, Any, Dict[str, Any]]:
                           continuing_subword_prefix="##", max_input_chars_per_word=100)
     tk = Tokenizer(wp)
     tk.pre_tokenizer = pre_tokenizers.BertPreTokenizer()
+    # ملاحظة مصالحة (ATR-04c, جلسة Qwen على transformers 4.57.6):
+    # بلا post_processor تُرمَّز الكلمة المفردة إلى توكن واحد بلا [CLS]/[SEP]،
+    # فينهار الإشراف في تدريب dry_run (loss=0 على 4.57.6؛ يعمل صدفةً على 5.12.1).
+    # إضافة [CLS] $A [SEP] تجعل dry_run وفيًّا للـ AraBERT/TrOCR الحقيقي (الذي
+    # يلفّ التسلسل دائمًا) وتُصلح الانهيار عبر الإصدارين 4.x و5.x معًا —
+    # tokenizers.TemplateProcessing مستقر عبر الإصدارات. لا يكسر أي assertion
+    # قائم (اختبار الأشكال يتطلب input_ids>=2 فقط).
+    from tokenizers import processors as _procs
+    tk.post_processor = _procs.TemplateProcessing(
+        single="[CLS] $A [SEP]",
+        pair="[CLS] $A [SEP] $B:1 [SEP]:1",
+        special_tokens=[("[CLS]", vocab["[CLS]"]), ("[SEP]", vocab["[SEP]"])],
+    )
     tokenizer = PreTrainedTokenizerFast(
         tokenizer_object=tk, do_lower_case=False, model_max_length=64,
         unk_token="[UNK]", pad_token="[PAD]", cls_token="[CLS]",

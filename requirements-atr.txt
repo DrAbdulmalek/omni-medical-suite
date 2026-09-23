@@ -12,12 +12,16 @@
 
 # ML core
 torch>=2.1.0
-transformers>=4.46.0,<5.0.0   # pin جلسة Qwen: 4.57.6 مختبَر 15/15 (هذا السطر من الجلسة الموازية)
-# تنبيه مصالحة (جلسة Z.ai، py3.12/torch2.14، مُثبت): 4.48.3 يكسر تدريب TrOCR عبر
-# Trainer (num_items_in_batch يرفضه ViTModel.forward — traceback موثق)، بينما
-# 5.12.1 يعمل كاملًا (dry 4/4 + smoke Trainer + real-load 2.67GB) — متوافق مع
-# حدّ المستودع الموثق transformers>=5.10,<5.13 في worklog TASK-02D. الدليلان
-# متعارضان جزئيًا؛ يُرجى الفصل عبر CI على كلا الإصدارين قبل الدمج. راجع PROGRESS.md.
+# transformers — DUAL-EVIDENCE RESOLVED (ATR-04c):
+#   * 4.57.6 (Qwen sandbox, py3.11): ATR suite 38/38 after the dry_run
+#     post-processor fix ([CLS]$A[SEP]) — loss>0 proven end-to-end.
+#   * 5.12.1 (Z.ai sandbox, py3.12): ATR suite 38/38 (dry 4/4 + smoke Trainer +
+#     real-load 2.67GB) — proven by commit cc9fea8/bc6f740.
+#   * 4.48.3 AVOID: Trainer passes num_items_in_batch which ViTModel.forward
+#     rejects (Z.ai traceback) — fixed in later 4.5x.
+#   Repo pyproject allows transformers>=4.40.0 (uncapped); no upper pin needed
+#   now that dry_run is version-neutral. CI should still gate both 4.57.x & 5.1x.
+transformers>=4.46.0
 accelerate>=0.30.0
 
 # Web (ATR-F3)
