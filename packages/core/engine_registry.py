@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import os
 import sys
 import time
 from abc import ABC, abstractmethod
@@ -227,6 +228,92 @@ class _NougatAdapter(EngineAdapter):
             return {"ok": False, "error": str(exc), "version": None, "details": {}}
 
 
+class _OLMoCRAdapter(EngineAdapter):
+    """OLMoCR (allenai) — isolated-env contract, R19-aligned.
+
+    OLMoCR may ONLY run inside its own dedicated virtual environment:
+
+    - ``olmocr==0.4.27`` with the ``gpu`` extra pins ``transformers==4.57.3``,
+      ``vllm==0.11.2`` and ``torch>=2.7.0`` (verified against PyPI metadata
+      2026-09-23).  These pins must NEVER be merged into the suite's main
+      dependency set.
+    - Weights: ``allenai/olmOCR-2-7B-1025-FP8`` (FP8 quantised 7B).
+    - Hardware: GPU with >= 12 GB VRAM, CUDA 12.x (owner ruling R19:
+      BENCHMARK-FIRST, isolated env, GPU-gated; repo CI has no GPU).
+    - Availability is therefore FAIL-CLOSED in the main runtime: the
+      isolated environment must explicitly export
+      ``OMNI_OLMOCR_ISOLATED_ENV=1`` *and* ``import olmocr`` must succeed
+      there.  A stray ``pip install olmocr`` in the main env is not
+      sufficient and never will be.
+
+    ``healthcheck`` deliberately loads NO weights — it validates the pin
+    contract and reports CUDA presence only.
+    """
+
+    name = "OLMoCR"
+    estimated_ram_gb = 12.0
+    supported_tasks = ["printed", "scientific_pdf", "structured"]
+
+    # -- pinned contract (PyPI + HF verified 2026-09-23) -----------------
+    OLMOCR_VERSION = "0.4.27"
+    TRANSFORMERS_PIN = "4.57.3"
+    VLLM_PIN = "0.11.2"
+    TORCH_PIN = ">=2.7.0"
+    MODEL_ID = "allenai/olmOCR-2-7B-1025-FP8"
+    MIN_VRAM_GB = 12
+    ISOLATED_ENV_MARKER = "OMNI_OLMOCR_ISOLATED_ENV"
+
+    def is_available(self) -> bool:
+        """True only inside a marked isolated env with olmocr importable."""
+        if os.environ.get(self.ISOLATED_ENV_MARKER) != "1":
+            return False
+        return _can_import("olmocr")
+
+    def healthcheck(self) -> Dict[str, Any]:
+        """Validate the isolated pin contract. Loads NO model weights."""
+        try:
+            import transformers
+            import olmocr  # noqa: F401  (presence is part of the contract)
+
+            version = getattr(olmocr, "__version__", "unknown")
+            tf_version = getattr(transformers, "__version__", "unknown")
+            pin_ok = tf_version == self.TRANSFORMERS_PIN
+
+            details: Dict[str, Any] = {
+                "model_id": self.MODEL_ID,
+                "transformers": tf_version,
+                "transformers_pin_ok": pin_ok,
+                "isolated_env": True,
+                "min_vram_gb": self.MIN_VRAM_GB,
+            }
+            try:
+                import torch
+
+                details["cuda"] = torch.cuda.is_available()
+                details["device_count"] = torch.cuda.device_count()
+            except ImportError:
+                details["cuda"] = False
+
+            if not pin_ok:
+                return {
+                    "ok": False,
+                    "error": (
+                        f"transformers {tf_version} != pinned "
+                        f"{self.TRANSFORMERS_PIN} — isolated env contract violated"
+                    ),
+                    "version": version,
+                    "details": details,
+                }
+            return {"ok": True, "version": version, "details": details}
+        except Exception as exc:  # pragma: no cover - depends on env
+            return {
+                "ok": False,
+                "error": str(exc),
+                "version": None,
+                "details": {"isolated_env": True},
+            }
+
+
 # ── Helpers ─────────────────────────────────────────────────────────
 
 def _can_import(module_name: str) -> bool:
@@ -277,6 +364,7 @@ class EngineRegistry:
         _QwenHandwrittenAdapter,
         _QARIAdapter,
         _NougatAdapter,
+        _OLMoCRAdapter,
     ]
 
     def __init__(self, adapters: Optional[List[EngineAdapter]] = None) -> None:
