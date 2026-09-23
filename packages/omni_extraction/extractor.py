@@ -195,7 +195,7 @@ class XbergExtractor:
                 os.environ["HF_HUB_OFFLINE"] = "1"
 
             input_obj = _make_extract_input(xberg, path)
-            document = _run_extract(xberg, input_obj, async_input)
+            aggregate = _run_extract(xberg, input_obj, async_input)
         finally:
             if offline_marker_active:
                 if old_offline is None:
@@ -203,6 +203,7 @@ class XbergExtractor:
                 else:
                     os.environ["HF_HUB_OFFLINE"] = old_offline
 
+        document = _unwrap_document(aggregate)
         provenance = build_provenance(
             path="library",
             input_path=path,
@@ -214,6 +215,9 @@ class XbergExtractor:
                 "LGPL nuance: wheel bundles libheif 1.23.0 + libonnxruntime "
                 "(OQ-11). No PHI in evidence runs."
             ),
+            extra={
+                "extraction_method": str(getattr(document, "extraction_method", "")),
+            },
         )
         return _document_to_result(document, provenance)
 
@@ -308,7 +312,7 @@ def _make_extract_input(xberg_mod: Any, path: str) -> Any:
 
 
 def _run_extract(xberg_mod: Any, input_obj: Any, async_input: bool) -> Any:
-    """Invoke the engine's extract call and return the document."""
+    """Invoke the engine's extract call and return the raw aggregate."""
     extract_fn = getattr(xberg_mod, "extract", None)
     if extract_fn is None:
         raise ExtractionError(
@@ -324,6 +328,28 @@ def _run_extract(xberg_mod: Any, input_obj: Any, async_input: bool) -> Any:
             _raise_needs_await()
         return asyncio.run(extract_fn(input_obj))
     return extract_fn(input_obj)
+
+
+def _unwrap_document(aggregate: Any) -> Any:
+    """Unwrap xberg's ExtractionResult aggregate to an ExtractedDocument.
+
+    Real surface (xberg 1.2.6, live-probed): ``extract()`` returns an
+    ``ExtractionResult`` aggregate whose ``.results`` list holds one
+    ``ExtractedDocument`` per input.  Older/naked variants (aggregate
+    absent, document returned directly) are tolerated defensively.
+    """
+    results = getattr(aggregate, "results", None)
+    if isinstance(results, list):
+        if results:
+            return results[0]
+        errors = getattr(aggregate, "errors", None) or []
+        detail = "; ".join(str(e) for e in errors[:3]) or "no results returned"
+        raise ExtractionError(f"xberg extraction produced no documents: {detail}")
+    if getattr(aggregate, "content", None) is not None:
+        return aggregate  # naked ExtractedDocument variant
+    raise ExtractionError(
+        "unrecognised xberg extraction aggregate — engine surface changed."
+    )
 
 
 def _raise_needs_await() -> Any:
@@ -357,10 +383,11 @@ def _cli_version(binary: str) -> Optional[str]:
 def _document_to_result(document: Any, provenance: ProvenanceRecord) -> ExtractionResult:
     """Map an upstream ExtractedDocument onto :class:`ExtractionResult`.
 
-    Field access is defensive: the XB-02 smoke record names
-    ``content`` / ``chunks`` / ``djot`` / ``entities`` / ``confidence`` /
-    ``metadata``; missing attributes degrade to their defaults instead
-    of crashing, and any deviation is logged at warning level.
+    Real surface (xberg 1.2.6, live-probed): ``content`` (str),
+    ``djot_content`` (str), ``tables`` (list), ``quality_score`` (float),
+    ``chunks`` / ``entities`` / ``metadata`` (native objects), plus
+    ``extraction_method``.  Missing attributes degrade to defaults and
+    any deviation is logged at warning level — never a crash.
     """
     get = getattr
 
@@ -371,32 +398,45 @@ def _document_to_result(document: Any, provenance: ProvenanceRecord) -> Extracti
             text = value
             break
 
-    djot = get(document, "djot", "") or ""
-    if not isinstance(djot, str):
-        djot = str(djot)
+    djot = ""
+    for attr in ("djot_content", "djot"):
+        value = get(document, attr, None)
+        if isinstance(value, str):
+            djot = value
+            break
 
+    # Tables: prefer the engine's own table list, then chunk scan,
+    # then djot structural scan.
     table_count = 0
-    chunks = get(document, "chunks", None) or []
-    for chunk in chunks:
-        chunk_type = str(get(chunk, "type", get(chunk, "chunk_type", "")) or "")
-        if "table" in chunk_type.lower():
-            table_count += 1
+    tables = get(document, "tables", None)
+    if isinstance(tables, list):
+        table_count = len(tables)
     if table_count == 0:
-        # Djot tables: consecutive lines starting with '|'
+        chunks = get(document, "chunks", None) or []
+        for chunk in chunks:
+            chunk_type = str(get(chunk, "type", get(chunk, "chunk_type", "")) or "")
+            if "table" in chunk_type.lower():
+                table_count += 1
+    if table_count == 0:
         table_count = _djot_table_count(djot)
 
     entities = list(get(document, "entities", None) or [])
 
-    confidence = get(document, "confidence", None)
-    if confidence is not None:
-        try:
-            confidence = float(confidence)
-        except (TypeError, ValueError):
-            confidence = None
+    confidence: Optional[float] = None
+    for attr in ("quality_score", "confidence"):
+        value = get(document, attr, None)
+        if value is not None:
+            try:
+                confidence = float(value)
+                break
+            except (TypeError, ValueError):
+                pass
+    if confidence is None:
+        extraction_confidence = get(document, "extraction_confidence", None)
+        if extraction_confidence is not None:
+            confidence = _native_confidence(extraction_confidence)
 
-    metadata = get(document, "metadata", None) or {}
-    if not isinstance(metadata, dict):
-        metadata = {"_raw": str(metadata)}
+    metadata = _native_to_dict(get(document, "metadata", None))
 
     return ExtractionResult(
         text=text,
@@ -408,6 +448,36 @@ def _document_to_result(document: Any, provenance: ProvenanceRecord) -> Extracti
         provenance=provenance,
         raw=document,
     )
+
+
+def _native_confidence(obj: Any) -> Optional[float]:
+    """Best-effort float extraction from a native confidence object."""
+    for attr in ("overall", "score", "value", "confidence"):
+        value = getattr(obj, attr, None)
+        if value is not None:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+def _native_to_dict(obj: Any) -> Dict[str, Any]:
+    """Best-effort conversion of a native metadata object to a dict."""
+    if obj is None:
+        return {}
+    if isinstance(obj, dict):
+        return dict(obj)
+    for attr in ("to_dict", "to_json_dict"):
+        method = getattr(obj, attr, None)
+        if callable(method):
+            try:
+                converted = method()
+                if isinstance(converted, dict):
+                    return converted
+            except Exception:  # pragma: no cover - engine dependent
+                pass
+    return {"_raw": str(obj)}
 
 
 def _djot_table_count(djot: str) -> int:
