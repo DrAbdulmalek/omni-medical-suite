@@ -72,6 +72,22 @@ class OCRResult:
             downstream consumers that need extra metadata.
         error: Non-empty string when the engine raised an exception;
             empty string on success.
+
+    Additive provenance fields (v1.1 — safe to ignore; defaults preserve
+    every pre-existing constructor call and serialization shape):
+
+        provenance: Optional tri-path provenance payload (chain path,
+            engine order, winning engine, chain time).  ``None`` means
+            "not recorded".
+        attempts: Ordered per-engine attempt trail built by
+            :meth:`UnifiedOCR.process_image` — one dict per engine tried
+            with keys ``engine``, ``ok``, ``error``, ``duration_ms``.
+        fallback_used: ``True`` when the winning engine was NOT the first
+            entry of the resolved engine order.  Stays ``False`` when the
+            first engine wins *and* when the whole chain fails.
+        script_kind: Optional content script hint (e.g. ``"arabic+latin"``).
+        normalization: Identifier of the normalization applied to
+            :attr:`text`, if any (e.g. ``"arabic-unicode-nfc"``).
     """
 
     text: str = ""
@@ -82,6 +98,12 @@ class OCRResult:
     words: List[Dict[str, Any]] = field(default_factory=list)
     raw_result: Optional[Dict[str, Any]] = None
     error: str = ""
+    # -- additive (v1.1): provenance & fallback trail --------------------
+    provenance: Optional[Dict[str, Any]] = None
+    attempts: List[Dict[str, Any]] = field(default_factory=list)
+    fallback_used: bool = False
+    script_kind: str = ""
+    normalization: str = ""
 
     # -- convenience helpers ------------------------------------------------
 
@@ -100,6 +122,12 @@ class OCRResult:
             "processing_time": self.processing_time,
             "words": self.words,
             "error": self.error,
+            # additive (v1.1) — provenance & fallback trail
+            "provenance": self.provenance,
+            "attempts": self.attempts,
+            "fallback_used": self.fallback_used,
+            "script_kind": self.script_kind,
+            "normalization": self.normalization,
         }
 
 
@@ -335,8 +363,12 @@ class UnifiedOCR:
 
         # --- Track errors across the chain ----------------------------
         errors: List[str] = []
+        # Additive (v1.1): ordered attempt trail across the whole chain
+        attempts: List[Dict[str, Any]] = []
+        chain_started = time.perf_counter()
 
         for engine_id in self._engine_order:
+            engine_started = time.perf_counter()
             try:
                 result = self._dispatch(
                     engine_id=engine_id,
@@ -345,7 +377,26 @@ class UnifiedOCR:
                     languages=languages,
                 )
 
+                attempts.append({
+                    "engine": engine_id,
+                    "ok": bool(result.success),
+                    "error": result.error or ("" if result.success else "no text produced"),
+                    "duration_ms": round((time.perf_counter() - engine_started) * 1000, 2),
+                })
+
                 if result.success:
+                    # Additive (v1.1): attach fallback trail + provenance
+                    result.attempts = attempts
+                    result.fallback_used = engine_id != self._engine_order[0]
+                    result.provenance = {
+                        "path": "unified_ocr_fallback_chain",
+                        "engine_order": list(self._engine_order),
+                        "winning_engine": engine_id,
+                        "chain_time_ms": round(
+                            (time.perf_counter() - chain_started) * 1000, 2
+                        ),
+                    }
+
                     # Cache the successful result
                     if use_cache and cache_key and self._cache_max_size > 0:
                         self._put_cache(cache_key, result)
@@ -359,6 +410,12 @@ class UnifiedOCR:
                 logger.debug("Engine %s returned no usable text", engine_id)
 
             except Exception as exc:
+                attempts.append({
+                    "engine": engine_id,
+                    "ok": False,
+                    "error": str(exc),
+                    "duration_ms": round((time.perf_counter() - engine_started) * 1000, 2),
+                })
                 errors.append(f"{engine_id}: {exc}")
                 logger.warning(
                     "Engine %s raised an exception: %s", engine_id, exc,
@@ -373,6 +430,16 @@ class UnifiedOCR:
             engine="none",
             error=f"All engines failed. [{error_summary}]",
         )
+        # Additive (v1.1): full attempt trail on the failure result
+        failure.attempts = attempts
+        failure.provenance = {
+            "path": "unified_ocr_fallback_chain",
+            "engine_order": list(self._engine_order),
+            "winning_engine": None,
+            "chain_time_ms": round(
+                (time.perf_counter() - chain_started) * 1000, 2
+            ),
+        }
 
         if use_cache and cache_key and self._cache_max_size > 0:
             self._put_cache(cache_key, failure)
