@@ -7,8 +7,8 @@
 
 | Phase | Feature | Status | Commit | Tests | Notes |
 |---|---|---|---|---|---|
-| ATR-01 | Pre-Flight + PROGRESS.md | DONE | (هذا الـcommit) | n/a | فرع جديد من origin/main `39640a6` |
-| ATR-02 | F4 Batch PDF — segment_batch.py + merge_batches.py | PENDING | - | 0/0 | إعادة بناء ahw/segment.py موثقة |
+| ATR-01 | Pre-Flight + PROGRESS.md | DONE | 11da6ac | n/a | فرع جديد من origin/main `39640a6` |
+| ATR-02 | F4 Batch PDF — segment_batch.py + merge_batches.py | DONE | (هذا الـcommit) | 4/4 | + إعادة بناء ahw/segment.py موثقة + GT prefill RTL |
 | ATR-03 | F1 AraBERT Tokenizer — ahw/arabic_trocr.py | PENDING | - | 0/0 | dry_run + محاولة تنزيل حقيقية |
 | ATR-04 | F3 Training UI — train_server.py + dashboard | PENDING | - | 0/0 | + correction_server.py (تتطلبها F2) |
 | ATR-05 | F2 Docker — Dockerfile.atr + docker-compose.yml | PENDING | - | 0/0 | STRUCTURE_ONLY: لا docker في البيئة |
