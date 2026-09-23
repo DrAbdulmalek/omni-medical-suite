@@ -1,0 +1,53 @@
+# =============================================================================
+# docker-compose.atr.yml — تشغيل حزمة AHW بنقرة واحدة (ATR-F2)
+# =============================================================================
+# الاستخدام:
+#   docker compose -f docker-compose.atr.yml up --build
+#   docker compose -f docker-compose.atr.yml up correction-server   # خدمة واحدة
+#
+# ⚠️ هذا ملف ATR منفصل — docker-compose.yml الجذري الخاص بالمنظومة القائمة
+#    لم يُمَس (قاعدة: لا كسر للموجود).
+# =============================================================================
+
+services:
+  correction-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.atr
+    container_name: ahw-correction-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - FLASK_ENV=production
+    command: ["python", "correction_server.py", "--host", "0.0.0.0", "--port", "5000", "--sample", "S001"]
+    restart: unless-stopped
+    # لا يحتاج GPU — تصحيح بشري فقط
+
+  training-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.atr
+    container_name: ahw-training-ui
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./output:/app/output
+      - ./models:/app/models
+    environment:
+      - FLASK_ENV=production
+    command: ["python", "train_server.py", "--host", "0.0.0.0", "--port", "5001"]
+    restart: unless-stopped
+    # ─────────────────────────────────────────────────────────────────────────
+    # دعم GPU (اختياري — يتطلب nvidia-container-toolkit على المضيف):
+    # إذا لم يكن لديك GPU، احذف قسم deploy بالكامل أدناه وسيعمل التدريب
+    # على CPU (أبطأ لكنه يعمل).
+    # ─────────────────────────────────────────────────────────────────────────
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

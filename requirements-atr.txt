@@ -1,0 +1,48 @@
+# =============================================================================
+# requirements-atr.txt — تبعيات حزمة AHW (ATR phase) الخفيفة
+# =============================================================================
+# منفصل عن requirements.txt الجذري (المنظومة الكاملة) — يُستخدم من
+# Dockerfile.atr ومن venv التطوير. سجل الإضافة الكامل (اسم/إصدار/رخصة/سبب)
+# في docs/atr/ATR-07-FINAL-REPORT.md قسم DEPENDENCIES_ADDED.
+#
+# ملاحظة torch: في Docker CPU يُثبَّت من الفهرس الرسمي:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# ثم بقية الحزم أدناه (أو فك التعليق عن سطر torch إن أردت الافتراضي PyPI).
+# =============================================================================
+
+# ML core
+torch>=2.1.0
+# transformers — DUAL-EVIDENCE RESOLVED (ATR-04c):
+#   * 4.57.6 (Qwen sandbox, py3.11): ATR suite 38/38 after the dry_run
+#     post-processor fix ([CLS]$A[SEP]) — loss>0 proven end-to-end.
+#   * 5.12.1 (Z.ai sandbox, py3.12): ATR suite 38/38 (dry 4/4 + smoke Trainer +
+#     real-load 2.67GB) — proven by commit cc9fea8/bc6f740.
+#   * 4.48.3 AVOID: Trainer passes num_items_in_batch which ViTModel.forward
+#     rejects (Z.ai traceback) — fixed in later 4.5x.
+#   Repo pyproject allows transformers>=4.40.0 (uncapped); no upper pin needed.
+#   NOTE (audit ATR-07c): ">=4.46.0" is the DECLARED range, NOT a fully-validated
+#   one. Only 4.57.6 and 5.12.1 are proven (38/38 each); 4.48.3 is known-bad and
+#   4.46–4.57.5 / 5.0–5.12.0 are UNVERIFIED. CI must gate on 4.57.x AND 5.1x.
+transformers>=4.46.0
+accelerate>=0.30.0
+
+# Web (ATR-F3)
+flask>=3.0.0
+flask-socketio>=5.3.0
+simple-websocket>=1.0.0
+
+# PDF/صور (ATR-F4)
+PyMuPDF>=1.23.0
+opencv-python-headless>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+scipy>=1.11.0
+
+# بيانات/تقييم
+pandas>=2.0.0
+openpyxl>=3.1.0
+jiwer>=3.0.0
+
+# عربية
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.0
