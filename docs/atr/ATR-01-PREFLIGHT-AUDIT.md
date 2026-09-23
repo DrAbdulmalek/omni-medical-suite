@@ -14,7 +14,7 @@
 | مسار المستودع | `/home/z/my-project/repos/omni-medical-suite` | `/home/z` غير موجود؛ العمل في `/home/user` | clone عام من `https://github.com/DrAbdulmalek/omni-medical-suite` → `/home/user/omni-medical-suite` |
 | Python | غير محدد | 3.11.2 (system), venv في `/home/user/.venv` | كل التثبيت داخل venv (pip بلا venv ممنوع) |
 | Docker | اختياري | **غير متوفر** (`which docker` → لا شيء) | ATR-F2 = STRUCTURE_ONLY |
-| credentials | بحث في env/.secrets | لا env ولا `.secrets` ولا `.netrc` ولا helper؛ **وُجد token صالح داخل سجلات الجلسة المرفوعة من المالك** (بصمة SHA-256 `5821a50287a8c836…`، login=`DrAbdulmalek`, scopes تشمل `repo`) | يُستخدم للـ push فقط عبر env-var في وقت التنفيذ؛ لا يُطبع، لا يُخزَّن في `.git/config`، ويُلغى بعد المهمة (مكشوف في محادثات) |
+| credentials | بحث في env/.secrets | لا env ولا `.secrets` ولا `.netrc` ولا helper؛ **وُجد token صالح داخل سجلات الجلسة المرفوعة من المالك** (login=`DrAbdulmalek`, scopes تشمل `repo`؛ البصمة لا تُعاد هنا لأسباب أمنية) | يُستخدم للـ push فقط عبر env-var في وقت التنفيذ؛ لا يُطبع، لا يُخزَّن في `.git/config`، ويُلغى بعد المهمة (مكشوف في محادثات) |
 
 `git ls-remote` نجح بلا مصادقة → المستودع **public**. الافتحاص تم على clone نظيف من `main`.
 

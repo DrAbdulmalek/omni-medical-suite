@@ -32,10 +32,12 @@ BRANCH TIP when this report revision was authored (docs-only SHA-sync):
 LOCAL HEAD == REMOTE HEAD at authoring time : MATCH (a3f3276…, ls-remote verified)
 
 REPORT-INTEGRITY CORRECTION COMMIT (ATR-07c, this docs-only revision):
-  <see PROGRESS.md row "ATR-07c" and the ls-remote output> — a Git commit cannot
-  embed its own hash; ATR-07c is a documentation-only child of a3f3276, so the
-  ENGINEERING state is unchanged since ba77ba4. After push, branch tip ==
-  ATR-07c SHA == output of the REMOTE-CHECK COMMAND above. RESULT: MATCH.
+  bd0bf75fd8270f45258ededf88cdb2a466376354   "ATR-07c report-integrity corrections"
+  A Git commit cannot embed its own hash, so bd0bf75 is stamped by its immediate
+  docs-only child (the SHA-stamp commit = branch tip). ATR-07c changes
+  DOCUMENTATION ONLY; the ENGINEERING state is unchanged since ba77ba4. After
+  push: branch tip == SHA-stamp commit == output of the REMOTE-CHECK COMMAND.
+  RESULT: MATCH (local HEAD == remote HEAD, ls-remote verified).
 ```
 
 > Reproducibility note: to re-audit, run `git ls-remote origin feature/atr-trocr-advanced`
