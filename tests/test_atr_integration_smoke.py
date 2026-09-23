@@ -56,6 +56,11 @@ def _fake_corrections(sample_dir: Path) -> Path:
 
 
 def test_full_pipeline_end_to_end(tmp_path):
+    # حارس CI (ATR-04d): التدريب يتطلب torch+transformers — تُتخطى في بيئات
+    # بلا تبعيات ATR بدل الفشل؛ بقية اختبارات الوحدة تعمل أينما وُجد fitz/pandas.
+    pytest.importorskip("torch", reason="pipeline training step requires torch")
+    pytest.importorskip("transformers",
+                        reason="pipeline training step requires transformers")
     work = tmp_path / "work"
     work.mkdir()
     pdf = work / "scan.pdf"
@@ -127,6 +132,7 @@ def test_merge_is_idempotent_and_batch_column_present(tmp_path):
 
 def test_correction_server_serves_real_batch_crops(tmp_path, monkeypatch):
     """خادم التصحيح يقدّم قصاصة حقيقية من بنية الدفعات (درز المسار)."""
+    pytest.importorskip("flask", reason="correction_server requires flask")
     import correction_server
 
     work = tmp_path / "cs"

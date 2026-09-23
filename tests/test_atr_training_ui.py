@@ -11,12 +11,23 @@ import threading
 import time
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
-import correction_server
-import train_server
-from ahw.train_trocr import (TrainConfig, load_corrections,
+# حراس CI (ATR-04d): الوحدة تتطلب torch/transformers/flask/flask-socketio
+# (requirements-atr.txt). تُتخطى نظيفًا في بيئات بلا هذه التبعيات (CI Unit Tests)
+# بدل collection error؛ ومع التبعيات تعمل كل الاختبارات كاملة (15/15 مثبتة).
+pytest.importorskip("torch", reason="ATR-F3 requires torch (requirements-atr.txt)")
+pytest.importorskip("transformers",
+                    reason="ATR-F3 requires transformers (requirements-atr.txt)")
+pytest.importorskip("flask", reason="ATR-F3 requires flask (requirements-atr.txt)")
+pytest.importorskip("flask_socketio",
+                    reason="ATR-F3 requires flask-socketio (requirements-atr.txt)")
+
+import pandas as pd  # noqa: E402
+
+import correction_server  # noqa: E402
+import train_server  # noqa: E402
+from ahw.train_trocr import (TrainConfig, load_corrections,  # noqa: E402
                              make_synthetic_samples, run_training,
                              split_by_source_page)
 

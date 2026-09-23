@@ -4,12 +4,21 @@
 """
 from __future__ import annotations
 
-import numpy as np
 import pytest
-import torch
-from transformers import VisionEncoderDecoderModel
 
-from ahw.arabic_trocr import (DEFAULT_ARABIC, DEFAULT_BASE,
+# حراس CI (ATR-04d): هذه الوحدة تتطلب torch+transformers (requirements-atr.txt).
+# في البيئات التي لا تتضمنها (مثل CI "Unit Tests" job) تُتخطى الوحدة نظيفًا بدل
+# خطأ تجميع (collection error) يكسر المجموعة. عند توفر التبعيات تعمل كل
+# الـassertions كاملة دون إضعاف (38/38 مثبتة محليًا على 4.57.6 و5.12.1).
+pytest.importorskip("torch", reason="ATR-F1 requires torch (requirements-atr.txt)")
+pytest.importorskip("transformers",
+                    reason="ATR-F1 requires transformers (requirements-atr.txt)")
+
+import numpy as np  # noqa: E402
+import torch  # noqa: E402
+from transformers import VisionEncoderDecoderModel  # noqa: E402
+
+from ahw.arabic_trocr import (DEFAULT_ARABIC, DEFAULT_BASE,  # noqa: E402
                               ArabicTrOCRProcessor,
                               load_model_with_arabic_tokenizer)
 

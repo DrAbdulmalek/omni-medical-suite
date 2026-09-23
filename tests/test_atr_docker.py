@@ -9,7 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-import yaml
+
+# حارس CI (ATR-04d): yaml متاح عادةً، لكن الحارس يمنع collection error في أي
+# بيئة تفتقده — اختبارات بنيوية ساكنة بلا تبعيات ثقيلة أخرى.
+yaml = pytest.importorskip("yaml", reason="docker-compose validation requires pyyaml")
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = REPO_ROOT / "docker-compose.atr.yml"
