@@ -1,0 +1,27 @@
+# Gitpod equivalent of .devcontainer/devcontainer.json (PLANNED — config only).
+# No PHI, no credentials, no external services beyond package indexes.
+image:
+  file: .devcontainer/Dockerfile
+
+tasks:
+  - name: setup-venv
+    init: |
+      python -m venv /workspace/.venv
+      source /workspace/.venv/bin/activate
+      grep -v "^torch" /workspace/requirements.txt | pip install -r /dev/stdin || true
+      pip install flask flask-socketio opencv-python PyMuPDF pandas openpyxl
+      python -c "import cv2, fitz, flask, pandas; print('✅ Core imports OK')"
+      echo "⚠️  Models NOT downloaded. Run: python server.py --sample S001"
+
+ports:
+  - port: 5000
+    name: Correction Server
+    onOpen: notify
+  - port: 5001
+    name: Training UI
+    onOpen: notify
+
+vscode:
+  extensions:
+    - ms-python.python
+    - ms-python.vscode-pylance

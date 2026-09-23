@@ -203,6 +203,19 @@ sha256sum -c MedicalDocProcessor-*.AppImage.sha256
 ### Live Demo
 **[HuggingFace Space](https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr)** — No installation needed.
 
+## 🔮 Future Roadmap
+
+هذا المشروع يحتوي على حزمة توثيق مستقبلية كاملة في `docs/future/`:
+
+- **VPS Deployment** — [docs/future/vps/](docs/future/vps/)
+- **GitHub Codespaces** — [docs/future/codespaces/](docs/future/codespaces/)
+- **Oracle Cloud Deployment** — [docs/future/oracle/](docs/future/oracle/)
+- **VPS ↔ Colab Pipeline** — [docs/future/colab-pipeline/](docs/future/colab-pipeline/)
+
+⚠️ **كل هذه الوثائق تخطيط فقط — لا شيء منها منفَّذ.**
+(PLANNED — NOT IMPLEMENTED. القوالب في `deploy/`, `automation/`, `scripts/` تحمل
+رؤوس `TEMPLATE ONLY — NOT EXECUTED — TESTED: NO` ولا تُشغَّل في هذه المرحلة.)
+
 ## Monorepo Structure
 
 ```

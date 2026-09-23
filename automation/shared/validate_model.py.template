@@ -1,0 +1,25 @@
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-6
+# TESTED: NO
+"""validate_model — outline (PLANNED).
+
+يقيس CER/WER لنموذج مرشح على عينة تحقق (50 قصاصة — اصطناعية أو corpus معتمد
+من المالك حصراً) مقابل النموذج الحالي، ويكتب metrics.json بقرار PROMOTE/REJECT.
+
+قواعد:
+  * لا تنزيل أوزان خارج ما سُحب من Release (تحقق SHA256 سبق هذه الخطوة).
+  * لا طباعة نصوص العينات في logs (privacy) — أرقام فقط.
+  * العتبات يضبطها المالك وقت V-6 (مثال: cer_new <= cer_current + 0.02
+    و abs_samples >= 50 → PROMOTE وإلا REJECT).
+
+Outline (pseudocode — لا يُنفذ في مرحلة التوثيق):
+  1. parse args (--model-dir, --samples, --out, --baseline)
+  2. load processor/model from --model-dir (transformers, pinned versions)
+  3. load 50 validation crops + references (من مخزن معتمد محلي)
+  4. generate predictions (beam=4, max_len=32)
+  5. compute CER/WER via jiwer (aggregate, no per-sample text logging)
+  6. compare vs baseline metrics.json → decision PROMOTE/REJECT
+  7. write metrics.json {"cer":…, "wer":…, "baseline_cer":…, "decision":…, "model_tag":…, "ts":…}
+  8. exit 0 (PROMOTE) / 3 (REJECT) / 1 (error)
+"""
+raise SystemExit("TEMPLATE ONLY — NOT EXECUTED (V-6)")

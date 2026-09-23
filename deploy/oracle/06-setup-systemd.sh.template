@@ -1,0 +1,20 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2
+# TESTED: NO
+#
+# Install systemd units from templates. SECURITY NOTE: prefer --host 127.0.0.1
+# behind nginx (ufw blocks 5000/5001); template default follows legacy spec.
+# Requires: 03 done (.env populated) · Time: ~3 min · Idempotent: yes
+
+set -euo pipefail
+for unit in ahw-correction ahw-training; do
+    sudo cp "deploy/configs/$unit.service.template" "/etc/systemd/system/$unit.service"
+done
+sudo systemctl daemon-reload
+sudo systemctl enable --now ahw-correction
+# ahw-training: معطلة افتراضيًا على VPS (بلا GPU — التدريب Colab)
+# sudo systemctl enable --now ahw-training
+
+sleep 2
+systemctl is-active ahw-correction && echo "✅ SUCCESS: ahw-correction active (journalctl -u ahw-correction -n 50)"

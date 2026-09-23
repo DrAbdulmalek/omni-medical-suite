@@ -1,0 +1,36 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-6
+# TESTED: NO
+#
+# GPG-encrypt latest export + push to private datasets repo (gh CLI)
+# Requires: 01 done, GPG pubkey imported (or PASSPHRASE mode), gh authed (narrow PAT)
+# Time: ~2 min · Idempotent: yes (re-push overwrites same asset path)
+# Rule: لا明文 يغادر الخادم — التشفير إلزامي قبل أي رفع
+
+set -euo pipefail
+OUT="/tmp/omni-export"
+DATASETS_REPO="${DATASETS_REPO:?set DATASETS_REPO (owner/omni-ahw-datasets)}"
+LATEST=$(ls -t "$OUT"/dataset-*.tar.gz 2>/dev/null | head -1) || true
+[ -n "$LATEST" ] || { echo "❌ no export found — run 01 first"; exit 1; }
+BASE=$(basename "$LATEST" .tar.gz)
+SHA8=$(cut -c1-8 "$OUT/$BASE.sha256")
+
+# التشفير: symmetric (GPG_PASS env من keyring) أو keypair (GPG_RECIPIENT)
+if [ -n "${GPG_RECIPIENT:-}" ]; then
+    gpg --batch --yes --encrypt -r "$GPG_RECIPIENT" -o "$OUT/$BASE-$SHA8.tar.gz.gpg" "$LATEST"
+else
+    gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase-file <(cat "${GPG_PASS_FILE:?}") \
+        -o "$OUT/$BASE-$SHA8.tar.gz.gpg" "$LATEST"
+fi
+
+WORK=$(mktemp -d); cd "$WORK"
+gh repo clone "$DATASETS_REPO" repo -- --depth=1
+mkdir -p repo/datasets repo/manifests
+cp "$OUT/$BASE-$SHA8.tar.gz.gpg" repo/datasets/
+cp "$OUT/manifest-$BASE.json" repo/manifests/ 2>/dev/null || cp "$OUT"/manifest-*.json repo/manifests/
+cd repo && git add -A && git -c user.name="omni-vps" -c user.email="vps@omni.local" \
+    commit -m "dataset: $BASE ($SHA8)" && git push origin HEAD
+cd /; rm -rf "$WORK" "$OUT"/dataset-* # cleanup محلي
+
+echo "✅ SUCCESS: encrypted dataset pushed ($BASE-$SHA8)"

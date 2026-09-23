@@ -1,0 +1,22 @@
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2
+# TESTED: NO
+# SECURITY NOTE: prefer --host 127.0.0.1 behind nginx (ufw blocks 5000 externally).
+# If remote bind is ever required, use ATR guard envs (ATR_ALLOW_REMOTE=1 +
+# ATR_API_TOKEN + ATR_SECRET_KEY) — fail-closed by design. See docs/future/.
+[Unit]
+Description=AHW Correction Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/omni-medical-suite
+Environment="PATH=/home/ubuntu/omni-medical-suite/venv/bin"
+EnvironmentFile=/home/ubuntu/omni-medical-suite/.env
+ExecStart=/home/ubuntu/omni-medical-suite/venv/bin/python correction_server.py --host 127.0.0.1 --port 5000
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

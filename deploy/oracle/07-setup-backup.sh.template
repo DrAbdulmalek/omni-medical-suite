@@ -1,0 +1,18 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-4
+# TESTED: NO
+#
+# Install backup cron (export→encrypt→push) from automation/vps templates
+# Requires: gh CLI authed (narrow PAT), GPG public key imported, datasets repo exists
+# Time: ~10 min · Idempotent: yes
+
+set -euo pipefail
+sudo mkdir -p /opt/omni/automation
+sudo cp -r automation/vps automation/shared /opt/omni/automation/
+sudo chmod +x /opt/omni/automation/vps/*.sh /opt/omni/automation/shared/*.sh 2>/dev/null || true
+sudo cp automation/vps/crontab.template /etc/cron.d/omni-backup
+sudo chmod 644 /etc/cron.d/omni-backup
+sudo systemctl restart cron
+
+echo "✅ SUCCESS: backup cron installed (dry-run first: run 01/02 manually with DRY_RUN=1)"

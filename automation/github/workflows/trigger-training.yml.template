@@ -1,0 +1,32 @@
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: FUTURE (V-6)
+# TESTED: NO
+# NOTE: Colab cannot be launched directly from Actions without a self-hosted
+# runner or a paid orchestration service. This workflow is a DOCUMENTED
+# TRIGGER: it validates the latest dataset and posts instructions/links.
+name: ATR Training Trigger (TEMPLATE)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_tag:
+        description: "dataset tag to train on (default: latest)"
+        required: false
+  # schedule:  # optional weekly — enable at V-6
+  #   - cron: "0 6 * * 6"
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show latest dataset (no decryption — encrypted assets only)
+        run: |
+          echo "Dataset tag input: ${{ inputs.dataset_tag || 'latest' }}"
+          echo "Open the Colab notebook (automation/colab/train_arabic_trocr.ipynb.template"
+          echo "materialized in the private notebooks environment) and run cells 1-10."
+      - name: Reminder gates
+        run: |
+          echo "Gates: SHA256 verify after pull · synthetic-first policy · no PHI logging"

@@ -1,0 +1,37 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-1
+# TESTED: NO
+#
+# Initial server hardening for Oracle Cloud Free Tier
+# Requires: fresh Ubuntu 22.04 VM, sudo user 'ubuntu', working SSH key session
+# Time: ~5 minutes · Effect: secures SSH, firewall, fail2ban, auto-updates
+# Idempotent: yes (re-runnable)
+
+set -euo pipefail
+
+echo "🔒 Starting initial hardening..."
+
+# 1. تحديث النظام
+sudo apt update && sudo apt upgrade -y
+
+# 2. SSH hardening (تأكد من جلسة مفتوحة ثانية قبل restart!)
+sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+sudo systemctl restart ssh
+
+# 3. Firewall — 22/80/443 فقط (5000/5001 تبقى loopback)
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw --force enable
+
+# 4. Fail2ban
+sudo apt install -y fail2ban
+sudo systemctl enable --now fail2ban
+
+# 5. تحديثات أمنية تلقائية
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure --priority=low -f noninteractive unattended-upgrades || true
+
+echo "✅ SUCCESS: hardening complete (verify: ufw status, fail2ban-client status sshd)"

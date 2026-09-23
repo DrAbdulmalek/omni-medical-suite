@@ -1,0 +1,19 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2
+# TESTED: NO
+#
+# Install nginx site from template (replace {{DOMAIN}} first)
+# Requires: 03 done · Time: ~5 min · Idempotent: yes
+
+set -euo pipefail
+DOMAIN="${DOMAIN:?set DOMAIN env var}"
+SRC="deploy/configs/nginx-ahw.conf.template"
+DST="/etc/nginx/sites-available/omni-ahw"
+
+sed "s/{{DOMAIN}}/$DOMAIN/g" "$SRC" | sudo tee "$DST" >/dev/null
+sudo ln -sf "$DST" /etc/nginx/sites-enabled/omni-ahw
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+
+echo "✅ SUCCESS: nginx site active for $DOMAIN (verify: curl -I http://$DOMAIN/)"

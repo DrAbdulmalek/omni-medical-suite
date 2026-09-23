@@ -1,0 +1,26 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-6
+# TESTED: NO
+#
+# Pull latest model Release → verify SHA256 → run validate_model.py
+# Requires: gh authed (models repo read) · Time: ~10-30 min (validation) · Idempotent: yes
+
+set -euo pipefail
+MODELS_REPO="${MODELS_REPO:?set MODELS_REPO}"
+MODELS_DIR="${MODELS_DIR:-$HOME/omni-models}"
+mkdir -p "$MODELS_DIR/candidates"
+
+TAG=$(gh release list -R "$MODELS_REPO" -L 1 --json tagName -q '.[0].tagName')
+echo "⬇️  Latest release: $TAG"
+cd "$MODELS_DIR/candidates" && rm -rf "$TAG" && mkdir "$TAG" && cd "$TAG"
+gh release download "$TAG" -R "$MODELS_REPO"
+
+# تحقق SHA256 (رفض قاطع عند الاختلاف)
+sha256sum -c SHA256SUMS
+
+# التحقق الوظيفي (CER/WER على عينات التحقق — اصطناعية/معتمدة فقط)
+python3 "$MODELS_DIR/validate_model.py" --model-dir . --out metrics.json || {
+    echo "❌ validation FAILED — candidate kept for forensics, NOT promoted"; exit 2; }
+
+echo "✅ SUCCESS: $TAG validated (metrics.json) → run 04-promote-or-rollback"

@@ -1,0 +1,34 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-6
+# TESTED: NO
+#
+# Export corrections dataset from VPS (xlsx/csv → tar.gz + manifest)
+# Requires: APP_DIR with output/<sample>/ · Time: ~1 min · Idempotent: yes
+# Guard: refuses datasets < MIN_ROWS (500) — يمنع تدريبًا على بيانات هزيلة
+
+set -euo pipefail
+APP_DIR="${APP_DIR:-$HOME/omni-medical-suite}"
+SAMPLE="${AHW_SAMPLE_ID:-S001}"
+OUT="/tmp/omni-export"; MIN_ROWS="${MIN_ROWS:-500}"
+STAMP=$(date +%Y%m%d-%H%M%S)
+
+mkdir -p "$OUT"
+SRC="$APP_DIR/output/$SAMPLE"
+[ -d "$SRC" ] || { echo "❌ no sample dir: $SRC"; exit 1; }
+
+tar -czf "$OUT/dataset-$STAMP.tar.gz" -C "$SRC" \
+    $(cd "$SRC" && ls -d batch_* corrections.* metadata_all.* 2>/dev/null || true)
+
+ROWS=$(find "$SRC"/batch_* -name "metadata.csv" -exec cat {} + 2>/dev/null | tail -n +2 | wc -l || echo 0)
+sha256sum "$OUT/dataset-$STAMP.tar.gz" | cut -d' ' -f1 > "$OUT/dataset-$STAMP.sha256"
+cat > "$OUT/manifest-$STAMP.json" <<MANIFEST
+{"stamp":"$STAMP","sample":"$SAMPLE","rows":$ROWS,"min_rows":$MIN_ROWS,
+ "sha256":"$(cat "$OUT/dataset-$STAMP.sha256")","crops_dir":"batch_*"}
+MANIFEST
+
+if [ "$ROWS" -lt "$MIN_ROWS" ]; then
+    echo "⚠️  rows=$ROWS < MIN_ROWS=$MIN_ROWS — export kept locally, NOT pushed (train gate)"
+    exit 2
+fi
+echo "✅ SUCCESS: $OUT/dataset-$STAMP.tar.gz (rows=$ROWS) → run 02-encrypt-and-push"

@@ -1,0 +1,38 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2
+# TESTED: NO
+#
+# Clone repo + venv + .env scaffold (values generated at execution time only)
+# Requires: 02 done; deploy key or narrow PAT created BY OWNER at that time
+# Time: ~10 min · Effect: ~/omni-medical-suite + venv · Idempotent: yes
+
+set -euo pipefail
+REPO_URL="${REPO_URL:-https://github.com/DrAbdulmalek/omni-medical-suite.git}"
+BRANCH="${BRANCH:-main}"
+APP_DIR="$HOME/omni-medical-suite"
+
+echo "📥 Clone/pull $BRANCH ..."
+if [ -d "$APP_DIR/.git" ]; then
+    git -C "$APP_DIR" fetch origin && git -C "$APP_DIR" checkout "$BRANCH" && git -C "$APP_DIR" pull --ff-only
+else
+    git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+fi
+
+echo "🐍 venv + requirements ..."
+cd "$APP_DIR"
+python3 -m venv venv
+./venv/bin/pip install --upgrade pip
+if [ -f requirements-atr.txt ]; then
+    ./venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu
+    ./venv/bin/pip install -r requirements-atr.txt
+fi
+
+echo "🔐 .env scaffold (قيم حقيقية تُولَّد وقت التنفيذ فقط) ..."
+if [ ! -f .env ] && [ -f deploy/configs/.env.template ]; then
+    cp deploy/configs/.env.template .env && chmod 600 .env
+    echo "   → حرر .env: ولّد FLASK_SECRET_KEY/ATR_SECRET_KEY/ATR_API_TOKEN بـ openssl rand -hex 32"
+fi
+mkdir -p output models
+
+echo "✅ SUCCESS: app dir ready at $APP_DIR"

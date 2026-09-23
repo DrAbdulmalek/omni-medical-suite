@@ -1,0 +1,21 @@
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2 (optional — disabled by default on VPS; training runs on Colab)
+# TESTED: NO
+# NOTE: full training on VPS is NOT supported (no GPU). This unit serves the
+# training DASHBOARD/smoke-mode only. See docs/future/colab-pipeline/.
+[Unit]
+Description=AHW Training UI
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/omni-medical-suite
+Environment="PATH=/home/ubuntu/omni-medical-suite/venv/bin"
+EnvironmentFile=/home/ubuntu/omni-medical-suite/.env
+ExecStart=/home/ubuntu/omni-medical-suite/venv/bin/python train_server.py --host 127.0.0.1 --port 5001
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

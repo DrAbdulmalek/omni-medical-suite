@@ -1,0 +1,18 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2
+# TESTED: NO
+#
+# Let's Encrypt via certbot (DNS must point here; port 80 open in ufw AND OCI Security List)
+# Requires: 04 done · Time: ~3 min · Idempotent: yes (renew-safe)
+
+set -euo pipefail
+DOMAIN="${DOMAIN:?set DOMAIN env var}"
+EMAIL="${ACME_EMAIL:?set ACME_EMAIL env var}"
+
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d "$DOMAIN" --redirect --agree-tos -m "$EMAIL" --non-interactive || {
+    echo "❌ certbot failed — check DNS/port80 (see 11-troubleshooting)"; exit 1; }
+sudo certbot renew --dry-run
+
+echo "✅ SUCCESS: HTTPS active for $DOMAIN (renewal timer: systemctl list-timers | grep certbot)"

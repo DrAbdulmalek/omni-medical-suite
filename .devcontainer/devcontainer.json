@@ -1,0 +1,23 @@
+{
+  "name": "Omni Medical Suite — AHW",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.10" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-python.vscode-pylance"],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "forwardPorts": [5000, 5001],
+  "portsAttributes": {
+    "5000": { "label": "Correction Server", "onAutoForward": "notify" },
+    "5001": { "label": "Training UI", "onAutoForward": "notify" }
+  },
+  "remoteUser": "vscode",
+  "hostRequirements": { "cpus": 2, "memory": "4gb", "storage": "32gb" }
+}

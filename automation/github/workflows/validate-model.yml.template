@@ -1,0 +1,31 @@
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: FUTURE (V-6)
+# TESTED: NO
+# On new model release: verify SHA256SUMS integrity of assets + record audit log.
+# Does NOT download big weights into the runner by default (size/cost) — the
+# functional CER validation runs on the VPS (03-pull-and-validate-model).
+name: ATR Model Release Check (TEMPLATE)
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets
+      - name: Verify SHA256SUMS covers all assets (names only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "SHA256SUMS"
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "*.safetensors" || true
+          sha256sum -c SHA256SUMS || { echo "❌ checksum mismatch — DO NOT PULL ON VPS"; exit 1; }
+          echo "✅ integrity OK"

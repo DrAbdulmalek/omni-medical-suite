@@ -1,0 +1,118 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# STATUS: TEMPLATE ONLY — NOT EXECUTED\n",
+    "# PHASE: FUTURE (V-6)\n",
+    "# TESTED: NO\n",
+    "\n",
+    "## Train Arabic TrOCR (VPS↔Colab pipeline — outline)\n",
+    "Runtime: **T4 GPU**. Secrets via Colab Secrets tab: `GH_TOKEN`, `GPG_PASSPHRASE` — never in cells.\n",
+    "First run MUST use synthetic data (pipeline proof) before any owner-approved corpus."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 1. Install (pins matching requirements-atr.txt)\n",
+    "```python\n",
+    "# %pip install 'transformers==4.57.6' accelerate jiwer pandas openpyxl PyMuPDF opencv-python-headless\n",
+    "# torch preinstalled on Colab; verify: import torch; torch.cuda.is_available()\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 2. Pull encrypted dataset (gh CLI)\n",
+    "```python\n",
+    "# from google.colab import userdata\n",
+    "# !gh auth login --with-token <<< \"$GH_TOKEN\"  (via env, not printed)\n",
+    "# !gh release download --repo OWNER/omni-ahw-datasets latest ...  (or git clone private)\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 3. Decrypt IN-MEMORY/tmp + SHA256 verify\n",
+    "```python\n",
+    "# gpg --batch --decrypt --passphrase <from userdata> dataset.tar.gz.gpg | tar -xz -C /tmp/ds\n",
+    "# sha256sum -c manifest.sha256   → mismatch = ABORT\n",
+    "# shred raw ciphertext copies after use\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 4. Load base model\n",
+    "```python\n",
+    "# from ahw.arabic_trocr import load_model_with_arabic_tokenizer   (clone repo @ merged ATR)\n",
+    "# model, processor, info = load_model_with_arabic_tokenizer(dry_run=False)  # 2.67GB, within budget\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 5. Dataset + split (contract: split_by_source_page — no page leakage)\n",
+    "```python\n",
+    "# records from merged metadata + corrections; 80/10/10 grouped by source_page\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 6. Train (Seq2SeqTrainer; checkpoint EVERY epoch → upload for resume)\n",
+    "```python\n",
+    "# epochs per budget (T4 free ~ hours) · batch small · fp16 · logging_steps=10\n",
+    "# on reconnect: resume_from_checkpoint=latest uploaded\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 7. Evaluate (CER/WER via jiwer on test split — aggregate numbers only, no text logging)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 8. Save safetensors + metrics.json + SHA256SUMS"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 9. Upload GitHub Release `trocr-arabic-v<n>` (gh release create --repo OWNER/omni-ahw-models)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### 10. Notify VPS (optional repository_dispatch) — then VPS runs 03-pull-and-validate + 04-promote-or-rollback"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {"display_name": "Python 3", "name": "python3"},
+  "language_info": {"name": "python"}
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

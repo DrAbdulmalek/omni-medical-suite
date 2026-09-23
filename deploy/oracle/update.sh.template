@@ -1,0 +1,25 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2..V-7 (تحديث مخطط)
+# TESTED: NO
+#
+# Planned update: tag current as previous-good → pull → deps → restart → verify
+# Requires: clean app dir · Time: ~5 min · Idempotent: yes
+
+set -euo pipefail
+APP_DIR="$HOME/omni-medical-suite"
+BRANCH="${BRANCH:-main}"
+
+cd "$APP_DIR"
+PREV=$(git describe --tags --always 2>/dev/null || git rev-parse --short HEAD)
+echo "⬆️  Updating $BRANCH (previous-good: $PREV) ..."
+git fetch origin && git checkout "$BRANCH" && git pull --ff-only
+./venv/bin/pip install -q -r requirements-atr.txt
+sudo systemctl restart ahw-correction
+sleep 2
+if systemctl is-active --quiet ahw-correction; then
+    echo "✅ SUCCESS: updated. Previous-good for rollback: LAST_GOOD_TAG=$PREV"
+else
+    echo "❌ service failed after update → run rollback.sh.template LAST_GOOD_TAG=$PREV"
+    exit 1
+fi

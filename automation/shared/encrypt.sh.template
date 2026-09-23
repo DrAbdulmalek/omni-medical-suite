@@ -1,0 +1,17 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-4/V-6
+# TESTED: NO
+#
+# Shared GPG encrypt helper (symmetric AES256 or recipient pubkey)
+# Usage: encrypt.sh <file> [<recipient>] · Output: <file>.gpg + prints sha256
+set -euo pipefail
+F="${1:?usage: encrypt.sh <file> [recipient]}"; RECIP="${2:-}"
+[ -f "$F" ] || { echo "❌ missing file"; exit 1; }
+if [ -n "$RECIP" ]; then
+    gpg --batch --yes --encrypt -r "$RECIP" -o "$F.gpg" "$F"
+else
+    gpg --batch --yes --symmetric --cipher-algo AES256 -o "$F.gpg" "$F"  # passphrase via pinentry/keyring
+fi
+sha256sum "$F.gpg"
+echo "✅ SUCCESS: $F.gpg"

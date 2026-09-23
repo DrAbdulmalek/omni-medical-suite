@@ -1,0 +1,15 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-4/V-6
+# TESTED: NO
+#
+# Shared GPG decrypt helper — يفك إلى /tmp (ذاكرة/مؤقت) ويتحقق SHA256 إن وُجد
+# Usage: decrypt.sh <file.gpg> [expected.sha256]
+set -euo pipefail
+F="${1:?usage: decrypt.sh <file.gpg> [sha256file]}"; SHA="${2:-}"
+OUT="/tmp/$(basename "$F" .gpg)"
+gpg --batch --yes --decrypt -o "$OUT" "$F"
+if [ -n "$SHA" ] && [ -f "$SHA" ]; then
+    echo "$(cat "$SHA")  $OUT" | sha256sum -c -
+fi
+echo "✅ SUCCESS: decrypted to $OUT (احذفه بعد الاستخدام: shred -u)"

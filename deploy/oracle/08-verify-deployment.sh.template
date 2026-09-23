@@ -1,0 +1,23 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2/V-4
+# TESTED: NO
+#
+# Deployment verification (docs/future/oracle/10-verify-deployment.md checklist)
+# Requires: steps 01-07 done · Time: ~2 min · Read-only checks
+
+set -uo pipefail
+DOMAIN="${DOMAIN:-localhost}"
+PASS=0; FAIL=0
+check() { if eval "$2" >/dev/null 2>&1; then echo "  ✅ $1"; PASS=$((PASS+1)); else echo "  ❌ $1"; FAIL=$((FAIL+1)); fi; }
+
+echo "🔎 Verifying deployment..."
+check "ufw active"                "sudo ufw status | grep -q 'Status: active'"
+check "port 5000 blocked (ext)"   "! nc -z -w2 $DOMAIN 5000"
+check "nginx serving"             "curl -fsS -o /dev/null http://127.0.0.1/ || curl -fsSk -o /dev/null https://127.0.0.1/"
+check "ahw-correction active"     "systemctl is-active ahw-correction"
+check "fail2ban sshd"             "sudo fail2ban-client status sshd"
+check "certbot timer"             "systemctl list-timers | grep -q certbot"
+
+echo "RESULT: $PASS passed / $FAIL failed — FAIL>0 يعني لا إعلان نشر (راجع 11-troubleshooting)"
+[ "$FAIL" -eq 0 ] && echo "✅ SUCCESS" || exit 1

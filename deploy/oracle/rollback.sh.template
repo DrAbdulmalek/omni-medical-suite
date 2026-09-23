@@ -1,0 +1,21 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-2..V-7 (استخدام عند الحاجة)
+# TESTED: NO
+#
+# Service-level rollback: stop → checkout last-good tag → restart → verify
+# Requires: LAST_GOOD_TAG env (مثل v1.1.1) · Time: ~2 min · Idempotent: yes
+
+set -euo pipefail
+LAST_GOOD_TAG="${LAST_GOOD_TAG:?set LAST_GOOD_TAG}"
+APP_DIR="$HOME/omni-medical-suite"
+
+echo "↩️  Rolling back to $LAST_GOOD_TAG ..."
+sudo systemctl stop ahw-correction ahw-training 2>/dev/null || true
+git -C "$APP_DIR" fetch --tags origin
+git -C "$APP_DIR" checkout "$LAST_GOOD_TAG"
+"$APP_DIR/venv/bin/pip" install -q -r "$APP_DIR/requirements-atr.txt" 2>/dev/null || true
+sudo systemctl start ahw-correction
+sleep 2 && systemctl is-active ahw-correction
+
+echo "✅ SUCCESS: rolled back to $LAST_GOOD_TAG (وثّق الحادث في سجل النشر)"

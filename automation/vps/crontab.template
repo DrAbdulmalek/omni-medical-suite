@@ -1,0 +1,18 @@
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-4/V-6
+# TESTED: NO
+# Install as /etc/cron.d/omni-backup (root-owned, 0644). Times are server-local.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# يومي 02:00 — تصدير + تشفير + رفع (backup/dataset)
+0 2 * * *   ubuntu /opt/omni/automation/vps/01-export-dataset.sh    >> /var/log/omni-export.log 2>&1
+30 2 * * *  ubuntu /opt/omni/automation/vps/02-encrypt-and-push.sh  >> /var/log/omni-push.log 2>&1
+
+# أسبوعي (السبت 04:00) — سحب نموذج + تحقق + ترقية/تراجع
+0 4 * * 6   ubuntu /opt/omni/automation/vps/03-pull-and-validate-model.sh >> /var/log/omni-model.log 2>&1
+30 4 * * 6  ubuntu /opt/omni/automation/vps/04-promote-or-rollback.sh     >> /var/log/omni-promote.log 2>&1
+
+# شهري (أول الشهر) — اختبار استعادة backup: يدوي موثق (بوابة V-4) —
+# لا سكربت إضافي خارج شجرة الملفات المقررة؛ الخطوات في
+# docs/future/oracle/09-setup-backup.md (فك تشفير + تحقق SHA256 + عدّ صفوف)

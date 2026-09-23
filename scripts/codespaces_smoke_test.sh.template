@@ -1,0 +1,24 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: FUTURE (anytime — Codespaces readiness)
+# TESTED: NO
+#
+# Verifies a Codespaces/devcontainer environment is ready for AHW work.
+# Read-only checks + optional dry_run pytest (synthetic, no downloads).
+
+set -uo pipefail
+ok(){ echo "  ✅ $1"; }; bad(){ echo "  ❌ $1"; FAIL=1; }; FAIL=0
+
+echo "🔎 Codespaces smoke test..."
+command -v python3 >/dev/null && ok "python3 $(python3 -V 2>&1 | cut -d' ' -f2)" || bad "python3"
+python3 -c "import cv2" 2>/dev/null && ok "opencv" || bad "opencv"
+python3 -c "import fitz" 2>/dev/null && ok "pymupdf" || bad "pymupdf"
+python3 -c "import flask" 2>/dev/null && ok "flask" || bad "flask"
+python3 -c "import pandas" 2>/dev/null && ok "pandas" || bad "pandas"
+[ -d /workspace/omni-medical-suite ] || [ -f /workspace/pyproject.toml ] && ok "repo present" || bad "repo present"
+
+if [ "${RUN_TESTS:-0}" = "1" ]; then
+    echo "🧪 dry_run ATR tests (synthetic)..."
+    python3 -m pytest tests/test_atr_split_contract.py tests/test_atr_docker.py -q || bad "tests"
+fi
+[ "$FAIL" -eq 0 ] && echo "✅ SUCCESS: environment ready" || { echo "❌ environment incomplete"; exit 1; }

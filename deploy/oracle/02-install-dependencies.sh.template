@@ -1,0 +1,21 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-1
+# TESTED: NO
+#
+# Install runtime dependencies (Python/Nginx/Git/media libs; Docker optional)
+# Requires: 01 hardening done · Time: ~10 min · Effect: system packages only
+# Idempotent: yes
+
+set -euo pipefail
+echo "📦 Installing dependencies..."
+
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip git nginx \
+    libgl1 libglib2.0-0 poppler-utils \
+    tesseract-ocr tesseract-ocr-ara
+
+# Docker اختياري (V-5) — فك التعليق بعد مراجعة سكربت التثبيت الرسمي:
+# curl -fsSL https://get.docker.com | sh
+
+echo "✅ SUCCESS: $(python3 --version) · nginx $(nginx -v 2>&1 | cut -d/ -f2) · git $(git --version | cut -d' ' -f3)"

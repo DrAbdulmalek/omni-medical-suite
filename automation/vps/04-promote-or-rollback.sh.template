@@ -1,0 +1,30 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: V-6
+# TESTED: NO
+#
+# Promote validated candidate atomically (symlink swap) or rollback to previous
+# Requires: 03 produced metrics.json with "decision" · Time: seconds · Idempotent: yes
+
+set -euo pipefail
+MODELS_DIR="${MODELS_DIR:-$HOME/omni-models}"
+CURRENT="$MODELS_DIR/current"; PREVIOUS="$MODELS_DIR/previous"
+ACTION="${1:-auto}"   # auto | --rollback
+
+if [ "$ACTION" = "--rollback" ]; then
+    [ -e "$PREVIOUS" ] || { echo "❌ nothing to rollback to"; exit 1; }
+    ln -sfn "$(readlink -f "$PREVIOUS")" "$CURRENT"
+    echo "↩️  SUCCESS: rolled back to $(readlink -f "$CURRENT")"
+    exit 0
+fi
+
+CAND=$(ls -td "$MODELS_DIR"/candidates/*/ 2>/dev/null | head -1) || true
+[ -n "$CAND" ] || { echo "❌ no candidate"; exit 1; }
+DECISION=$(python3 -c "import json;print(json.load(open('$CAND/metrics.json')).get('decision','REJECT'))")
+if [ "$DECISION" = "PROMOTE" ]; then
+    [ -e "$CURRENT" ] && ln -sfn "$(readlink -f "$CURRENT")" "$PREVIOUS" || true
+    ln -sfn "$(readlink -f "$CAND")" "$CURRENT"
+    echo "✅ SUCCESS: promoted $CAND (previous kept for rollback)"
+else
+    echo "🚫 REJECTED by validator (decision=$DECISION) — current model unchanged"
+fi

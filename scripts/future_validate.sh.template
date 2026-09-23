@@ -1,0 +1,33 @@
+#!/bin/bash
+# STATUS: TEMPLATE ONLY — NOT EXECUTED
+# PHASE: FUTURE (structure gate for this documentation package)
+# TESTED: NO
+#
+# Structural validator for the future-infrastructure package:
+# counts files, enforces TEMPLATE headers, forbids secrets/PHI patterns.
+
+set -uo pipefail
+FAIL=0
+echo "🔎 Validating future package structure..."
+
+N_TPL=$(find deploy automation scripts -name "*.template" 2>/dev/null | wc -l)
+echo "  templates found: $N_TPL (expected 27)"
+[ "$N_TPL" -ge 27 ] || { echo "  ❌ missing templates"; FAIL=1; }
+
+MISSING_HDR=0
+while IFS= read -r f; do
+    head -5 "$f" | grep -q "STATUS: TEMPLATE ONLY" || { echo "  ❌ header missing: $f"; MISSING_HDR=1; }
+done < <(find deploy automation scripts -name "*.template" 2>/dev/null)
+[ "$MISSING_HDR" -eq 0 ] && echo "  ✅ all templates carry TEMPLATE-ONLY header" || FAIL=1
+
+for d in docs/future/vps docs/future/codespaces docs/future/oracle docs/future/colab-pipeline .devcontainer; do
+    [ -d "$d" ] && echo "  ✅ $d" || { echo "  ❌ $d missing"; FAIL=1; }
+done
+
+if grep -RInE "ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z]+ PRIVATE" docs/future deploy automation scripts .devcontainer 2>/dev/null; then
+    echo "  ❌ secret-like pattern found"; FAIL=1
+else
+    echo "  ✅ no secret-like patterns"
+fi
+
+[ "$FAIL" -eq 0 ] && echo "✅ SUCCESS: structure valid" || { echo "❌ FAILED"; exit 1; }

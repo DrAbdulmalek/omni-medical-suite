@@ -124,3 +124,29 @@ data/dictionaries/conflicts.json
 # See docs/audits/MALEK_DICTIONARIES_AUDIT.md for the full pipeline audit.
 data/dictionaries/specialty/*.json
 !data/dictionaries/specialty/.gitkeep
+
+# ── Future infrastructure (docs/future plan) ─────────────────────────────
+# Future infrastructure secrets
+.env
+.env.local
+deploy/configs/.env
+*.gpg
+secrets/
+tokens/
+*.key
+
+# Codespaces/devcontainer
+.devcontainer/.env
+
+# VPS/backup artifacts (لا ترفع مخرجات/نماذج/قواعد بيانات)
+output/
+models/
+backups/
+*.db
+*.xlsx
+corrections*.csv
+batch_*/
+
+# قوالب .env.template تبقى مُتتبعة (استثناء صريح من قواعد .env.* أعلاه)
+!.env.template
+!deploy/configs/.env.template
