@@ -58,12 +58,35 @@ class TrainConfig:
 # ---------------------------------------------------------------------------
 # بيانات
 # ---------------------------------------------------------------------------
-def _resolve_crop(data_dir: Path, crop_path: str) -> Optional[Path]:
-    """يحل مسار القصاصة بعدة محاولات (نسبي/مطلق/داخل crops/)."""
+def _resolve_crop(data_dir: Path, crop_path: str,
+                  batch: Optional[str] = None) -> Optional[Path]:
+    """يحل مسار القصاصة بعدة محاولات.
+
+    مخرجات segment_batch الحقيقية: ``crop_path`` نسبي لمجلد الدفعة
+    (``crops/x.png``) مع عمود ``batch`` منفصل (``batch_001``) — لذا المسار
+    الحقيقي هو ``data_dir/<batch>/<crop_path>``. نجرب الترتيب الأطول فالأقصر
+    لنبقى متوافقين مع كل من بنية الدفعات والمسارات المطلقة/المباشرة.
+    """
     p = Path(crop_path)
-    candidates = [p if p.is_absolute() else data_dir / p,
-                  data_dir / "crops" / p.name]
+    candidates: List[Path] = []
+    if batch:
+        b = str(batch)
+        if not p.is_absolute():
+            candidates.append(data_dir / b / p)
+            # إن كان crop_path يتضمن اسم الدفعة بالفعل
+            candidates.append(data_dir / b / p.name if p.parent.name == "crops"
+                              else data_dir / b / p)
+    if p.is_absolute():
+        candidates.append(p)
+    else:
+        candidates.append(data_dir / p)
+        candidates.append(data_dir / "crops" / p.name)
+    seen = set()
     for c in candidates:
+        key = str(c)
+        if key in seen:
+            continue
+        seen.add(key)
         if c.exists():
             return c
     return None
@@ -195,11 +218,17 @@ class WordCropDataset:
 
 
 def records_from_df(df: "Any", data_dir: Path) -> List[Dict[str, Any]]:
+    import pandas as pd
+
     recs: List[Dict[str, Any]] = []
+    has_batch = "batch" in df.columns
     for _, row in df.iterrows():
-        path = _resolve_crop(data_dir, str(row["crop_path"]))
+        batch = str(row["batch"]) if has_batch and pd.notna(row["batch"]) \
+            else None
+        path = _resolve_crop(data_dir, str(row["crop_path"]), batch=batch)
         if path is None:
-            logger.warning("قصاصة مفقودة تُستبعد: %s", row["crop_path"])
+            logger.warning("قصاصة مفقودة تُستبعد: %s (batch=%s)",
+                           row["crop_path"], batch)
             continue
         recs.append({"image": None, "image_path": path,
                      "text": str(row["text"]),

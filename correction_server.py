@@ -70,8 +70,13 @@ def index():
 def api_words():
     df = load_words(_sample_dir())
     df = df.where(pd.notna(df), None)
-    return jsonify({"count": int(len(df)),
-                    "words": df.head(5000).to_dict(orient="records")})
+    records = df.head(5000).to_dict(orient="records")
+    # مسار التقديم الحقيقي = <batch>/<crop_path> (crop_path نسبي لمجلد الدفعة)
+    for r in records:
+        cp = r.get("crop_path") or ""
+        b = r.get("batch")
+        r["crop_url"] = f"{b}/{cp}" if b and not cp.startswith(str(b)) else cp
+    return jsonify({"count": int(len(df)), "words": records})
 
 
 @app.route("/api/save", methods=["POST"])
@@ -156,7 +161,7 @@ async function load(){
   const g=document.getElementById('grid'); g.innerHTML='';
   WORDS.forEach((w,i)=>{
     const cell=document.createElement('div'); cell.className='cell';
-    cell.innerHTML=`<img loading="lazy" src="/crops/${w.crop_path}" alt="">`+
+    cell.innerHTML=`<img loading="lazy" src="/crops/${w.crop_url||w.crop_path}" alt="">`+
       `<input dir="rtl" value="${(w.text||'').replace(/"/g,'&quot;')}" data-i="${i}">`+
       `<div class="wid">${w.word_id||''}</div>`;
     const inp=cell.querySelector('input');

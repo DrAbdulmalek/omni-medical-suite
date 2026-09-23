@@ -13,7 +13,7 @@
 | ATR-03 | F1 AraBERT Tokenizer — ahw/arabic_trocr.py | DONE | acf86b3 | 4/4 dry_run (Z.ai) | real-load مُثبت (Z.ai): resize 50265→64000 + reinit كامل + forward 0.8s CPU |
 | ATR-04 | F3 Training UI — train_server.py + dashboard | DONE | (هذا الـcommit) | 15/15 | **تولّت Qwen** (توقف Z.ai بعد ATR-03 @15:02:59Z)؛ +correction_server.py + نواة ahw/train_trocr.py (smoke/full) + smoke حقيقي داخل الاختبارات |
 | ATR-05 | F2 Docker — Dockerfile.atr + docker-compose.atr.yml | DONE | (هذا الـcommit) | 12/12 | STRUCTURE_ONLY (لا docker في البيئتين)؛ أسماء ATR منفصلة كي لا تستبدل Dockerfile/docker-compose.yml الجذرية؛ sidecar `Dockerfile.atr.dockerignore` (لا لمس لـ .dockerignore القائم)؛ + requirements-atr.txt |
-| ATR-06 | Integration Smoke Test | PENDING | - | 0/0 | PDF اصطناعي 3 صفحات، بلا PHI |
+| ATR-06 | Integration Smoke Test | DONE | (هذا الـcommit) | 3/3 (+ سكربت مستقل PASS) | PDF اصطناعي 3ص → دفعات → دمج → تصحيحات → تدريب dry_run؛ **أصلح درز تكامل**: مسار القصاصة batch-aware (`<batch>/crops/x.png`) في train_trocr + correction_server؛ loss تنازلي 2.85→2.69؛ 0 تنزيل/0 شبكة/0 PHI |
 | ATR-07 | Final Report | PENDING | - | 0/0 | |
 
 ## ما تبقى (Remaining)
