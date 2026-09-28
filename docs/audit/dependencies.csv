@@ -1,0 +1,8 @@
+package,omni_medical_suite,medical_ocr_trainer,trainer_hf,medical_handwriting,scanner_fixer,recommendation
+paddleocr,unverified,>=2.7.0,>=2.7.0,manual,none,>=2.7.0
+pytesseract,>=0.3.10-ml.txt,>=0.3.10,>=0.3.10,none,>=0.3-optional,>=0.3.10
+numpy,>=1.24.0,>=1.24.0,>=1.24.0,<2.0.0,unverified,>=1.23,unify-cap
+streamlit,none,>=1.38.0,==1.38.0,none,none,>=1.38.0
+pillow,>=10.0.0,>=10.0.0,>=10.0.0,unverified,>=9.0,>=10.0.0
+easyocr,optional-commented,commented,>=1.7.0,none,none,>=1.7.0
+git-dep,none,medical-ocr-benchmarks@main,none,none,none,remove
