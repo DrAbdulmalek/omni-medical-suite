@@ -1,0 +1,7 @@
+id,severity,type,location,description,status
+S-001,HIGH,DESERIALIZATION,PR-119-open,unsafe pickle in main unmerged,OPEN
+S-002,HIGH,INJECTION,PR-118-open,shell injection in git config helpers unmerged,OPEN
+S-003,MEDIUM,SECRET_HYGIENE,env-examples-committed,.env.* examples at omni+handwriting roots values unchecked,OPEN-NOT_EXECUTED
+S-004,MEDIUM,THIRD_PARTY,PR-130-open,Telegram Forwarder quarantine pending,OPEN
+S-005,LOW,API_KEY,adapter.py:316-861,mistral_api_key optional param,OPEN-design
+S-006,INFO,SUBPROCESS,adapter.py:233,tesseract --version fixed args,FALSE_POSITIVE
