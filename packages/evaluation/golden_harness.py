@@ -12,7 +12,7 @@
   ``OMNI_ALLOW_CLOUD`` (fail-closed عبر packages.omni_ocr.adapter._cloud_allowed)
   تُفحص **قبل** أي استدعاء سحابي. الاختبارات لا تستدعيه أبداً.
 - **§3.8:** الثقة (confidence) تُستبعد من الترتيب والمقارنة كلياً؛ نتائج
-  Mistral تُسجَّل مع ``confidence_excluded=true`` لأن القيمة مُخترَعة
+  Mistral تُسجَّل مع ``confidence_excluded=true`` لأن القيمة مُخترَعة
   (confidence_is_estimate=True من adapter) — CER/WER على النص فقط.
 
 الاستخدام:
@@ -69,7 +69,7 @@ def load_samples() -> list[dict]:
 
 
 def _tesseract_env() -> dict:
-    """بيئة tesseract — TESSDATA_PREFIX يُورَّث من البيئة كما هو (لا افتراضي صامت)."""
+    """بيئة tesseract — TESSDATA_PREFIX يُورَّث من البيئة كما هو (لا افتراضي صامت)."""
     return dict(os.environ)
 
 _LANG_CACHE: dict[str, list[str]] = {}
@@ -124,9 +124,13 @@ def check_cloud_gate() -> None:
 
 def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict:
     raw = (out.get("text") or "").strip()
-    normalized, policy = normalize_v1(raw)
-    cer, _, _ = calculate_cer(sample["reference"], normalized)
-    wer, _, _ = calculate_wer(sample["reference"], normalized)
+    hyp_norm, hyp_policy = normalize_v1(raw)
+    ref_norm, ref_policy = normalize_v1(sample["reference"])
+    cer_n, _, _ = calculate_cer(ref_norm, hyp_norm)
+    wer_n, _, _ = calculate_wer(ref_norm, hyp_norm)
+    cer_r, _, _ = calculate_cer(sample["reference"], raw)
+    wer_r, _, _ = calculate_wer(sample["reference"], raw)
+    encoding_artifact_share = max(0.0, (cer_r or 0.0) - (cer_n or 0.0))
     return {
         "sample_id": sample["id"],
         "category": sample["category"],
@@ -135,10 +139,21 @@ def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict
         "engine": engine,
         "model": out.get("model", ""),
         "raw_text": raw,
-        "normalized_text": normalized,
-        "normalize_policy": {"version": policy["version"], "fold_hamza": policy["fold_hamza"]},
-        "cer": round(cer, 6),
-        "wer": round(wer, 6),
+        "normalized_text": hyp_norm,
+        "normalize_policy": {
+            "version": hyp_policy["version"],
+            "fold_hamza": hyp_policy["fold_hamza"],
+            "symmetric": True,
+            "hyp": hyp_policy,
+            "ref": ref_policy,
+        },
+        "cer": round(cer_n, 6),
+        "wer": round(wer_n, 6),
+        "cer_normalized": round(cer_n, 6),
+        "wer_normalized": round(wer_n, 6),
+        "cer_raw": round(cer_r, 6),
+        "wer_raw": round(wer_r, 6),
+        "encoding_artifact_share": round(encoding_artifact_share, 6),
         "audit": {
             "latency_ms": round(out.get("latency_ms", 0.0), 2),
             "chars": len(raw),
@@ -163,7 +178,7 @@ def ingest_captured(path: Path, engine: str = "mistral") -> list[dict]:
     """أدخل نتائج سحابية ملتقطة يدوياً (بلا شبكة هنا) واحسب مقاييسها.
 
     كل سجل: {sample_id, model, raw_text, cost_estimate_usd?, page?}.
-    الثقة إن وردت في الملف تُسجَّل كمُستبعدة ولا تُستخدم في أي مقارنة.
+    الثقة إن وردت في الملف تُسجَّل كمُستبعدة ولا تُستخدم في أي مقارنة.
     """
     samples = {s["id"]: s for s in load_samples()}
     rows = []
