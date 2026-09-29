@@ -11,8 +11,15 @@
 | # | العنقود | الحالة على main @ 3631335 | الدليل (أمر منفذ) | PR | الحكم |
 |---|---|---|---|---|---|
 | C-1 | `ai_corrector.py` (5 نسخ → كنسية + 3 shims) | الكنسية `packages/nlp/ai_corrector.py` md5=`2f53a5ea` بلا تغيير؛ 3 شيمات تعيد التصدير فقط | `md5sum` + `grep 'Consolidation shim'` على الاستنساخ الحي | #129 (CLOSED؛ المحتوى على main — commit squash `0f1630b7` سلف لـ main وفق `compare main...0f1630b7 = behind`) | PROVEN |
-| C-2 | إزالة كلمة مرور PostgreSQL المضمّنة (SEC-1) | grep المستودع كاملاً لا يجد `omni_dev_pass` (استثناء `.git/`) | `grep -rn` على الاستنساخ الحي | #128 (MERGED، mergeCommit `60112cfb`) | PROVEN |
+| C-2 | إزالة كلمة مرور PostgreSQL المضمّنة (SEC-1) | grep المستودع كاملاً لا يجد `omni_dev_****` (استثناء `.git/`) | `grep -rn` على الاستنساخ الحي | #128 (MERGED، mergeCommit `60112cfb`) | PROVEN |
 | C-3 | بوابة السحابة P0 + عزل الثقة المخترعة + provenance | main HEAD = `3631335f` (عنوان الـcommit يطابق موضوع #137) | `git log` + `gh pr view` | #137 (CLOSED؛ commit على main) | commit PROVEN — **التحقق التفصيلي لبنوده الثمانية (R1) لم يُنفذ بعد → UNPROVEN حتى مراجعة R1** |
+
+> **ملاحظة حجب (‏`omni_dev_****`):** القيمة مكتوبة مُجزَّأة عمداً.
+> `tests/security/test_no_embedded_default_credentials.py` يمسح **كل** ملف متتبَّع بحثاً عن
+> `KNOWN_FORBIDDEN_DEFAULTS` ويستثني نفسه فقط (`DECLARED_FIXTURES`) — فكتابة الكلمة كاملةً
+> في هذا الجدول، وهو السجل الذي يوثّق إزالتها، كانت تُبطل ادعاءه وتُشعل الحارس
+> (‏`Production security regression gate` و`Unit Tests`).
+> **القاعدة: لا تُكتب قيمة سرّ محظور حرفياً في أي وثيقة، ولا حتى لنفي وجودها.**
 
 ## 2) المتبقي — عناقيد التكرار المرشحة للدمج (جرد 2026-09-28 على main)
 
