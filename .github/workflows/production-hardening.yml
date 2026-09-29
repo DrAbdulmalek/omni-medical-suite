@@ -37,6 +37,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # LFS: golden_set/*.jsonl والصور تحت LFS؛ بلا هذا
+          # تصل مؤشرات 129 بايت فتفشل tests/evaluation/ بـJSONDecodeError
+          lfs: true
 
       - uses: actions/setup-python@v5
         with:
