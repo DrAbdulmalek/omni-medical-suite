@@ -164,10 +164,18 @@ def test_flush_queue_returns_message_when_hf_unavailable(isolated_queue, monkeyp
 
 
 def test_flush_queue_empty_returns_info_message(isolated_queue, monkeypatch):
-    """flush_queue() with no pending rows returns an info message."""
+    """flush_queue() with no pending rows returns an info message.
+
+    Updated for the P0-A fail-closed contract: the export kill-switch
+    refusal deliberately precedes the empty-queue check, so this test now
+    opens the operator gates (export enabled + token) before asserting the
+    empty-queue info path.
+    """
     import app.services.hf_dataset_service as svc
 
     monkeypatch.setattr(svc, "HAS_HF", True)  # even if HF is available
+    monkeypatch.setattr(svc, "OMNI_HF_EXPORT_ENABLED", True)  # P0-A: gate the gate away
+    monkeypatch.setattr(svc, "HF_TOKEN", "test-token")
     result = svc.flush_queue()
     assert "لا توجد" in result
 

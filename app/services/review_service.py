@@ -170,17 +170,13 @@ def jais_proofread_only(text: str) -> str:
 
     try:
         # Lazy import to avoid hard dependency on ocr_service at module load
-        from app.services.ocr_service import _auto_correct_ocr, get_spell_checker
+        from app.services.ocr_service import _auto_correct_ocr
 
-        # Apply OCR corrections first, then spell check, then LLM proofread
+        # Single canonical correction (P0-B): _auto_correct_ocr already runs
+        # apply_ocr_corrections + the spell-correction stage internally. The
+        # previous extra spell-check call here was removed — running the
+        # checker twice on the same text was redundant and error-prone.
         corrected, _corrections = _auto_correct_ocr(text)
-
-        checker = get_spell_checker()
-        if checker is not None:
-            try:
-                corrected = checker.correct_text(corrected)
-            except Exception as e:
-                logger.warning(f"Spell check failed in standalone proofread: {e}")
 
         proof_result = proofreader.proofread(corrected)
         corrected = proof_result["corrected"]

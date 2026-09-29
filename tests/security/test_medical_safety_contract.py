@@ -7,6 +7,14 @@ APP_CORE = (ROOT / "hf-space" / "app_core.py").read_text(encoding="utf-8")
 LAUNCHER = (ROOT / "deploy" / "gradio_launcher.py").read_text(encoding="utf-8")
 DOCKERFILE = (ROOT / "deploy" / "Dockerfile.gradio").read_text(encoding="utf-8")
 
+# P0 split-brain guards: the PRODUCTION modules (not just the HF Space twin)
+HF_SERVICE = (ROOT / "app" / "services" / "hf_dataset_service.py").read_text(encoding="utf-8")
+HITL = (ROOT / "app" / "gradio_full_hitl.py").read_text(encoding="utf-8")
+MOBILE_SERVER = (ROOT / "packages" / "core" / "mobile" / "server.py").read_text(encoding="utf-8")
+REVIEW_SERVICE = (ROOT / "app" / "services" / "review_service.py").read_text(encoding="utf-8")
+API_SERVER = (ROOT / "packages" / "core" / "api_server.py").read_text(encoding="utf-8")
+OCR_ADAPTER = (ROOT / "packages" / "omni_ocr" / "adapter.py").read_text(encoding="utf-8")
+
 
 def test_medical_dataset_is_private_by_default():
     assert 'HF_DATASET_PRIVATE = os.getenv("HF_DATASET_PRIVATE", "true").lower() == "true"' in APP_CORE
@@ -54,3 +62,81 @@ def test_production_image_uses_authenticated_launcher_not_app_directly():
     assert 'CMD ["python", "deploy/gradio_launcher.py"]' in DOCKERFILE
     assert 'CMD ["python", "hf-space/app.py"]' not in DOCKERFILE
     assert "module.launch_production()" in LAUNCHER
+
+
+# ---------------------------------------------------------------------------
+# P0-A: fail-closed PHI egress — production modules (split-brain guard).
+# The 2B regression: safety contracts only covered hf-space while the
+# production hf_dataset_service hardcodes public pushes. These tests make
+# the split-brain impossible to reintroduce silently.
+# ---------------------------------------------------------------------------
+
+
+def test_production_hf_service_is_fail_closed():
+    import re
+
+    assert re.search(r"private\s*:\s*False", HF_SERVICE) is None, (
+        "production hf_dataset_service must never hardcode a public dataset"
+    )
+    assert HF_SERVICE.count("push_to_hub") == 1, "single gated push_to_hub only"
+    assert 'OMNI_HF_EXPORT_ENABLED = _env_flag("OMNI_HF_EXPORT_ENABLED", False)' in HF_SERVICE
+    assert 'OMNI_HF_DATASET_PRIVATE' in HF_SERVICE
+    assert 'OMNI_HF_EXPORT_RAW_TEXT = _env_flag("OMNI_HF_EXPORT_RAW_TEXT", False)' in HF_SERVICE
+    assert "raw_retained_locally" in HF_SERVICE
+    assert 'consent' in HF_SERVICE
+
+
+def test_production_hf_service_refuses_flush_when_disabled():
+    assert "if not OMNI_HF_EXPORT_ENABLED:" in HF_SERVICE
+    assert "معطّل" in HF_SERVICE
+    assert "if not HF_TOKEN:" in HF_SERVICE
+
+
+def test_hitl_save_requires_explicit_consent():
+    assert "consent_checkbox = gr.Checkbox(" in HITL
+    assert "value=False" in HITL
+    assert "fn=save_correction" in HITL
+    assert "consent_checkbox]" in HITL
+    assert "BLOCKED" in HITL
+
+
+def test_hf_space_export_is_kill_switched():
+    assert "OMNI_HF_EXPORT_ENABLED" in APP_CORE
+    assert "if not OMNI_HF_EXPORT_ENABLED:" in APP_CORE
+    assert "raw_retained_locally" in APP_CORE
+    # approved + confidence gates preserved (existing behavior kept intact)
+    assert 'if not approved:' in APP_CORE
+    assert "if confidence < MEDICAL_MIN_CONFIDENCE:" in APP_CORE
+
+
+def test_cloud_ocr_denied_by_default():
+    assert 'OMNI_ALLOW_CLOUD_OCR' in API_SERVER
+    assert "403" in API_SERVER
+    # 3 gated endpoints (8-space indent = call sites; the def line has "-> None")
+    assert API_SERVER.count("\n        _cloud_ocr_gate()") == 3, "all three /mistral/* endpoints gated"
+    assert "_cloud_ocr_allowed" in OCR_ADAPTER
+    assert "OMNI_ALLOW_CLOUD_OCR" in OCR_ADAPTER
+
+
+# ---------------------------------------------------------------------------
+# P0-B: fail-visible OCR + single canonical correction (split-brain guard)
+# ---------------------------------------------------------------------------
+
+
+def test_production_paths_have_no_second_correct_text():
+    # The canonical correction lives in _auto_correct_ocr (one real call per
+    # file that owns a copy of the canonical logic). The lowercase pattern
+    # matches real calls only — never docstring mentions of the class method.
+    assert MOBILE_SERVER.count(".correct_text(") == 0
+    assert REVIEW_SERVICE.count(".correct_text(") == 0
+    OCR_SERVICE = (ROOT / "app" / "services" / "ocr_service.py").read_text(encoding="utf-8")
+    assert OCR_SERVICE.count("checker.correct_text(") == 1
+    assert APP_CORE.count("checker.correct_text(") == 1
+
+
+def test_production_engines_return_fail_visible_status():
+    assert 'ENGINE_STATUS_ERROR' in (ROOT / "app" / "services" / "ocr_service.py").read_text(encoding="utf-8")
+    assert '"selected_engine"' in HITL
+    assert '"user_visible_error"' in HITL
+    assert '"fallback_used"' in HITL
+    assert '"ocr_status"' in MOBILE_SERVER
