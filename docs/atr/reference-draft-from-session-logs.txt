@@ -1,0 +1,790 @@
+
+ما يجب تغييره في train_trocr.py:
+يجب تعديل دالة تحميل النموذج لاستبدال الـ Processor والـ Tokenizer. الكود التالي يوضح كيفية القيام بذلك:
+python
+
+# في train_trocr.py، استبدل دالة تحميل النموذج بهذا الكود:
+
+def load_model_with_arabic_tokenizer(base_model_name="microsoft/trocr-base-handwritten",
+                                      arabic_tokenizer_name="aubmindlab/bert-base-arabertv02"):
+    """
+    يحمّل TrOCR مع استبدال الـ decoder tokenizer بـ AraBERT العربي.
+    """
+    from transformers import VisionEncoderDecoderModel, AutoTokenizer
+    from transformers import ViTImageProcessor
+    
+    # 1. تحميل النموذج الأساسي
+    model = VisionEncoderDecoderModel.from_pretrained(base_model_name)
+    
+    # 2. تحميل image processor من النموذج الأساسي (يبقى كما هو)
+    image_processor = ViTImageProcessor.from_pretrained(base_model_name)
+    
+    # 3. تحميل AraBERT tokenizer العربي
+    tokenizer = AutoTokenizer.from_pretrained(arabic_tokenizer_name)
+    
+    # 4. استبدال الـ decoder tokenizer في النموذج
+    model.decoder.resize_token_embeddings(len(tokenizer))
+    model.config.vocab_size = len(tokenizer)
+    model.config.decoder_start_token_id = tokenizer.cls_token_id
+    model.config.eos_token_id = tokenizer.sep_token_id
+    model.config.pad_token_id = tokenizer.pad_token_id
+    
+    # 5. إعادة تهيئة الطبقات الجديدة (Embedding و FC و Positional Encoding)
+    # هذه الخطوة حاسمة لاستقرار التدريب[reference:4]
+    import torch.nn as nn
+    model.decoder.model.decoder.embed_tokens = nn.Embedding(
+        len(tokenizer), model.config.decoder.hidden_size, padding_idx=tokenizer.pad_token_id
+    )
+    model.decoder.lm_head = nn.Linear(
+        model.config.decoder.hidden_size, len(tokenizer), bias=False
+    )
+    # إعادة تهيئة positional embeddings
+    model.decoder.model.decoder.embed_positions.weight.data.normal_(
+        mean=0.0, std=model.config.decoder.init_std
+    )
+    
+    # 6. إنشاء processor مخصص يجمع بين image_processor و tokenizer
+    class ArabicTrOCRProcessor:
+        def __init__(self, image_processor, tokenizer):
+            self.image_processor = image_processor
+            self.tokenizer = tokenizer
+        
+        def __call__(self, images=None, text=None, **kwargs):
+            if images is not None:
+                return self.image_processor(images=images, **kwargs)
+            if text is not None:
+                return self.tokenizer(text, **kwargs)
+        
+        def batch_decode(self, *args, **kwargs):
+            return self.tokenizer.batch_decode(*args, **kwargs)
+        
+        def save_pretrained(self, path):
+            self.image_processor.save_pretrained(path)
+            self.tokenizer.save_pretrained(path)
+        
+        @classmethod
+        def from_pretrained(cls, path):
+            return cls(
+                ViTImageProcessor.from_pretrained(path),
+                AutoTokenizer.from_pretrained(path)
+            )
+    
+    processor = ArabicTrOCRProcessor(image_processor, tokenizer)
+    return model, processor
+
+ملاحظة مهمة: التدريب قد يكون غير مستقر في البداية، لذا يُنصح باستخدام معدل تعلم منخفض (مثل 1e-5) ومراقبة الـ Loss عن كثب.
+🐳 2. Docker Compose للتشغيل بنقرة واحدة (مع دعم GPU)
+
+هذا الملف ينشئ خدمتين: واحدة لخادم التصحيح (correction-server) وأخرى لواجهة التدريب (training-ui) مع دعم اختياري لـ GPU.
+yaml
+
+# docker-compose.yml
+version: '3.8'
+
+services:
+  correction-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ahw-correction-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - FLASK_ENV=production
+    command: python server.py --sample S001 --host 0.0.0.0 --port 5000
+    restart: unless-stopped
+    # لا يحتاج GPU للتصحيح
+
+  training-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ahw-training-ui
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./output:/app/output
+      - ./models:/app/models
+    environment:
+      - FLASK_ENV=production
+    command: python train_server.py --host 0.0.0.0 --port 5001
+    restart: unless-stopped
+    # دعم GPU (اختياري)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # إذا لم يكن لديك GPU، احذف قسم deploy بالكامل
+
+ملف Dockerfile:
+dockerfile
+
+# Dockerfile
+FROM python:3.10-slim
+
+# تثبيت متطلبات النظام
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# تثبيت متطلبات Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# نسخ الكود
+COPY . .
+
+# إنشاء مجلدات المخرجات
+RUN mkdir -p output models
+
+EXPOSE 5000 5001
+
+CMD ["python", "server.py"]
+
+للتشغيل:
+bash
+
+# بناء وتشغيل كل الخدمات
+docker-compose up --build
+
+# أو تشغيل خدمة واحدة
+docker-compose up correction-server
+
+إذا لم يكن لديك GPU، احذف قسم deploy بالكامل من الملف.
+🖥️ 3. واجهة تدريب تفاعلية (Flask + SocketIO)
+
+هذه الواجهة تتيح لك بدء التدريب من المتصفح ومشاهدة التقدم لحظياً. تعتمد على Flask-SocketIO لبث التحديثات من حلقة التدريب.
+
+ملف train_server.py:
+python
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+خادم تدريب تفاعلي مع تحديثات لحظية عبر SocketIO.
+"""
+
+import argparse, json, threading, time
+from pathlib import Path
+from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, emit
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'ahw-training-secret'
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')
+
+# حالة التدريب العامة
+training_state = {
+    'running': False,
+    'epoch': 0,
+    'total_epochs': 0,
+    'step': 0,
+    'loss': 0.0,
+    'cer': 0.0,
+    'wer': 0.0,
+    'log': [],
+    'output_dir': '',
+    'error': None
+}
+
+def run_training(data_dir, output_dir, epochs, batch, lr, base_model):
+    """يشغّل التدريب في thread منفصل ويبث التحديثات."""
+    global training_state
+    training_state.update({
+        'running': True, 'epoch': 0, 'total_epochs': epochs,
+        'step': 0, 'loss': 0.0, 'cer': 0.0, 'log': [],
+        'output_dir': output_dir, 'error': None
+    })
+
+    try:
+        import torch
+        from torch.utils.data import Dataset
+        from PIL import Image
+        from transformers import (
+            TrOCRProcessor, VisionEncoderDecoderModel,
+            Seq2SeqTrainer, Seq2SeqTrainingArguments
+        )
+        import pandas as pd
+        import evaluate
+
+        data_dir = Path(data_dir)
+        crops_dir = data_dir / 'crops'
+
+        # قراءة التصحيحات
+        corrections = data_dir / 'corrections.xlsx'
+        if not corrections.exists():
+            corrections = data_dir / 'corrections.csv'
+        df = pd.read_excel(corrections) if corrections.suffix == '.xlsx' \
+             else pd.read_csv(corrections)
+        df = df[df['text'].notna() & (df['text'].astype(str).str.strip() != '')]
+        df['text'] = df['text'].astype(str).str.strip()
+
+        # Split
+        n = len(df)
+        train_df = df.iloc[:int(n*0.8)]
+        val_df = df.iloc[int(n*0.8):int(n*0.9)]
+
+        processor = TrOCRProcessor.from_pretrained(base_model)
+        model = VisionEncoderDecoderModel.from_pretrained(base_model)
+        model.config.decoder_start_token_id = processor.tokenizer.cls_token_id
+        model.config.pad_token_id = processor.tokenizer.pad_token_id
+        model.config.eos_token_id = processor.tokenizer.sep_token_id
+        model.config.max_length = 32
+        model.config.early_stopping = True
+        model.config.no_repeat_ngram_size = 3
+        model.config.length_penalty = 2.0
+        model.config.num_beams = 4
+
+        class WordDataset(Dataset):
+            def __init__(self, d):
+                self.d = d.reset_index(drop=True)
+            def __len__(self): return len(self.d)
+            def __getitem__(self, i):
+                row = self.d.iloc[i]
+                img = Image.open(crops_dir / Path(row['crop_path']).name).convert('RGB')
+                pv = processor(images=img, return_tensors='pt').pixel_values.squeeze()
+                labels = processor.tokenizer(
+                    row['text'], padding='max_length', max_length=32,
+                    truncation=True, return_tensors='pt').input_ids.squeeze()
+                labels[labels == processor.tokenizer.pad_token_id] = -100
+                return {'pixel_values': pv, 'labels': labels}
+
+        cer_metric = evaluate.load('cer')
+        def compute_metrics(pred):
+            pred_ids = pred.predictions
+            label_ids = pred.label_ids
+            label_ids[label_ids == -100] = processor.tokenizer.pad_token_id
+            ps = processor.tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
+            ls = processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True)
+            return {'cer': cer_metric.compute(predictions=ps, references=ls)}
+
+        # Callback لبث التحديثات
+        from transformers import TrainerCallback
+        class SocketIOCallback(TrainerCallback):
+            def on_log(self, args, state, control, logs=None, **kwargs):
+                if logs and 'loss' in logs:
+                    training_state['step'] = state.global_step
+                    training_state['loss'] = logs.get('loss', 0.0)
+                    socketio.emit('training_update', {
+                        'epoch': state.epoch,
+                        'step': state.global_step,
+                        'loss': logs.get('loss', 0.0),
+                        'lr': logs.get('learning_rate', 0.0)
+                    })
+            def on_evaluate(self, args, state, control, metrics=None, **kwargs):
+                if metrics:
+                    training_state['cer'] = metrics.get('eval_cer', 0.0)
+                    socketio.emit('eval_update', {
+                        'epoch': state.epoch,
+                        'cer': metrics.get('eval_cer', 0.0),
+                        'loss': metrics.get('eval_loss', 0.0)
+                    })
+
+        training_args = Seq2SeqTrainingArguments(
+            output_dir=output_dir,
+            per_device_train_batch_size=batch,
+            per_device_eval_batch_size=batch,
+            predict_with_generate=True,
+            evaluation_strategy='epoch',
+            save_strategy='epoch',
+            num_train_epochs=epochs,
+            learning_rate=lr,
+            warmup_steps=100,
+            logging_steps=10,
+            save_total_limit=3,
+            load_best_model_at_end=True,
+            metric_for_best_model='cer',
+            greater_is_better=False,
+            fp16=torch.cuda.is_available(),
+            report_to='none'
+        )
+
+        trainer = Seq2SeqTrainer(
+            model=model, args=training_args,
+            train_dataset=WordDataset(train_df),
+            eval_dataset=WordDataset(val_df),
+            compute_metrics=compute_metrics,
+            callbacks=[SocketIOCallback()],
+            tokenizer=processor.image_processor
+        )
+
+        socketio.emit('training_started', {'epochs': epochs, 'total': len(df)})
+        trainer.train()
+        trainer.save_model(output_dir)
+        processor.save_pretrained(output_dir)
+
+        training_state['running'] = False
+        socketio.emit('training_done', {
+            'cer': training_state['cer'],
+            'output_dir': output_dir
+        })
+
+    except Exception as e:
+        training_state['running'] = False
+        training_state['error'] = str(e)
+        socketio.emit('training_error', {'error': str(e)})
+
+@app.route('/')
+def index():
+    return render_template('train_dashboard.html')
+
+@app.route('/api/start', methods=['POST'])
+def start_training():
+    if training_state['running']:
+        return jsonify({'error': 'Training already running'}), 400
+    data = request.get_json()
+    thread = threading.Thread(target=run_training, args=(
+        data.get('data_dir', 'output/S001'),
+        data.get('output_dir', 'models/trocr-arabic'),
+        int(data.get('epochs', 20)),
+        int(data.get('batch', 8)),
+        float(data.get('lr', 5e-5)),
+        data.get('base_model', 'microsoft/trocr-base-handwritten')
+    ), daemon=True)
+    thread.start()
+    return jsonify({'ok': True})
+
+@app.route('/api/status')
+def status():
+    return jsonify(training_state)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--host', default='127.0.0.1')
+    ap.add_argument('--port', type=int, default=5001)
+    args = ap.parse_args()
+    print(f"🌐 Training UI: http://{args.host}:{args.port}")
+    socketio.run(app, host=args.host, port=args.port, allow_unsafe_werkzeug=True)
+
+if __name__ == '__main__':
+    main()
+
+قالب templates/train_dashboard.html:
+html
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>لوحة التدريب</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+body { font-family: Tahoma, sans-serif; background: #1a1a2e; color: #eee;
+       margin: 0; padding: 20px; }
+h1 { color: #00d4ff; }
+.panel { background: #16213e; border-radius: 12px; padding: 20px;
+         margin: 15px 0; }
+label { display: block; margin: 8px 0 4px; color: #aaa; }
+input, select { width: 100%; padding: 10px; border-radius: 6px;
+                border: 1px solid #333; background: #0f3460; color: #eee;
+                box-sizing: border-box; font-size: 15px; }
+button { background: #00d4ff; color: #000; border: none;
+         padding: 12px 30px; border-radius: 8px; font-size: 16px;
+         cursor: pointer; margin-top: 15px; font-weight: bold; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr);
+           gap: 15px; }
+.metric { background: #0f3460; padding: 15px; border-radius: 8px;
+          text-align: center; }
+.metric .value { font-size: 28px; font-weight: bold; color: #00d4ff; }
+.metric .label { font-size: 12px; color: #888; margin-top: 5px; }
+.progress-bar { height: 20px; background: #0f3460; border-radius: 10px;
+                overflow: hidden; margin: 15px 0; }
+.progress-fill { height: 100%; background: linear-gradient(90deg,#00d4ff,#7b2ff7);
+                 transition: width 0.5s; width: 0%; }
+#log { background: #0a0a1a; padding: 15px; border-radius: 8px;
+       font-family: monospace; font-size: 13px; max-height: 300px;
+       overflow-y: auto; white-space: pre-wrap; }
+.status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px;
+                font-size: 13px; margin-right: 10px; }
+.status-idle { background: #444; }
+.status-running { background: #00d4ff; color: #000; }
+.status-done { background: #28a745; }
+.status-error { background: #dc3545; }
+</style>
+</head>
+<body>
+<h1>🧠 لوحة تدريب TrOCR العربي</h1>
+
+<div class="panel">
+    <h3>⚙️ إعدادات التدريب</h3>
+    <label>مجلد البيانات</label>
+    <input id="dataDir" value="output/S001">
+    <label>مجلد المخرجات</label>
+    <input id="outputDir" value="models/trocr-arabic">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div><label>Epochs</label><input id="epochs" type="number" value="20"></div>
+        <div><label>Batch Size</label><input id="batch" type="number" value="8"></div>
+        <div><label>Learning Rate</label><input id="lr" value="5e-5"></div>
+    </div>
+    <label>النموذج الأساسي</label>
+    <select id="baseModel">
+        <option value="microsoft/trocr-base-handwritten">TrOCR Base (Handwritten)</option>
+        <option value="microsoft/trocr-large-handwritten">TrOCR Large (Handwritten)</option>
+        <option value="RayR1/trocr-base-arabic-handwritten">TrOCR Arabic (Fine-tuned)</option>
+    </select>
+    <button id="startBtn" onclick="startTraining()">🚀 بدء التدريب</button>
+</div>
+
+<div class="panel">
+    <h3>📊 الحالة الحالية
+        <span id="statusBadge" class="status-badge status-idle">خامل</span>
+    </h3>
+    <div class="metrics">
+        <div class="metric"><div class="value" id="mEpoch">0</div>
+            <div class="label">Epoch</div></div>
+        <div class="metric"><div class="value" id="mStep">0</div>
+            <div class="label">Step</div></div>
+        <div class="metric"><div class="value" id="mLoss">0.00</div>
+            <div class="label">Loss</div></div>
+        <div class="metric"><div class="value" id="mCER">--</div>
+            <div class="label">CER</div></div>
+    </div>
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div id="log">في انتظار بدء التدريب...</div>
+</div>
+
+<script>
+const socket = io();
+let totalEpochs = 20;
+
+socket.on('training_started', (d) => {
+    totalEpochs = d.epochs;
+    setStatus('running', 'قيد التشغيل');
+    document.getElementById('startBtn').disabled = true;
+    log(`بدء التدريب: ${d.total} عينة, ${d.epochs} epoch`);
+});
+
+socket.on('training_update', (d) => {
+    document.getElementById('mEpoch').textContent = d.epoch ? d.epoch.toFixed(1) : '0';
+    document.getElementById('mStep').textContent = d.step;
+    document.getElementById('mLoss').textContent = d.loss.toFixed(4);
+    const pct = Math.min(100, (d.epoch / totalEpochs) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    log(`Epoch ${d.epoch?.toFixed(2)} | Step ${d.step} | Loss ${d.loss.toFixed(4)} | LR ${d.lr?.toExponential(2)}`);
+});
+
+socket.on('eval_update', (d) => {
+    document.getElementById('mCER').textContent = d.cer.toFixed(4);
+    log(`📊 تقييم Epoch ${d.epoch?.toFixed(1)}: CER=${d.cer.toFixed(4)} Loss=${d.loss.toFixed(4)}`);
+});
+
+socket.on('training_done', (d) => {
+    setStatus('done', 'مكتمل ✓');
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('progressFill').style.width = '100%';
+    log(`✅ اكتمل التدريب! CER النهائي: ${d.cer.toFixed(4)}`);
+    log(`📁 النموذج في: ${d.output_dir}`);
+});
+
+socket.on('training_error', (d) => {
+    setStatus('error', 'خطأ');
+    document.getElementById('startBtn').disabled = false;
+    log(`❌ خطأ: ${d.error}`);
+});
+
+function setStatus(cls, text) {
+    const b = document.getElementById('statusBadge');
+    b.className = 'status-badge status-' + cls;
+    b.textContent = text;
+}
+
+function log(msg) {
+    const el = document.getElementById('log');
+    el.textContent += '\n' + msg;
+    el.scrollTop = el.scrollHeight;
+}
+
+async function startTraining() {
+    const data = {
+        data_dir: document.getElementById('dataDir').value,
+        output_dir: document.getElementById('outputDir').value,
+        epochs: document.getElementById('epochs').value,
+        batch: document.getElementById('batch').value,
+        lr: document.getElementById('lr').value,
+        base_model: document.getElementById('baseModel').value
+    };
+    document.getElementById('log').textContent = '';
+    const r = await fetch('/api/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    if (!r.ok) {
+        const err = await r.json();
+        alert('خطأ: ' + (err.error || 'فشل البدء'));
+    }
+}
+</script>
+</body>
+</html>
+
+📚 4. دعم PDF متعدد الصفحات بحفظ دفعات
+
+هذه الميزة تتيح معالجة ملفات PDF كبيرة (100+ صفحة) دون استهلاك ذاكرة ضخمة، مع حفظ النتائج في دفعات منفصلة.
+
+سكربت batch_segment.py:
+python
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+معالجة PDF كبير على دفعات (batch processing).
+يحفظ كل دفعة في مجلد منفصل حتى لا تُفقد النتائج عند الانقطاع.
+"""
+
+import argparse, json, base64, hashlib, gc
+from pathlib import Path
+from datetime import datetime
+import numpy as np
+import cv2
+import fitz
+import pandas as pd
+from segment import preprocess, detect_layout, extract_words_from_line, save_crop_png
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(8192), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+def process_batch(doc, page_numbers, sample_id, batch_idx, out_dir, dpi=300):
+    """يعالج دفعة من الصفحات ويحفظها في مجلد مستقل."""
+    batch_dir = out_dir / f'batch_{batch_idx:03d}'
+    crops_dir = batch_dir / 'crops'
+    preview_dir = batch_dir / 'preview'
+    crops_dir.mkdir(parents=True, exist_ok=True)
+    preview_dir.mkdir(parents=True, exist_ok=True)
+
+    all_rows = []
+    all_crops_for_html = []
+
+    for pg_num in page_numbers:
+        print(f"  📄 Page {pg_num}...")
+        page = doc[pg_num - 1]
+        pix = page.get_pixmap(dpi=dpi)
+        img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(
+            pix.h, pix.w, pix.n)
+        if pix.n == 4: img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+        elif pix.n == 1: img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        gray, binary = preprocess(bgr)
+        cv2.imwrite(str(preview_dir / f'page{pg_num:02d}_L1.png'), 255 - binary)
+
+        columns, lines = detect_layout(binary)
+        overlay = bgr.copy()
+        for (x0, x1) in columns:
+            cv2.line(overlay, (x1, 0), (x1, overlay.shape[0]), (0,0,255), 3)
+        for line in lines:
+            cv2.rectangle(overlay, (line['x0'], line['y0']),
+                         (line['x1'], line['y1']), (255, 0, 0), 2)
+        cv2.imwrite(str(preview_dir / f'page{pg_num:02d}_L2.png'), overlay)
+
+        for line in lines:
+            crops = extract_words_from_line(binary, line)
+            for c in crops:
+                word_id = (f"{sample_id}_P{pg_num:02d}"
+                           f"_C{line['column']:02d}"
+                           f"_L{line['line_idx']:02d}"
+                           f"_W{c['word_idx']:02d}")
+                crop_path = crops_dir / f'{word_id}.png'
+                save_crop_png(c['crop_array'], crop_path)
+
+                inv = 255 - c['crop_array']
+                _, buf = cv2.imencode('.png', inv)
+                b64 = base64.b64encode(buf).decode()
+
+                all_crops_for_html.append({
+                    'word_id': word_id, 'page': pg_num,
+                    'column': line['column'], 'line_idx': line['line_idx'],
+                    'word_idx': c['word_idx'], 'image_b64': b64,
+                    'text': '', 'status': 'RAW'
+                })
+                all_rows.append({
+                    'word_id': word_id, 'sample_id': sample_id,
+                    'page': pg_num, 'column': line['column'],
+                    'line_idx': line['line_idx'], 'word_idx': c['word_idx'],
+                    'crop_path': str(crop_path.relative_to(out_dir)),
+                    'text': '', 'status': 'RAW'
+                })
+
+        # تحرير الذاكرة
+        del bgr, binary, gray
+        gc.collect()
+
+    # حفظ الدفعة
+    df = pd.DataFrame(all_rows)
+    df.to_csv(batch_dir / 'metadata.csv', index=False, encoding='utf-8-sig')
+    df.to_excel(batch_dir / 'metadata.xlsx', index=False, engine='openpyxl')
+
+    batch_manifest = {
+        'batch_idx': batch_idx,
+        'pages': page_numbers,
+        'word_count': len(all_rows),
+        'created_at': datetime.utcnow().isoformat() + 'Z'
+    }
+    (batch_dir / 'manifest.json').write_text(
+        json.dumps(batch_manifest, ensure_ascii=False, indent=2))
+
+    print(f"  ✅ Batch {batch_idx}: {len(all_rows)} words, "
+          f"pages {page_numbers[0]}-{page_numbers[-1]}")
+    return len(all_rows)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('pdf')
+    ap.add_argument('--sample', default='S001')
+    ap.add_argument('--pages-per-batch', type=int, default=5,
+                    help='عدد الصفحات في كل دفعة')
+    ap.add_argument('--out', default='output')
+    ap.add_argument('--dpi', type=int, default=300)
+    ap.add_argument('--start-page', type=int, default=1)
+    ap.add_argument('--end-page', type=int, default=0,
+                    help='0 = حتى النهاية')
+    args = ap.parse_args()
+
+    doc = fitz.open(args.pdf)
+    total_pages = doc.page_count
+    end_page = args.end_page or total_pages
+    all_pages = list(range(args.start_page, end_page + 1))
+
+    out_dir = Path(args.out) / args.sample
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # تقسيم الصفحات إلى دفعات
+    batches = [all_pages[i:i + args.pages_per_batch]
+               for i in range(0, len(all_pages), args.pages_per_batch)]
+
+    print(f"📚 PDF: {total_pages} صفحة")
+    print(f"📦 الدفعات: {len(batches)} دفعة × {args.pages_per_batch} صفحات")
+
+    total_words = 0
+    for bi, batch_pages in enumerate(batches, start=1):
+        print(f"\n=== Batch {bi}/{len(batches)} ===")
+        try:
+            count = process_batch(doc, batch_pages, args.sample, bi,
+                                  out_dir, args.dpi)
+            total_words += count
+            # حفظ حالة الدفعات للتتبع
+            state_file = out_dir / 'batch_state.json'
+            state = json.loads(state_file.read_text()) if state_file.exists() else {}
+            state[f'batch_{bi:03d}'] = {
+                'pages': batch_pages, 'words': count,
+                'status': 'done',
+                'completed_at': datetime.utcnow().isoformat() + 'Z'
+            }
+            state_file.write_text(json.dumps(state, indent=2))
+        except Exception as e:
+            print(f"  ❌ فشلت الدفعة {bi}: {e}")
+            state_file = out_dir / 'batch_state.json'
+            state = json.loads(state_file.read_text()) if state_file.exists() else {}
+            state[f'batch_{bi:03d}'] = {
+                'pages': batch_pages, 'status': 'failed', 'error': str(e)
+            }
+            state_file.write_text(json.dumps(state, indent=2))
+
+    # manifest نهائي
+    manifest = {
+        'sample_id': args.sample,
+        'source_pdf': str(args.pdf),
+        'sha256': sha256_file(args.pdf),
+        'total_pages': total_pages,
+        'pages_processed': all_pages,
+        'total_words': total_words,
+        'batches_count': len(batches),
+        'created_at': datetime.utcnow().isoformat() + 'Z'
+    }
+    (out_dir / 'manifest.json').write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2))
+
+    print(f"\n✅ اكتمل! {total_words} كلمة من {len(batches)} دفعة")
+    print(f"   📁 {out_dir}")
+
+if __name__ == '__main__':
+    main()
+
+للتشغيل:
+bash
+
+python batch_segment.py scan.pdf --sample S001 --pages-per-batch 5
+
+سكربت دمج الدفعات (merge_batches.py):
+python
+
+#!/usr/bin/env python3
+"""يدمج كل الدفعات في metadata واحد نهائي."""
+import pandas as pd
+from pathlib import Path
+import argparse
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--sample-dir', required=True)
+    args = ap.parse_args()
+
+    sample_dir = Path(args.sample_dir)
+    all_dfs = []
+    for batch_dir in sorted(sample_dir.glob('batch_*')):
+        csv = batch_dir / 'metadata.csv'
+        if csv.exists():
+            df = pd.read_csv(csv)
+            df['batch'] = batch_dir.name
+            all_dfs.append(df)
+            print(f"  ✓ {batch_dir.name}: {len(df)} كلمة")
+
+    if not all_dfs:
+        print("❌ لا توجد دفعات")
+        return
+
+    merged = pd.concat(all_dfs, ignore_index=True)
+    merged.to_csv(sample_dir / 'metadata_all.csv', index=False, encoding='utf-8-sig')
+    merged.to_excel(sample_dir / 'metadata_all.xlsx', index=False, engine='openpyxl')
+    print(f"\n✅ الإجمالي: {len(merged)} كلمة → metadata_all.csv")
+
+if __name__ == '__main__':
+    main()
+
+🎯 كيف تستخدم كل هذا معاً
+bash
+
+# 1. التقطيع على دفعات (PDF كبير)
+python batch_segment.py scan.pdf --sample S001 --pages-per-batch 5
+
+# 2. دمج الدفعات
+python merge_batches.py --sample-dir output/S001
+
+# 3. التصحيح (خادم ويب)
+python server.py --sample S001
+# افتح http://127.0.0.1:5000
+
+# 4. تصدير corrections.xlsx → ضعه في output/S001/
+
+# 5. التدريب (واجهة ويب تفاعلية)
+python train_server.py
+# افتح http://127.0.0.1:5001
+
+# 6. أو التدريب من Docker
+docker-compose up training-ui
+
+📋 ملاحظات ختامية
+البند	التفصيل
+AraBERT	يتطلب إعادة تهيئة الطبقات الجديدة، وقد يحتاج تدريباً أطول (20-30 epoch)
+Docker + GPU	يحتاج nvidia-docker2 على المضيف， والحذف من docker-compose.yml إذا لم يتوفر GPU
+واجهة التدريب	تعمل في thread منفصل، وتبث التحديثات عبر SocketIO
+الدفعات	كل دفعة مستقلة؛ إذا فشلت واحدة، الباقي يكمل، ويمكن إعادة المحاولة
+الذاكرة	batch_segment.py يحرر الذاكرة بين الصفحات لتجنب OOM
+
+إذا واجهت أي خطأ في أي من هذه السكربتات، أرسل لي رسالة الخطأ وسأصلحها فوراً.
