@@ -43,6 +43,29 @@ GT_PATH = SET_DIR / "ground_truth.jsonl"
 MANIFEST_PATH = SET_DIR / "manifest.json"
 LOCK_PATH = SET_DIR / "engines.lock.json"
 
+
+def set_dataset_dir(path: "Path | str") -> None:
+    """F-14: أعد ربط مسارات مجموعة البيانات في وقت التشغيل.
+
+    SET_DIR كان مثبّتاً صلباً، فكان قياس عينات حقيقية يستلزم الكتابة فوق
+    ``golden_set/`` — أي تدمير المعيار الاصطناعي الذي هو **بوابة الانحدار في CI**.
+    هذه الدالة تفصل المجموعتين:
+      ``golden_set/``       اصطناعية، ثابتة، بوابة CI (الافتراضي)
+      ``golden_set_real/``  من القناة الحقيقية، متنامية، أساس قرار المحرك
+
+    تُستدعى من ``main()`` قبل أي قراءة. لا تغيّر السلوك الافتراضي.
+    """
+    global SET_DIR, GT_PATH, MANIFEST_PATH, LOCK_PATH
+    SET_DIR = Path(path).expanduser().resolve()
+    if not (SET_DIR / "manifest.json").exists():
+        raise FileNotFoundError(
+            f"--set-dir: لا manifest.json في {SET_DIR} — هل هو مجلد مجموعة بيانات؟"
+        )
+    GT_PATH = SET_DIR / "ground_truth.jsonl"
+    MANIFEST_PATH = SET_DIR / "manifest.json"
+    LOCK_PATH = SET_DIR / "engines.lock.json"
+
+
 TESSDATA_BEST_ARA_SHA256 = "ab9d157d8e38ca00e7e39c7d5363a5239e053f5b0dbdb3167dde9d8124335896"
 
 # محركات القياس المحلية فقط افتراضياً. أي محرك سحابي يدخل هذا السجل بعلامة
@@ -226,12 +249,25 @@ def write_lock() -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--engines", nargs="*", default=list(LOCAL_ENGINES))
-    ap.add_argument("--out", default=str(SET_DIR / "results.jsonl"))
+    # F-14: default=None لأن SET_DIR قد يُعاد ربطه أدناه؛ يُحلّ المسار بعده.
+    ap.add_argument("--out", default=None,
+                    help="مسار النتائج (افتراضياً <set-dir>/results.jsonl)")
+    ap.add_argument("--set-dir", default=None,
+                    help="مجلد مجموعة بديلة تحوي manifest.json + samples/ + "
+                         "ground_truth.jsonl. الافتراضي golden_set/ (المعيار "
+                         "الاصطناعي = بوابة CI). استخدم golden_set_real/ "
+                         "لصفحات القناة الحقيقية كي لا تدهس البوابة.")
     ap.add_argument("--ingest", help="JSONL نتيج سحابية ملتقطة يدوياً (بلا شبكة)")
     ap.add_argument("--allow-cloud", action="store_true",
                     help="يتطلب OMNI_ALLOW_CLOUD — يستخدم فقط خارج الاختبارات")
     ap.add_argument("--write-lock", action="store_true")
     args = ap.parse_args()
+
+    # F-14: أعِد الربط **قبل** أي قراءة للمسارات، ثم احسم --out.
+    if args.set_dir:
+        set_dataset_dir(args.set_dir)
+    if args.out is None:
+        args.out = str(SET_DIR / "results.jsonl")
 
     if args.write_lock:
         print(json.dumps(write_lock(), indent=2))
