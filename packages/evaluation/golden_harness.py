@@ -73,8 +73,33 @@ TESSDATA_BEST_ARA_SHA256 = "ab9d157d8e38ca00e7e39c7d5363a5239e053f5b0dbdb3167dde
 LOCAL_ENGINES = ("tesseract_ara",)
 
 
+_LFS_MAGIC = b"version https://git-lfs.github.com/spec/v1"
+
+
+def _reject_lfs_pointer(path: "Path") -> None:
+    """LFS: افشل بصراحة إن كان الملف مؤشراً لا محتوى.
+
+    ``.gitattributes`` يتتبّع ``*.jsonl`` والصور بلا عتبة حجم، فاستنساخ عادي بلا
+    ``git lfs pull`` يعطي ملفات من 129/130 بايت مكان ``ground_truth.jsonl`` والـPNGs.
+    النتيجة السابقة كانت ``json.decoder.JSONDecodeError: Expecting value: line 1
+    column 1`` — رسالة **مضلِّلة** تُشير إلى بيانات تالفة لا إلى LFS، وقد كلّفت
+    4 اختبارات فاشلة في ``test_golden_harness.py`` على كل استنساخ متفرّق.
+    """
+    try:
+        head = path.open("rb").read(len(_LFS_MAGIC))
+    except FileNotFoundError:
+        raise
+    if head.startswith(_LFS_MAGIC):
+        raise RuntimeError(
+            f"{path} is a Git LFS pointer ({len(head)} B header), not content. "
+            f"Run: git lfs pull   (or: git lfs install && git lfs pull)"
+        )
+
+
 def load_samples() -> list[dict]:
     """حمّل العينات وتحقق من sha256 لكل ملف (ثبات القياس)."""
+    _reject_lfs_pointer(MANIFEST_PATH)
+    _reject_lfs_pointer(GT_PATH)
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     gt = {
         row["id"]: row
@@ -83,6 +108,8 @@ def load_samples() -> list[dict]:
     out = []
     for entry in manifest:
         path = SET_DIR / "samples" / entry["file"]
+        # قبل فحص sha256: المؤشر يعطي "drifted" وهي تشخيص خاطئ للسبب الحقيقي.
+        _reject_lfs_pointer(path)
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest != entry["sha256"]:
             raise RuntimeError(f"sample {entry['id']} drifted: sha256 mismatch")

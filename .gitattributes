@@ -96,3 +96,14 @@ hf-space/config/extras/tokenizer.json    filter=lfs diff=lfs merge=lfs -text
 
 # --- End-of-file normalization (always include) ---
 * text=auto eol=lf
+
+# --- LFS addendum (golden-set text artifacts) -------------------------------
+# The measurement gate MUST be readable from a plain `git clone`. These are
+# small text files (<10 KB) that `*.jsonl` above would otherwise push into LFS,
+# which is what produced the misleading JSONDecodeError in test_golden_harness.py.
+# Images under samples/ stay in LFS — that part of the policy is correct.
+# See docs/LFS_MIGRATION_PLAN.md (P2-4); this is an addendum, not a revision.
+packages/evaluation/golden_set/*.jsonl        -filter -diff -merge text
+packages/evaluation/golden_set/*.json         -filter -diff -merge text
+packages/evaluation/golden_set_real/*.jsonl   -filter -diff -merge text
+packages/evaluation/golden_set_real/*.json    -filter -diff -merge text
