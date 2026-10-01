@@ -195,7 +195,7 @@ class TestArabicDottedRecovery(unittest.TestCase):
     def setUp(self):
         """إنشاء قاموس استعادة."""
         try:
-            from packages.nlp.arabic_rtl import ArabicDottedRecovery
+            from packages.arabic_rtl_canonical import ArabicDottedRecovery
             self.recovery = ArabicDottedRecovery()
         except ImportError:
             self.recovery = None
