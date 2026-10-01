@@ -18,6 +18,35 @@ import re
 logger = logging.getLogger(__name__)
 
 
+# ------------------------------------------------------------------
+# Canonical corrections file (single reference, branch gs/t4-canonical-corrections)
+# ------------------------------------------------------------------
+_CANONICAL_CORRECTIONS_RELATIVE = os.path.join(
+    "packages", "config", "correction_dict.json"
+)
+
+
+def _resolve_default_correction_file(base_dir: str) -> str:
+    """Prefer the canonical corrections file; fall back to the legacy copy.
+
+    The canonical reference lives at ``packages/config/correction_dict.json``
+    (97 learned corrections, superset of the 52-entry seed, no value
+    conflicts).  Standalone bundle contexts (``modules.nlp`` namespace with
+    the bundle directory on ``sys.path``) still resolve their legacy local
+    copy when the canonical file is not reachable from here.
+    """
+    current = base_dir
+    for _ in range(8):
+        candidate = os.path.join(current, _CANONICAL_CORRECTIONS_RELATIVE)
+        if os.path.isfile(candidate):
+            return candidate
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    return os.path.join(base_dir, "correction_dict.json")
+
+
 class SpellCorrector:
     """
     مصحح إملائي ذكي — يدعم العربية والإنجليزية مع حماية المصطلحات البرمجية.
@@ -94,7 +123,7 @@ class SpellCorrector:
             self._correction_file = correction_file
         else:
             base_dir = os.path.dirname(os.path.abspath(__file__))
-            self._correction_file = os.path.join(base_dir, "correction_dict.json")
+            self._correction_file = _resolve_default_correction_file(base_dir)
 
         # المصطلحات المحمية (يمكن للمستخدم إضافة المزيد)
         self._protected_terms: set[str] = set(self._PYTHON_KEYWORDS | self._PROTECTED_NAMES)
