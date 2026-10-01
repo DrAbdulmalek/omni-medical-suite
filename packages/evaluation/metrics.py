@@ -90,7 +90,12 @@ class EvaluationResult:
         }
 
 
-def calculate_cer(reference: str, hypothesis: str) -> tuple[float, int, int]:
+def calculate_cer(
+    reference: str,
+    hypothesis: str,
+    *,
+    skip_internal_normalize: bool = False,
+) -> tuple[float, int, int]:
     """
     حساب معدل خطأ الأحرف (Character Error Rate).
 
@@ -107,13 +112,26 @@ def calculate_cer(reference: str, hypothesis: str) -> tuple[float, int, int]:
     Args:
         reference: النص المرجعي / Ground truth text
         hypothesis: نص الناتج من OCR / OCR output text
+        skip_internal_normalize: F-16 — عقد المتصل المطبّع مسبقاً. الافتراضي
+            False يحفظ السلوك القديم حرفياً (تطبيع داخلي بـ_normalize_arabic
+            لكل المستدعين القدامى). مع True تُقارن السلاسل كما وردت بلا أي
+            تطبيع داخلي — مخصص لمن طبّع الطرفين بنفسه بسياسة واحدة معلنة
+            (normalize_v1 في golden_harness.py) بحيث لا يجري تطبيع ثانٍ
+            بسياسة مختلفة (منع double-normalization).
+            المتوقع سلاسل str غير-None في هذا الوضع (المسار الافتراضي
+            يبقى متسامحاً مع None كما كان).
 
     Returns:
         (cer, أخطاء, إجمالي_أحرف) / (cer, errors, total_chars)
     """
     # تطبيع النص: إزالة التشكيل، توحيد المسافات
-    ref = _normalize_arabic(reference)
-    hyp = _normalize_arabic(hypothesis)
+    if skip_internal_normalize:
+        # F-16: الطرفان مطبّعان مسبقاً بسياسة واحدة — مقارنة مباشرة بلا تطبيع ثانٍ.
+        ref = reference
+        hyp = hypothesis
+    else:
+        ref = _normalize_arabic(reference)
+        hyp = _normalize_arabic(hypothesis)
 
     if not ref:
         return (0.0 if not hyp else 1.0, len(hyp), 0)
@@ -124,7 +142,12 @@ def calculate_cer(reference: str, hypothesis: str) -> tuple[float, int, int]:
     return (cer, edits, len(ref))
 
 
-def calculate_wer(reference: str, hypothesis: str) -> tuple[float, int, int]:
+def calculate_wer(
+    reference: str,
+    hypothesis: str,
+    *,
+    skip_internal_normalize: bool = False,
+) -> tuple[float, int, int]:
     """
     حساب معدل خطأ الكلمات (Word Error Rate).
 
@@ -134,12 +157,20 @@ def calculate_wer(reference: str, hypothesis: str) -> tuple[float, int, int]:
     Args:
         reference: النص المرجعي / Ground truth text
         hypothesis: نص الناتج من OCR / OCR output text
+        skip_internal_normalize: F-16 — نفس عقد calculate_cer: False (الافتراضي)
+            يحفظ التطبيع الداخلي القديم، True يفترض طرفين مطبَّعين مسبقاً
+            بسياسة واحدة ولا يطبّع داخلياً إطلاقاً.
 
     Returns:
         (wer, أخطاء, إجمالي_كلمات) / (wer, errors, total_words)
     """
-    ref = _normalize_arabic(reference)
-    hyp = _normalize_arabic(hypothesis)
+    if skip_internal_normalize:
+        # F-16: الطرفان مطبّعان مسبقاً بسياسة واحدة — مقارنة مباشرة بلا تطبيع ثانٍ.
+        ref = reference
+        hyp = hypothesis
+    else:
+        ref = _normalize_arabic(reference)
+        hyp = _normalize_arabic(hypothesis)
 
     ref_words = ref.split()
     hyp_words = hyp.split()
