@@ -1,4 +1,37 @@
 # Security Scan — blocking on pull requests and weekly on Mondays
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# WHAT CHANGED (CI red on `Scan Dependencies`, 2026-09-29, run 36597490659)
+# ─────────────────────────────────────────────────────────────────────────────
+# The job used to `pip install safety pip-audit` INTO the project environment and
+# then run `pip-audit` with no target, which audits *the installed environment*.
+# `safety` depends on `nltk>=3.9`, so the scanner itself injected nltk 3.10.3 into
+# the audited surface, and pip-audit then failed the build on:
+#
+#   nltk 3.10.3  PYSEC-2026-3740  (Patched versions: not yet patched)
+#
+# nltk is NOT a dependency of this project — it appears in no file under
+# requirements/. The job was therefore failing on a vulnerability in its own
+# tooling, on an advisory with no upstream fix, which is unsatisfiable by code.
+#
+# Two independent fixes are applied, because either one alone leaves the hole open:
+#
+#   1. SCOPE — pip-audit runs with `-r <requirements file>` (requirements mode),
+#      so the audited surface is exactly the project's *declared* dependencies and
+#      can never again be polluted by whatever happens to be installed. This also
+#      removes the `scanner-fixer` env-resolution noise (it is a local `-e ./`
+#      workspace package, correctly reported as "not on PyPI" and skipped).
+#
+#   2. ISOLATION — the scanners are installed into a throwaway venv
+#      (.scanner-venv) that is never the audit target. Belt and braces: even if a
+#      future step installs something into the project env, the audit cannot see it.
+#
+# Waivers are NOT inline `--ignore` flags any more. They live in
+# docs/security/dependency-waivers.json with an expiry date and a justification, and
+# are turned into `--ignore-vuln` flags by scripts/ci/dep_audit_policy.py, which
+# FAILS on an expired waiver. The waiver set is regression-tested by
+# tests/security/test_dependency_waiver_policy.py.
+# ─────────────────────────────────────────────────────────────────────────────
 name: Security Scan
 
 on:
@@ -12,6 +45,8 @@ on:
       - 'uv.lock'
       - 'Dockerfile*'
       - 'deploy/**'
+      - 'docs/security/dependency-waivers.json'
+      - 'scripts/ci/dep_audit_policy.py'
       - '.github/workflows/security-scan.yml'
   schedule:
     - cron: "0 0 * * 1"
@@ -31,22 +66,66 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install project dependencies and scanners
+      # Project dependencies are NOT installed here on purpose: requirements-mode
+      # auditing resolves the declared dependency graph itself. Installing them
+      # would only re-introduce the pollution this job was rewritten to remove.
+      - name: Install scanners into an isolated venv
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
-          pip install --upgrade setuptools
-          pip install safety pip-audit
+          python -m venv .scanner-venv
+          .scanner-venv/bin/python -m pip install --upgrade pip setuptools wheel
+          .scanner-venv/bin/python -m pip install --upgrade pip-audit safety
 
-      - name: Run pip-audit
+      # Fails the job (exit 2) if any waiver is expired, unjustified, or longer
+      # than max_waiver_days — i.e. the policy is re-attested on a schedule and can
+      # never silently become permanent. Runs before any audit so the reason for a
+      # red build is the policy, not a mysterious vulnerability list.
+      - name: Resolve waiver policy (expired waivers fail here)
+        run: |
+          set -euo pipefail
+          POLICY=docs/security/dependency-waivers.json
+          GEN=".scanner-venv/bin/python scripts/ci/dep_audit_policy.py --policy $POLICY"
+          $GEN check
+          IGNORES="$($GEN print-active --format=flags)"
+          echo "AUDIT_IGNORES=$IGNORES" >> "$GITHUB_ENV"
+          echo "pip-audit will run with: ${IGNORES:-<no waivers>}"
+
+      - name: Run pip-audit (declared requirements only — blocking)
         # python-jose pulls ecdsa transitively. The reported Minerva/side-channel
         # advisories have no upstream fix, and ecdsa verification is unaffected.
         # This project signs/verifies JWTs with HS256 and does not use ECDSA/ECDH.
-        # Keep the exceptions explicit and reviewable rather than making the
-        # entire dependency scan non-blocking.
-        run: pip-audit --desc --ignore PYSEC-2026-1325
+        # That exception is recorded in docs/security/dependency-waivers.json with an
+        # expiry date rather than as an unreviewable inline flag.
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2086
+          for req in requirements/api.txt requirements/ml.txt requirements/gradio.txt \
+                   requirements/dev.txt requirements/optional.txt; do
+            echo "::group::pip-audit $req"
+            .scanner-venv/bin/pip-audit \
+              --desc --progress-spinner off \
+              $AUDIT_IGNORES \
+              -r "$req"
+            echo "::endgroup::"
+          done
 
-      - name: Run safety check
+      - name: Run safety check (declared requirements only)
         # Safety reports the same unfixable ecdsa advisories under its own IDs.
-        # They are explicitly scoped to ecdsa and documented above.
-        run: safety check --full-report --ignore 64396 --ignore 64459
+        # They are explicitly scoped to ecdsa and documented in the waiver policy.
+        # Runs against the requirements files, not the environment, for the same
+        # reason as pip-audit above.
+        run: |
+          set -euo pipefail
+          for req in requirements/api.txt requirements/ml.txt requirements/gradio.txt \
+                   requirements/dev.txt requirements/optional.txt; do
+            echo "::group::safety $req"
+            .scanner-venv/bin/safety check --full-report \
+              --ignore 64396 --ignore 64459 \
+              -r "$req"
+            echo "::endgroup::"
+          done
+
+      - name: Waiver policy report (informational)
+        if: always()
+        run: |
+          .scanner-venv/bin/python scripts/ci/dep_audit_policy.py \
+            --policy docs/security/dependency-waivers.json report
