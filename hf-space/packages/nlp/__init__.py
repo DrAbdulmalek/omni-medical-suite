@@ -15,7 +15,7 @@
 - مولّد المراجع الدراسية (Study Guide Generator)
 - خط أنابيب NLP الطبي الموحّد (Medical NLP Pipeline)
 """
-from packages.nlp.arabic_rtl import RTLFixer, get_text_direction, is_rtl_text
+from packages.arabic_rtl_canonical import RTLFixer, get_text_direction, is_rtl_text
 from packages.nlp.entity_extractor import EntityExtractor
 from packages.nlp.language_detector import LanguageDetector
 from packages.nlp.mixed_text import (

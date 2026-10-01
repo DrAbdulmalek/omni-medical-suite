@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 
 try:
-    from packages.nlp.arabic_rtl import ARABIC_NORMALIZATION_MAP
+    from packages.arabic_rtl_canonical import ARABIC_NORMALIZATION_MAP
 except ImportError:  # pragma: no cover
     ARABIC_NORMALIZATION_MAP: dict[str, str] = {}
 

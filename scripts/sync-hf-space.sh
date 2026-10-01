@@ -21,6 +21,14 @@
 #   packages/medical/     → hf-space/packages/medical/   (PR #92: dictionary registry + router)
 #   config/              → hf-space/config/
 #
+# Single-file mappings (T3 consolidation):
+#   packages/omnifile/modules/nlp/arabic_rtl.py        → same path   (canonical impl;
+#       the synced packages/nlp/arabic_rtl.py shim resolves it via walk-up —
+#       without it the HF Space would ImportError at runtime even though the
+#       diff-based mirror check stays green)
+#   packages/arabic_rtl_canonical.py                   → same path   (root-context
+#       accessor imported by src/ocr/rtl_utils.py and packages/vision/text_reconstructor.py)
+#
 # Modes:
 #   ./scripts/sync-hf-space.sh             # default: sync + verify
 #   ./scripts/sync-hf-space.sh --verify    # verify-only, no copy
@@ -62,11 +70,28 @@ SYNC_MAP=(
   "packages/core:packages/core"
   "packages/medical:packages/medical"
   "config:config"
+  # T3 single-file entries (see header note):
+  "packages/omnifile/modules/nlp/arabic_rtl.py:packages/omnifile/modules/nlp/arabic_rtl.py"
+  "packages/arabic_rtl_canonical.py:packages/arabic_rtl_canonical.py"
 )
 
 # --- Functions ---------------------------------------------------------------
 count_py() {
   find "$1" -name '*.py' -type f 2>/dev/null | wc -l
+}
+
+verify_file() {
+  local src="$1" dst="$2"
+  if [[ ! -f "$dst" ]]; then
+    echo "  DRIFT: $dst missing (would be created by sync)"
+    return 2
+  fi
+  if cmp -s "$src" "$dst"; then
+    echo "  OK: $src ↔ $dst (in sync)"
+    return 0
+  fi
+  echo "  DRIFT: file $src vs $dst"
+  return 2
 }
 
 verify_dir() {
@@ -89,6 +114,13 @@ verify_dir() {
     echo "$diff_out" | head -10 | sed 's/^/    /'
     return 2
   fi
+}
+
+sync_file() {
+  local src="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  cp -f "$src" "$dst"
+  echo "  SYNCED: $src → $dst (file)"
 }
 
 sync_dir() {
@@ -117,7 +149,11 @@ if [[ "$MODE" == "verify" ]]; then
   echo "--- Verify-only mode: checking drift ---"
   for entry in "${SYNC_MAP[@]}"; do
     IFS=':' read -r src_sub hf_sub <<< "$entry"
-    verify_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+    if [[ -f "$ROOT_DIR/$src_sub" ]]; then
+      verify_file "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+    else
+      verify_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+    fi
   done
   if [[ "$DRIFT" -ne 0 ]]; then
     echo ""
@@ -133,19 +169,27 @@ fi
 echo "--- Syncing monorepo → hf-space/ ---"
 for entry in "${SYNC_MAP[@]}"; do
   IFS=':' read -r src_sub hf_sub <<< "$entry"
-  sync_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub"
+  if [[ -f "$ROOT_DIR/$src_sub" ]]; then
+    sync_file "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub"
+  else
+    sync_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub"
+  fi
 done
 
 echo ""
 echo "--- Post-sync verification ---"
 for entry in "${SYNC_MAP[@]}"; do
   IFS=':' read -r src_sub hf_sub <<< "$entry"
-  verify_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+  if [[ -f "$ROOT_DIR/$src_sub" ]]; then
+    verify_file "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+  else
+    verify_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+  fi
 done
 
 echo ""
 echo "=== Summary ==="
-echo "  Directories synced: ${#SYNC_MAP[@]}"
+echo "  Paths synced: ${#SYNC_MAP[@]}"
 if [[ "$DRIFT" -ne 0 ]]; then
   echo "  ⚠️  Post-sync drift detected (probably __pycache__ leftover). Re-run --verify."
   exit 2
