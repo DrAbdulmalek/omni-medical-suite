@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import re
 import unicodedata
 
-from packages.nlp.arabic_rtl import ARABIC_NORMALIZATION_MAP
+from packages.arabic_rtl_canonical import ARABIC_NORMALIZATION_MAP
 
 # Bridge: delegate to the canonical contract in text_reconstructor.
 # Both modules now agree on what "canonical Arabic" means.

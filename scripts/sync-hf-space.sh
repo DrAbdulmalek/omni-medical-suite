@@ -21,6 +21,14 @@
 #   packages/medical/     → hf-space/packages/medical/   (PR #92: dictionary registry + router)
 #   config/              → hf-space/config/
 #
+# Single-file mappings (T3 consolidation):
+#   packages/omnifile/modules/nlp/arabic_rtl.py        → same path   (canonical impl;
+#       the synced packages/nlp/arabic_rtl.py shim resolves it via walk-up —
+#       without it the HF Space would ImportError at runtime even though the
+#       diff-based mirror check stays green)
+#   packages/arabic_rtl_canonical.py                   → same path   (root-context
+#       accessor imported by src/ocr/rtl_utils.py and packages/vision/text_reconstructor.py)
+#
 # Modes:
 #   ./scripts/sync-hf-space.sh             # default: sync + verify
 #   ./scripts/sync-hf-space.sh --verify    # verify-only, no copy
@@ -58,10 +66,18 @@ fi
 SYNC_MAP=(
   "src/ocr:src/ocr"
   "packages/vision:packages/vision"
-  "packages/nlp:packages/nlp"
+  "packages/nlp:packages/nlp:arabic_rtl.py"
   "packages/core:packages/core"
   "packages/medical:packages/medical"
   "config:config"
+  # T3 single-file entries (see header note). hf-space/packages/nlp/arabic_rtl.py
+  # intentionally holds the FULL canonical implementation (standalone artifact +
+  # TestHFSpaceSyncGuard requires byte-identity with the canonical), so it is
+  # sourced from the canonical file directly and excluded from the packages/nlp
+  # dir comparison:
+  "packages/omnifile/modules/nlp/arabic_rtl.py:packages/nlp/arabic_rtl.py"
+  "packages/omnifile/modules/nlp/arabic_rtl.py:packages/omnifile/modules/nlp/arabic_rtl.py"
+  "packages/arabic_rtl_canonical.py:packages/arabic_rtl_canonical.py"
 )
 
 # --- Functions ---------------------------------------------------------------
@@ -69,8 +85,22 @@ count_py() {
   find "$1" -name '*.py' -type f 2>/dev/null | wc -l
 }
 
-verify_dir() {
+verify_file() {
   local src="$1" dst="$2"
+  if [[ ! -f "$dst" ]]; then
+    echo "  DRIFT: $dst missing (would be created by sync)"
+    return 2
+  fi
+  if cmp -s "$src" "$dst"; then
+    echo "  OK: $src ↔ $dst (in sync)"
+    return 0
+  fi
+  echo "  DRIFT: file $src vs $dst"
+  return 2
+}
+
+verify_dir() {
+  local src="$1" dst="$2" excludes="${3:-}"
   if [[ ! -d "$src" ]]; then
     echo "  SKIP: $src (not found)"
     return 0
@@ -79,8 +109,14 @@ verify_dir() {
     echo "  DRIFT: $dst missing (would be created by sync)"
     return 2
   fi
+  local diff_args=(-rq --exclude='__pycache__' --exclude='*.pyc')
+  local e
+  if [[ -n "$excludes" ]]; then
+    IFS=',' read -ra _excl <<< "$excludes"
+    for e in "${_excl[@]}"; do diff_args+=(--exclude="$e"); done
+  fi
   local diff_out
-  diff_out=$(diff -rq --exclude='__pycache__' --exclude='*.pyc' "$src" "$dst" 2>&1 || true)
+  diff_out=$(diff "${diff_args[@]}" "$src" "$dst" 2>&1 || true)
   if [[ -z "$diff_out" ]]; then
     echo "  OK: $src ↔ $dst (in sync)"
     return 0
@@ -91,19 +127,36 @@ verify_dir() {
   fi
 }
 
-sync_dir() {
+sync_file() {
   local src="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  cp -f "$src" "$dst"
+  echo "  SYNCED: $src → $dst (file)"
+}
+
+sync_dir() {
+  local src="$1" dst="$2" excludes="${3:-}"
   if [[ ! -d "$src" ]]; then
     echo "  SKIP: $src (not found)"
     return 0
   fi
   mkdir -p "$dst"
   if command -v rsync &>/dev/null; then
-    rsync -a --delete --exclude='__pycache__' --exclude='*.pyc' \
-      "$src/" "$dst/" >/dev/null 2>&1
+    local rsync_args=(-a --delete --exclude='__pycache__' --exclude='*.pyc')
+    local e
+    if [[ -n "$excludes" ]]; then
+      IFS=',' read -ra _excl <<< "$excludes"
+      for e in "${_excl[@]}"; do rsync_args+=(--exclude="$e"); done
+    fi
+    rsync "${rsync_args[@]}" "$src/" "$dst/" >/dev/null 2>&1
   else
     rm -rf "$dst"/*
     cp -r "$src"/* "$dst/" 2>/dev/null || true
+    local e
+    if [[ -n "$excludes" ]]; then
+      IFS=',' read -ra _excl <<< "$excludes"
+      for e in "${_excl[@]}"; do rm -f "$dst/$e"; done
+    fi
   fi
   local n
   n=$(count_py "$dst")
@@ -116,8 +169,12 @@ DRIFT=0
 if [[ "$MODE" == "verify" ]]; then
   echo "--- Verify-only mode: checking drift ---"
   for entry in "${SYNC_MAP[@]}"; do
-    IFS=':' read -r src_sub hf_sub <<< "$entry"
-    verify_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+    IFS=':' read -r src_sub hf_sub excludes <<< "$entry"
+    if [[ -f "$ROOT_DIR/$src_sub" ]]; then
+      verify_file "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+    else
+      verify_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" "${excludes:-}" || DRIFT=1
+    fi
   done
   if [[ "$DRIFT" -ne 0 ]]; then
     echo ""
@@ -132,20 +189,28 @@ fi
 # sync or force mode
 echo "--- Syncing monorepo → hf-space/ ---"
 for entry in "${SYNC_MAP[@]}"; do
-  IFS=':' read -r src_sub hf_sub <<< "$entry"
-  sync_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub"
+  IFS=':' read -r src_sub hf_sub excludes <<< "$entry"
+  if [[ -f "$ROOT_DIR/$src_sub" ]]; then
+    sync_file "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub"
+  else
+    sync_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" "${excludes:-}"
+  fi
 done
 
 echo ""
 echo "--- Post-sync verification ---"
 for entry in "${SYNC_MAP[@]}"; do
-  IFS=':' read -r src_sub hf_sub <<< "$entry"
-  verify_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+  IFS=':' read -r src_sub hf_sub excludes <<< "$entry"
+  if [[ -f "$ROOT_DIR/$src_sub" ]]; then
+    verify_file "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" || DRIFT=1
+  else
+    verify_dir "$ROOT_DIR/$src_sub" "$HF_DIR/$hf_sub" "${excludes:-}" || DRIFT=1
+  fi
 done
 
 echo ""
 echo "=== Summary ==="
-echo "  Directories synced: ${#SYNC_MAP[@]}"
+echo "  Paths synced: ${#SYNC_MAP[@]}"
 if [[ "$DRIFT" -ne 0 ]]; then
   echo "  ⚠️  Post-sync drift detected (probably __pycache__ leftover). Re-run --verify."
   exit 2
