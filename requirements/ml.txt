@@ -7,9 +7,11 @@
 
 -r base.txt
 
+# === Local workspace packages ===
+# Resolved from repository root so nested requirements imports work in CI.
+-e ./packages/scanner_fixer
+
 # === Computer Vision & OCR ===
-scanner-fixer>=1.2.0
-ocr-groundtruth>=1.0.0
 PyMuPDF>=1.23.0
 pdf2image>=1.16.0
 pytesseract>=0.3.10
@@ -25,7 +27,7 @@ langdetect>=1.0.9
 pyspellchecker>=0.7.2
 ar-corrector>=0.6.3
 arabic-reshaper>=3.0.0
-python-bidi>=0.4.2
+python-bidi>=0.4.0
 sentencepiece>=0.1.99
 jiwer>=3.0.0
 symspellpy>=6.7.0

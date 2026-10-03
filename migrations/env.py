@@ -1,63 +1,79 @@
 """OmniMedical Suite - Alembic environment configuration."""
-import sys
 import os
+import sys
 from logging.config import fileConfig
 
-from sqlalchemy import create_engine, pool
 from alembic import context
+from sqlalchemy import create_engine, pool
+from sqlalchemy.engine import make_url
 
-# Add project root to path so app modules are importable
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-# Import Base from the correct location
-from app.db.models.auth import Base
+from app.db.models.auth import Base  # noqa: E402
 
-# Alembic Config object
 config = context.config
 
-# Set up logging from alembic.ini
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# MetaData target for autogenerate support
 target_metadata = Base.metadata
 
 
 def _get_database_url() -> str:
-    """Get database URL from alembic config or default."""
-    # 1. Read alembic.ini directly (most reliable)
-    ini_path = os.path.join(PROJECT_ROOT, "alembic.ini")
-    if os.path.exists(ini_path):
-        import configparser
-        parser = configparser.ConfigParser()
-        parser.read(ini_path)
-        if parser.has_option("alembic", "sqlalchemy.url"):
-            url = parser.get("alembic", "sqlalchemy.url")
-            if url and url.startswith(("sqlite", "postgresql", "mysql")):
-                return url
+    """Resolve the migration database without silently falling back to SQLite in production."""
+    environment = os.environ.get("APP_ENV", os.environ.get("ENVIRONMENT", "development")).lower()
 
-    # 2. Environment variable (only if valid SQLAlchemy URL)
-    url = os.environ.get("DATABASE_URL", "")
-    if url and url.startswith(("sqlite", "postgresql", "mysql")):
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if not url and environment in {"production", "prod", "staging"}:
+        user = os.environ.get("POSTGRES_USER", "").strip()
+        password = os.environ.get("POSTGRES_PASSWORD", "").strip()
+        host = os.environ.get("POSTGRES_HOST", "").strip()
+        port = os.environ.get("POSTGRES_PORT", "5432").strip()
+        database = os.environ.get("POSTGRES_DB", "").strip()
+        if all((user, password, host, database)):
+            url = (
+                f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
+            )
+        else:
+            raise RuntimeError(
+                "DATABASE_URL or complete POSTGRES_* settings are required for production/staging migrations."
+            )
+
+    if not url:
+        ini_url = config.get_main_option("sqlalchemy.url") or ""
+        # The repository's SQLite URL is a development fallback, not an override
+        # for an explicitly configured PostgreSQL environment.
+        if ini_url and not ini_url.startswith("%"):
+            url = ini_url.strip()
+
+    if not url:
+        if environment in {"production", "prod", "staging"}:
+            raise RuntimeError("A PostgreSQL database URL is required for production/staging migrations.")
+        url = "sqlite:///data/omni_medical.db"
+
+    try:
+        parsed = make_url(url)
+    except Exception as exc:
+        raise RuntimeError("DATABASE_URL is not a valid SQLAlchemy database URL") from exc
+
+    if parsed.drivername in {"sqlite", "sqlite+pysqlite"} and environment in {"production", "prod", "staging"}:
+        raise RuntimeError("SQLite is not permitted for production/staging migrations")
+    if parsed.drivername.startswith("postgresql"):
         return url
-
-    # 3. Default to SQLite
-    db_path = os.path.join(PROJECT_ROOT, "data", "omni_medical.db")
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    return f"sqlite:///{db_path}"
+    if parsed.drivername not in {"sqlite", "sqlite+pysqlite"}:
+        raise RuntimeError(f"Unsupported migration database driver: {parsed.drivername}")
+    return url
 
 
-# Set the URL so Alembic knows about it
 SQLALCHEMY_URL = _get_database_url()
 config.set_main_option("sqlalchemy.url", SQLALCHEMY_URL)
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode."""
-    url = config.get_main_option("sqlalchemy.url")
+    """Run migrations in offline mode."""
     context.configure(
-        url=url,
+        url=config.get_main_option("sqlalchemy.url"),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -67,13 +83,10 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
+    """Run migrations in online mode."""
     connectable = create_engine(SQLALCHEMY_URL, poolclass=pool.NullPool)
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()
 

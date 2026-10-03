@@ -374,7 +374,7 @@ docker-compose --profile infra up
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `POSTGRES_PASSWORD` | `omni_dev_pass` | PostgreSQL password |
+| `POSTGRES_PASSWORD` | *(REQUIRED — no default)* | PostgreSQL password (set in `.env`; compose refuses to start without it) |
 | `SECRET_KEY` | *(dev placeholder)* | API auth secret |
 | `ENABLE_LLM` | `false` | Enable Jais proofreader (requires GPU) |
 | `HF_TOKEN` | — | HuggingFace token for dataset upload |

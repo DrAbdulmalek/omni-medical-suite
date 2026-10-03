@@ -7,7 +7,7 @@
 #   docker-compose up gradio api                       # App services only
 #
 # Environment:
-#   POSTGRES_PASSWORD  — PostgreSQL password (default: omni_dev_pass)
+#   POSTGRES_PASSWORD  — PostgreSQL password (REQUIRED — no default; refuse to start without it)
 #   SECRET_KEY         — API auth secret (REQUIRED — no default; refuse to start without it)
 #   GRAFANA_PASSWORD   — Grafana admin password (default: admin)
 # =============================================================================
@@ -23,7 +23,7 @@ services:
     ports:
       - "7860:7860"
     environment:
-      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:-omni_dev_pass}@postgres:5432/omnimedical
+      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (see .env.example)}@postgres:5432/omnimedical
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
       - ENVIRONMENT=development
@@ -47,7 +47,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:-omni_dev_pass}@postgres:5432/omnimedical
+      - DATABASE_URL=postgresql://omnimedical:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (see .env.example)}@postgres:5432/omnimedical
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in the environment (no hardcoded default for production safety)}
@@ -76,7 +76,7 @@ services:
     environment:
       - POSTGRES_DB=omnimedical
       - POSTGRES_USER=omnimedical
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-omni_dev_pass}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (see .env.example)}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -141,7 +141,7 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=omnimedical
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-omni_dev_pass}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (see .env.example)}
       - DB_NAME=omnimedical
       - REDIS_URL=redis://redis:6379/0
       - BACKUP_DIR=/app/backups
