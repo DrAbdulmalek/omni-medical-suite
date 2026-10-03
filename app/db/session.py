@@ -1,101 +1,84 @@
-"""
-Database Session Management - Production Ready with Alembic
-"""
-from contextlib import asynccontextmanager
+"""Async database engine and session lifecycle."""
+from __future__ import annotations
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import get_app_config, get_security_config
 
-# Database engine
 engine = None
-AsyncSessionLocal = None
+AsyncSessionLocal: async_sessionmaker[AsyncSession] | None = None
 
-def get_db_config_uri():
-    """Get database connection URI from config"""
-    security_config = get_security_config()
+
+def get_db_config_uri() -> str:
+    """Build the PostgreSQL URI from validated configuration."""
+    config = get_security_config()
     return (
-        f"postgresql+asyncpg://{security_config.POSTGRES_USER}:"
-        f"{security_config.POSTGRES_PASSWORD}@{security_config.POSTGRES_HOST}:"
-        f"{security_config.POSTGRES_PORT}/{security_config.POSTGRES_DB}"
+        f"postgresql+asyncpg://{config.POSTGRES_USER}:"
+        f"{config.POSTGRES_PASSWORD}@{config.POSTGRES_HOST}:"
+        f"{config.POSTGRES_PORT}/{config.POSTGRES_DB}"
     )
 
-def init_db():
-    """Initialize database engine and session factory"""
+
+def init_db() -> None:
+    """Create the engine and session factory exactly once."""
     global engine, AsyncSessionLocal
+    if engine is not None and AsyncSessionLocal is not None:
+        return
 
-    db_config = get_app_config()
-
-    # Create async engine
+    config = get_app_config()
     engine = create_async_engine(
         get_db_config_uri(),
-        pool_size=db_config.POOL_SIZE,
-        max_overflow=db_config.MAX_OVERFLOW,
-        pool_timeout=db_config.POOL_TIMEOUT,
-        pool_recycle=db_config.POOL_RECYCLE,
-        pool_pre_ping=db_config.POOL_PRE_PING,
-        echo=db_config.DEBUG,
-        future=True
+        pool_size=config.POOL_SIZE,
+        max_overflow=config.MAX_OVERFLOW,
+        pool_timeout=config.POOL_TIMEOUT,
+        pool_recycle=config.POOL_RECYCLE,
+        pool_pre_ping=config.POOL_PRE_PING,
+        echo=config.DEBUG,
     )
-
-    # Create async session factory
-    async_session = sessionmaker(
+    AsyncSessionLocal = async_sessionmaker(
         engine,
-        expire_on_commit=False,
         class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
         autocommit=False,
-        autoflush=False
     )
 
-    AsyncSessionLocal = asynccontextmanager(async_session)
-
-    print("✅ Database engine initialized")
 
 async def get_db():
-    """Dependency to get database session"""
+    """FastAPI dependency yielding one transaction-scoped AsyncSession."""
     if AsyncSessionLocal is None:
         init_db()
+    assert AsyncSessionLocal is not None
 
     async with AsyncSessionLocal() as session:
         try:
             yield session
             await session.commit()
-        except Exception as e:
+        except Exception:
             await session.rollback()
-            raise e
-        finally:
-            await session.close()
+            raise
 
-async def close_db():
-    """Close database connections"""
+
+async def close_db() -> None:
+    """Dispose all database connections during application shutdown."""
     global engine, AsyncSessionLocal
+    current_engine = engine
+    engine = None
+    AsyncSessionLocal = None
+    if current_engine is not None:
+        await current_engine.dispose()
 
-    if AsyncSessionLocal:
-        AsyncSessionLocal = None
 
-    if engine:
-        await engine.dispose()
-        engine = None
-
-    print("✅ Database connections closed")
-
-async def health_check():
-    """Check database health"""
+async def health_check() -> bool:
+    """Return whether PostgreSQL is reachable."""
     if AsyncSessionLocal is None:
         init_db()
+    assert AsyncSessionLocal is not None
 
-    async with AsyncSessionLocal() as session:
-        try:
-            # Use text() for SQLAlchemy 2.0 compatibility
+    try:
+        async with AsyncSessionLocal() as session:
             await session.execute(text("SELECT 1"))
-            await session.commit()
-            return True
-        except Exception as e:
-            await session.rollback()
-            print(f"❌ Database health check failed: {e}")
-            return False
-
-# Initialize on import
-init_db()
+        return True
+    except Exception:
+        return False
