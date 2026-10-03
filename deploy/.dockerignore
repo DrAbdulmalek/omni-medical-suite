@@ -1,0 +1,77 @@
+# =============================================================================
+# Omni Medical Suite — .dockerignore
+# =============================================================================
+# Minimize Docker build context to speed up builds and reduce image size
+
+# Version control
+.git
+.gitignore
+.gitattributes
+.gitmodules
+.github
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.eggs/
+*.egg
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Node
+node_modules/
+.npm
+.pnpm-store/
+
+# Build artifacts
+dist/
+build/
+*.whl
+
+# Data (mounted as volumes)
+data/uploads/
+data/results/
+data/encrypted/
+backups/
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / CI
+tests/
+.coverage
+htmlcov/
+
+# Temporary
+tmp/
+temp/
+*.tmp
