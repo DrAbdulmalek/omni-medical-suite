@@ -22,20 +22,21 @@ OmniMedical Suite.
     entries = converter.convert("dictionary.bgl", output_format="json")
 """
 
-import gzip
-import struct
-import os
-import io
 import csv
-import json
-import sqlite3
-import re
+import gzip
 import html
+import io
+import json
 import logging
-from typing import Dict, List, Tuple, Optional, Any, Iterator, BinaryIO
+import os
+import re
+import sqlite3
+import struct
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class DictionaryEntry:
     definition: str
     term_html: str = ""
     definition_html: str = ""
-    resources: List[Dict[str, Any]] = field(default_factory=list)
+    resources: list[dict[str, Any]] = field(default_factory=list)
 
     def __repr__(self):
         return f"DictionaryEntry(term='{self.term}', definition='{self.definition[:50]}...')"
@@ -170,7 +171,7 @@ class BGLReader:
     def unpack(self, bgl_data: bytes) -> bytes:
         """
         فك ضغط ملف BGL واستخراج البيانات الخام.
-        
+
         بنية ملف BGL:
         - أول 6 بايت: رأس الملف
         - البايتان 4-5: إزاحة بداية بيانات gzip (big-endian)
@@ -221,7 +222,7 @@ class BGLReader:
     def parse_entries(self, data: bytes) -> Iterator[DictionaryEntry]:
         """
         تحليل السجلات من البيانات المستخرجة.
-        
+
         تنسيق السجلات:
         - كل سجل يبدأ بنibble (4 بت) يشير إلى النوع
         - البتات العلوية تشفر طول السجل
@@ -231,7 +232,7 @@ class BGLReader:
         """
         encoding = self.detect_encoding(data)
         pos = 0
-        buffer = io.BytesIO(data)
+        io.BytesIO(data)
 
         while pos < len(data):
             try:
@@ -277,7 +278,7 @@ class BGLReader:
                 logger.debug(f"خطأ في التحليل عند الموضع {pos}: {e}")
                 pos += 1
 
-    def _parse_entry(self, data: bytes, encoding: str) -> Optional[DictionaryEntry]:
+    def _parse_entry(self, data: bytes, encoding: str) -> DictionaryEntry | None:
         """تحليل مدخلة قاموسية واحدة"""
         if len(data) < 4:
             return None
@@ -324,7 +325,7 @@ class BGLReader:
             logger.debug(f"خطأ في تحليل المدخلة: {e}")
             return None
 
-    def _split_entry(self, data: bytes, encoding: str) -> Tuple[bytes, bytes]:
+    def _split_entry(self, data: bytes, encoding: str) -> tuple[bytes, bytes]:
         """فصل المصطلح عن التعريف عندما لا يوجد فاصل NULL واضح"""
         # محاولة فصل بناءً على أول سطر فارغ
         for i in range(len(data)):
@@ -343,14 +344,14 @@ class DICReader:
     def read(filepath: str, encoding: str = "utf-8") -> Iterator[DictionaryEntry]:
         """
         قراءة ملف DIC.
-        
+
         تنسيق DIC:
         - سطر 1: المصطلح
         - سطر 2: التعريف
         - سطر 3: المصطلح التالي
         - ... وهكذا
         """
-        with open(filepath, 'r', encoding=encoding, errors='replace') as f:
+        with open(filepath, encoding=encoding, errors='replace') as f:
             lines = f.readlines()
 
         i = 0
@@ -371,19 +372,19 @@ class DICReader:
 class BGLConverter:
     """
     المحول الرئيسي لملفات القواميس الطبية.
-    
+
     يدعم قراءة ملفات BGL و DIC وتحويلها إلى صيغ متعددة
     مناسبة للاستخدام في تطبيق OmniMedical Suite.
 
     المثال:
         converter = BGLConverter()
-        
+
         # تحويل ملف BGL إلى JSON
         result = converter.convert("medical.bgl", output_format="json")
-        
+
         # تحويل إلى CSV
         result = converter.convert("medical.bgl", output_format="csv")
-        
+
         # تحويل إلى قاعدة بيانات SQLite بتنسيق OmniMedical
         result = converter.convert("medical.bgl", output_format="sqlite_omni")
     """
@@ -397,13 +398,13 @@ class BGLConverter:
         )
         self.metadata = DictionaryMetadata()
 
-    def read_file(self, filepath: str) -> List[DictionaryEntry]:
+    def read_file(self, filepath: str) -> list[DictionaryEntry]:
         """
         قراءة ملف قاموس وكشف صيغته تلقائياً.
-        
+
         المعاملات:
             filepath: مسار ملف القاموس
-            
+
         العائد:
             قائمة بمداخل القاموس
         """
@@ -425,7 +426,7 @@ class BGLConverter:
             except Exception:
                 return list(DICReader.read(filepath, encoding=self.encoding))
 
-    def _read_bgl(self, filepath: str) -> List[DictionaryEntry]:
+    def _read_bgl(self, filepath: str) -> list[DictionaryEntry]:
         """قراءة ملف BGL"""
         logger.info(f"قراءة ملف BGL: {filepath}")
 
@@ -444,11 +445,11 @@ class BGLConverter:
         logger.info(f"تم استخراج {len(entries)} مدخلة")
         return entries
 
-    def _read_json(self, filepath: str) -> List[DictionaryEntry]:
+    def _read_json(self, filepath: str) -> list[DictionaryEntry]:
         """قراءة ملف JSON"""
         logger.info(f"قراءة ملف JSON: {filepath}")
 
-        with open(filepath, 'r', encoding=self.encoding) as f:
+        with open(filepath, encoding=self.encoding) as f:
             data = json.load(f)
 
         entries = []
@@ -495,11 +496,11 @@ class BGLConverter:
         logger.info(f"تم استخراج {len(entries)} مدخلة من JSON")
         return entries
 
-    def _read_csv(self, filepath: str) -> List[DictionaryEntry]:
+    def _read_csv(self, filepath: str) -> list[DictionaryEntry]:
         """قراءة ملف CSV"""
         logger.info(f"قراءة ملف CSV: {filepath}")
         entries = []
-        with open(filepath, 'r', encoding=self.encoding, errors='replace') as f:
+        with open(filepath, encoding=self.encoding, errors='replace') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 term = row.get('term', row.get('ar', row.get('word', '')))
@@ -513,10 +514,10 @@ class BGLConverter:
         return entries
 
     def convert(self, input_path: str, output_format: str = "json",
-                output_path: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+                output_path: str | None = None, **kwargs) -> dict[str, Any]:
         """
         تحويل ملف قاموس من صيغة إلى أخرى.
-        
+
         المعاملات:
             input_path: مسار ملف الإدخال
             output_format: صيغة الإخراج (json, dic, csv, sqlite, sqlite_omni)
@@ -526,7 +527,7 @@ class BGLConverter:
                 - target_lang: لغة الهدف
                 - title: عنوان القاموس
                 - db_table_name: اسم الجدول (لـ sqlite)
-                
+
         العائد:
             {
                 'format': صيغة الإخراج,
@@ -588,7 +589,7 @@ class BGLConverter:
         logger.info(f"تم التحويل بنجاح → {output_path} ({len(entries)} مدخلة)")
         return result
 
-    def _convert_to_json(self, entries: List[DictionaryEntry],
+    def _convert_to_json(self, entries: list[DictionaryEntry],
                          output_path: str, **kwargs) -> None:
         """تحويل إلى JSON بتنسيق OmniMedical"""
         data = {
@@ -618,7 +619,7 @@ class BGLConverter:
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-    def _convert_to_dic(self, entries: List[DictionaryEntry],
+    def _convert_to_dic(self, entries: list[DictionaryEntry],
                         output_path: str) -> None:
         """تحويل إلى DIC (قاموس نصي)"""
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
@@ -628,7 +629,7 @@ class BGLConverter:
                 f.write(f"{entry.term}\n")
                 f.write(f"{entry.definition}\n")
 
-    def _convert_to_csv(self, entries: List[DictionaryEntry],
+    def _convert_to_csv(self, entries: list[DictionaryEntry],
                         output_path: str) -> None:
         """تحويل إلى CSV"""
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
@@ -644,7 +645,7 @@ class BGLConverter:
                     entry.definition_html,
                 ])
 
-    def _convert_to_sqlite(self, entries: List[DictionaryEntry],
+    def _convert_to_sqlite(self, entries: list[DictionaryEntry],
                            output_path: str, table_name: str = "dictionary") -> None:
         """تحويل إلى قاعدة بيانات SQLite"""
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
@@ -700,11 +701,11 @@ class BGLConverter:
         conn.commit()
         conn.close()
 
-    def _convert_to_sqlite_omni(self, entries: List[DictionaryEntry],
+    def _convert_to_sqlite_omni(self, entries: list[DictionaryEntry],
                                 output_path: str, **kwargs) -> None:
         """
         تحويل إلى قاعدة بيانات SQLite بتنسيق OmniMedical.
-        
+
         يتوافق مع جدول medical_terms_cache في init.sql
         """
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
@@ -733,7 +734,6 @@ class BGLConverter:
 
         # إدراج البيانات مع محاولة تحديد اللغة والتصنيف
         arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]')
-        now = "CURRENT_TIMESTAMP"
 
         for entry in entries:
             term = entry.term
@@ -821,15 +821,15 @@ class BGLConverter:
         return extensions.get(output_format.lower(), '.json')
 
     def batch_convert(self, input_dir: str, output_format: str = "json",
-                      output_dir: Optional[str] = None, **kwargs) -> List[Dict[str, Any]]:
+                      output_dir: str | None = None, **kwargs) -> list[dict[str, Any]]:
         """
         تحويل مجموعة ملفات قاموس دفعة واحدة.
-        
+
         المعاملات:
             input_dir: مجلد ملفات الإدخال
             output_format: صيغة الإخراج
             output_dir: مجلد الإخراج (اختياري)
-            
+
         العائد:
             قائمة نتائج التحويل لكل ملف
         """

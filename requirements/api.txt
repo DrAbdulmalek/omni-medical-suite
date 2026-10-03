@@ -9,6 +9,16 @@
 
 # === Database ===
 sqlalchemy>=2.0.51
+# SQLAlchemy's asyncio extension imports greenlet at runtime. It is a conditional
+# dependency (platform/python markers), so it is not always resolved — and when it
+# is missing, tests/test_auth_security.py fails at COLLECTION time:
+#   ModuleNotFoundError: No module named 'greenlet'
+#   ImportError: The SQLAlchemy asyncio module requires that the Python 'greenlet'
+#                library is installed.
+# A collection error aborts pytest with exit code 2 before any test runs, which is
+# what turned Unit Tests / test / Production security regression gate red.
+# Declared explicitly so CI cannot silently lose it.
+greenlet>=3.0.0
 alembic>=1.13.1
 qdrant-client>=1.7.0
 
@@ -19,7 +29,9 @@ celery[redis]>=5.3.6
 # === Security & Auth ===
 python-jose[cryptography]>=3.5.0
 passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.1,<5
 cryptography>=41.0.0
+slowapi>=0.1.9
 
 # === OCR ===
 pytesseract>=0.3.10

@@ -2,7 +2,8 @@
 # Core
 PySide6>=6.5.0
 opencv-python-headless>=4.8.0
-numpy>=1.24.0,<2.0.0
+numpy>=1.24.0,<2.0.0; python_version < "3.14"
+numpy>=2.0.0,<3.0.0; python_version >= "3.14"
 
 # Recommended OCR & analysis
 pytesseract>=0.3.10
