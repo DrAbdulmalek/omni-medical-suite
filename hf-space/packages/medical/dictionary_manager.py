@@ -6,32 +6,32 @@
 
 الاستخدام:
     from packages.medical.dictionary_manager import MedicalDictionaryManager
-    
+
     manager = MedicalDictionaryManager(db_path="data/dictionaries/medical_terms.db")
-    
+
     # استيراد قاموس
     result = manager.import_dictionary("path/to/dictionary.bgl", title="Stedman's Medical")
-    
+
     # بحث
     results = manager.search("fracture", language="en")
-    
+
     # الحصول على مصحح OCR
     corrections = manager.get_ocr_corrections()
 """
 
-import json
-import os
-import sqlite3
-import re
-import logging
+import contextlib
 import csv
-import shutil
-from typing import Dict, List, Optional, Tuple, Any, Iterator
-from dataclasses import dataclass, field, asdict
+import json
+import logging
+import os
+import re
+import sqlite3
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
-from packages.medical.bgl_converter import BGLConverter, DictionaryEntry, OutputFormat
+from packages.medical.bgl_converter import BGLConverter
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +42,11 @@ logger = logging.getLogger(__name__)
 class ImportResult:
     """نتيجة استيراد قاموس"""
     success: bool
-    dict_id: Optional[int] = None
+    dict_id: int | None = None
     title: str = ""
     total_entries: int = 0
     duplicates_skipped: int = 0
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
     duration_seconds: float = 0.0
     source_file: str = ""
 
@@ -92,10 +92,10 @@ class DictionaryInfo:
 class MedicalDictionaryManager:
     """
     مدير القواميس الطبية المتكامل.
-    
+
     يوفر واجهة موحدة لاستيراد وبحث وتصدير القواميس الطبية
     مع دعم كامل لعمليات CRUD والتكامل مع خط أنابيب OCR و NLP.
-    
+
     الميزات:
     - استيراد من BGL و DIC و JSON و CSV
     - بحث ثنائي اللغة (عربي/إنجليزي) مع دعم البحث الجزئي
@@ -120,7 +120,7 @@ class MedicalDictionaryManager:
     def __init__(self, db_path: str = "data/dictionaries/medical_terms.db"):
         """
         تهيئة مدير القواميس.
-        
+
         المعاملات:
             db_path: مسار قاعدة بيانات SQLite
         """
@@ -256,15 +256,15 @@ class MedicalDictionaryManager:
 
     # ============ عمليات الاستيراد ============
 
-    def import_dictionary(self, file_path: str, title: Optional[str] = None,
+    def import_dictionary(self, file_path: str, title: str | None = None,
                           source_lang: str = "ar", target_lang: str = "en",
-                          category: Optional[str] = None,
+                          category: str | None = None,
                           import_corrections: bool = True,
                           import_protected: bool = True,
-                          dict_name: Optional[str] = None) -> ImportResult:
+                          dict_name: str | None = None) -> ImportResult:
         """
         استيراد قاموس طبي من ملف.
-        
+
         المعاملات:
             file_path: مسار ملف القاموس (BGL, DIC, JSON, CSV)
             title: عنوان القاموس (اختياري)
@@ -274,7 +274,7 @@ class MedicalDictionaryManager:
             import_corrections: هل يتم استيراد التصحيحات تلقائياً
             import_protected: هل يتم حماية المصطلحات المستوردة
             dict_name: اسم فريد للقاموس
-            
+
         العائد:
             ImportResult مع تفاصيل الاستيراد
         """
@@ -309,7 +309,7 @@ class MedicalDictionaryManager:
 
             try:
                 cursor.execute("""
-                    INSERT INTO dictionaries (name, title, source_lang, target_lang, 
+                    INSERT INTO dictionaries (name, title, source_lang, target_lang,
                                                total_entries, file_path, file_size, description)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(name) DO UPDATE SET
@@ -318,7 +318,7 @@ class MedicalDictionaryManager:
                         file_size = excluded.file_size
                 """, (name, title or name, source_lang, target_lang,
                       len(entries), file_path, file_size, ""))
-                
+
                 cursor.execute("SELECT id FROM dictionaries WHERE name = ?", (name,))
                 row = cursor.fetchone()
                 dict_id = row['id']
@@ -360,7 +360,7 @@ class MedicalDictionaryManager:
 
                             # تحديث التكرار
                             cursor.execute("""
-                                UPDATE medical_terms 
+                                UPDATE medical_terms
                                 SET frequency = frequency + 1,
                                     last_seen = CURRENT_TIMESTAMP
                                 WHERE (term_ar = ? OR (term_ar IS NULL AND ? IS NULL))
@@ -416,11 +416,11 @@ class MedicalDictionaryManager:
         return result
 
     def _classify_entry(self, term: str, definition: str,
-                        default_category: Optional[str],
-                        source_lang: str, target_lang: str) -> Tuple[Optional[str], Optional[str], str]:
+                        default_category: str | None,
+                        source_lang: str, target_lang: str) -> tuple[str | None, str | None, str]:
         """
         تصنيف مدخلة قاموسية: تحديد اللغة والتصنيف.
-        
+
         العائد:
             (term_ar, term_en, category)
         """
@@ -468,7 +468,7 @@ class MedicalDictionaryManager:
 
         return term_ar, term_en, category
 
-    def _extract_category(self, text: str) -> Optional[str]:
+    def _extract_category(self, text: str) -> str | None:
         """استخراج التصنيف من النص"""
         # البحث عن تصنيف بين أقواس
         match = re.search(r'\[([^\]]+)\]', text)
@@ -501,10 +501,10 @@ class MedicalDictionaryManager:
 
         return None
 
-    def _import_corrections(self, cursor, corrections: List[Tuple[str, str, str]],
+    def _import_corrections(self, cursor, corrections: list[tuple[str, str, str]],
                             dict_id: int):
         """استيراد تصحيحات OCR"""
-        for wrong, correct, lang in corrections:
+        for wrong, correct, _lang in corrections:
             # تنظيف النص
             clean_wrong = wrong.strip()
             clean_correct = correct.strip().replace("التصحيح:", "").strip()
@@ -514,35 +514,31 @@ class MedicalDictionaryManager:
 
             language = 'ar' if self.ARABIC_PATTERN.search(clean_wrong) else 'en'
 
-            try:
+            with contextlib.suppress(sqlite3.IntegrityError):
                 cursor.execute("""
                     INSERT OR IGNORE INTO ocr_corrections
                     (wrong_term, correct_term, language, confidence, source, dict_id)
                     VALUES (?, ?, ?, 0.8, 'import', ?)
                 """, (clean_wrong, clean_correct, language, dict_id))
-            except sqlite3.IntegrityError:
-                pass
 
-    def _import_protected_terms(self, cursor, terms: List[Tuple[str, str]],
+    def _import_protected_terms(self, cursor, terms: list[tuple[str, str]],
                                 dict_id: int):
         """استيراد مصطلحات محمية"""
         for term, category in terms:
-            try:
+            with contextlib.suppress(sqlite3.IntegrityError):
                 cursor.execute("""
                     INSERT OR IGNORE INTO protected_terms (term, category, dict_id)
                     VALUES (?, ?, ?)
                 """, (term.strip(), category, dict_id))
-            except sqlite3.IntegrityError:
-                pass
 
     # ============ عمليات البحث ============
 
-    def search(self, query: str, language: Optional[str] = None,
-               category: Optional[str] = None, limit: int = 50,
-               exact: bool = False, dict_id: Optional[int] = None) -> List[SearchResult]:
+    def search(self, query: str, language: str | None = None,
+               category: str | None = None, limit: int = 50,
+               exact: bool = False, dict_id: int | None = None) -> list[SearchResult]:
         """
         بحث في القاموس الطبي.
-        
+
         المعاملات:
             query: نص البحث
             language: لغة البحث ('ar', 'en', أو None للبحث في كليهما)
@@ -550,7 +546,7 @@ class MedicalDictionaryManager:
             limit: الحد الأقصى للنتائج
             exact: بحث مطابق تماماً
             dict_id: تصفية حسب قاموس محدد
-            
+
         العائد:
             قائمة نتائج البحث
         """
@@ -584,7 +580,7 @@ class MedicalDictionaryManager:
             else:
                 # بحث جزئي (LIKE)
                 like_pattern = f"%{query_clean}%"
-                
+
                 conditions = []
                 params = []
 
@@ -668,11 +664,11 @@ class MedicalDictionaryManager:
         return round(score, 2)
 
     def search_by_prefix(self, prefix: str, language: str = "ar",
-                         limit: int = 20) -> List[SearchResult]:
+                         limit: int = 20) -> list[SearchResult]:
         """بحث بالمصطلحات التي تبدأ ببادئة معينة"""
         return self.search(prefix, language=language, limit=limit)
 
-    def search_by_category(self, category: str, limit: int = 100) -> List[SearchResult]:
+    def search_by_category(self, category: str, limit: int = 100) -> list[SearchResult]:
         """بحث حسب التصنيف"""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -701,7 +697,7 @@ class MedicalDictionaryManager:
         finally:
             conn.close()
 
-    def get_categories(self) -> List[Dict[str, Any]]:
+    def get_categories(self) -> list[dict[str, Any]]:
         """الحصول على قائمة التصنيفات مع عدد المصطلحات"""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -724,10 +720,10 @@ class MedicalDictionaryManager:
 
     # ============ عمليات التصحيح ============
 
-    def get_ocr_corrections(self, language: Optional[str] = None) -> Dict[str, str]:
+    def get_ocr_corrections(self, language: str | None = None) -> dict[str, str]:
         """
         الحصول على جميع تصحيحات OCR.
-        
+
         العائد:
             {wrong_term: correct_term}
         """
@@ -772,7 +768,7 @@ class MedicalDictionaryManager:
         finally:
             conn.close()
 
-    def lookup_correction(self, term: str) -> Optional[str]:
+    def lookup_correction(self, term: str) -> str | None:
         """البحث عن تصحيح لمصطلح"""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -792,7 +788,7 @@ class MedicalDictionaryManager:
 
     # ============ عمليات المصطلحات المحمية ============
 
-    def get_protected_terms(self, language: Optional[str] = None) -> List[str]:
+    def get_protected_terms(self, language: str | None = None) -> list[str]:
         """الحصول على قائمة المصطلحات المحمية"""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -822,7 +818,7 @@ class MedicalDictionaryManager:
 
     # ============ عمليات إدارة القواميس ============
 
-    def list_dictionaries(self) -> List[DictionaryInfo]:
+    def list_dictionaries(self) -> list[DictionaryInfo]:
         """قائمة جميع القواميس المستوردة"""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -850,7 +846,7 @@ class MedicalDictionaryManager:
         finally:
             conn.close()
 
-    def get_dictionary_stats(self) -> Dict[str, Any]:
+    def get_dictionary_stats(self) -> dict[str, Any]:
         """إحصائيات عامة عن القواميس"""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -922,7 +918,7 @@ class MedicalDictionaryManager:
 
     # ============ عمليات التصدير ============
 
-    def export_to_json(self, output_path: str, dict_id: Optional[int] = None,
+    def export_to_json(self, output_path: str, dict_id: int | None = None,
                        include_metadata: bool = True) -> bool:
         """تصدير القاموس إلى JSON"""
         conn = self._get_connection()
@@ -948,7 +944,7 @@ class MedicalDictionaryManager:
                 }
 
             data["entries"] = [
-                {k: row[k] for k in row.keys()} for row in terms
+                dict(row) for row in terms
             ]
 
             os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
@@ -962,7 +958,7 @@ class MedicalDictionaryManager:
         finally:
             conn.close()
 
-    def export_to_csv(self, output_path: str, dict_id: Optional[int] = None) -> bool:
+    def export_to_csv(self, output_path: str, dict_id: int | None = None) -> bool:
         """تصدير القاموس إلى CSV"""
         conn = self._get_connection()
         try:
@@ -983,7 +979,7 @@ class MedicalDictionaryManager:
                 writer = csv.DictWriter(f, fieldnames=['term_ar', 'term_en', 'definition', 'category', 'frequency'])
                 writer.writeheader()
                 for row in terms:
-                    writer.writerow({k: row[k] for k in row.keys()})
+                    writer.writerow({k: row[k] for k in row})
 
             return True
         except Exception as e:
@@ -1058,14 +1054,14 @@ class MedicalDictionaryManager:
 
     # ============ تكامل مع النظام ============
 
-    def get_correction_dict_for_pipeline(self) -> Dict[str, str]:
+    def get_correction_dict_for_pipeline(self) -> dict[str, str]:
         """
         الحصول على قاموس التصحيحات بصيغة مناسبة لخط أنابيب OCR/NLP.
         يُستخدم مباشرة مع SpellCorrector و MedicalOCR.
         """
         return self.get_ocr_corrections()
 
-    def get_protected_terms_for_pipeline(self) -> List[str]:
+    def get_protected_terms_for_pipeline(self) -> list[str]:
         """
         الحصول على المصطلحات المحمية بصيغة مناسبة لخط أنابيب NLP.
         يُستخدم مباشرة مع ProtectedWordsManager.
@@ -1100,13 +1096,13 @@ class MedicalDictionaryManager:
 
             if language == "ar":
                 conn.execute("""
-                    UPDATE medical_terms 
+                    UPDATE medical_terms
                     SET frequency = frequency + 1, last_seen = CURRENT_TIMESTAMP
                     WHERE term_ar = ?
                 """, (term,))
             else:
                 conn.execute("""
-                    UPDATE medical_terms 
+                    UPDATE medical_terms
                     SET frequency = frequency + 1, last_seen = CURRENT_TIMESTAMP
                     WHERE term_en = ?
                 """, (term,))

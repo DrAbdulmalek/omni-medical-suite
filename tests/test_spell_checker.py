@@ -1,5 +1,6 @@
 """Tests for modules.core.spell_checker.HybridSpellChecker"""
 import json
+from pathlib import Path
 
 
 class TestHybridSpellChecker:

@@ -14,6 +14,7 @@ Usage:
         capture_error(e, context={"user_id": 123})
 """
 
+import logging
 import os
 from typing import Any
 
