@@ -95,9 +95,9 @@ ARABIC_NORMALIZATION_MAP = {
     # Ghain
     "\uFECB": "\u063A", "\uFECC": "\u063A", "\uFECD": "\u063A", "\uFECE": "\u063A",
     # Fa
-    "\uFED3": "\u0641", "\uFED4": "\u0641", "\uFED5": "\u0641", "\uFED6": "\u0641",  # removed duplicate \uFECF/FED0
+    "\uFECF": "\u0641", "\uFED0": "\u0641", "\uFED1": "\u0641", "\uFED2": "\u0641",
     # Qaf
-    "\uFED7": "\u0642", "\uFED8": "\u0642", "\uFED9": "\u0642", "\uFEDA": "\u0642",
+    "\uFED3": "\u0642", "\uFED4": "\u0642", "\uFED5": "\u0642", "\uFED6": "\u0642",
     # Kaf
     "\uFEDB": "\u0643", "\uFEDC": "\u0643", "\uFEDD": "\u0643", "\uFEDE": "\u0643",
     # Lam
@@ -144,8 +144,6 @@ EXTRA_OCR_NORMALIZATION = {
     "\uFEE7": "\u0646", "\uFEE8": "\u0646", "\uFEE9": "\u0646", "\uFEEA": "\u0646",
     # Ha
     "\uFEEB": "\u0647", "\uFEEC": "\u0647", "\uFEED": "\u0647", "\uFEEE": "\u0647",
-    # Taa
-    "\uFED3": "\u062A", "\uFED4": "\u062A", "\uFED5": "\u062A", "\uFED6": "\u062A",
     # Ain
     "\uFEC7": "\u0639", "\uFEC8": "\u0639", "\uFEC9": "\u0639", "\uFECA": "\u0639",
     # Ghain
@@ -159,9 +157,9 @@ EXTRA_OCR_NORMALIZATION = {
     # Shin
     "\uFEB3": "\u0634", "\uFEB4": "\u0634", "\uFEB5": "\u0634", "\uFEB6": "\u0634",
     # Fa
-    "\uFED3": "\u0641", "\uFED4": "\u0641", "\uFED5": "\u0641", "\uFED6": "\u0641",
+    "\uFECF": "\u0641", "\uFED0": "\u0641", "\uFED1": "\u0641", "\uFED2": "\u0641",
     # Qaf
-    "\uFED7": "\u0642", "\uFED8": "\u0642", "\uFED9": "\u0642", "\uFEDA": "\u0642",
+    "\uFED3": "\u0642", "\uFED4": "\u0642", "\uFED5": "\u0642", "\uFED6": "\u0642",
     # Khaa
     "\uFEA3": "\u062E", "\uFEA4": "\u062E", "\uFEA5": "\u062E", "\uFEA6": "\u062E",
     # Dal
