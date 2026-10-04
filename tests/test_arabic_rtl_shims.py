@@ -192,10 +192,13 @@ class TestArabicPresentationFormNormalization:
 
     def test_ain_ghain_fa_qaf_ranges_map_to_correct_letters(self, canonical_module):
         expected = {
-            **{chr(code): "ع" for code in range(0xFEC7, 0xFECB)},
-            **{chr(code): "غ" for code in range(0xFECB, 0xFECF)},
-            **{chr(code): "ف" for code in range(0xFECF, 0xFED3)},
-            **{chr(code): "ق" for code in range(0xFED3, 0xFED7)},
+            **{chr(code): "ط" for code in range(0xFEC1, 0xFEC5)},
+            **{chr(code): "ظ" for code in range(0xFEC5, 0xFEC9)},
+            **{chr(code): "ع" for code in range(0xFEC9, 0xFECD)},
+            **{chr(code): "غ" for code in range(0xFECD, 0xFED1)},
+            **{chr(code): "ف" for code in range(0xFED1, 0xFED5)},
+            **{chr(code): "ق" for code in range(0xFED5, 0xFED9)},
+            **{chr(code): "ل" for code in range(0xFEDD, 0xFEE1)},
         }
         for presentation_form, letter in expected.items():
             assert canonical_module.ARABIC_NORMALIZATION_MAP[presentation_form] == letter
@@ -204,6 +207,15 @@ class TestArabicPresentationFormNormalization:
 
     def test_full_affected_range_matches_unicode_nfkc(self, canonical_module):
         import unicodedata
-        for code in range(0xFEC7, 0xFED7):
+
+        # (a) explicit sweep over the whole affected window (Tah..Qaf + Lam)
+        for code in range(0xFEC1, 0xFEE1):
             presentation_form = chr(code)
             assert canonical_module.normalize_arabic_presentation_forms(presentation_form) == unicodedata.normalize("NFKC", presentation_form)
+
+        # (b) bulletproof: EVERY single-char key in the map must equal its NFKC
+        #     normalization — the table itself cannot drift from Unicode again.
+        for presentation_form, mapped in canonical_module.ARABIC_NORMALIZATION_MAP.items():
+            if len(presentation_form) == 1:
+                assert canonical_module.normalize_arabic_presentation_forms(presentation_form) == unicodedata.normalize("NFKC", presentation_form)
+                assert mapped == unicodedata.normalize("NFKC", presentation_form)
