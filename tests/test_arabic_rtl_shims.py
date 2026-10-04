@@ -200,6 +200,7 @@ class TestArabicPresentationFormNormalization:
         for presentation_form, letter in expected.items():
             assert canonical_module.ARABIC_NORMALIZATION_MAP[presentation_form] == letter
             assert canonical_module.normalize_arabic_presentation_forms(presentation_form) == letter
+            assert canonical_module.normalize_arabic_ocr(presentation_form) == letter
 
     def test_full_affected_range_matches_unicode_nfkc(self, canonical_module):
         import unicodedata
