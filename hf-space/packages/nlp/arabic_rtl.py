@@ -95,9 +95,9 @@ ARABIC_NORMALIZATION_MAP = {
     # Ghain
     "\uFECB": "\u063A", "\uFECC": "\u063A", "\uFECD": "\u063A", "\uFECE": "\u063A",
     # Fa
-    "\uFED3": "\u0641", "\uFED4": "\u0641", "\uFED5": "\u0641", "\uFED6": "\u0641",  # removed duplicate \uFECF/FED0
+    "\uFECF": "\u0641", "\uFED0": "\u0641", "\uFED1": "\u0641", "\uFED2": "\u0641",
     # Qaf
-    "\uFED7": "\u0642", "\uFED8": "\u0642", "\uFED9": "\u0642", "\uFEDA": "\u0642",
+    "\uFED3": "\u0642", "\uFED4": "\u0642", "\uFED5": "\u0642", "\uFED6": "\u0642",
     # Kaf
     "\uFEDB": "\u0643", "\uFEDC": "\u0643", "\uFEDD": "\u0643", "\uFEDE": "\u0643",
     # Lam
