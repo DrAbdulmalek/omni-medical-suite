@@ -185,3 +185,24 @@ class TestHFSpaceSyncGuard:
             "hf-space arabic_rtl.py drifted from the canonical module — "
             "sync the deployment copy or update this guard consciously"
         )
+
+
+class TestArabicPresentationFormNormalization:
+    """Regression coverage for Arabic Presentation Forms-B mappings."""
+
+    def test_ain_ghain_fa_qaf_ranges_map_to_correct_letters(self, canonical_module):
+        expected = {
+            **{chr(code): "ع" for code in range(0xFEC7, 0xFECB)},
+            **{chr(code): "غ" for code in range(0xFECB, 0xFECF)},
+            **{chr(code): "ف" for code in range(0xFECF, 0xFED3)},
+            **{chr(code): "ق" for code in range(0xFED3, 0xFED7)},
+        }
+        for presentation_form, letter in expected.items():
+            assert canonical_module.ARABIC_NORMALIZATION_MAP[presentation_form] == letter
+            assert canonical_module.normalize_arabic_presentation_forms(presentation_form) == letter
+
+    def test_full_affected_range_matches_unicode_nfkc(self, canonical_module):
+        import unicodedata
+        for code in range(0xFEC7, 0xFED7):
+            presentation_form = chr(code)
+            assert canonical_module.normalize_arabic_presentation_forms(presentation_form) == unicodedata.normalize("NFKC", presentation_form)
