@@ -59,8 +59,8 @@ def read_token() -> str:
     return tok
 
 
-def git(repo: str, *args: str) -> str:
-    res = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True)
+def git(repo: str, *args: str, env: Dict[str, str] | None = None) -> str:
+    res = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, env=env)
     if res.returncode != 0:
         raise RuntimeError(f"git {' '.join(args[:2])} failed: {res.stderr.strip()[:300]}")
     return res.stdout.strip()
@@ -185,21 +185,29 @@ def main() -> int:
         return 0
     git(training_db, "commit", "-m", msg)
 
-    # 5. push (token only in argv URL, never persisted)
+    # 5. push using a process environment, never putting the token in argv.
+    # Git receives credentials through a temporary shell helper that reads GH_TOKEN;
+    # the token therefore does not appear in the process command line or git config.
     token = read_token()
     repo_slug = os.getenv("OMNI_TRAINING_DB_REPO", DEFAULT_REPO)
-    remote = f"https://x-access-token:{token}@github.com/{repo_slug}.git"
+    push_url = f"https://github.com/{repo_slug}.git"
+    push_env = os.environ.copy()
+    push_env["GH_TOKEN"] = token
+    push_env["GIT_TERMINAL_PROMPT"] = "0"
+    push_env["GIT_CONFIG_COUNT"] = "1"
+    push_env["GIT_CONFIG_KEY_0"] = "credential.helper"
+    push_env["GIT_CONFIG_VALUE_0"] = "!f() { echo username=x-access-token; echo password=$GH_TOKEN; }; f"
 
     def try_push() -> "subprocess.CompletedProcess":
-        return subprocess.run(["git", "-C", training_db, "push", remote, "main"],
-                              capture_output=True, text=True)
+        return subprocess.run(["git", "-C", training_db, "push", push_url, "main"],
+                              capture_output=True, text=True, env=push_env)
 
     res = try_push()
     if res.returncode != 0 and "fetch first" in (res.stdout + res.stderr):
         # remote moved (repo auto-init README, push from another device):
         # merge remote history preferring local generated views, then retry.
         print("REMOTE_MOVED: merging with -X ours …")
-        subprocess.run(["git", "-C", training_db, "fetch", remote, "main"],
+        subprocess.run(["git", "-C", training_db, "fetch", push_url, "main"], capture_output=True, text=True, env=push_env)
                        capture_output=True, text=True)
         merge = subprocess.run(
             ["git", "-C", training_db, "merge", "-X", "ours",
