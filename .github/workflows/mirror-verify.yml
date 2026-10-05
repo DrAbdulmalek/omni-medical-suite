@@ -68,3 +68,28 @@ jobs:
           echo '- Git remotes: checked' >> "$GITHUB_STEP_SUMMARY"
           echo '- Submodules: verified' >> "$GITHUB_STEP_SUMMARY"
           echo '- Gitlinks: checked fail-closed' >> "$GITHUB_STEP_SUMMARY"
+
+
+      - name: Collect gitlink diagnostic
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-tree -r HEAD > gitlinks-tree.txt
+          grep '^160000' gitlinks-tree.txt > gitlinks-report.txt || true
+          {
+            echo '=== GITLINK REPORT ==='
+            cat gitlinks-report.txt
+            echo '=== SUBMODULE CONFIG ==='
+            cat .gitmodules 2>/dev/null || true
+          } > gitlinks-diagnostic.txt
+
+      - name: Upload gitlink diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mirror-verify-gitlink-diagnostic
+          path: |
+            gitlinks-diagnostic.txt
+            gitlinks-report.txt
+          if-no-files-found: warn
