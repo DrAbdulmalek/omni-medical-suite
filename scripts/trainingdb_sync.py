@@ -222,18 +222,24 @@ def main() -> int:
         return 1
     sha = git(training_db, "rev-parse", "HEAD")
 
-    # 6. mark synced and push the sync-state follow-up commit
+    # 6. Mark slices synced, then regenerate the mirror metadata so README/stats
+    # describe the state that actually exists on GitHub.
     pending = slices_store.list_slices(limit=10_000, pending_only=True)
     slices_store.mark_synced([r["id"] for r in pending], commit=sha[:12])
-    git(training_db, "add", "sync_state.json")
+    stats_after = build_stats(training_db)
+    with open(os.path.join(training_db, "stats.json"), "w", encoding="utf-8") as fh:
+        json.dump(stats_after, fh, ensure_ascii=False, indent=1)
+    write_readme(training_db, stats_after)
+    git(training_db, "add", "sync_state.json", "stats.json", "README.md")
     if git(training_db, "status", "--porcelain").strip():
-        git(training_db, "commit", "-m", "sync state update")
+        git(training_db, "commit", "-m", "sync state and mirror stats update")
         res2 = try_push()
         if res2.returncode != 0:
             print("PUSH_STATE_FAIL (data already pushed):",
                   (res2.stdout + res2.stderr)[-300:])
-    print(f"PUSHED: {sha[:12]} — slices={stats['slices']['slices']} "
-          f"patterns={stats['patterns']['patterns']}")
+            return 1
+    print(f"PUSHED: {sha[:12]} — slices={stats_after['slices']['slices']} "
+          f"patterns={stats_after['patterns']['patterns']} pending={stats_after['slices']['pending']}")
     return 0
 
 
