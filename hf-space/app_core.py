@@ -46,6 +46,29 @@ HF_DATASET = "DrAbdulmalek/arabic-medical-ocr-corrections"
 HF_DATASET_PRIVATE = os.getenv("HF_DATASET_PRIVATE", "true").lower() == "true"
 MEDICAL_MIN_CONFIDENCE = float(os.getenv("MEDICAL_MIN_CONFIDENCE", "70"))
 
+# Wave 1.3b privacy gate: uploading corrections from this PUBLIC Space is
+# DISABLED by default. Enable explicitly via Space secret OMNI_HF_UPLOAD_ENABLED=1.
+HF_UPLOAD_ENABLED = os.getenv("OMNI_HF_UPLOAD_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+import re as _re
+
+_ANON_PATTERNS = (
+    (_re.compile(r"(?:\+?966|0)5\d{8}\b"), "[PHONE]"),
+    (_re.compile(r"\b[12]\d{9}\b"), "[NATIONAL_ID]"),
+    (_re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+"), "[EMAIL]"),
+    (_re.compile(r"\b\d{7,}\b"), "[NUMBER]"),
+)
+
+
+def _anonymize_text(text) -> str:
+    """Replace direct identifiers with structural tags before any persistence."""
+    if not text:
+        return text if isinstance(text, str) else ""
+    out = str(text)
+    for rx, tag in _ANON_PATTERNS:
+        out = rx.sub(tag, out)
+    return out
+
 # ── Conditional Imports ─────────────────────────────────────────────────────
 HAS_LLM = False
 HAS_HF = False
@@ -528,7 +551,8 @@ def full_process(image) -> Tuple:
 # ── Save to HuggingFace ────────────────────────────────────────────────────
 
 def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category: str, approved: bool, confidence: float) -> str:
-    """Persist a reviewed correction only after mandatory approval and confidence gate."""
+    """Persist a reviewed correction only after mandatory approval, confidence gate,
+    the explicit upload opt-in (OMNI_HF_UPLOAD_ENABLED) and de-identification."""
     if not HAS_HF:
         return "HuggingFace libraries not available. Install datasets and huggingface_hub."
 
@@ -542,6 +566,19 @@ def save_to_hf(corrected_text: str, original_text: str, ner_text: str, category:
         return f"BLOCKED: OCR confidence {confidence:.1f}% is below the required {MEDICAL_MIN_CONFIDENCE:.1f}% threshold."
     if not corrected_text or not corrected_text.strip():
         return "No text to save"
+
+    # Wave 1.3b privacy gate — upload is opt-in, never default.
+    if not HF_UPLOAD_ENABLED:
+        return (
+            "⛔ Uploading to the dataset is DISABLED by default (privacy policy). "
+            "Set the Space secret OMNI_HF_UPLOAD_ENABLED=1 to enable. "
+            "Nothing left this Space."
+        )
+
+    # Wave 1.3b de-identification BEFORE persistence.
+    corrected_text = _anonymize_text(corrected_text)
+    original_text = _anonymize_text(original_text)
+    ner_text = _anonymize_text(ner_text)
 
     try:
         row = {
@@ -759,6 +796,12 @@ with gr.Blocks(
                 )
                 approved = gr.Checkbox(label="I have reviewed the raw/corrected text and approve this medical correction", value=False)
                 confidence = gr.Number(label="OCR Confidence (%)", value=0, interactive=False)
+                gr.Markdown(
+                    "⚠️ **خصوصية البيانات:** الرفع إلى HuggingFace **معطّل افتراضياً**. "
+                    "للتفعيل: Space secret `OMNI_HF_UPLOAD_ENABLED=1`. عند التفعيل تُستبدل "
+                    "الهواتف/الهويات/الأرقام الطويلة تلقائياً بوسوم قبل الحفظ. "
+                    "لا ترفع وثائق مريض حقيقية إلا بموافقة أخلاقية صريحة."
+                )
                 save_btn = gr.Button("Save Reviewed Correction to HF Dataset", variant="secondary")
                 save_status = gr.Textbox(label="Save Status", interactive=False)
 
