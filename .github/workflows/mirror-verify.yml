@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main, master]
   schedule:
-    - cron: "0 0 * * 0"  # weekly
+    - cron: "0 0 * * 0"
 
 permissions:
   contents: read
@@ -36,30 +36,35 @@ jobs:
           cat .gitmodules 2>/dev/null || echo 'No .gitmodules file'
 
       - name: Check for broken gitlinks (mode 160000 without .gitmodules entry)
+        shell: bash
         run: |
+          set -euo pipefail
           echo '=== Gitlink check ==='
-          GITLINKS=$(git ls-tree -r HEAD | grep '^160000' || true)
-          if [ -n "$GITLINKS" ]; then
-            echo 'Found gitlinks:'
-            echo "$GITLINKS"
-            echo ''
-            for path in $(echo "$GITLINKS" | awk '{print $4}'); do
-              if ! grep -q "path = $path" .gitmodules 2>/dev/null; then
-                echo "::error:: Gitlink '$path' has no .gitmodules entry (will break checkout)"
-                exit 1
-              fi
-            done
-            echo 'All gitlinks have .gitmodules entries'
-          else
+          found=0
+          while IFS=$'\t' read -r -d '' meta path; do
+            mode="${meta%% *}"
+            if [[ "$mode" != "160000" ]]; then
+              continue
+            fi
+            found=1
+            echo "Found gitlink: $path"
+            if ! grep -Fqx -- "path = $path" .gitmodules 2>/dev/null; then
+              echo "::error:: Gitlink '$path' has no .gitmodules entry (will break checkout)"
+              exit 1
+            fi
+          done < <(git ls-tree -r -z HEAD)
+
+          if [[ "$found" -eq 0 ]]; then
             echo 'No gitlinks found'
+          else
+            echo 'All gitlinks have .gitmodules entries'
           fi
-        continue-on-error: true
 
       - name: Summary
         if: always()
         run: |
-          echo '### Mirror Verify Summary' >> $GITHUB_STEP_SUMMARY
-          echo '' >> $GITHUB_STEP_SUMMARY
-          echo '- Git remotes: checked' >> $GITHUB_STEP_SUMMARY
-          echo '- Submodules: verified' >> $GITHUB_STEP_SUMMARY
-          echo '- Gitlinks: scanned for missing .gitmodules entries' >> $GITHUB_STEP_SUMMARY
+          echo '### Mirror Verify Summary' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Git remotes: checked' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Submodules: verified' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Gitlinks: checked fail-closed' >> "$GITHUB_STEP_SUMMARY"
