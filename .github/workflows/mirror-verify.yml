@@ -41,6 +41,13 @@ jobs:
           set -euo pipefail
           echo '=== Gitlink check ==='
           found=0
+          declare -A configured_paths=()
+          if [[ -f .gitmodules ]]; then
+            while IFS= read -r path; do
+              [[ -n "$path" ]] && configured_paths["$path"]=1
+            done < <(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | cut -d' ' -f2-)
+          fi
+
           while IFS=$'\t' read -r -d '' meta path; do
             mode="${meta%% *}"
             if [[ "$mode" != "160000" ]]; then
@@ -48,8 +55,8 @@ jobs:
             fi
             found=1
             echo "Found gitlink: $path"
-            if ! grep -Fqx -- "path = $path" .gitmodules 2>/dev/null; then
-              echo "::error:: Gitlink '$path' has no .gitmodules entry (will break checkout)"
+            if [[ -z "${configured_paths[$path]+x}" ]]; then
+              echo "::error:: Gitlink '$path' has no matching submodule.*.path entry in .gitmodules"
               exit 1
             fi
           done < <(git ls-tree -r -z HEAD)
@@ -57,7 +64,7 @@ jobs:
           if [[ "$found" -eq 0 ]]; then
             echo 'No gitlinks found'
           else
-            echo 'All gitlinks have .gitmodules entries'
+            echo 'All gitlinks have matching .gitmodules path entries'
           fi
 
       - name: Summary
@@ -70,26 +77,3 @@ jobs:
           echo '- Gitlinks: checked fail-closed' >> "$GITHUB_STEP_SUMMARY"
 
 
-      - name: Collect gitlink diagnostic
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          git ls-tree -r HEAD > gitlinks-tree.txt
-          grep '^160000' gitlinks-tree.txt > gitlinks-report.txt || true
-          {
-            echo '=== GITLINK REPORT ==='
-            cat gitlinks-report.txt
-            echo '=== SUBMODULE CONFIG ==='
-            cat .gitmodules 2>/dev/null || true
-          } > gitlinks-diagnostic.txt
-
-      - name: Upload gitlink diagnostic
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mirror-verify-gitlink-diagnostic
-          path: |
-            gitlinks-diagnostic.txt
-            gitlinks-report.txt
-          if-no-files-found: warn
