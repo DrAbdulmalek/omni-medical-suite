@@ -207,8 +207,8 @@ def main() -> int:
         # remote moved (repo auto-init README, push from another device):
         # merge remote history preferring local generated views, then retry.
         print("REMOTE_MOVED: merging with -X ours …")
-        subprocess.run(["git", "-C", training_db, "fetch", push_url, "main"], capture_output=True, text=True, env=push_env)
-                       capture_output=True, text=True)
+        subprocess.run(["git", "-C", training_db, "fetch", push_url, "main"],
+                        capture_output=True, text=True, env=push_env)
         merge = subprocess.run(
             ["git", "-C", training_db, "merge", "-X", "ours",
              "--allow-unrelated-histories", "--no-edit", "FETCH_HEAD"],
