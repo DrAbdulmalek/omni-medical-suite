@@ -288,8 +288,11 @@ def save_to_hf(corrected_text: str, original_text: str, entities,
         return "⚠️ لا يوجد نص مصحح للحفظ. الرجاء معالجة صورة أولاً."
     if review_status not in {s.value for s in ReviewStatus}:
         return f"⚠️ حالة المراجعة غير صالحة: {review_status}"
-    if review_status == ReviewStatus.APPROVED and not reviewer:
-        return "🛑 لا يمكن اعتماد عينة تدريب بلا هوية المراجع."
+    if review_status != ReviewStatus.PENDING:
+        return (
+            "🛑 لا يمكن إنشاء عينة بحالة مراجعة نهائية. "
+            "يجب إنشاء العينة pending ثم تغيير حالتها عبر set_review_status()."
+        )
 
     content_hash = _compute_content_hash(original_text, corrected_text)
     row = {
