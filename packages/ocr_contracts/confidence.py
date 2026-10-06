@@ -28,8 +28,8 @@ def combine_calibrated(evidence: Iterable[ConfidenceEvidence]) -> float | None:
     Raw/missing scores are not silently coerced. A single uncalibrated or
     mismatched calibration version makes the aggregate unavailable.
     """
-    items = [e for e in evidence if e.raw_confidence is not None]
-    if not items:
+    items = list(evidence)
+    if not items or any(e.raw_confidence is None for e in items):
         return None
     scales = {e.confidence_scale for e in items}
     versions = {e.calibration_version for e in items}
