@@ -53,6 +53,14 @@ The `pull_request` trigger is intentionally unfiltered so the required `lint-and
 
 The `pull_request` trigger is intentionally unfiltered so the required `Verify hf-space ↔ app/services mirror` check is always produced. The verification commands are fail-closed.
 
+### `mirror-verify.yml`
+
+**Classification: required repo-integrity gate. Fail-closed.**
+
+The `Mirror Verify` workflow runs on every PR and on push to main, and its gitlink check is a required repository-integrity gate. The check enumerates gitlinks (mode 160000), verifies each has a corresponding `.gitmodules` entry, emits an error for an orphaned gitlink, and exits non-zero.
+
+A previous `continue-on-error: true` on this exact safety step could convert a detected broken gitlink into a successful check-run conclusion. The current-main remediation removes that suppression so the exit code reaches the required check conclusion. The `|| true` attached only to the `grep` command remains intentional because no gitlinks is a valid state.
+
 ## Principle
 
 A required check must contain a genuine fail-closed gate. Informational diagnostics may be non-blocking, but they must be isolated from the required gate or explicitly documented as informational and must never be represented as proof of success.
