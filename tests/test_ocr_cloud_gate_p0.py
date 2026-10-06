@@ -118,7 +118,7 @@ class TestGateBlocksMistral:
 
     def test_gate_open_missing_key_still_fails_cleanly(self, monkeypatch):
         """Gate open + no API key -> clean engine error, no crash."""
-        monkeypatch.setenv(_CLOUD_GATE_ENV, "1")
+        monkeypatch.setenv(_CLOUD_GATE_ENV, "true")
         monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
         adapter = self._make_adapter()
         adapter._mistral_loaded = True
@@ -135,7 +135,7 @@ class TestInventedConfidenceIsolated:
     """Mistral success path must not fabricate a confidence score."""
 
     def _run_success(self, monkeypatch):
-        monkeypatch.setenv(_CLOUD_GATE_ENV, "1")
+        monkeypatch.setenv(_CLOUD_GATE_ENV, "true")
         adapter = UnifiedOCR(engine_order=["mistral"], cache_max_size=0)
 
         fake_engine = MagicMock()
