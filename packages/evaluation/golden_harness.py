@@ -125,8 +125,16 @@ def check_cloud_gate() -> None:
 def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict:
     raw = (out.get("text") or "").strip()
     normalized, policy = normalize_v1(raw)
-    cer, _, _ = calculate_cer(sample["reference"], normalized)
-    wer, _, _ = calculate_wer(sample["reference"], normalized)
+    # F-16: تطبيع متماثل أحادي المرة — المرجع والفرضية كلاهما عبر normalize_v1
+    # (السياسة الكانونية المعلنة A2) مرة واحدة حصراً، والمقاييس تُستدعى بـ
+    # skip_internal_normalize=True فلا يجري داخلها تطبيع ثانٍ بسياسة مختلفة
+    # (_normalize_arabic). قبل F-16 كان المرجع يُمرَّر خاماً فطبّعه
+    # calculate_cer داخلياً بـ_normalize_arabic بينما الفرضية مطبَّعة بـ
+    # normalize_v1 — تطبيعان مختلفان على طرفين مختلفي المعاملة (مثال الخلل:
+    # «٥» في المرجع تبقى كما هي بينما ناتج المحرك «5» يُحسب خطأً على نص متطابق).
+    ref_norm, _ref_policy = normalize_v1(sample["reference"])
+    cer, _, _ = calculate_cer(ref_norm, normalized, skip_internal_normalize=True)
+    wer, _, _ = calculate_wer(ref_norm, normalized, skip_internal_normalize=True)
     return {
         "sample_id": sample["id"],
         "category": sample["category"],

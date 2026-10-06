@@ -407,7 +407,7 @@ class MedicalNLPPipeline:
     def rtl_fixer(self):  # type: ignore[no-untyped-def]
         """Lazily load :class:`RTLFixer`."""
         if self._rtl_fixer is None:
-            cls = _import_class("packages.nlp.arabic_rtl", "RTLFixer")
+            cls = _import_class("packages.arabic_rtl_canonical", "RTLFixer")
             self._rtl_fixer = cls() if cls else None
         return self._rtl_fixer
 
@@ -960,7 +960,7 @@ class MedicalNLPPipeline:
             ``'rtl'``, ``'ltr'``, or ``'mixed'``.
         """
         try:
-            from packages.nlp.arabic_rtl import get_text_direction  # type: ignore
+            from packages.arabic_rtl_canonical import get_text_direction  # type: ignore
 
             return get_text_direction(text)
         except ImportError:

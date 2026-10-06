@@ -49,74 +49,188 @@ LINE_HEIGHT_TOLERANCE = 20
 # Maps isolated/initial/medial/final presentation forms back to their
 # canonical Unicode code-points so OCR output is consistent.
 ARABIC_NORMALIZATION_MAP = {
-    # Alef variants
-    "\uFE81": "\u0622", "\uFE82": "\u0622",  # Alef with Madda
-    "\uFE83": "\u0623", "\uFE84": "\u0623",  # Alef with Hamza above
-    "\uFE85": "\u0624", "\uFE86": "\u0624",  # Waw with Hamza
-    "\uFE87": "\u0625", "\uFE88": "\u0625",  # Alef with Hamza below
-    "\uFE89": "\u0626", "\uFE8A": "\u0626",  # Yeh with Hamza
-    "\uFE8B": "\u0626", "\uFE8C": "\u0626",
-    # Alef
-    "\uFE8D": "\u0627", "\uFE8E": "\u0627",
-    # Ba
-    "\uFE8F": "\u0628", "\uFE90": "\u0628", "\uFE91": "\u0628", "\uFE92": "\u0628",
-    # Ta
-    "\uFE93": "\u062A", "\uFE94": "\u062A", "\uFE95": "\u062A", "\uFE96": "\u062A",
-    # Tha
-    "\uFE97": "\u062B", "\uFE98": "\u062B", "\uFE99": "\u062B", "\uFE9A": "\u062B",
-    # Jim
-    "\uFE9B": "\u062C", "\uFE9C": "\u062C", "\uFE9D": "\u062C", "\uFE9E": "\u062C",
-    # Haa (breathy)
-    "\uFE9F": "\u062D", "\uFEA0": "\u062D", "\uFEA1": "\u062D", "\uFEA2": "\u062D",
-    # Khaa
-    "\uFEA3": "\u062E", "\uFEA4": "\u062E", "\uFEA5": "\u062E", "\uFEA6": "\u062E",
-    # Dal
-    "\uFEA7": "\u062F", "\uFEA8": "\u062F",
-    # Dhal
-    "\uFEA9": "\u0630", "\uFEAA": "\u0630",
-    # Raa
-    "\uFEAB": "\u0631", "\uFEAC": "\u0631",
-    # Zay
-    "\uFEAD": "\u0632", "\uFEAE": "\u0632",
-    # Seen
-    "\uFEAF": "\u0633", "\uFEB0": "\u0633", "\uFEB1": "\u0633", "\uFEB2": "\u0633",
-    # Sheen
-    "\uFEB3": "\u0634", "\uFEB4": "\u0634", "\uFEB5": "\u0634", "\uFEB6": "\u0634",
-    # Sad
-    "\uFEB7": "\u0635", "\uFEB8": "\u0635", "\uFEB9": "\u0635", "\uFEBA": "\u0635",
-    # Dad
-    "\uFEBB": "\u0636", "\uFEBC": "\u0636", "\uFEBD": "\u0636", "\uFEBE": "\u0636",
-    # Tah
-    "\uFEBF": "\u0637", "\uFEC0": "\u0637", "\uFEC1": "\u0637", "\uFEC2": "\u0637",
-    # Zah
-    "\uFEC3": "\u0638", "\uFEC4": "\u0638", "\uFEC5": "\u0638", "\uFEC6": "\u0638",
-    # Ain
-    "\uFEC7": "\u0639", "\uFEC8": "\u0639", "\uFEC9": "\u0639", "\uFECA": "\u0639",
-    # Ghain
-    "\uFECB": "\u063A", "\uFECC": "\u063A", "\uFECD": "\u063A", "\uFECE": "\u063A",
-    # Fa
-    "\uFED3": "\u0641", "\uFED4": "\u0641", "\uFED5": "\u0641", "\uFED6": "\u0641",  # removed duplicate \uFECF/FED0
-    # Qaf
-    "\uFED7": "\u0642", "\uFED8": "\u0642", "\uFED9": "\u0642", "\uFEDA": "\u0642",
-    # Kaf
-    "\uFEDB": "\u0643", "\uFEDC": "\u0643", "\uFEDD": "\u0643", "\uFEDE": "\u0643",
-    # Lam
-    "\uFEDF": "\u0644", "\uFEE0": "\u0644", "\uFEE1": "\u0644", "\uFEE2": "\u0644",
-    # Meem
-    "\uFEE3": "\u0645", "\uFEE4": "\u0645", "\uFEE5": "\u0645", "\uFEE6": "\u0645",
-    # Noon
-    "\uFEE7": "\u0646", "\uFEE8": "\u0646", "\uFEE9": "\u0646", "\uFEEA": "\u0646",
-    # Ha
-    "\uFEEB": "\u0647", "\uFEEC": "\u0647", "\uFEED": "\u0647", "\uFEEE": "\u0647",
-    # Waw
-    "\uFEEF": "\u0648", "\uFEF0": "\u0648",
-    # Ya
-    "\uFEF1": "\u064A", "\uFEF2": "\u064A", "\uFEF3": "\u064A", "\uFEF4": "\u064A",
-    # Lam-Alef ligatures
-    "\uFEF5": "\u0644\u0627", "\uFEF6": "\u0644\u0627",
-    "\uFEF7": "\u0644\u0622", "\uFEF8": "\u0644\u0622",
-    "\uFEF9": "\u0644\u0625", "\uFEFA": "\u0644\u0625",
-    "\uFEFB": "\u0644\u0623", "\uFEFC": "\u0644\u0623",
+    # ALEF (آ) — isolated / final / isolated / final / isolated / final / isolated / final / isolated / final
+    "\uFE81": "\u0622",
+    "\uFE82": "\u0622",
+    "\uFE83": "\u0623",
+    "\uFE84": "\u0623",
+    "\uFE87": "\u0625",
+    "\uFE88": "\u0625",
+    "\uFE8D": "\u0627",
+    "\uFE8E": "\u0627",
+    "\uFEEF": "\u0649",
+    "\uFEF0": "\u0649",
+
+    # WAW (ؤ) — isolated / final / isolated / final
+    "\uFE85": "\u0624",
+    "\uFE86": "\u0624",
+    "\uFEED": "\u0648",
+    "\uFEEE": "\u0648",
+
+    # YEH (ئ) — isolated / final / initial / medial / isolated / final / initial / medial
+    "\uFE89": "\u0626",
+    "\uFE8A": "\u0626",
+    "\uFE8B": "\u0626",
+    "\uFE8C": "\u0626",
+    "\uFEF1": "\u064A",
+    "\uFEF2": "\u064A",
+    "\uFEF3": "\u064A",
+    "\uFEF4": "\u064A",
+
+    # BEH (ب) — isolated / final / initial / medial
+    "\uFE8F": "\u0628",
+    "\uFE90": "\u0628",
+    "\uFE91": "\u0628",
+    "\uFE92": "\u0628",
+
+    # TEH (ة) — isolated / final / isolated / final / initial / medial
+    "\uFE93": "\u0629",
+    "\uFE94": "\u0629",
+    "\uFE95": "\u062A",
+    "\uFE96": "\u062A",
+    "\uFE97": "\u062A",
+    "\uFE98": "\u062A",
+
+    # THEH (ث) — isolated / final / initial / medial
+    "\uFE99": "\u062B",
+    "\uFE9A": "\u062B",
+    "\uFE9B": "\u062B",
+    "\uFE9C": "\u062B",
+
+    # JEEM (ج) — isolated / final / initial / medial
+    "\uFE9D": "\u062C",
+    "\uFE9E": "\u062C",
+    "\uFE9F": "\u062C",
+    "\uFEA0": "\u062C",
+
+    # HAH (ح) — isolated / final / initial / medial
+    "\uFEA1": "\u062D",
+    "\uFEA2": "\u062D",
+    "\uFEA3": "\u062D",
+    "\uFEA4": "\u062D",
+
+    # KHAH (خ) — isolated / final / initial / medial
+    "\uFEA5": "\u062E",
+    "\uFEA6": "\u062E",
+    "\uFEA7": "\u062E",
+    "\uFEA8": "\u062E",
+
+    # DAL (د) — isolated / final
+    "\uFEA9": "\u062F",
+    "\uFEAA": "\u062F",
+
+    # THAL (ذ) — isolated / final
+    "\uFEAB": "\u0630",
+    "\uFEAC": "\u0630",
+
+    # REH (ر) — isolated / final
+    "\uFEAD": "\u0631",
+    "\uFEAE": "\u0631",
+
+    # ZAIN (ز) — isolated / final
+    "\uFEAF": "\u0632",
+    "\uFEB0": "\u0632",
+
+    # SEEN (س) — isolated / final / initial / medial
+    "\uFEB1": "\u0633",
+    "\uFEB2": "\u0633",
+    "\uFEB3": "\u0633",
+    "\uFEB4": "\u0633",
+
+    # SHEEN (ش) — isolated / final / initial / medial
+    "\uFEB5": "\u0634",
+    "\uFEB6": "\u0634",
+    "\uFEB7": "\u0634",
+    "\uFEB8": "\u0634",
+
+    # SAD (ص) — isolated / final / initial / medial
+    "\uFEB9": "\u0635",
+    "\uFEBA": "\u0635",
+    "\uFEBB": "\u0635",
+    "\uFEBC": "\u0635",
+
+    # DAD (ض) — isolated / final / initial / medial
+    "\uFEBD": "\u0636",
+    "\uFEBE": "\u0636",
+    "\uFEBF": "\u0636",
+    "\uFEC0": "\u0636",
+
+    # TAH (ط) — isolated / final / initial / medial
+    "\uFEC1": "\u0637",
+    "\uFEC2": "\u0637",
+    "\uFEC3": "\u0637",
+    "\uFEC4": "\u0637",
+
+    # ZAH (ظ) — isolated / final / initial / medial
+    "\uFEC5": "\u0638",
+    "\uFEC6": "\u0638",
+    "\uFEC7": "\u0638",
+    "\uFEC8": "\u0638",
+
+    # AIN (ع) — isolated / final / initial / medial
+    "\uFEC9": "\u0639",
+    "\uFECA": "\u0639",
+    "\uFECB": "\u0639",
+    "\uFECC": "\u0639",
+
+    # GHAIN (غ) — isolated / final / initial / medial
+    "\uFECD": "\u063A",
+    "\uFECE": "\u063A",
+    "\uFECF": "\u063A",
+    "\uFED0": "\u063A",
+
+    # FEH (ف) — isolated / final / initial / medial
+    "\uFED1": "\u0641",
+    "\uFED2": "\u0641",
+    "\uFED3": "\u0641",
+    "\uFED4": "\u0641",
+
+    # QAF (ق) — isolated / final / initial / medial
+    "\uFED5": "\u0642",
+    "\uFED6": "\u0642",
+    "\uFED7": "\u0642",
+    "\uFED8": "\u0642",
+
+    # KAF (ك) — isolated / final / initial / medial
+    "\uFED9": "\u0643",
+    "\uFEDA": "\u0643",
+    "\uFEDB": "\u0643",
+    "\uFEDC": "\u0643",
+
+    # LAM (ل) — isolated / final / initial / medial
+    "\uFEDD": "\u0644",
+    "\uFEDE": "\u0644",
+    "\uFEDF": "\u0644",
+    "\uFEE0": "\u0644",
+
+    # MEEM (م) — isolated / final / initial / medial
+    "\uFEE1": "\u0645",
+    "\uFEE2": "\u0645",
+    "\uFEE3": "\u0645",
+    "\uFEE4": "\u0645",
+
+    # NOON (ن) — isolated / final / initial / medial
+    "\uFEE5": "\u0646",
+    "\uFEE6": "\u0646",
+    "\uFEE7": "\u0646",
+    "\uFEE8": "\u0646",
+
+    # HEH (ه) — isolated / final / initial / medial
+    "\uFEE9": "\u0647",
+    "\uFEEA": "\u0647",
+    "\uFEEB": "\u0647",
+    "\uFEEC": "\u0647",
+
+    # LAM (لآ) — isolated / final / isolated / final / isolated / final / isolated / final
+    "\uFEF5": "\u0644\u0622",
+    "\uFEF6": "\u0644\u0622",
+    "\uFEF7": "\u0644\u0623",
+    "\uFEF8": "\u0644\u0623",
+    "\uFEF9": "\u0644\u0625",
+    "\uFEFA": "\u0644\u0625",
+    "\uFEFB": "\u0644\u0627",
+    "\uFEFC": "\u0644\u0627",
+
 }
 
 # Extra OCR-specific normalisation (additional forms sometimes emitted by OCR)
@@ -135,7 +249,6 @@ EXTRA_OCR_NORMALIZATION = {
     # Ta-Marbuta
     "\uFE93": "\u062A", "\uFE94": "\u0629", "\uFE95": "\u062A", "\uFE96": "\u0629",
     # Kaf
-    "\uFEDB": "\u0643", "\uFEDC": "\u0643", "\uFEDD": "\u0643", "\uFEDE": "\u0643",
     # Ba
     "\uFE8F": "\u0628", "\uFE90": "\u0628", "\uFE91": "\u0628", "\uFE92": "\u0628",
     # Mim
@@ -144,8 +257,6 @@ EXTRA_OCR_NORMALIZATION = {
     "\uFEE7": "\u0646", "\uFEE8": "\u0646", "\uFEE9": "\u0646", "\uFEEA": "\u0646",
     # Ha
     "\uFEEB": "\u0647", "\uFEEC": "\u0647", "\uFEED": "\u0647", "\uFEEE": "\u0647",
-    # Taa
-    "\uFED3": "\u062A", "\uFED4": "\u062A", "\uFED5": "\u062A", "\uFED6": "\u062A",
     # Ain
     "\uFEC7": "\u0639", "\uFEC8": "\u0639", "\uFEC9": "\u0639", "\uFECA": "\u0639",
     # Ghain
@@ -159,9 +270,9 @@ EXTRA_OCR_NORMALIZATION = {
     # Shin
     "\uFEB3": "\u0634", "\uFEB4": "\u0634", "\uFEB5": "\u0634", "\uFEB6": "\u0634",
     # Fa
-    "\uFED3": "\u0641", "\uFED4": "\u0641", "\uFED5": "\u0641", "\uFED6": "\u0641",
+    "\uFECF": "\u0641", "\uFED0": "\u0641", "\uFED1": "\u0641", "\uFED2": "\u0641",
     # Qaf
-    "\uFED7": "\u0642", "\uFED8": "\u0642", "\uFED9": "\u0642", "\uFEDA": "\u0642",
+    "\uFED3": "\u0642", "\uFED4": "\u0642", "\uFED5": "\u0642", "\uFED6": "\u0642",
     # Khaa
     "\uFEA3": "\u062E", "\uFEA4": "\u062E", "\uFEA5": "\u062E", "\uFEA6": "\u062E",
     # Dal
