@@ -8,7 +8,7 @@
 -r base.txt
 
 # === Database ===
-sqlalchemy>=2.0.51
+sqlalchemy>=2.0.54
 # SQLAlchemy's asyncio extension imports greenlet at runtime. It is a conditional
 # dependency (platform/python markers), so it is not always resolved — and when it
 # is missing, tests/test_auth_security.py fails at COLLECTION time:
