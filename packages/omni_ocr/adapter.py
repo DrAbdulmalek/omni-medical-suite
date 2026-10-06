@@ -40,6 +40,15 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Cloud OCR gate (P0-A5, fail-closed)
+# ---------------------------------------------------------------------------
+
+def _cloud_ocr_allowed() -> bool:
+    """True only when the operator explicitly set OMNI_ALLOW_CLOUD_OCR=true."""
+    return os.getenv("OMNI_ALLOW_CLOUD_OCR", "").strip().lower() == "true"
+
 # ---------------------------------------------------------------------------
 # Type aliases
 # ---------------------------------------------------------------------------
@@ -748,6 +757,21 @@ class UnifiedOCR:
             Normalised :class:`OCRResult`.
         """
         start = time.time()
+
+        if not _cloud_ocr_allowed():
+            logger.warning(
+                "Mistral OCR refused: cloud OCR is disabled by default "
+                "(OMNI_ALLOW_CLOUD_OCR != true) — file not uploaded"
+            )
+            return OCRResult(
+                engine=OCREngineID.MISTRAL,
+                error=(
+                    "Cloud OCR is denied by default (OMNI_ALLOW_CLOUD_OCR != true); "
+                    "file not uploaded. Set OMNI_ALLOW_CLOUD_OCR=true to explicitly opt in."
+                ),
+                processing_time=time.time() - start,
+            )
+
         cleanup = False
 
         # P0: fail-closed cloud gate -- must run BEFORE any network call,
