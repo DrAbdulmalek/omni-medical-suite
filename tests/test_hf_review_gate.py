@@ -51,7 +51,15 @@ def test_rejection_is_never_export_eligible(isolated_queue, monkeypatch):
     monkeypatch.setattr(svc, "HF_TOKEN", "test-token")
     svc.save_to_hf("correct", "ocr", {}, "medical", consent=True)
     h = svc.list_review_queue()[0]["content_hash"]
-    svc.set_review_status(h, "rejected", reviewer="operator-1", reason="wrong correction")
+    svc.set_review_status(h, "rejected", reviewer="operator-1", reason="wrong correction", dataset_version="ds-v1")
     result = svc.flush_queue()
     assert "مؤهلة" in result or "eligible" in result.lower()
     assert svc.count_pending() == 1
+
+
+def test_final_review_status_cannot_be_injected_at_save_time(isolated_queue):
+    from app.services.hf_dataset_service import list_review_queue, save_to_hf
+    result = save_to_hf(\"correct\", \"ocr\", {}, \"medical\", consent=True,
+                        review_status=\"approved\", reviewer=\"operator-1\", dataset_version=\"ds-v1\")
+    assert \"pending\" in result.lower() or \"نهائية\" in result
+    assert list_review_queue() == []
