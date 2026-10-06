@@ -2,7 +2,7 @@
 
 Covers the grok-audit P0 findings for ``packages/omni_ocr/adapter.py``:
 
-1. ``OMNI_ALLOW_CLOUD`` fail-closed gate (exact truthy values only).
+1. ``OMNI_ALLOW_CLOUD_OCR`` fail-closed gate (literal ``true`` only).
 2. MISTRAL removed from ``_DEFAULT_ENGINE_ORDER`` (explicit opt-in only).
 3. ``_run_mistral`` refuses to touch the network/tempfiles when the gate
    is closed, and its skip reason surfaces in the all-engines-failed
@@ -38,21 +38,14 @@ class TestCloudGate:
     @pytest.mark.parametrize(
         "value,allowed",
         [
-            (None, False),  # unset -> DENY
-            ("", False),  # empty -> DENY
-            ("0", False),
+            (None, False),
+            ("", False),
             ("false", False),
-            ("no", False),
-            ("off", False),
-            ("on", False),  # non-exact strings -> DENY
-            ("enabled", False),
-            ("  ", False),
-            ("1", True),
-            ("true", True),
-            ("yes", True),
-            ("TRUE", True),  # case-insensitive exact match
-            ("Yes", True),
-            (" 1 ", True),  # surrounding whitespace tolerated
+            ("0", False),
+            ("1", False),
+            ("yes", False),
+            ("TRUE", True),
+            (" true ", True),
         ],
     )
     def test_gate_values(self, monkeypatch, value, allowed):
