@@ -250,20 +250,15 @@ class OCREnsemble:
             clean_text = text.strip()
             clean_len = len(clean_text)
 
-            # Composite score: confidence * length * validity_ratio
-            # Replaces the old "longest text wins" heuristic which
-            # could pick garbage from a failing engine.
-            lines = result.get("lines", [])
-            avg_conf = (
-                sum(l.get("confidence", 0.0) for l in lines) / len(lines)
-                if lines else 0.0
-            )
+            # Cross-engine confidence values are NOT assumed comparable.
+            # Until an explicit calibration contract exists, selection uses
+            # text coverage/validity only; raw confidence is display evidence.
             valid_chars = sum(
                 1 for c in clean_text
                 if c.isalpha() or c.isspace() or "\u0600" <= c <= "\u06FF"
             )
             validity = valid_chars / max(clean_len, 1)
-            score = avg_conf * clean_len * validity
+            score = clean_len * validity
 
             # Penalize engines that returned an error
             if result.get("error"):
@@ -280,73 +275,30 @@ class OCREnsemble:
         )
         return best_text
 
-    def get_confidence_weighted_text(
-        self, image: np.ndarray
-    ) -> str:
-        """
-        Get text weighted by confidence scores across engines.
-
-        الحصول على النص المرجح بدرجات الثقة عبر المحركات.
-
-        Strategy:
-            1. Collect all lines from all engines
-            2. Group similar lines (by position overlap or text similarity)
-            3. For each group, select the line with highest average confidence
-            4. Merge selected lines into final text
-
-        Currently implements a simplified version that picks the engine
-        with the highest average confidence per line.
-
-        Args:
-            image: Input image as numpy array.
-
-        Returns:
-            Confidence-weighted text string.
-        """
+    def get_confidence_weighted_text(self, image: np.ndarray) -> str:
+        """Rank OCR results by confidence only when calibration is explicit."""
         logger.info(_MSG_WEIGHTED)
-
         all_results = self.run_all(image)
-
-        # Collect all lines with their engine and confidence
-        engine_lines: dict[str, list[dict]] = {}
-
+        calibrated = []
         for name, result in all_results["results"].items():
+            scale = result.get("confidence_scale")
+            version = result.get("calibration_version")
             lines = result.get("lines", [])
-            if lines:
-                engine_lines[name] = lines
-
-        if not engine_lines:
+            if scale and version and lines:
+                avg = sum(float(line.get("confidence", 0.0)) for line in lines) / len(lines)
+                calibrated.append((name, avg, result))
+        if not calibrated:
+            logger.warning(
+                "Confidence ranking unavailable: no explicit confidence calibration contract."
+            )
             return ""
-
-        # Find engine with highest average confidence
-        best_engine = ""
-        best_avg_conf = -1.0
-
-        for name, lines in engine_lines.items():
-            if not lines:
-                continue
-
-            total_conf = sum(line.get("confidence", 0.0) for line in lines)
-            avg_conf = total_conf / len(lines)
-
-            if avg_conf > best_avg_conf:
-                best_avg_conf = avg_conf
-                best_engine = name
-
-        if best_engine and best_engine in all_results["results"]:
-            text = all_results["results"][best_engine].get(
-                "text",
-                all_results["results"][best_engine].get("full_text", ""),
-            )
-            logger.info(
-                f"المحرك الأعلى ثقة: {best_engine} "
-                f"(متوسط الثقة: {best_avg_conf:.3f}) "
-                f"| Highest confidence engine: {best_engine} "
-                f"(avg confidence: {best_avg_conf:.3f})"
-            )
-            return text
-
-        return ""
+        contracts = {(r.get("confidence_scale"), r.get("calibration_version")) for _, _, r in calibrated}
+        if len(contracts) != 1:
+            logger.warning("Confidence ranking unavailable: calibration contracts differ.")
+            return ""
+        best_engine, best_avg_conf, best_result = max(calibrated, key=lambda item: item[1])
+        logger.info("Calibrated highest-confidence engine: %s (avg=%.3f)", best_engine, best_avg_conf)
+        return best_result.get("text", best_result.get("full_text", ""))
 
     def get_comparison_table(self, image: np.ndarray) -> str:
         """
