@@ -41,13 +41,6 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Cloud OCR gate (P0-A5, fail-closed)
-# ---------------------------------------------------------------------------
-
-def _cloud_ocr_allowed() -> bool:
-    """True only when the operator explicitly set OMNI_ALLOW_CLOUD_OCR=true."""
-    return os.getenv("OMNI_ALLOW_CLOUD_OCR", "").strip().lower() == "true"
 
 # ---------------------------------------------------------------------------
 # Type aliases
@@ -172,8 +165,8 @@ _ENV_ENGINE_ORDER = "OCR_ENGINE_ORDER"
 # OCR) refuse to run unless this env var is set to an explicit truthy
 # value.  Anything else -- unset, empty, "0", "false", "on", or any other
 # string -- is treated as DENY.
-_CLOUD_GATE_ENV = "OMNI_ALLOW_CLOUD"
-_CLOUD_TRUTHY = frozenset({"1", "true", "yes"})
+_CLOUD_GATE_ENV = "OMNI_ALLOW_CLOUD_OCR"
+_CLOUD_TRUTHY = frozenset({"true"})
 
 
 def _cloud_allowed() -> bool:
@@ -757,20 +750,6 @@ class UnifiedOCR:
             Normalised :class:`OCRResult`.
         """
         start = time.time()
-
-        if not _cloud_ocr_allowed():
-            logger.warning(
-                "Mistral OCR refused: cloud OCR is disabled by default "
-                "(OMNI_ALLOW_CLOUD_OCR != true) — file not uploaded"
-            )
-            return OCRResult(
-                engine=OCREngineID.MISTRAL,
-                error=(
-                    "Cloud OCR is denied by default (OMNI_ALLOW_CLOUD_OCR != true); "
-                    "file not uploaded. Set OMNI_ALLOW_CLOUD_OCR=true to explicitly opt in."
-                ),
-                processing_time=time.time() - start,
-            )
 
         cleanup = False
 
