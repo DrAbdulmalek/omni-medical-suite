@@ -41,7 +41,15 @@ def validate_training_sample(row: dict) -> None:
     status = row.get("review_status", ReviewStatus.PENDING.value)
     if status not in {s.value for s in ReviewStatus}:
         raise ValueError(f"invalid review_status: {status!r}")
-    if status == ReviewStatus.APPROVED and not row.get("reviewer"):
-        raise ValueError("approved samples require reviewer provenance")
+    if status == ReviewStatus.APPROVED:
+        if not row.get("reviewer"):
+            raise ValueError("approved samples require reviewer provenance")
+        if not row.get("dataset_version"):
+            raise ValueError("approved samples require dataset_version provenance")
+    if status == ReviewStatus.REJECTED:
+        if not row.get("reviewer"):
+            raise ValueError("rejected samples require reviewer provenance")
+        if not row.get("review_reason"):
+            raise ValueError("rejected samples require review_reason provenance")
     if not isinstance(row.get("provenance", {}), dict):
         raise ValueError("provenance must be an object")
