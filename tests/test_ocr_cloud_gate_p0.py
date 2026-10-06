@@ -2,7 +2,7 @@
 
 Covers the grok-audit P0 findings for ``packages/omni_ocr/adapter.py``:
 
-1. ``OMNI_ALLOW_CLOUD`` fail-closed gate (exact truthy values only).
+1. ``OMNI_ALLOW_CLOUD_OCR`` fail-closed gate (literal ``true`` only).
 2. MISTRAL removed from ``_DEFAULT_ENGINE_ORDER`` (explicit opt-in only).
 3. ``_run_mistral`` refuses to touch the network/tempfiles when the gate
    is closed, and its skip reason surfaces in the all-engines-failed
@@ -38,21 +38,14 @@ class TestCloudGate:
     @pytest.mark.parametrize(
         "value,allowed",
         [
-            (None, False),  # unset -> DENY
-            ("", False),  # empty -> DENY
-            ("0", False),
+            (None, False),
+            ("", False),
             ("false", False),
-            ("no", False),
-            ("off", False),
-            ("on", False),  # non-exact strings -> DENY
-            ("enabled", False),
-            ("  ", False),
-            ("1", True),
-            ("true", True),
-            ("yes", True),
-            ("TRUE", True),  # case-insensitive exact match
-            ("Yes", True),
-            (" 1 ", True),  # surrounding whitespace tolerated
+            ("0", False),
+            ("1", False),
+            ("yes", False),
+            ("TRUE", True),
+            (" true ", True),
         ],
     )
     def test_gate_values(self, monkeypatch, value, allowed):
@@ -125,7 +118,7 @@ class TestGateBlocksMistral:
 
     def test_gate_open_missing_key_still_fails_cleanly(self, monkeypatch):
         """Gate open + no API key -> clean engine error, no crash."""
-        monkeypatch.setenv(_CLOUD_GATE_ENV, "1")
+        monkeypatch.setenv(_CLOUD_GATE_ENV, "true")
         monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
         adapter = self._make_adapter()
         adapter._mistral_loaded = True
@@ -142,7 +135,7 @@ class TestInventedConfidenceIsolated:
     """Mistral success path must not fabricate a confidence score."""
 
     def _run_success(self, monkeypatch):
-        monkeypatch.setenv(_CLOUD_GATE_ENV, "1")
+        monkeypatch.setenv(_CLOUD_GATE_ENV, "true")
         adapter = UnifiedOCR(engine_order=["mistral"], cache_max_size=0)
 
         fake_engine = MagicMock()
