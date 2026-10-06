@@ -3,14 +3,6 @@ name: Production Hardening Gate
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'app/**'
-      - 'hf-space/**'
-      - 'tests/**'
-      - 'requirements/**'
-      - 'deploy/**'
-      - 'docker-compose.prod.yml'
-      - '.github/workflows/production-hardening.yml'
   push:
     branches: [audit/production-hardening]
   workflow_dispatch:
