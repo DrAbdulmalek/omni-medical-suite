@@ -473,6 +473,11 @@ def flush_queue() -> str:
                         "category": r.get("category", ""),
                         "timestamp": r.get("timestamp", ""),
                         "consent": True,
+                        "review_status": "approved",
+                        "reviewer": r.get("reviewer", ""),
+                        "review_reason": r.get("review_reason", ""),
+                        "dataset_version": r.get("dataset_version", ""),
+                        "provenance": r.get("provenance", {}),
                         "raw_retained_locally": True,
                     }
                     for r in new_rows
