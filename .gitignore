@@ -128,3 +128,6 @@ data/dictionaries/conflicts.json
 # See docs/audits/MALEK_DICTIONARIES_AUDIT.md for the full pipeline audit.
 data/dictionaries/specialty/*.json
 !data/dictionaries/specialty/.gitkeep
+
+# Telegram OCR training database (runtime, may contain scanned documents)
+data/training_db/

@@ -83,6 +83,9 @@ app.include_router(pipeline_router, prefix="/api/pipeline", tags=["pipeline"])
 from app.routers.ocr import router as ocr_router
 app.include_router(ocr_router, prefix="/api/ocr", tags=["ocr"])
 
+from app.routers.telegram_ocr import router as telegram_ocr_router
+app.include_router(telegram_ocr_router, prefix="/api/telegram-ocr", tags=["telegram-ocr"])
+
 from app.routers.jobs import router as jobs_router
 app.include_router(jobs_router, prefix="/api/jobs", tags=["jobs"])
 
