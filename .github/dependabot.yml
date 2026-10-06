@@ -9,7 +9,6 @@ updates:
     reviewers:
       - "DrAbdulmalek"
     labels:
-      - "dependencies"
       - "automated"
 
   # GitHub Actions — monthly
@@ -18,5 +17,4 @@ updates:
     schedule:
       interval: "monthly"
     labels:
-      - "dependencies"
       - "ci"
