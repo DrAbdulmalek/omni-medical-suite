@@ -114,8 +114,10 @@ def test_cloud_ocr_denied_by_default():
     assert "403" in API_SERVER
     # 3 gated endpoints (8-space indent = call sites; the def line has "-> None")
     assert API_SERVER.count("\n        _cloud_ocr_gate()") == 3, "all three /mistral/* endpoints gated"
-    assert "_cloud_ocr_allowed" in OCR_ADAPTER
-    assert "OMNI_ALLOW_CLOUD_OCR" in OCR_ADAPTER
+    # The adapter uses one canonical fail-closed helper and the same gate env.
+    assert "def _cloud_allowed()" in OCR_ADAPTER
+    assert '_CLOUD_GATE_ENV = "OMNI_ALLOW_CLOUD_OCR"' in OCR_ADAPTER
+    assert '_CLOUD_TRUTHY = frozenset({"true"})' in OCR_ADAPTER
 
 
 # ---------------------------------------------------------------------------
