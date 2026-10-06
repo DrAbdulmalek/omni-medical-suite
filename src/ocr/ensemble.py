@@ -280,19 +280,33 @@ class OCREnsemble:
         logger.info(_MSG_WEIGHTED)
         all_results = self.run_all(image)
         calibrated = []
+        candidates = []
         for name, result in all_results["results"].items():
+            lines = result.get("lines", [])
+            if not lines:
+                continue
+            candidates.append((name, result))
             scale = result.get("confidence_scale")
             version = result.get("calibration_version")
-            lines = result.get("lines", [])
-            if scale and version and lines:
-                avg = sum(float(line.get("confidence", 0.0)) for line in lines) / len(lines)
-                calibrated.append((name, avg, result))
+            if not scale or not version or any(line.get("confidence") is None for line in lines):
+                logger.warning(
+                    "Confidence ranking unavailable: candidate %s lacks a complete calibration contract.",
+                    name,
+                )
+                return ""
+            avg = sum(float(line["confidence"]) for line in lines) / len(lines)
+            calibrated.append((name, avg, result))
+
         if not calibrated:
             logger.warning(
-                "Confidence ranking unavailable: no explicit confidence calibration contract."
+                "Confidence ranking unavailable: no OCR candidate exposes calibrated confidence."
             )
             return ""
-        contracts = {(r.get("confidence_scale"), r.get("calibration_version")) for _, _, r in calibrated}
+
+        contracts = {
+            (r.get("confidence_scale"), r.get("calibration_version"))
+            for _, _, r in calibrated
+        }
         if len(contracts) != 1:
             logger.warning("Confidence ranking unavailable: calibration contracts differ.")
             return ""
