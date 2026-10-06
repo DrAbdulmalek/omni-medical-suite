@@ -77,6 +77,8 @@ import logging
 import os
 import subprocess
 import threading
+
+from packages.ocr_contracts.training import ReviewStatus, validate_training_sample
 from datetime import datetime
 from pathlib import Path
 
@@ -215,6 +217,16 @@ def _archive_uploaded(rows: list[dict]) -> Path:
     return archive
 
 
+def _rewrite_pending(rows: list[dict]) -> None:
+    """Atomically rewrite the pending queue after a review-state change."""
+    _ensure_dirs()
+    tmp = _PENDING_FILE.with_suffix(".jsonl.tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    tmp.replace(_PENDING_FILE)
+
+
 def _clear_pending() -> None:
     """Truncate the staging file after a successful flush."""
     _PENDING_FILE.unlink(missing_ok=True)
@@ -222,8 +234,41 @@ def _clear_pending() -> None:
 
 # ── Public Functions ────────────────────────────────────────────────────────
 
+def set_review_status(content_hash: str, status: str, reviewer: str | None = None,
+                      reason: str | None = None, dataset_version: str | None = None) -> bool:
+    """Approve/reject one staged sample with explicit reviewer provenance."""
+    if status not in {s.value for s in ReviewStatus}:
+        raise ValueError(f"invalid review status: {status}")
+    with _flush_lock:
+        rows = _read_pending()
+        found = False
+        for row in rows:
+            if row.get("content_hash") == content_hash:
+                found = True
+                row["review_status"] = status
+                row["reviewer"] = reviewer
+                row["review_reason"] = reason
+                row["dataset_version"] = dataset_version
+                validate_training_sample(row)
+        if not found:
+            return False
+        _rewrite_pending(rows)
+        return True
+
+
+def list_review_queue() -> list[dict]:
+    """Return staged samples with a normalized review status."""
+    with _flush_lock:
+        rows = _read_pending()
+    for row in rows:
+        row.setdefault("review_status", ReviewStatus.PENDING.value)
+    return rows
+
+
 def save_to_hf(corrected_text: str, original_text: str, entities,
-               category: str, consent: bool = False) -> str:
+               category: str, consent: bool = False, review_status: str = "pending",
+               reviewer: str | None = None, review_reason: str | None = None,
+               dataset_version: str | None = None) -> str:
     """Save correction pair to the local staging file (P0-A: local-first).
 
     This function stages locally and NEVER uploads by itself unless every
@@ -241,6 +286,13 @@ def save_to_hf(corrected_text: str, original_text: str, entities,
     """
     if not corrected_text or not corrected_text.strip():
         return "⚠️ لا يوجد نص مصحح للحفظ. الرجاء معالجة صورة أولاً."
+    if review_status not in {s.value for s in ReviewStatus}:
+        return f"⚠️ حالة المراجعة غير صالحة: {review_status}"
+    if review_status != ReviewStatus.PENDING:
+        return (
+            "🛑 لا يمكن إنشاء عينة بحالة مراجعة نهائية. "
+            "يجب إنشاء العينة pending ثم تغيير حالتها عبر set_review_status()."
+        )
 
     content_hash = _compute_content_hash(original_text, corrected_text)
     row = {
@@ -255,6 +307,14 @@ def save_to_hf(corrected_text: str, original_text: str, entities,
         "timestamp": datetime.now().isoformat(),
         "content_hash": content_hash,
         "consent": bool(consent),
+        "review_status": review_status,
+        "reviewer": reviewer,
+        "review_reason": review_reason,
+        "dataset_version": dataset_version,
+        "provenance": {
+            "source": "hf_dataset_service.save_to_hf",
+            "content_hash": content_hash,
+        },
     }
 
     pending_count = _append_pending(row)
@@ -355,20 +415,23 @@ def flush_queue() -> str:
         if not pending:
             return "ℹ️ لا توجد صفوف مرحّلة للرفع."
 
-        # P0-A: per-sample consent filter. Rows without an explicit
-        # consent=True marker (including pre-P0 staged rows) are NEVER
-        # eligible for upload and stay staged locally.
-        eligible = [r for r in pending if r.get("consent") is True]
+        # P3 gate: export requires explicit human approval with reviewer provenance.
+        for row in pending:
+            row.setdefault("review_status", ReviewStatus.PENDING.value)
+        eligible = [
+            r for r in pending
+            if r.get("consent") is True and r.get("review_status") == ReviewStatus.APPROVED.value
+        ]
         retained = len(pending) - len(eligible)
         if retained:
             logger.info(
-                "Consent filter: %d of %d staged rows lack consent — retained locally",
+                "Review/consent filter: %d of %d staged rows are not export-eligible — retained locally",
                 retained, len(pending),
             )
         if not eligible:
             return (
-                f"ℹ️ لا توجد صفوف مؤهلة للرفع: {len(pending)} صف مرحّل بلا موافقة "
-                "صريحة — لن يتم رفع أي بيانات."
+                f"ℹ️ لا توجد صفوف مؤهلة للرفع: {len(pending)} صف مرحّل، "
+                "ويجب أن تحمل العينة consent=True وreview_status=approved مع reviewer."
             )
 
         # Dedup against existing HF dataset (drop rows whose content_hash
@@ -413,6 +476,11 @@ def flush_queue() -> str:
                         "category": r.get("category", ""),
                         "timestamp": r.get("timestamp", ""),
                         "consent": True,
+                        "review_status": "approved",
+                        "reviewer": r.get("reviewer", ""),
+                        "review_reason": r.get("review_reason", ""),
+                        "dataset_version": r.get("dataset_version", ""),
+                        "provenance": r.get("provenance", {}),
                         "raw_retained_locally": True,
                     }
                     for r in new_rows
