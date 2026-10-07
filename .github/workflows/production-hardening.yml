@@ -3,14 +3,6 @@ name: Production Hardening Gate
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'app/**'
-      - 'hf-space/**'
-      - 'tests/**'
-      - 'requirements/**'
-      - 'deploy/**'
-      - 'docker-compose.prod.yml'
-      - '.github/workflows/production-hardening.yml'
   push:
     branches: [audit/production-hardening]
   workflow_dispatch:
@@ -37,6 +29,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # LFS: golden_set/*.jsonl والصور تحت LFS؛ بلا هذا
+          # تصل مؤشرات 129 بايت فتفشل tests/evaluation/ بـJSONDecodeError
+          lfs: true
 
       - uses: actions/setup-python@v5
         with:
@@ -49,6 +45,7 @@ jobs:
           pip install \
             'fastapi>=0.104' \
             'sqlalchemy>=2.0.51' \
+            'greenlet>=3.0.0' \
             'python-jose[cryptography]>=3.5.0' \
             'passlib[bcrypt]>=1.7.4' \
             'bcrypt>=4.0.1,<5' \

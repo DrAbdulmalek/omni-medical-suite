@@ -60,18 +60,34 @@ class ExactTranslationMemory:
 
     @classmethod
     def from_specialty(cls, specialty: str | None = "general_medical") -> "ExactTranslationMemory":
-        """Build TM from only TMX sources applicable to the selected specialty."""
-        router = SpecialtyDictionaryRouter(canonical_specialty(specialty))
+        """Build TM from sources applicable to the selected specialty.
+
+        A configured specialty artifact is fail-closed: requesting a specific
+        specialty must not silently degrade to general TM when that specialty's
+        generated artifact has not been installed.
+        """
+        canonical = canonical_specialty(specialty)
+        router = SpecialtyDictionaryRouter(canonical)
+        require_specialty_artifact = canonical not in {"general", "general_medical"}
         all_entries: list[dict] = []
-        for path in router.translation_memory_sources():
-            data = json.loads(path.read_text(encoding="utf-8"))
-            entries = data.get("entries", data) if isinstance(data, dict) else data
-            for entry in entries:
-                if isinstance(entry, dict):
-                    enriched = dict(entry)
-                    enriched.setdefault("source", f"{path.name}:tmx")
-                    enriched.setdefault("category", "translation_memory")
-                    all_entries.append(enriched)
+        for path in router.translation_memory_sources(
+            require_specialty_artifact=require_specialty_artifact
+        ):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                entries = data.get("entries", data) if isinstance(data, dict) else data
+                if not isinstance(entries, list):
+                    raise ValueError("expected a JSON list of translation-memory entries")
+                for entry in entries:
+                    if isinstance(entry, dict):
+                        enriched = dict(entry)
+                        enriched.setdefault("source", f"{path.name}:tmx")
+                        enriched.setdefault("category", "translation_memory")
+                        all_entries.append(enriched)
+            except (json.JSONDecodeError, OSError, UnicodeError, TypeError, ValueError) as e:
+                raise RuntimeError(
+                    f"Specialty TM artifact is corrupted or unreadable: {path}: {e}"
+                ) from e
         return cls(all_entries)
 
     def lookup_exact(self, text: str) -> List[dict]:

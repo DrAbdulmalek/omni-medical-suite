@@ -40,6 +40,8 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
+
+
 # ---------------------------------------------------------------------------
 # Type aliases
 # ---------------------------------------------------------------------------
@@ -72,6 +74,17 @@ class OCRResult:
             downstream consumers that need extra metadata.
         error: Non-empty string when the engine raised an exception;
             empty string on success.
+
+    Provenance fields (P0, all defaulted for backward compatibility):
+        confidence_is_estimate: ``True`` when ``confidence`` is NOT a real
+            measured score (e.g. the engine does not report per-word
+            confidence and a placeholder was previously invented).
+        pdf_sha256: SHA-256 hex digest of the input file when it is
+            available on disk (empty string otherwise).
+        model: Engine-specific model identifier (e.g. ``"mistral-ocr-3"``).
+        cloud: ``True`` when the result was produced by a remote/cloud API.
+        cost_estimate_usd: Best-effort cost estimate when known, else
+            ``None``.
     """
 
     text: str = ""
@@ -82,6 +95,11 @@ class OCRResult:
     words: List[Dict[str, Any]] = field(default_factory=list)
     raw_result: Optional[Dict[str, Any]] = None
     error: str = ""
+    confidence_is_estimate: bool = False
+    pdf_sha256: str = ""
+    model: str = ""
+    cloud: bool = False
+    cost_estimate_usd: Optional[float] = None
 
     # -- convenience helpers ------------------------------------------------
 
@@ -100,6 +118,11 @@ class OCRResult:
             "processing_time": self.processing_time,
             "words": self.words,
             "error": self.error,
+            "confidence_is_estimate": self.confidence_is_estimate,
+            "pdf_sha256": self.pdf_sha256,
+            "model": self.model,
+            "cloud": self.cloud,
+            "cost_estimate_usd": self.cost_estimate_usd,
         }
 
 
@@ -123,15 +146,62 @@ class OCREngineID(str, Enum):
 
 
 # Default fallback chain when ``OCR_ENGINE_ORDER`` is not set.
+#
+# P0 (cloud gate): MISTRAL is intentionally NOT in the default chain.
+# Cloud engines are explicit opt-in only: add ``mistral`` to
+# ``OCR_ENGINE_ORDER`` (or pass ``engine_order``) AND set
+# ``OMNI_ALLOW_CLOUD`` to a truthy value.  This keeps the library
+# fail-closed: no network call, no cost, no data egress by default.
 _DEFAULT_ENGINE_ORDER: List[str] = [
     OCREngineID.MIXED_ENGINE,
     OCREngineID.TESSERACT,
-    OCREngineID.MISTRAL,
     OCREngineID.EASYOCR,
 ]
 
 # Environment variable that overrides the default order.
 _ENV_ENGINE_ORDER = "OCR_ENGINE_ORDER"
+
+# P0: fail-closed cloud gate.  Cloud-backed engines (currently Mistral
+# OCR) refuse to run unless this env var is set to an explicit truthy
+# value.  Anything else -- unset, empty, "0", "false", "on", or any other
+# string -- is treated as DENY.
+_CLOUD_GATE_ENV = "OMNI_ALLOW_CLOUD_OCR"
+_CLOUD_TRUTHY = frozenset({"true"})
+
+
+def _cloud_allowed() -> bool:
+    """Return ``True`` only when cloud engines are explicitly opted in."""
+    return os.environ.get(_CLOUD_GATE_ENV, "").strip().lower() in _CLOUD_TRUTHY
+
+
+def _compute_input_sha256(
+    pil_image: Optional["PIL.Image.Image"] = None,
+    file_path: Optional[str] = None,
+) -> str:
+    """Best-effort SHA-256 of the OCR input for provenance tracking.
+
+    Prefers hashing the on-disk file (``file_path``); falls back to the
+    PNG-encoded bytes of *pil_image* in memory.  Returns ``""`` when
+    neither is available or hashing fails -- provenance must never break
+    the OCR pipeline itself.
+    """
+    try:
+        if file_path and os.path.isfile(file_path):
+            h = hashlib.sha256()
+            with open(file_path, "rb") as fh:
+                for chunk in iter(lambda: fh.read(1 << 20), b""):
+                    h.update(chunk)
+            return h.hexdigest()
+        if pil_image is not None:
+            import io
+
+            buf = io.BytesIO()
+            pil_image.save(buf, format="PNG")
+            return hashlib.sha256(buf.getvalue()).hexdigest()
+    except Exception:  # pragma: no cover - defensive, never fatal
+        logger.debug("pdf_sha256 computation failed", exc_info=True)
+    return ""
+
 
 # Maximum number of cached results.
 _CACHE_MAX_SIZE = 50
@@ -680,7 +750,30 @@ class UnifiedOCR:
             Normalised :class:`OCRResult`.
         """
         start = time.time()
+
         cleanup = False
+
+        # P0: fail-closed cloud gate -- must run BEFORE any network call,
+        # API-key access, or tempfile I/O.  When the gate is closed we
+        # still compute provenance (pdf_sha256) so downstream tooling can
+        # record that this input was *not* processed in the cloud.
+        if not _cloud_allowed():
+            logger.warning(
+                "Mistral OCR skipped: cloud gate closed "
+                "(%s not set to a truthy value)",
+                _CLOUD_GATE_ENV,
+            )
+            return OCRResult(
+                engine=OCREngineID.MISTRAL,
+                error=(
+                    "cloud disabled: "
+                    f"{_CLOUD_GATE_ENV} not set (fail-closed gate)"
+                ),
+                processing_time=time.time() - start,
+                pdf_sha256=_compute_input_sha256(pil_image, file_path),
+                model="mistral-ocr-3",
+                cloud=False,
+            )
 
         engine = self._load_mistral()
         if engine is None:
@@ -728,16 +821,22 @@ class UnifiedOCR:
         full_text = "\n\n".join(all_texts) if all_texts else ""
         word_count = len(full_text.split()) if full_text else 0
 
-        # Mistral doesn't provide per-word confidence; use a high default.
-        confidence = 0.9 if full_text else 0.0
-
+        # P0: Mistral does not provide per-word confidence.  The previous
+        # behaviour invented ``confidence = 0.9`` which could smuggle an
+        # unmeasured score into downstream quality gates.  We now report
+        # 0.0 and flag it explicitly as an estimate so consumers must
+        # handle the uncertainty instead of trusting a fabricated number.
         return OCRResult(
             text=full_text,
-            confidence=confidence,
+            confidence=0.0,
             engine=OCREngineID.MISTRAL,
             word_count=word_count,
             processing_time=time.time() - start,
             raw_result=mistral_result,
+            confidence_is_estimate=True,
+            pdf_sha256=_compute_input_sha256(None, file_path),
+            model="mistral-ocr-3",
+            cloud=True,
         )
 
     def _load_mistral(self) -> Any:

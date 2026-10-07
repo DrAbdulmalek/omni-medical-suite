@@ -1,0 +1,63 @@
+{
+  "_about": [
+    "Machine-readable waiver policy for the blocking dependency audit in",
+    ".github/workflows/security-scan.yml (job: Scan Dependencies).",
+    "",
+    "Every entry MUST carry: id, package, reason, mitigation, added, expires, review_owner.",
+    "scripts/ci/dep_audit_policy.py turns the active entries into pip-audit",
+    "--ignore-vuln-id flags and FAILS THE BUILD when an entry is expired or when",
+    "expires is farther out than max_waiver_days (no permanent waivers).",
+    "tests/security/test_dependency_waiver_policy.py keeps this file, the workflow,",
+    "and the generator in agreement.",
+    "",
+    "JSON (not YAML) on purpose: it is parsed with the Python standard library only,",
+    "so the policy gate works in every CI job without installing PyYAML.",
+    "",
+    "Adding a waiver is a security decision, not a CI convenience. Prefer fixing the",
+    "dependency, replacing it, or narrowing the audit scope first."
+  ],
+  "version": 1,
+  "max_waiver_days": 365,
+  "soon_expiry_warn_days": 30,
+  "waivers": [
+    {
+      "id": "PYSEC-2026-1325",
+      "package": "ecdsa",
+      "reason": "Minerva timing attack on the P-256 curve in python-ecdsa. The upstream project considers side-channel attacks out of scope and there is no planned fix, so no patched version exists to upgrade to.",
+      "mitigation": "ecdsa is pulled in transitively by python-jose[cryptography]. This project signs and verifies JWTs with HS256 only and never performs ECDSA signing, key generation, or ECDH; the affected code path is unreachable. Signature verification is not affected by the advisory.",
+      "pinned_by": "python-jose[cryptography]>=3.5.0 (requirements/api.txt)",
+      "added": "2026-10-01",
+      "expires": "2027-09-30",
+      "review_owner": "@DrAbdulmalek",
+      "references": [
+        "https://github.com/DrAbdulmalek/omni-medical-suite/actions/runs/36597490659",
+        ".github/workflows/security-scan.yml"
+      ]
+    },
+    {
+      "id": "CVE-2026-85394",
+      "package": "python-jose",
+      "reason": "python-jose through 3.5.0 accepts DER-encoded public keys that lack PEM armor or SSH prefixes when initializing HMAC verification (incomplete fix for CVE-2024-33663). An attacker holding the service's public key can forge HS256 tokens, but only when the allowed algorithms are not explicitly restricted at verification time.",
+      "mitigation": "The only production JWT verification site (app/core/security/dependencies.py) passes an explicit algorithms list (algorithms=[config.JWT_ALGORITHM]); the application is HS256-only and never verifies asymmetric-key tokens, so the vulnerable path is unreachable. No patched python-jose release exists yet; re-evaluate on the next upstream release.",
+      "pinned_by": "python-jose[cryptography]>=3.5.0 (requirements/api.txt)",
+      "added": "2026-10-06",
+      "expires": "2027-01-06",
+      "review_owner": "@DrAbdulmalek",
+      "references": [
+        "https://osv.dev/vulnerability/CVE-2026-85394",
+        "app/core/security/dependencies.py"
+      ]
+    }
+  ],
+  "rejected_or_unnecessary": [
+    {
+      "id": "PYSEC-2026-3740",
+      "package": "nltk",
+      "decision": "NOT WAIVED — removed from the audit surface instead",
+      "reason": "nltk is not a dependency of this project: it appears in no file under requirements/. It entered the audited environment only because the job ran `pip install safety pip-audit` into the project interpreter, and `safety` requires `nltk>=3.9`. The advisory (model-artifact APIs bypassing nltk.pathsec) has no patched release.",
+      "resolution": "security-scan.yml now (1) installs the scanners into a throwaway .scanner-venv that is never an audit target, and (2) runs pip-audit in requirements mode (-r), so the audited surface is exactly the declared dependency graph. A waiver would have hidden a real signal forever; scoping removed the false one.",
+      "added": "2026-10-01",
+      "resolved_by_commit_context": "gs/ci-green-all"
+    }
+  ]
+}
