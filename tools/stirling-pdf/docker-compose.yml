@@ -1,0 +1,17 @@
+# tools/stirling-pdf/docker-compose.yml
+services:
+  stirling-pdf:
+    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
+    container_name: stirling-pdf
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/tessdata:/usr/share/tessdata
+      - ./data/configs:/configs
+      - ./data/logs:/logs
+      - ./data/pipeline:/pipeline
+    environment:
+      - SECURITY_ENABLELOGIN=false
+      - SYSTEM_DEFAULTLOCALE=en-US
+      - DISABLE_ADDITIONAL_FEATURES=false
+    restart: unless-stopped

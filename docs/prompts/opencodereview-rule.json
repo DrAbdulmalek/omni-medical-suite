@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "name": "OCR Engine Contract",
+      "files": "**/engines/**/*.py",
+      "rule": "Every engine must return a valid OCRResult object. Check for: raw_text, engine_name, confidence, provenance. Flag any engine that returns None or a non-OCRResult object."
+    },
+    {
+      "name": "Dataset Split Safety",
+      "files": "**/ahw/dataset/**/*.py",
+      "rule": "Flag any code that adds samples to both train and test splits from the same source_page. Flag any code that modifies the fixed test set."
+    },
+    {
+      "name": "Medical Safety",
+      "files": "**/*.py",
+      "rule": "Flag any code that automatically corrects medical text without human validation. Flag any code that sends medical data to external APIs without explicit user consent."
+    },
+    {
+      "name": "Provenance Completeness",
+      "files": "**/provenance/**/*.py",
+      "rule": "Every OCR result must log: engine, model, version, preprocessing, timestamp, page, raw_output. Flag any missing field."
+    }
+  ]
+}

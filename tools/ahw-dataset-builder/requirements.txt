@@ -1,0 +1,20 @@
+# ahw-dataset-builder — التبعيات الأساسية (تقطيع + مراجعة)
+numpy>=1.24
+opencv-python>=4.8
+scipy>=1.10
+scikit-image>=0.21
+PyMuPDF>=1.23
+pandas>=2.0
+openpyxl>=3.1          # تصدير Excel في segment.py v2
+pillow>=10.0
+flask>=3.0             # server.py + train_webui.py
+
+# واجهة التدريب التفاعلية (train_webui.py)
+flask-socketio>=5.3
+
+# التدريب (ثقيلة — ثبّتها على جهاز GPU فقط):
+# torch>=2.2
+# transformers>=4.40
+# evaluate>=0.4
+# tokenizer AraBERT (اختياري — patches/arabert_tokenizer_patch.py):
+# transformers[torch] تشمل AutoTokenizer
