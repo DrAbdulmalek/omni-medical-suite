@@ -125,8 +125,11 @@ def check_cloud_gate() -> None:
 def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict:
     raw = (out.get("text") or "").strip()
     normalized, policy = normalize_v1(raw)
-    cer, _, _ = calculate_cer(sample["reference"], normalized)
-    wer, _, _ = calculate_wer(sample["reference"], normalized)
+    # F-13/F-16: طبّع المرجع أيضاً عبر normalize_v1 (نقطة تطبيع واحدة للطرفين)
+    # ثم استدعِ المقاييس بـ skip_internal_normalize=True — يمنع التطبيع المزدوج.
+    ref_normalized, ref_policy = normalize_v1(sample["reference"])
+    cer, _, _ = calculate_cer(ref_normalized, normalized, skip_internal_normalize=True)
+    wer, _, _ = calculate_wer(ref_normalized, normalized, skip_internal_normalize=True)
     return {
         "sample_id": sample["id"],
         "category": sample["category"],
@@ -137,6 +140,7 @@ def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict
         "raw_text": raw,
         "normalized_text": normalized,
         "normalize_policy": {"version": policy["version"], "fold_hamza": policy["fold_hamza"]},
+        "reference_normalize": {"version": ref_policy["version"], "fold_hamza": ref_policy["fold_hamza"]},
         "cer": round(cer, 6),
         "wer": round(wer, 6),
         "audit": {
