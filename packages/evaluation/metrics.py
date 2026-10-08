@@ -90,7 +90,9 @@ class EvaluationResult:
         }
 
 
-def calculate_cer(reference: str, hypothesis: str) -> tuple[float, int, int]:
+def calculate_cer(
+    reference: str, hypothesis: str, *, skip_internal_normalize: bool = False
+) -> tuple[float, int, int]:
     """
     حساب معدل خطأ الأحرف (Character Error Rate).
 
@@ -111,9 +113,15 @@ def calculate_cer(reference: str, hypothesis: str) -> tuple[float, int, int]:
     Returns:
         (cer, أخطاء, إجمالي_أحرف) / (cer, errors, total_chars)
     """
-    # تطبيع النص: إزالة التشكيل، توحيد المسافات
-    ref = _normalize_arabic(reference)
-    hyp = _normalize_arabic(hypothesis)
+    # تطبيع النص: إزالة التشكيل، توحيد المسافات.
+    # F-13/F-16 (2026-10-08): مع skip_internal_normalize=True تُستخدم المدخلات كما هي —
+    # المسار الإلزامي عندما يكون المستدعي طبّع الطرفين مسبقاً عبر normalize_v1
+    # (يمنع التطبيع المزدوج؛ الافتراضي False يحافظ على التوافق الكامل).
+    if not skip_internal_normalize:
+        ref = _normalize_arabic(reference)
+        hyp = _normalize_arabic(hypothesis)
+    else:
+        ref, hyp = reference, hypothesis
 
     if not ref:
         return (0.0 if not hyp else 1.0, len(hyp), 0)
@@ -124,7 +132,9 @@ def calculate_cer(reference: str, hypothesis: str) -> tuple[float, int, int]:
     return (cer, edits, len(ref))
 
 
-def calculate_wer(reference: str, hypothesis: str) -> tuple[float, int, int]:
+def calculate_wer(
+    reference: str, hypothesis: str, *, skip_internal_normalize: bool = False
+) -> tuple[float, int, int]:
     """
     حساب معدل خطأ الكلمات (Word Error Rate).
 
@@ -138,8 +148,11 @@ def calculate_wer(reference: str, hypothesis: str) -> tuple[float, int, int]:
     Returns:
         (wer, أخطاء, إجمالي_كلمات) / (wer, errors, total_words)
     """
-    ref = _normalize_arabic(reference)
-    hyp = _normalize_arabic(hypothesis)
+    if not skip_internal_normalize:
+        ref = _normalize_arabic(reference)
+        hyp = _normalize_arabic(hypothesis)
+    else:
+        ref, hyp = reference, hypothesis
 
     ref_words = ref.split()
     hyp_words = hyp.split()
