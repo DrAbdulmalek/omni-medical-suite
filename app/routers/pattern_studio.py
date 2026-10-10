@@ -18,6 +18,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from packages.learning.confusions_ar import suggest
 from packages.learning.snippet_dataset import export_confirmed
 
 router = APIRouter()
@@ -44,6 +45,10 @@ class ExportIn(BaseModel):
 
 class TelegramFileIn(BaseModel):
     file_id: str
+
+
+class ConfusionIn(BaseModel):
+    guess: str = Field(min_length=1, max_length=80)
 
 
 def _token() -> str:
@@ -73,6 +78,16 @@ def schema():
         "kinds": ["glyph", "word"],
         "languages": ["ar", "en", "mixed", "symbol"],
         "telegram": "TELEGRAM_BOT_TOKEN على الخادم، لا في المتصفح",
+    }
+
+
+@router.post("/confusions/suggest")
+def confusion_suggestion(body: ConfusionIn):
+    """Return a candidate only; never auto-correct or confirm it."""
+    return {
+        "suggestion": suggest(body.guess),
+        "review": "open",
+        "auto_apply": False,
     }
 
 
