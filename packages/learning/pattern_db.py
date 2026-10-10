@@ -87,7 +87,11 @@ class PatternDB(BaseDB):
                  language, category, writer_id, confidence, context_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(image_hash) DO UPDATE SET
+                    predicted_text = excluded.predicted_text,
                     corrected_text = excluded.corrected_text,
+                    language = excluded.language,
+                    category = excluded.category,
+                    context_json = excluded.context_json,
                     review = 'open',
                     usage_count = usage_count + 1,
                     correction_count = correction_count + 1,
