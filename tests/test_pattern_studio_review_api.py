@@ -8,11 +8,14 @@ import numpy as np
 import pytest
 from fastapi import HTTPException
 
+from app.routers import pattern_studio
 from app.routers.pattern_studio import (
+    ExportIn,
     SnippetIn,
     _server_review_rows,
     confirm_snippet,
 )
+from app.db.models.auth import User
 from packages.learning.pattern_db import PatternDB
 from packages.learning.snippet_dataset import normalize_record
 
@@ -77,3 +80,28 @@ def test_confirmation_route_rejects_unauthenticated_caller():
     with pytest.raises(HTTPException) as exc:
         asyncio.run(confirm_snippet(1, current_user=None, db=None))
     assert exc.value.status_code == 401
+
+
+
+def test_bulk_export_cannot_inject_client_confirmed_records(tmp_path, monkeypatch):
+    db = PatternDB(str(tmp_path / "empty-patterns.sqlite3"))
+    monkeypatch.setattr(pattern_studio, "PatternDB", lambda: db)
+    forged = {
+        "kind": "word",
+        "text": "client-forged",
+        "language": "en",
+        "image_png_base64": _png_b64(70),
+        "review": "confirmed",
+    }
+    body = ExportIn(records=[forged])
+    reviewer = User(
+        id=1,
+        username="test-reviewer",
+        email="reviewer@example.invalid",
+        hashed_password="not-a-real-password",
+        is_superuser=True,
+    )
+
+    result = asyncio.run(pattern_studio.export_dataset(body, current_user=reviewer, db=None))
+    assert result["jsonl"] == ""
+    assert result["summary"]["trainable"] == 0
