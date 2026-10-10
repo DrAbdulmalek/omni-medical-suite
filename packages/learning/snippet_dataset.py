@@ -1,7 +1,7 @@
 """مجموعة قصاصات التدريب — حرف أو كلمة مع النص المقابل.
 
 الصيغة oms.pattern.v1 تُخزَّن JSONL على GitHub لتدريب لاحق.
-السجلات بلا حقل review تُعامل confirmed حتى لا تنكسر الأرشيفات السابقة.
+السجلات بلا حقل review تُعامل open؛ لا تدخل أرشيف التدريب دون تأكيد صريح.
 المفتوح والمرفوض يُحفظان إن أُرسلا، ولا يُحسبان حقيقة تدريبية إلا confirmed.
 """
 
@@ -42,7 +42,7 @@ def normalize_record(raw: dict) -> dict:
     text = str(raw.get("text") or "").strip()
     language = str(raw.get("language") or "")
     image = str(raw.get("image_png_base64") or "")
-    review = str(raw.get("review") or "confirmed")
+    review = str(raw.get("review") or "open")
     role = str(raw.get("role") or "")
     if kind not in KINDS:
         raise ValueError("kind يجب أن يكون glyph أو word")
@@ -110,7 +110,7 @@ def summarize(records: Iterable[dict]) -> dict:
     trainable = 0
     for row in rows:
         by_kind[row["kind"]] = by_kind.get(row["kind"], 0) + 1
-        review = row.get("review", "confirmed")
+        review = row.get("review", "open")
         by_review[review] = by_review.get(review, 0) + 1
         if review == "confirmed":
             trainable += 1
