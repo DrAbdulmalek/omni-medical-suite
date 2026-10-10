@@ -12,6 +12,7 @@ from app.routers import pattern_studio
 from app.routers.pattern_studio import (
     ExportIn,
     SnippetIn,
+    _require_reviewer,
     _server_review_rows,
     confirm_snippet,
     save_snippet,
@@ -164,3 +165,17 @@ def test_unauthenticated_client_cannot_submit_forged_confirmed_review():
             app.dependency_overrides[get_db] = previous
 
     assert response.status_code == 401
+
+
+
+def test_authenticated_non_superuser_cannot_confirm():
+    user = User(
+        id=3,
+        username="ordinary-user",
+        email="ordinary@example.invalid",
+        hashed_password="not-a-real-password",
+        is_superuser=False,
+    )
+    with pytest.raises(HTTPException) as exc:
+        _require_reviewer(user)
+    assert exc.value.status_code == 403
