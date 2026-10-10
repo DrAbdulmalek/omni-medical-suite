@@ -13,6 +13,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
