@@ -238,7 +238,10 @@ async def export_dataset(
 
 
 @router.post("/telegram/file")
-def fetch_telegram_file(body: TelegramFileIn):
+def fetch_telegram_file(
+    body: TelegramFileIn,
+    current_user: User = Depends(get_current_user),
+):
     """يجلب ملفاً وصل للبوت (مستند/صورة قناة أُعيد توجيهها أو أُرسلت للبوت)."""
     token = _token()
     if not token:
