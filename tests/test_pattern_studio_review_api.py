@@ -51,7 +51,7 @@ def test_export_source_contains_only_server_confirmed_rows(tmp_path):
     image_open = np.full((16, 16), 90, dtype=np.uint8)
     image_confirmed = np.full((16, 16), 180, dtype=np.uint8)
 
-    open_id = db.save_pattern(
+    db.save_pattern(
         image=image_open,
         predicted="OCR",
         corrected="open sample",
@@ -82,7 +82,6 @@ def test_confirmation_route_rejects_unauthenticated_caller():
     with pytest.raises(HTTPException) as exc:
         asyncio.run(confirm_snippet(1, current_user=None))
     assert exc.value.status_code == 401
-
 
 
 def test_bulk_export_cannot_inject_client_confirmed_records(tmp_path, monkeypatch):
@@ -131,7 +130,10 @@ def test_save_endpoint_persists_open_even_when_client_sends_confirmed(tmp_path, 
     result = asyncio.run(save_snippet(request, current_user=user))
     assert result["review"] == "open"
     assert result["trainable"] is False
-    row = db.execute_one("SELECT review, corrected_text FROM patterns WHERE id = ?", (result["id"],))
+    row = db.execute_one(
+        "SELECT review, corrected_text FROM patterns WHERE id = ?",
+        (result["id"],),
+    )
     assert row == {"review": "open", "corrected_text": "sample"}
 
 
