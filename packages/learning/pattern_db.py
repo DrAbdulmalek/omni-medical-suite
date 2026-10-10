@@ -87,6 +87,7 @@ class PatternDB(BaseDB):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(image_hash) DO UPDATE SET
                     corrected_text = excluded.corrected_text,
+                    review = 'open',
                     usage_count = usage_count + 1,
                     correction_count = correction_count + 1,
                     last_used = CURRENT_TIMESTAMP,
