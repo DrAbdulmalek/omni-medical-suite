@@ -78,7 +78,7 @@ def test_export_source_contains_only_server_confirmed_rows(tmp_path):
 
 def test_confirmation_route_rejects_unauthenticated_caller():
     with pytest.raises(HTTPException) as exc:
-        asyncio.run(confirm_snippet(1, current_user=None, db=None))
+        asyncio.run(confirm_snippet(1, current_user=None))
     assert exc.value.status_code == 401
 
 
@@ -102,6 +102,6 @@ def test_bulk_export_cannot_inject_client_confirmed_records(tmp_path, monkeypatc
         is_superuser=True,
     )
 
-    result = asyncio.run(pattern_studio.export_dataset(body, current_user=reviewer, db=None))
+    result = asyncio.run(pattern_studio.export_dataset(body, current_user=reviewer))
     assert result["jsonl"] == ""
     assert result["summary"]["trainable"] == 0
