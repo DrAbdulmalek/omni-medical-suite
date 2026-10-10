@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import ast
 import base64
 import hashlib
 import json
@@ -13,13 +14,20 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Literal
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+import cv2
+import numpy as np
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rbac import require_permission
+from app.core.security import get_current_user
+from app.db.models.auth import User
+from app.db.session import get_db
 from packages.learning.confusions_ar import suggest
-from packages.learning.snippet_dataset import export_confirmed
+from packages.learning.pattern_db import PatternDB
+from packages.learning.snippet_dataset import export_confirmed, normalize_record
 
 router = APIRouter()
 _FILE_ID = re.compile(r"^[A-Za-z0-9_:\-]{8,256}$")
@@ -27,6 +35,10 @@ _MAX_BYTES = 8_000_000
 
 
 class SnippetIn(BaseModel):
+    # Unknown client fields (including "review") are ignored. Review state is
+    # owned exclusively by the server-side PatternDB workflow.
+    model_config = ConfigDict(extra="ignore")
+
     kind: str
     text: str = Field(min_length=1, max_length=80)
     language: str
@@ -36,11 +48,12 @@ class SnippetIn(BaseModel):
     file_name: str = Field(default="", max_length=160)
     bbox: list[int] = Field(default_factory=list, max_length=4)
     role: str = Field(default="", max_length=16)
-    review: Literal["open", "confirmed", "rejected"] = "open"
 
 
 class ExportIn(BaseModel):
-    records: list[SnippetIn] = Field(max_length=100)
+    # Kept for request compatibility; submitted records are never the export
+    # source. Only server-persisted, explicitly confirmed rows are exported.
+    records: list[SnippetIn] = Field(default_factory=list, max_length=100)
 
 
 class TelegramFileIn(BaseModel):
@@ -91,10 +104,129 @@ def confusion_suggestion(body: ConfusionIn):
     }
 
 
-@router.post("/dataset/export")
-def export_dataset(body: ExportIn):
+def _server_review_rows(db: PatternDB) -> list[dict]:
+    """Read only persisted rows with server-owned review='confirmed'."""
+    rows: list[dict] = []
+    with db.connection() as conn:
+        cursor = conn.execute(
+            """
+            SELECT image_blob, predicted_text, corrected_text, language,
+                   category, review, context_json
+            FROM patterns
+            WHERE review = 'confirmed'
+            ORDER BY id
+            """
+        )
+        for image_blob, predicted, corrected, language, category, review, context_json in cursor.fetchall():
+            if not image_blob or review != "confirmed":
+                continue
+            try:
+                context = json.loads(context_json) if context_json else {}
+            except (TypeError, json.JSONDecodeError):
+                try:
+                    context = ast.literal_eval(context_json) if context_json else {}
+                except (ValueError, SyntaxError):
+                    context = {}
+            if not isinstance(context, dict):
+                context = {}
+            kind = context.get("kind", category)
+            if kind not in {"glyph", "word"}:
+                kind = "word"
+            rows.append({
+                "kind": kind,
+                "text": corrected,
+                "language": language or "mixed",
+                "image_png_base64": base64.b64encode(bytes(image_blob)).decode("ascii"),
+                "ocr_guess": predicted or "",
+                "channel": str(context.get("channel") or "")[:80],
+                "file_name": str(context.get("file_name") or "")[:160],
+                "bbox": context.get("bbox") if isinstance(context.get("bbox"), list) else [],
+                "role": str(context.get("role") or "")[:16],
+                # This state came from the server database, not the request.
+                "review": "confirmed",
+            })
+    return rows
+
+
+@router.post("/snippets")
+async def save_snippet(
+    body: SnippetIn,
+    current_user: User = Depends(get_current_user),
+):
+    """Persist a new snippet as open; client-supplied review is ignored."""
     try:
-        return export_confirmed(r.model_dump() for r in body.records)
+        raw = body.model_dump()
+        raw["review"] = "open"
+        record = normalize_record(raw)
+        image_bytes = base64.b64decode(record["image_png_base64"], validate=True)
+        image = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            raise ValueError("تعذّر فك ترميز القصاصة")
+        context = {
+            "kind": record["kind"],
+            "role": record.get("role", ""),
+            "channel": record["source"]["channel"],
+            "file_name": record["source"]["file"],
+            "bbox": record["source"]["bbox"],
+            "image_sha256": record["image_sha256"],
+            "submitted_by": str(current_user.id),
+        }
+        pattern_id = PatternDB().save_pattern(
+            image=image,
+            predicted=record["ocr_guess"],
+            corrected=record["text"],
+            language=record["language"],
+            confidence=0.0,
+            category=record["kind"],
+            writer_id="default",
+            context=context,
+        )
+        return {"id": pattern_id, "review": "open", "trainable": False}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/snippets/{snippet_id}/confirm")
+@require_permission("training.manage")
+async def confirm_snippet(
+    snippet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Explicit reviewer-only confirmation for an existing persisted pattern."""
+    if isinstance(snippet_id, bool) or snippet_id <= 0:
+        raise HTTPException(status_code=422, detail="snippet_id غير صالح")
+    if not PatternDB().confirm_pattern(snippet_id):
+        raise HTTPException(status_code=404, detail="القصاصة غير موجودة")
+    return {"id": snippet_id, "review": "confirmed", "trainable": True}
+
+
+@router.post("/snippets/{snippet_id}/reject")
+@require_permission("training.manage")
+async def reject_snippet(
+    snippet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Explicit reviewer-only rejection for an existing persisted pattern."""
+    if isinstance(snippet_id, bool) or snippet_id <= 0:
+        raise HTTPException(status_code=422, detail="snippet_id غير صالح")
+    if not PatternDB().reject_pattern(snippet_id):
+        raise HTTPException(status_code=404, detail="القصاصة غير موجودة")
+    return {"id": snippet_id, "review": "rejected", "trainable": False}
+
+
+@router.post("/dataset/export")
+@require_permission("training.manage")
+async def export_dataset(
+    body: ExportIn | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Never export client-supplied records: even a forged review="confirmed"
+    # is ignored. The only export source is the server-side reviewed database.
+    try:
+        return export_confirmed(_server_review_rows(PatternDB()))
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
