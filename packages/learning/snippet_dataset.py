@@ -121,3 +121,19 @@ def summarize(records: Iterable[dict]) -> dict:
         "by_kind": by_kind,
         "by_review": by_review,
     }
+
+
+def export_confirmed(records: Iterable[dict]) -> dict:
+    """Export only explicitly confirmed records; pending/rejected rows are excluded."""
+    rows = [normalize_record(record) for record in records]
+    confirmed = [row for row in rows if row["review"] == "confirmed"]
+    excluded = {
+        "open": sum(1 for row in rows if row["review"] == "open"),
+        "rejected": sum(1 for row in rows if row["review"] == "rejected"),
+    }
+    return {
+        "jsonl": dumps_jsonl(confirmed),
+        "summary": summarize(confirmed),
+        "input_summary": summarize(rows),
+        "excluded": excluded,
+    }
