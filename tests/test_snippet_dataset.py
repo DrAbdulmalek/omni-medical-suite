@@ -22,7 +22,7 @@ def test_roundtrip_word_and_glyph():
     png = _png()
     text = dumps_jsonl(
         [
-            {"kind": "word", "text": "هيموغلوبين", "language": "ar", "image_png_base64": png, "channel": "@c", "file_name": "a.png", "ocr_guess": "هيموعلوبين"},
+            {"kind": "word", "text": "هيموغلوبين", "language": "ar", "image_png_base64": png, "channel": "@c", "file_name": "a.png", "ocr_guess": "هيموعلوبين", "review": "confirmed"},
             {"kind": "glyph", "text": "ه", "language": "ar", "image_png_base64": png},
         ]
     )
@@ -32,9 +32,10 @@ def test_roundtrip_word_and_glyph():
     assert rows[0]["source"]["channel"] == "@c"
     assert rows[0]["image_sha256"]
     assert rows[0]["review"] == "confirmed"
+    assert rows[1]["review"] == "open"
     summary = summarize(rows)
     assert summary["count"] == 2
-    assert summary["trainable"] == 2
+    assert summary["trainable"] == 1
     assert summary["by_kind"]["word"] == 1
     assert summary["by_kind"]["glyph"] == 1
 
