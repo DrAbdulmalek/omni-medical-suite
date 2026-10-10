@@ -132,3 +132,35 @@ def test_save_endpoint_persists_open_even_when_client_sends_confirmed(tmp_path, 
     assert result["trainable"] is False
     row = db.execute_one("SELECT review, corrected_text FROM patterns WHERE id = ?", (result["id"],))
     assert row == {"review": "open", "corrected_text": "sample"}
+
+
+
+def test_unauthenticated_client_cannot_submit_forged_confirmed_review():
+    from fastapi.testclient import TestClient
+
+    from app.db.session import get_db
+    from app.main import app
+
+    def fake_db():
+        yield None
+
+    previous = app.dependency_overrides.get(get_db)
+    app.dependency_overrides[get_db] = fake_db
+    try:
+        response = TestClient(app).post(
+            "/api/pattern-studio/snippets",
+            json={
+                "kind": "word",
+                "text": "forged",
+                "language": "en",
+                "image_png_base64": _png_b64(110),
+                "review": "confirmed",
+            },
+        )
+    finally:
+        if previous is None:
+            app.dependency_overrides.pop(get_db, None)
+        else:
+            app.dependency_overrides[get_db] = previous
+
+    assert response.status_code == 401
