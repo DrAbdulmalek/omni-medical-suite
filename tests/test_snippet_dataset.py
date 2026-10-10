@@ -4,6 +4,7 @@ import base64
 import struct
 import zlib
 
+from packages.learning.confusions_ar import suggest
 from packages.learning.snippet_dataset import dumps_jsonl, loads_jsonl, normalize_record, summarize
 
 
@@ -30,10 +31,32 @@ def test_roundtrip_word_and_glyph():
     assert rows[0]["schema"] == "oms.pattern.v1"
     assert rows[0]["source"]["channel"] == "@c"
     assert rows[0]["image_sha256"]
+    assert rows[0]["review"] == "confirmed"
     summary = summarize(rows)
     assert summary["count"] == 2
+    assert summary["trainable"] == 2
     assert summary["by_kind"]["word"] == 1
     assert summary["by_kind"]["glyph"] == 1
+
+
+def test_review_gate_keeps_open_out_of_trainable():
+    png = _png()
+    rows = loads_jsonl(
+        dumps_jsonl(
+            [
+                {"kind": "word", "text": "أموكسيسيلين", "language": "ar", "image_png_base64": png, "review": "open", "role": "drug"},
+                {"kind": "word", "text": "500 مجم", "language": "mixed", "image_png_base64": png, "review": "rejected", "role": "dose"},
+                {"kind": "word", "text": "هيموغلوبين", "language": "ar", "image_png_base64": png, "review": "confirmed", "role": "drug"},
+            ]
+        )
+    )
+    assert rows[0]["review"] == "open" and rows[0]["role"] == "drug"
+    assert summarize(rows)["trainable"] == 1
+    try:
+        normalize_record({"kind": "word", "text": "س", "language": "ar", "image_png_base64": png, "review": "maybe"})
+        raise AssertionError("expected review")
+    except ValueError as exc:
+        assert "review" in str(exc)
 
 
 def test_rejects_empty_text_and_bad_kind():
@@ -58,3 +81,9 @@ def test_rejects_non_png():
         raise AssertionError("expected png")
     except ValueError as exc:
         assert "PNG" in str(exc)
+
+
+def test_suggest_known_and_unknown():
+    hit = suggest("هيموعلوبين")
+    assert hit is not None and hit["text"] == "هيموغلوبين"
+    assert suggest("نص سليم") is None
