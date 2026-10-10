@@ -42,7 +42,7 @@ jobs:
           fetch-depth: 0  # needed for `git describe --tags`
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
