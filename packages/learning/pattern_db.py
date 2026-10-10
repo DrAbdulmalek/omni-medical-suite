@@ -100,7 +100,11 @@ class PatternDB(BaseDB):
             """, (image_hash, image_blob, predicted, corrected,
                   language, category, writer_id, confidence, context_json))
 
-            return cursor.lastrowid or self._get_id_by_hash(image_hash)
+            row = conn.execute(
+                "SELECT id FROM patterns WHERE image_hash = ?",
+                (image_hash,),
+            ).fetchone()
+            return int(row[0]) if row else 0
 
     def find_similar(self,
                     image: np.ndarray,
