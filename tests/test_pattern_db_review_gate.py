@@ -26,6 +26,18 @@ def test_training_samples_require_explicit_confirmation(tmp_path):
     assert len(samples) == 1
     assert samples[0]["label"] == "Chats"
 
+    # A later correction to the same visual pattern invalidates prior approval.
+    db.save_pattern(
+        image=image,
+        predicted="Chats",
+        corrected="Channels",
+        language="en",
+        confidence=0.98,
+        writer_id="fixture",
+    )
+    assert db.get_training_samples(writer_id="fixture", min_usage=1) == []
+    assert db.confirm_pattern(pattern_id) is True
+
     assert db.reject_pattern(pattern_id) is True
     assert db.get_training_samples(writer_id="fixture", min_usage=1) == []
 
