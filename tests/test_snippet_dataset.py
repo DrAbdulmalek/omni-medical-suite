@@ -5,7 +5,7 @@ import struct
 import zlib
 
 from packages.learning.confusions_ar import suggest
-from packages.learning.snippet_dataset import dumps_jsonl, loads_jsonl, normalize_record, summarize
+from packages.learning.snippet_dataset import dumps_jsonl, export_confirmed, loads_jsonl, normalize_record, summarize
 
 
 def _png(w: int = 2, h: int = 2) -> str:
@@ -88,3 +88,30 @@ def test_suggest_known_and_unknown():
     hit = suggest("هيموعلوبين")
     assert hit is not None and hit["text"] == "هيموغلوبين"
     assert suggest("نص سليم") is None
+
+
+def test_export_includes_only_explicitly_confirmed_records():
+    image = base64.b64encode(_png()).decode("ascii")
+    records = [
+        {"kind": "word", "text": "نص معلّق", "language": "ar", "image_png_base64": image, "review": "open"},
+        {"kind": "word", "text": "نص مؤكد", "language": "ar", "image_png_base64": image, "review": "confirmed"},
+        {"kind": "glyph", "text": "✗", "language": "symbol", "image_png_base64": image, "review": "rejected"},
+    ]
+    result = export_confirmed(records)
+    exported = loads_jsonl(result["jsonl"])
+    assert len(exported) == 1
+    assert exported[0]["text"] == "نص مؤكد"
+    assert exported[0]["review"] == "confirmed"
+    assert result["summary"]["trainable"] == 1
+    assert result["input_summary"]["count"] == 3
+    assert result["excluded"] == {"open": 1, "rejected": 1}
+
+
+def test_export_with_no_confirmed_records_is_empty():
+    image = base64.b64encode(_png()).decode("ascii")
+    result = export_confirmed([
+        {"kind": "word", "text": "نص مفتوح", "language": "ar", "image_png_base64": image}
+    ])
+    assert result["jsonl"] == ""
+    assert result["summary"]["count"] == 0
+    assert result["excluded"]["open"] == 1
