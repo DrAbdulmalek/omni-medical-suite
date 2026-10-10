@@ -3,6 +3,7 @@ Pattern DB — قاعدة بيانات لأنماط الخط اليدوي الش
 تتعلم من تصحيحات المستخدم وتقترح تلقائياً
 """
 import hashlib
+import json
 
 import cv2
 import numpy as np
@@ -77,7 +78,7 @@ class PatternDB(BaseDB):
         image_hash = self._compute_robust_hash(image)
         _, buffer = cv2.imencode('.png', image, [cv2.IMWRITE_PNG_COMPRESSION, 9])
         image_blob = buffer.tobytes()
-        context_json = str(context) if context else None
+        context_json = json.dumps(context, ensure_ascii=False, sort_keys=True) if context else None
 
         with self.connection() as conn:
             cursor = conn.execute("""
