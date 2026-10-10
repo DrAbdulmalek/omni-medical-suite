@@ -108,7 +108,7 @@ def test_export_includes_only_explicitly_confirmed_records():
 
 
 def test_export_with_no_confirmed_records_is_empty():
-    image = base64.b64encode(_png()).decode("ascii")
+    image = _png()
     result = export_confirmed([
         {"kind": "word", "text": "نص مفتوح", "language": "ar", "image_png_base64": image}
     ])
