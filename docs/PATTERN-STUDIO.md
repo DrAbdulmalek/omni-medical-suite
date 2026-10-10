@@ -7,7 +7,7 @@ ABBYY FineReader وReadiris علامتان مسجلتان؛ هذا المسار 
 
 1. **صندوق قناة.** `POST /api/pattern-studio/telegram/file` يجلب ملفاً وصل إلى البوت عبر `file_id`. الرمز `TELEGRAM_BOT_TOKEN` يبقى على الخادم ولا يُرسل من المتصفح. بلا الرمز يرجع `409` والحالة `needs_token`.
 2. **قصاصة.** كل سجل إمّا `glyph` (حرف) أو `word` (كلمة) مع النص الصحيح واللغة.
-3. **بوابة التأكيد.** `review` يكون `open` أو `confirmed` أو `rejected`، والافتراضي `open`. التصدير يضم السجلات المؤكدة فقط؛ المفتوح والمرفوض لا يظهران في JSONL المُصدَّر. لا استبدال صامت.
+3. **بوابة التأكيد على الخادم.** إنشاء القصاصة عبر `POST /api/pattern-studio/snippets` يحفظها `open` دائماً. حقل `review` المرسل من العميل يُتجاهل ولا يستطيع التأكيد. التأكيد والرفض مساران منفصلان `POST /snippets/{id}/confirm` و`POST /snippets/{id}/reject`، محميان بصلاحية RBAC `training.manage`. التصدير يقرأ من قاعدة الخادم فقط، ويضم السجلات المؤكدة في قاعدة البيانات؛ لا يستخدم سجلات يرسلها العميل مصدراً للتدريب.
 4. **تصحيح معروف.** `POST /api/pattern-studio/confusions/suggest` يعيد اقتراحاً من `packages/learning/confusions_ar.py` مع `review: open` و`auto_apply: false`. الاقتراح يُعرض للمراجع ولا يُعتمد وحده.
 5. **أرشيف GitHub.** الصيغة `oms.pattern.v1` سطر JSON لكل قصاصة في `training-data/patterns/`.
 
@@ -30,7 +30,7 @@ ABBYY FineReader وReadiris علامتان مسجلتان؛ هذا المسار 
 
 `role` اختياري: `title` أو `drug` أو `dose` أو `note` أو `other`.
 
-`POST /api/pattern-studio/dataset/export` يتحقق من السجلات ويرجع JSONL للسجلات المؤكدة فقط، مع عدّاد للسجلات المستبعدة. لا يكتب الملف إلى GitHub تلقائياً. على واجهة المستخدم إرسال `review: confirmed` فقط بعد إجراء تأكيد صريح؛ ربط زر الواجهة نفسه ما يزال يحتاج إلى تنفيذ/تحقق منفصل.
+`POST /api/pattern-studio/dataset/export` يتطلب مصادقة وصلاحية `training.manage`، ويصدر فقط السجلات المؤكدة الموجودة في قاعدة الخادم. أي `records` أو `review` يرسله العميل لا يُستخدم مصدرًا للتصدير. لا يكتب الملف إلى GitHub تلقائياً. يجب أن تستدعي الواجهة مسار التأكيد الصريح بعد مراجعة بشرية؛ لا يجوز لها ضبط حالة المراجعة داخل سجل الحفظ.
 
 ## ما لا يُنسخ
 
