@@ -28,23 +28,23 @@ _MAX_BYTES = 8_000_000
 
 class SnippetIn(BaseModel):
     kind: str
-    text: str
+    text: str = Field(min_length=1, max_length=80)
     language: str
-    image_png_base64: str
-    ocr_guess: str = ""
-    channel: str = ""
-    file_name: str = ""
-    bbox: list[int] = Field(default_factory=list)
-    role: str = ""
+    image_png_base64: str = Field(min_length=8, max_length=2_800_000)
+    ocr_guess: str = Field(default="", max_length=80)
+    channel: str = Field(default="", max_length=80)
+    file_name: str = Field(default="", max_length=160)
+    bbox: list[int] = Field(default_factory=list, max_length=4)
+    role: str = Field(default="", max_length=16)
     review: Literal["open", "confirmed", "rejected"] = "open"
 
 
 class ExportIn(BaseModel):
-    records: list[SnippetIn]
+    records: list[SnippetIn] = Field(max_length=100)
 
 
 class TelegramFileIn(BaseModel):
-    file_id: str
+    file_id: str = Field(min_length=8, max_length=256)
 
 
 class ConfusionIn(BaseModel):
