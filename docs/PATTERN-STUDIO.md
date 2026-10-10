@@ -8,7 +8,7 @@ ABBYY FineReader وReadiris علامتان مسجلتان؛ هذا المسار 
 1. **صندوق قناة.** `POST /api/pattern-studio/telegram/file` يجلب ملفاً وصل إلى البوت عبر `file_id`. الرمز `TELEGRAM_BOT_TOKEN` يبقى على الخادم ولا يُرسل من المتصفح. بلا الرمز يرجع `409` والحالة `needs_token`.
 2. **قصاصة.** كل سجل إمّا `glyph` (حرف) أو `word` (كلمة) مع النص الصحيح واللغة.
 3. **بوابة التأكيد.** `review` يكون `open` أو `confirmed` أو `rejected`، والافتراضي `open`. التصدير يضم السجلات المؤكدة فقط؛ المفتوح والمرفوض لا يظهران في JSONL المُصدَّر. لا استبدال صامت.
-4. **تصحيح معروف.** `packages/learning/confusions_ar.py` قائمة التباسات طبية مملوكة. الاقتراح يُعرض للمراجع ولا يُعتمد وحده.
+4. **تصحيح معروف.** `POST /api/pattern-studio/confusions/suggest` يعيد اقتراحاً من `packages/learning/confusions_ar.py` مع `review: open` و`auto_apply: false`. الاقتراح يُعرض للمراجع ولا يُعتمد وحده.
 5. **أرشيف GitHub.** الصيغة `oms.pattern.v1` سطر JSON لكل قصاصة في `training-data/patterns/`.
 
 ## الصيغة
