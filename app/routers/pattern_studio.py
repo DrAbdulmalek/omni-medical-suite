@@ -126,7 +126,15 @@ def _server_review_rows(db: PatternDB) -> list[dict]:
             ORDER BY id
             """
         )
-        for image_blob, predicted, corrected, language, category, review, context_json in cursor.fetchall():
+        for (
+            image_blob,
+            predicted,
+            corrected,
+            language,
+            category,
+            review,
+            context_json,
+        ) in cursor.fetchall():
             if not image_blob or review != "confirmed":
                 continue
             try:
