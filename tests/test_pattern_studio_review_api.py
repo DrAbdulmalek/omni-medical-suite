@@ -14,6 +14,7 @@ from app.routers.pattern_studio import (
     SnippetIn,
     _server_review_rows,
     confirm_snippet,
+    save_snippet,
 )
 from app.db.models.auth import User
 from packages.learning.pattern_db import PatternDB
@@ -105,3 +106,29 @@ def test_bulk_export_cannot_inject_client_confirmed_records(tmp_path, monkeypatc
     result = asyncio.run(pattern_studio.export_dataset(body, current_user=reviewer))
     assert result["jsonl"] == ""
     assert result["summary"]["trainable"] == 0
+
+
+def test_save_endpoint_persists_open_even_when_client_sends_confirmed(tmp_path, monkeypatch):
+    db = PatternDB(str(tmp_path / "patterns.sqlite3"))
+    monkeypatch.setattr(pattern_studio, "PatternDB", lambda: db)
+    payload = {
+        "kind": "word",
+        "text": "sample",
+        "language": "en",
+        "image_png_base64": _png_b64(140),
+        "review": "confirmed",
+    }
+    request = SnippetIn.model_validate(payload)
+    user = User(
+        id=2,
+        username="sample-user",
+        email="sample@example.invalid",
+        hashed_password="not-a-real-password",
+        is_superuser=False,
+    )
+
+    result = asyncio.run(save_snippet(request, current_user=user))
+    assert result["review"] == "open"
+    assert result["trainable"] is False
+    row = db.execute_one("SELECT review, corrected_text FROM patterns WHERE id = ?", (result["id"],))
+    assert row == {"review": "open", "corrected_text": "sample"}
