@@ -91,7 +91,7 @@ def test_suggest_known_and_unknown():
 
 
 def test_export_includes_only_explicitly_confirmed_records():
-    image = base64.b64encode(_png()).decode("ascii")
+    image = _png()
     records = [
         {"kind": "word", "text": "نص معلّق", "language": "ar", "image_png_base64": image, "review": "open"},
         {"kind": "word", "text": "نص مؤكد", "language": "ar", "image_png_base64": image, "review": "confirmed"},
