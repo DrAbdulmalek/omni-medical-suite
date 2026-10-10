@@ -19,12 +19,9 @@ import cv2
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.rbac import require_permission
 from app.core.security import get_current_user
 from app.db.models.auth import User
-from app.db.session import get_db
 from packages.learning.confusions_ar import suggest
 from packages.learning.pattern_db import PatternDB
 from packages.learning.snippet_dataset import export_confirmed, normalize_record
@@ -62,6 +59,18 @@ class TelegramFileIn(BaseModel):
 
 class ConfusionIn(BaseModel):
     guess: str = Field(min_length=1, max_length=80)
+
+
+def _require_reviewer(user: User | None) -> None:
+    """Fail closed using the existing authenticated superuser control.
+
+    A dedicated reviewer permission is not proven to be seeded in the live
+    RBAC database, so do not invent or silently assume a permission codename.
+    """
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not user.is_superuser:
+        raise HTTPException(status_code=403, detail="Superuser review authorization required")
 
 
 def _token() -> str:
@@ -187,13 +196,12 @@ async def save_snippet(
 
 
 @router.post("/snippets/{snippet_id}/confirm")
-@require_permission("training.manage")
 async def confirm_snippet(
     snippet_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     """Explicit reviewer-only confirmation for an existing persisted pattern."""
+    _require_reviewer(current_user)
     if isinstance(snippet_id, bool) or snippet_id <= 0:
         raise HTTPException(status_code=422, detail="snippet_id غير صالح")
     if not PatternDB().confirm_pattern(snippet_id):
@@ -202,13 +210,12 @@ async def confirm_snippet(
 
 
 @router.post("/snippets/{snippet_id}/reject")
-@require_permission("training.manage")
 async def reject_snippet(
     snippet_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     """Explicit reviewer-only rejection for an existing persisted pattern."""
+    _require_reviewer(current_user)
     if isinstance(snippet_id, bool) or snippet_id <= 0:
         raise HTTPException(status_code=422, detail="snippet_id غير صالح")
     if not PatternDB().reject_pattern(snippet_id):
@@ -217,14 +224,13 @@ async def reject_snippet(
 
 
 @router.post("/dataset/export")
-@require_permission("training.manage")
 async def export_dataset(
     body: ExportIn | None = None,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     # Never export client-supplied records: even a forged review="confirmed"
     # is ignored. The only export source is the server-side reviewed database.
+    _require_reviewer(current_user)
     try:
         return export_confirmed(_server_review_rows(PatternDB()))
     except ValueError as exc:
