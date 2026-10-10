@@ -115,3 +115,12 @@ def test_export_with_no_confirmed_records_is_empty():
     assert result["jsonl"] == ""
     assert result["summary"]["count"] == 0
     assert result["excluded"]["open"] == 1
+
+
+def test_confusion_suggestion_is_advisory_not_approval():
+    from app.routers.pattern_studio import ConfusionIn, confusion_suggestion
+
+    result = confusion_suggestion(ConfusionIn(guess="هيموعلوبين"))
+    assert result["suggestion"]["text"] == "هيموغلوبين"
+    assert result["review"] == "open"
+    assert result["auto_apply"] is False
