@@ -17,7 +17,7 @@ import urllib.request
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from packages.learning.snippet_dataset import dumps_jsonl, summarize
+from packages.learning.snippet_dataset import export_confirmed
 
 router = APIRouter()
 _FILE_ID = re.compile(r"^[A-Za-z0-9_:\-]{8,256}$")
@@ -33,6 +33,8 @@ class SnippetIn(BaseModel):
     channel: str = ""
     file_name: str = ""
     bbox: list[int] = Field(default_factory=list)
+    role: str = ""
+    review: Literal["open", "confirmed", "rejected"] = "open"
 
 
 class ExportIn(BaseModel):
@@ -76,13 +78,9 @@ def schema():
 @router.post("/dataset/export")
 def export_dataset(body: ExportIn):
     try:
-        text = dumps_jsonl(r.model_dump() for r in body.records)
+        return export_confirmed(r.model_dump() for r in body.records)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    from packages.learning.snippet_dataset import loads_jsonl
-
-    rows = loads_jsonl(text) if text else []
-    return {"jsonl": text, "summary": summarize(rows)}
 
 
 @router.post("/telegram/file")
