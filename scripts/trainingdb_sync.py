@@ -137,6 +137,45 @@ def write_readme(training_db: str, stats: Dict[str, Any]) -> None:
 """)
 
 
+def validate_privacy_approvals(training_db: str) -> List[str]:
+    """Fail closed unless every sample has an explicit per-sample privacy approval.
+
+    A batch-level checkbox and the legacy human_reviewed flag are not consent
+    or de-identification evidence. Approval metadata must be recorded per slice.
+    """
+    manifest = os.path.join(training_db, "slices.jsonl")
+    if not os.path.isfile(manifest):
+        return ["missing slices.jsonl manifest"]
+    errors: List[str] = []
+    try:
+        with open(manifest, encoding="utf-8") as fh:
+            for line_no, line in enumerate(fh, start=1):
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    errors.append(f"line {line_no}: malformed JSON")
+                    continue
+                review = record.get("privacy_review")
+                if not isinstance(review, dict):
+                    errors.append(f"line {line_no}: missing per-sample privacy_review")
+                    continue
+                if review.get("approved") is not True:
+                    errors.append(f"line {line_no}: sample not explicitly approved")
+                if review.get("deidentified") is not True:
+                    errors.append(f"line {line_no}: de-identification not confirmed")
+                if review.get("consent_confirmed") is not True:
+                    errors.append(f"line {line_no}: consent not confirmed")
+                if not isinstance(review.get("reviewer"), str) or not review["reviewer"].strip():
+                    errors.append(f"line {line_no}: reviewer identity missing")
+                if not isinstance(review.get("reviewed_at"), int) or review["reviewed_at"] <= 0:
+                    errors.append(f"line {line_no}: valid review timestamp missing")
+    except OSError as exc:
+        return [f"cannot read manifest: {type(exc).__name__}"]
+    return errors
+
+
 def main() -> int:
     dry_run = "--dry-run" in sys.argv
     do_export = "--export" in sys.argv
@@ -167,13 +206,21 @@ def main() -> int:
     git(training_db, "config", "user.name", "omni-training-bot")
     git(training_db, "config", "user.email", "omni-training-bot@users.noreply.github.com")
 
-    # 3. secret gate
+    # 3. per-sample privacy/consent gate (fail closed before any push)
+    privacy_errors = validate_privacy_approvals(training_db)
+    if privacy_errors:
+        print("PRIVACY_GATE_FAIL: sync blocked; each sample needs explicit review.")
+        for error in privacy_errors[:20]:
+            print("PRIVACY_REVIEW_REQUIRED:", error)
+        return 3
+
+    # 4. secret gate
     hits = secret_scan(training_db)
     if hits:
         print("SECRET_SCAN_FAIL:", hits[:10])
         return 2
 
-    # 4. commit if changes
+    # 5. commit if changes
     git(training_db, "add", "-A")
     status = git(training_db, "status", "--porcelain")
     if not status.strip():
@@ -185,7 +232,7 @@ def main() -> int:
         return 0
     git(training_db, "commit", "-m", msg)
 
-    # 5. push using a process environment, never putting the token in argv.
+    # 6. push using a process environment, never putting the token in argv.
     # Git receives credentials through a temporary shell helper that reads GH_TOKEN;
     # the token therefore does not appear in the process command line or git config.
     token = read_token()
@@ -222,7 +269,7 @@ def main() -> int:
         return 1
     sha = git(training_db, "rev-parse", "HEAD")
 
-    # 6. Mark slices synced, then regenerate the mirror metadata so README/stats
+    # 7. Mark slices synced, then regenerate the mirror metadata so README/stats
     # describe the state that actually exists on GitHub.
     pending = slices_store.list_slices(limit=10_000, pending_only=True)
     slices_store.mark_synced([r["id"] for r in pending], commit=sha[:12])
