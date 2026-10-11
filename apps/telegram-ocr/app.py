@@ -458,6 +458,7 @@ def build_ui() -> gr.Blocks:
                 label="جدول تعديل المربعات (إحداثيات الصورة بالبكسل)",
                 interactive=True, row_count=(1, "dynamic"), col_count=(7, "fixed"),
             )
+            bbox_lang = gr.Radio(["ar", "en"], value="ar", label="لغة بيانات التدريب")
             bbox_reviewed = gr.Checkbox(
                 label="أؤكد أنني راجعت النصوص والإحداثيات، وأوافق على حفظ هذه القصاصات محلياً لأغراض التدريب",
                 value=False,
@@ -470,7 +471,7 @@ def build_ui() -> gr.Blocks:
             )
             bbox_load_btn.click(bbox_editor_rows, [file_dd, ocr_state], bbox_table)
             bbox_save_btn.click(
-                save_bbox_editor_rows, [file_dd, bbox_table, bbox_reviewed, slice_lang],
+                save_bbox_editor_rows, [file_dd, bbox_table, bbox_reviewed, bbox_lang],
                 [bbox_save_status, bbox_recent],
             )
 
