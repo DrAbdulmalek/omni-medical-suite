@@ -184,7 +184,7 @@ def validate_privacy_approvals(training_db: str) -> List[str]:
             # Support explicit inline reviews for controlled migration only.
             review = record.get("privacy_review")
         if not isinstance(review, dict):
-            errors.append(f"line {line_no}: missing per-sample privacy review")
+            errors.append(f"line {line_no}: missing per-sample privacy_review")
             continue
         if review.get("approved") is not True:
             errors.append(f"line {line_no}: sample not explicitly approved")
