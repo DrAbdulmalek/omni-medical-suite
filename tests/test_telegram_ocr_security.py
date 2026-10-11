@@ -4,7 +4,7 @@ import os
 import pytest
 from fastapi.params import Depends
 
-from app.routers.telegram_ocr import _confined_inbox_path, router
+from app.routers.telegram_ocr import _confined_inbox_path, router, TrainingSyncBody
 from app.core.security import get_current_user
 
 
@@ -65,3 +65,9 @@ def test_confined_path_rejects_symlink_escape(tmp_path):
     with pytest.raises(HTTPException) as exc:
         _confined_inbox_path(str(link), str(inbox))
     assert exc.value.status_code == 400
+
+
+
+def test_training_sync_requires_explicit_batch_confirmation_by_default():
+    assert TrainingSyncBody().confirm_reviewed_batch is False
+    assert TrainingSyncBody(confirm_reviewed_batch=True).confirm_reviewed_batch is True
