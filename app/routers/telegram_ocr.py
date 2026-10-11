@@ -99,6 +99,10 @@ class LearnBody(BaseModel):
     slices: Optional[List[str]] = None  # slice ids; None => all slices
 
 
+class TrainingSyncBody(BaseModel):
+    confirm_reviewed_batch: bool = False
+
+
 # ------------------------------------------------------------------ status
 @router.get("/status")
 async def status() -> Dict[str, Any]:
@@ -253,7 +257,12 @@ async def trainingdb_stats() -> Dict[str, Any]:
 
 
 @router.post("/trainingdb/sync")
-async def trainingdb_sync() -> Dict[str, Any]:
+async def trainingdb_sync(body: TrainingSyncBody) -> Dict[str, Any]:
+    if not body.confirm_reviewed_batch:
+        raise HTTPException(
+            status_code=400,
+            detail="explicit confirmation required: review and de-identify the batch before sync",
+        )
     script = os.path.join(_SUITE_ROOT, "scripts", "trainingdb_sync.py")
     if not os.path.exists(script):
         raise HTTPException(status_code=500, detail="sync script missing")
