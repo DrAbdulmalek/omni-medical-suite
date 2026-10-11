@@ -422,7 +422,7 @@ def record_privacy_review(sample_id, deidentified, consent_confirmed, reviewer):
     ledger_path = os.path.join(_training_db(), "privacy_reviews.jsonl")
     os.makedirs(os.path.dirname(ledger_path), exist_ok=True)
     with open(ledger_path, "a", encoding="utf-8") as fh:
-        fh.write(json.dumps(review, ensure_ascii=False) + "\\n")
+        fh.write(json.dumps(review, ensure_ascii=False) + "\n")
     return (
         f"✅ سُجلت مراجعة الخصوصية للعينة `{sample_id}`. ستُستخدم أحدث مراجعة لهذه العينة.",
         gr.update(choices=privacy_review_choices(), value=None),
