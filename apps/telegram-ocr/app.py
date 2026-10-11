@@ -401,11 +401,10 @@ def record_privacy_review(sample_id, deidentified, consent_confirmed, reviewer):
     """Append an explicit review decision for one exact sample ID."""
     if not sample_id:
         raise gr.Error("اختر عينة محددة أولاً")
-    if not deidentified or not consent_confirmed:
-        raise gr.Error("لا يمكن اعتماد العينة دون تأكيد إزالة الهوية والموافقة المناسبة")
     reviewer = str(reviewer or "").strip()
     if not reviewer:
         raise gr.Error("أدخل معرّف المراجع أو اسم حسابه")
+    approved = bool(deidentified and consent_confirmed)
     store = SliceStore(_training_db())
     record = next((r for r in store.list_slices(limit=10000)
                    if r.get("id") == sample_id), None)
@@ -413,9 +412,9 @@ def record_privacy_review(sample_id, deidentified, consent_confirmed, reviewer):
         raise gr.Error("العينة غير موجودة؛ حدّث القائمة")
     review = {
         "sample_id": sample_id,
-        "approved": True,
-        "deidentified": True,
-        "consent_confirmed": True,
+        "approved": approved,
+        "deidentified": bool(deidentified),
+        "consent_confirmed": bool(consent_confirmed),
         "reviewer": reviewer,
         "reviewed_at": int(time.time()),
     }
@@ -424,7 +423,8 @@ def record_privacy_review(sample_id, deidentified, consent_confirmed, reviewer):
     with open(ledger_path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(review, ensure_ascii=False) + "\n")
     return (
-        f"✅ سُجلت مراجعة الخصوصية للعينة `{sample_id}`. ستُستخدم أحدث مراجعة لهذه العينة.",
+        (f"✅ اعتُمدت العينة `{sample_id}` بعد مراجعتها." if approved else
+         f"⛔ سُجل رفض العينة `{sample_id}`؛ ستظل المزامنة محظورة ما لم تُراجع وتُعتمد لاحقاً."),
         gr.update(choices=privacy_review_choices(), value=None),
     )
 
