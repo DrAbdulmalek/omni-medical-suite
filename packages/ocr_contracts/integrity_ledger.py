@@ -138,62 +138,68 @@ def record_export_attempt(
     idempotency_key: str,
     schema_version: int = CANONICALIZATION_VERSION,
 ) -> dict[str, str]:
-    """Record an export decision only; this function never exports data.
+    """Atomically record an export decision; never exports data.
 
-    A repeated idempotency key returns the existing event without duplicating
-    it. Any blocked attempt is retained as an audit event.
+    BEGIN IMMEDIATE serializes decision+insert across SQLite connections, so
+    concurrent requests cannot race between the idempotency lookup and insert.
+    Callers must provide a connection with no active transaction. A repeated
+    key returns its existing event only when the request identity matches.
     """
     if not idempotency_key.strip():
         raise ValueError("idempotency_key is required")
+    if conn.in_transaction:
+        raise ValueError("ledger connection must not have an active transaction")
     digest = compute_content_hash(payload, schema_version=schema_version)
-    existing = conn.execute(
-        """SELECT event_id, outcome, reason_code, sample_id, content_hash,
-                  schema_version, dataset_version, destination, actor, authorization_ref
-           FROM export_events WHERE idempotency_key = ?""",
-        (idempotency_key,),
-    ).fetchone()
-    if existing:
-        # Idempotency keys are bound to request identity; reusing a key for a
-        # different payload or destination must not silently reuse an old result.
-        identity = (
-            existing["sample_id"], existing["content_hash"], existing["schema_version"],
-            existing["dataset_version"], existing["destination"], existing["actor"],
-            existing["authorization_ref"],
-        )
-        requested = (
-            sample_id, digest, schema_version, dataset_version, destination, actor or "unknown",
-            authorization_ref or "",
-        )
-        if identity != requested:
-            raise ValueError("idempotency_key_reused_for_different_request")
-        return {
-            "event_id": existing["event_id"],
-            "outcome": existing["outcome"],
-            "reason_code": existing["reason_code"],
-        }
-
-    latest = conn.execute(
-        """SELECT content_hash, schema_version, reviewer, consent, destination
-           FROM approvals WHERE sample_id = ?
-           ORDER BY created_at DESC, rowid DESC LIMIT 1""",
-        (sample_id,),
-    ).fetchone()
     allowed = set(authorized_destinations)
-    reason = "eligible"
-    outcome = "prepared"
-    if latest is None:
-        outcome, reason = "blocked", "approval_missing"
-    elif latest["content_hash"] != digest or latest["schema_version"] != schema_version:
-        outcome, reason = "blocked", "stale_approval"
-    elif not latest["consent"] or not consent:
-        outcome, reason = "blocked", "consent_missing"
-    elif latest["destination"] != destination or destination not in allowed:
-        outcome, reason = "blocked", "destination_not_authorized"
-    elif not actor.strip() or not authorization_ref:
-        outcome, reason = "blocked", "authorization_provenance_missing"
 
-    event_id = str(uuid.uuid4())
-    with conn:
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        existing = conn.execute(
+            """SELECT event_id, outcome, reason_code, sample_id, content_hash,
+                      schema_version, dataset_version, destination, actor, authorization_ref
+               FROM export_events WHERE idempotency_key = ?""",
+            (idempotency_key,),
+        ).fetchone()
+        if existing:
+            identity = (
+                existing["sample_id"], existing["content_hash"], existing["schema_version"],
+                existing["dataset_version"], existing["destination"], existing["actor"],
+                existing["authorization_ref"],
+            )
+            requested = (
+                sample_id, digest, schema_version, dataset_version, destination,
+                actor or "unknown", authorization_ref or "",
+            )
+            if identity != requested:
+                raise ValueError("idempotency_key_reused_for_different_request")
+            result = {
+                "event_id": existing["event_id"],
+                "outcome": existing["outcome"],
+                "reason_code": existing["reason_code"],
+            }
+            conn.commit()
+            return result
+
+        latest = conn.execute(
+            """SELECT content_hash, schema_version, reviewer, consent, destination
+               FROM approvals WHERE sample_id = ?
+               ORDER BY created_at DESC, rowid DESC LIMIT 1""",
+            (sample_id,),
+        ).fetchone()
+        reason = "eligible"
+        outcome = "prepared"
+        if latest is None:
+            outcome, reason = "blocked", "approval_missing"
+        elif latest["content_hash"] != digest or latest["schema_version"] != schema_version:
+            outcome, reason = "blocked", "stale_approval"
+        elif not latest["consent"] or not consent:
+            outcome, reason = "blocked", "consent_missing"
+        elif latest["destination"] != destination or destination not in allowed:
+            outcome, reason = "blocked", "destination_not_authorized"
+        elif not actor.strip() or not authorization_ref:
+            outcome, reason = "blocked", "authorization_provenance_missing"
+
+        event_id = str(uuid.uuid4())
         conn.execute(
             """INSERT INTO export_events
                (event_id, idempotency_key, sample_id, content_hash, schema_version,
@@ -204,8 +210,11 @@ def record_export_attempt(
              dataset_version, destination, actor or "unknown",
              authorization_ref or "", outcome, reason, _now()),
         )
-    return {"event_id": event_id, "outcome": outcome, "reason_code": reason}
-
+        conn.commit()
+        return {"event_id": event_id, "outcome": outcome, "reason_code": reason}
+    except Exception:
+        conn.rollback()
+        raise
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="microseconds")
