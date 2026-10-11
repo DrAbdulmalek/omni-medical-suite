@@ -140,12 +140,14 @@ def write_readme(training_db: str, stats: Dict[str, Any]) -> None:
 def validate_privacy_approvals(training_db: str) -> List[str]:
     """Fail closed unless every sample has an explicit per-sample privacy approval.
 
-    A batch-level checkbox and the legacy human_reviewed flag are not consent
-    or de-identification evidence. Approval metadata must be recorded per slice.
+    Reviews are kept in privacy_reviews.jsonl, separate from the append-only
+    sample manifest. The latest review record for each sample ID is authoritative.
     """
     manifest = os.path.join(training_db, "slices.jsonl")
+    reviews_path = os.path.join(training_db, "privacy_reviews.jsonl")
     if not os.path.isfile(manifest):
         return ["missing slices.jsonl manifest"]
+    records: List[Dict[str, Any]] = []
     errors: List[str] = []
     try:
         with open(manifest, encoding="utf-8") as fh:
@@ -153,28 +155,48 @@ def validate_privacy_approvals(training_db: str) -> List[str]:
                 if not line.strip():
                     continue
                 try:
-                    record = json.loads(line)
+                    records.append(json.loads(line))
                 except json.JSONDecodeError:
                     errors.append(f"line {line_no}: malformed JSON")
-                    continue
-                review = record.get("privacy_review")
-                if not isinstance(review, dict):
-                    errors.append(f"line {line_no}: missing per-sample privacy_review")
-                    continue
-                if review.get("approved") is not True:
-                    errors.append(f"line {line_no}: sample not explicitly approved")
-                if review.get("deidentified") is not True:
-                    errors.append(f"line {line_no}: de-identification not confirmed")
-                if review.get("consent_confirmed") is not True:
-                    errors.append(f"line {line_no}: consent not confirmed")
-                if not isinstance(review.get("reviewer"), str) or not review["reviewer"].strip():
-                    errors.append(f"line {line_no}: reviewer identity missing")
-                if not isinstance(review.get("reviewed_at"), int) or review["reviewed_at"] <= 0:
-                    errors.append(f"line {line_no}: valid review timestamp missing")
     except OSError as exc:
         return [f"cannot read manifest: {type(exc).__name__}"]
+    reviews: Dict[str, Dict[str, Any]] = {}
+    if os.path.isfile(reviews_path):
+        try:
+            with open(reviews_path, encoding="utf-8") as fh:
+                for line_no, line in enumerate(fh, start=1):
+                    if not line.strip():
+                        continue
+                    try:
+                        review_record = json.loads(line)
+                    except json.JSONDecodeError:
+                        errors.append(f"privacy review line {line_no}: malformed JSON")
+                        continue
+                    sample_id = review_record.get("sample_id")
+                    if isinstance(sample_id, str) and sample_id:
+                        reviews[sample_id] = review_record
+        except OSError as exc:
+            return [f"cannot read privacy review ledger: {type(exc).__name__}"]
+    for line_no, record in enumerate(records, start=1):
+        sample_id = record.get("id")
+        review = reviews.get(sample_id) if isinstance(sample_id, str) else None
+        if review is None:
+            # Support explicit inline reviews for controlled migration only.
+            review = record.get("privacy_review")
+        if not isinstance(review, dict):
+            errors.append(f"line {line_no}: missing per-sample privacy review")
+            continue
+        if review.get("approved") is not True:
+            errors.append(f"line {line_no}: sample not explicitly approved")
+        if review.get("deidentified") is not True:
+            errors.append(f"line {line_no}: de-identification not confirmed")
+        if review.get("consent_confirmed") is not True:
+            errors.append(f"line {line_no}: consent not confirmed")
+        if not isinstance(review.get("reviewer"), str) or not review["reviewer"].strip():
+            errors.append(f"line {line_no}: reviewer identity missing")
+        if not isinstance(review.get("reviewed_at"), int) or review["reviewed_at"] <= 0:
+            errors.append(f"line {line_no}: valid review timestamp missing")
     return errors
-
 
 def main() -> int:
     dry_run = "--dry-run" in sys.argv
