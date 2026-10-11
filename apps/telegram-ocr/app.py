@@ -372,6 +372,63 @@ def db_stats():
             f"| استخدامات الأنماط | {p.get('occurrences', 0)} |")
 
 
+def privacy_review_choices(limit: int = 500):
+    """List training samples for explicit one-at-a-time privacy review."""
+    rows = SliceStore(_training_db()).list_slices(limit=limit)
+    return [row["id"] for row in rows if row.get("id")]
+
+
+def preview_privacy_sample(sample_id):
+    if not sample_id:
+        raise gr.Error("اختر عينة تدريب لمراجعتها")
+    store = SliceStore(_training_db())
+    record = next((r for r in store.list_slices(limit=10000)
+                   if r.get("id") == sample_id), None)
+    if record is None:
+        raise gr.Error("العينة غير موجودة في قاعدة التدريب")
+    image = store.image_of(record)
+    if image is None:
+        raise gr.Error("ملف صورة العينة غير موجود")
+    return image, (
+        f"**المعرّف:** `{record['id']}`\n\n"
+        f"**النص المراد تدريبه:** {record.get('text', '')}\n\n"
+        f"**المستوى/اللغة:** {record.get('level', '?')} / {record.get('lang', '?')}\n\n"
+        "افحص الصورة والنص معاً قبل اعتماد هذه العينة."
+    )
+
+
+def record_privacy_review(sample_id, deidentified, consent_confirmed, reviewer):
+    """Append an explicit review decision for one exact sample ID."""
+    if not sample_id:
+        raise gr.Error("اختر عينة محددة أولاً")
+    if not deidentified or not consent_confirmed:
+        raise gr.Error("لا يمكن اعتماد العينة دون تأكيد إزالة الهوية والموافقة المناسبة")
+    reviewer = str(reviewer or "").strip()
+    if not reviewer:
+        raise gr.Error("أدخل معرّف المراجع أو اسم حسابه")
+    store = SliceStore(_training_db())
+    record = next((r for r in store.list_slices(limit=10000)
+                   if r.get("id") == sample_id), None)
+    if record is None:
+        raise gr.Error("العينة غير موجودة؛ حدّث القائمة")
+    review = {
+        "sample_id": sample_id,
+        "approved": True,
+        "deidentified": True,
+        "consent_confirmed": True,
+        "reviewer": reviewer,
+        "reviewed_at": int(time.time()),
+    }
+    ledger_path = os.path.join(_training_db(), "privacy_reviews.jsonl")
+    os.makedirs(os.path.dirname(ledger_path), exist_ok=True)
+    with open(ledger_path, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(review, ensure_ascii=False) + "\\n")
+    return (
+        f"✅ سُجلت مراجعة الخصوصية للعينة `{sample_id}`. ستُستخدم أحدث مراجعة لهذه العينة.",
+        gr.update(choices=privacy_review_choices(), value=None),
+    )
+
+
 def run_export():
     summary = export_all(_training_db())
     meta = summary["slices"]
@@ -540,6 +597,32 @@ def build_ui() -> gr.Blocks:
                         "يُحدَّث بـ git push من هذا الجهاز، ويُستخدم لاحقاً لتدريب نموذج "
                         "تعرف ضوئي عربي مخصص.")
             stats_md = gr.Markdown(db_stats())
+            gr.Markdown(
+                "### مراجعة الخصوصية لكل عينة قبل المزامنة\n"
+                "افتح كل قصاصة على حدة، وتحقق من الصورة والنص. لا تعتمدها إلا إذا "
+                "تحققت من إزالة بيانات التعريف ووجود الموافقة المناسبة.")
+            with gr.Row():
+                privacy_slice_id = gr.Dropdown(
+                    choices=privacy_review_choices(), label="معرّف العينة", value=None)
+                privacy_reviewer = gr.Textbox(
+                    label="معرّف المراجع / حسابه", placeholder="reviewer-id")
+            with gr.Row():
+                privacy_deidentified = gr.Checkbox(
+                    label="تحققت من خلو هذه العينة من معلومات تعريف المريض", value=False)
+                privacy_consent = gr.Checkbox(
+                    label="تأكدت من وجود الموافقة المناسبة لاستخدام هذه العينة", value=False)
+            privacy_preview_btn = gr.Button("🔎 عرض العينة المختارة")
+            privacy_image = gr.Image(label="صورة العينة", interactive=False)
+            privacy_details = gr.Markdown()
+            privacy_review_btn = gr.Button("✅ تسجيل مراجعة هذه العينة")
+            privacy_review_status = gr.Markdown()
+            privacy_preview_btn.click(
+                preview_privacy_sample, [privacy_slice_id], [privacy_image, privacy_details])
+            privacy_review_btn.click(
+                record_privacy_review,
+                [privacy_slice_id, privacy_deidentified, privacy_consent, privacy_reviewer],
+                [privacy_review_status, privacy_slice_id],
+            )
             sync_confirm = gr.Checkbox(
                 label="أؤكد أنني راجعت دفعة البيانات المراد رفعها، وأزلت أو أخفيت هوية المرضى، ولدي الموافقة اللازمة لمشاركتها في مستودع التدريب الخاص",
                 value=False,
