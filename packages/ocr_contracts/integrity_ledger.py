@@ -145,14 +145,33 @@ def record_export_attempt(
     """
     if not idempotency_key.strip():
         raise ValueError("idempotency_key is required")
+    digest = compute_content_hash(payload, schema_version=schema_version)
     existing = conn.execute(
-        "SELECT event_id, outcome, reason_code FROM export_events WHERE idempotency_key = ?",
+        """SELECT event_id, outcome, reason_code, sample_id, content_hash,
+                  schema_version, dataset_version, destination, actor, authorization_ref
+           FROM export_events WHERE idempotency_key = ?""",
         (idempotency_key,),
     ).fetchone()
     if existing:
-        return dict(existing)
+        # Idempotency keys are bound to request identity; reusing a key for a
+        # different payload or destination must not silently reuse an old result.
+        identity = (
+            existing["sample_id"], existing["content_hash"], existing["schema_version"],
+            existing["dataset_version"], existing["destination"], existing["actor"],
+            existing["authorization_ref"],
+        )
+        requested = (
+            sample_id, digest, schema_version, dataset_version, destination, actor or "unknown",
+            authorization_ref or "",
+        )
+        if identity != requested:
+            raise ValueError("idempotency_key_reused_for_different_request")
+        return {
+            "event_id": existing["event_id"],
+            "outcome": existing["outcome"],
+            "reason_code": existing["reason_code"],
+        }
 
-    digest = compute_content_hash(payload, schema_version=schema_version)
     latest = conn.execute(
         """SELECT content_hash, schema_version, reviewer, consent, destination
            FROM approvals WHERE sample_id = ?
