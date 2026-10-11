@@ -27,12 +27,13 @@ import subprocess
 import sys
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from app.core.security import get_current_user
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 _SUITE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -48,6 +49,23 @@ def _stores():
     from pattern_store import PatternStore
     from slice_store import SliceStore
     return PatternStore, SliceStore
+
+
+def _confined_inbox_path(path: str, inbox_dir: str) -> str:
+    """Resolve a source path and require it to be a regular file inside the inbox.
+
+    realpath + commonpath prevents traversal, sibling-prefix tricks, and symlink
+    escapes. No generic /tmp exception is permitted for medical source files.
+    """
+    candidate = os.path.realpath(os.path.abspath(path))
+    inbox_root = os.path.realpath(os.path.abspath(inbox_dir))
+    try:
+        inside = os.path.commonpath([inbox_root, candidate]) == inbox_root
+    except ValueError:  # different drives on Windows
+        inside = False
+    if not inside or not os.path.isfile(candidate):
+        raise HTTPException(status_code=400, detail="path must be a regular file inside the OCR inbox")
+    return candidate
 
 
 # ------------------------------------------------------------------ models
@@ -159,11 +177,7 @@ async def inbox() -> List[Dict[str, Any]]:
 @router.post("/ocr/run")
 async def ocr_run(body: OcrRunBody) -> Dict[str, Any]:
     _ingest, ocr = _services()
-    path = os.path.abspath(body.path)
-    inbox_root = os.path.abspath(_ingest.inbox_dir())
-    if not (path.startswith(inbox_root) or os.path.dirname(path).startswith("/tmp")):
-        # allow inbox files or explicit /tmp paths only (defensive path scoping)
-        raise HTTPException(status_code=400, detail="path must be inside the OCR inbox")
+    path = _confined_inbox_path(body.path, _ingest.inbox_dir())
     try:
         return ocr.run_ocr(path, lang=body.lang, psm=body.psm, use_patterns=body.use_patterns)
     except FileNotFoundError:
@@ -183,9 +197,7 @@ async def slices(limit: int = 50) -> List[Dict[str, Any]]:
 async def add_slice(body: SliceBody) -> Dict[str, Any]:
     _ingest, ocr = _services()
     _PatternStore, SliceStore = _stores()
-    path = os.path.abspath(body.path)
-    if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="source image not found")
+    path = _confined_inbox_path(body.path, _ingest.inbox_dir())
     try:
         img = ocr.load_image(path)
         store = SliceStore()
