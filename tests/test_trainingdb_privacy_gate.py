@@ -71,3 +71,26 @@ def test_privacy_gate_rejects_missing_manifest(tmp_path):
     assert trainingdb_sync.validate_privacy_approvals(str(tmp_path)) == [
         "missing slices.jsonl manifest"
     ]
+
+def test_privacy_gate_accepts_review_ledger_entry_for_exact_sample_id(tmp_path):
+    _write_manifest(tmp_path, [{"id": "slice-001", "source": {"human_reviewed": True}}])
+    review = _approved_record()["privacy_review"] | {"sample_id": "slice-001"}
+    (tmp_path / "privacy_reviews.jsonl").write_text(
+        json.dumps(review) + "\n", encoding="utf-8"
+    )
+
+    assert trainingdb_sync.validate_privacy_approvals(str(tmp_path)) == []
+
+
+def test_latest_review_ledger_entry_can_revoke_prior_approval(tmp_path):
+    _write_manifest(tmp_path, [{"id": "slice-001"}])
+    approved = _approved_record()["privacy_review"] | {"sample_id": "slice-001"}
+    revoked = dict(approved, approved=False, reviewed_at=1791720001)
+    (tmp_path / "privacy_reviews.jsonl").write_text(
+        json.dumps(approved) + "\n" + json.dumps(revoked) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = trainingdb_sync.validate_privacy_approvals(str(tmp_path))
+
+    assert any("sample not explicitly approved" in error for error in errors)
