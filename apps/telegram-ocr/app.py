@@ -157,6 +157,81 @@ def run_ocr(path: str, lang: str, use_patterns: bool):
     return annotated, result["text"], stats_txt, result
 
 
+def bbox_editor_rows(path: str, ocr_result):
+    """Build editable rows from actual OCR word boxes; never fabricate boxes."""
+    if not path or not ocr_result:
+        raise gr.Error("شغّل OCR على ملف من صندوق الاستلام أولاً")
+    rows = []
+    for index, word in enumerate(ocr_result.get("words", [])[:500], start=1):
+        if word.get("page", 1) != 1:
+            continue
+        bbox = word.get("bbox")
+        if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+            continue
+        x, y, width, height = bbox
+        rows.append([str(index), int(x), int(y), int(width), int(height),
+                     str(word.get("text", "")), "word"])
+    if not rows:
+        raise gr.Error("لم يعثر OCR على مربعات كلمات صالحة في الصفحة الأولى")
+    return rows
+
+
+def save_bbox_editor_rows(path, rows, reviewed, lang):
+    """Persist only rows explicitly reviewed by a human in the editable table."""
+    if not reviewed:
+        raise gr.Error("يجب تأكيد مراجعة النصوص والإحداثيات قبل حفظ بيانات التدريب")
+    if not path:
+        raise gr.Error("اختر ملفاً من صندوق الاستلام أولاً")
+    if rows is None:
+        raise gr.Error("لا توجد صفوف للحفظ")
+    if hasattr(rows, "to_numpy"):
+        rows = rows.to_numpy().tolist()
+    if not isinstance(rows, (list, tuple)) or not rows:
+        raise gr.Error("أضف صفاً واحداً على الأقل")
+    # Resolve the selected source against the actual inbox, rejecting traversal
+    # and symlink escapes even if the UI input is tampered with.
+    inbox_root = os.path.realpath(os.path.abspath(tgi.inbox_dir()))
+    source_path = os.path.realpath(os.path.abspath(path))
+    try:
+        inside = os.path.commonpath([inbox_root, source_path]) == inbox_root
+    except ValueError:
+        inside = False
+    if not inside or not os.path.isfile(source_path):
+        raise gr.Error("مصدر الصورة يجب أن يكون ملفاً عادياً داخل صندوق الاستلام")
+    image = tgo.load_image(source_path) if not tgo.is_pdf(source_path) else tgo.pdf_to_images(source_path)[0]
+    height, width = image.shape[:2]
+    store = SliceStore(_training_db())
+    saved = 0
+    for line_no, row in enumerate(rows, start=1):
+        if not row or len(row) < 7:
+            raise gr.Error(f"الصف {line_no}: الأعمدة المطلوبة هي ID وX وY وW وH والنص والمستوى")
+        _row_id, x, y, box_w, box_h, text, level = row[:7]
+        if not str(text or "").strip():
+            continue
+        try:
+            x, y, box_w, box_h = (int(float(value)) for value in (x, y, box_w, box_h))
+        except (TypeError, ValueError, OverflowError):
+            raise gr.Error(f"الصف {line_no}: الإحداثيات يجب أن تكون أعداداً صحيحة")
+        if x < 0 or y < 0 or box_w <= 0 or box_h <= 0 or x >= width or y >= height:
+            raise gr.Error(f"الصف {line_no}: الإحداثيات خارج حدود الصورة")
+        if x + box_w > width or y + box_h > height:
+            raise gr.Error(f"الصف {line_no}: المربع يتجاوز حدود الصورة")
+        level = str(level or "").strip().lower()
+        if level not in {"char", "word", "line"}:
+            raise gr.Error(f"الصف {line_no}: المستوى يجب أن يكون char أو word أو line")
+        store.add_slice(
+            image, [x, y, box_w, box_h], str(text).strip(),
+            level=level, lang=lang,
+            source_meta={"kind": "human_reviewed_gradio_bbox_editor",
+                         "file": os.path.basename(source_path),
+                         "human_reviewed": True},
+        )
+        saved += 1
+    if saved == 0:
+        raise gr.Error("لم تُحفظ أي قصاصة: تحقق من النصوص في الجدول")
+    return f"✅ حُفظت {saved} قصاصة بعد تأكيد المراجعة البشرية", recent_slices_rows()
+
+
 def suggest_slices(path: str, ocr_result):
     """Word-level candidate crops from tesseract boxes (or last OCR result)."""
     if not path:
@@ -305,7 +380,9 @@ def run_export():
             f"test {meta['splits']['test']})")
 
 
-def run_sync():
+def run_sync(confirmed: bool = False):
+    if not confirmed:
+        return ("⛔ لم تبدأ المزامنة. راجع البيانات وأكّد صراحةً خلو الدفعة من المعلومات الشخصية غير المصرح بها.", db_stats())
     script = os.path.join(SUITE_ROOT, "scripts", "trainingdb_sync.py")
     import subprocess
     proc = subprocess.run([sys.executable, script], capture_output=True, text=True,
@@ -374,6 +451,32 @@ def build_ui() -> gr.Blocks:
             ocr_btn.click(run_ocr, [file_dd, lang_in, patterns_in],
                           [ocr_image, ocr_text, ocr_stats, ocr_state])
 
+            gr.Markdown("### مراجعة مربعات الكلمات وتعديلها")
+            gr.Markdown("يعرض الجدول مربعات OCR الحقيقية للصفحة الأولى. عدّل X/Y/W/H أو النص أو أضف صفاً؛ الحفظ يتطلب تأكيد المراجعة البشرية.")
+            bbox_load_btn = gr.Button("📋 تحميل مربعات OCR إلى الجدول")
+            bbox_table = gr.Dataframe(
+                headers=["ID", "X", "Y", "W", "H", "النص الصحيح", "المستوى"],
+                datatype=["str", "number", "number", "number", "number", "str", "str"],
+                label="جدول تعديل المربعات (إحداثيات الصورة بالبكسل)",
+                interactive=True, row_count=(1, "dynamic"), col_count=(7, "fixed"),
+            )
+            bbox_lang = gr.Radio(["ar", "en"], value="ar", label="لغة بيانات التدريب")
+            bbox_reviewed = gr.Checkbox(
+                label="أؤكد أنني راجعت النصوص والإحداثيات، وأوافق على حفظ هذه القصاصات محلياً لأغراض التدريب",
+                value=False,
+            )
+            bbox_save_btn = gr.Button("💾 حفظ القصاصات التي راجعتها", variant="primary")
+            bbox_save_status = gr.Markdown()
+            bbox_recent = gr.Dataframe(
+                headers=["المعرف", "النص", "المستوى", "اللغة", "التاريخ"],
+                label="أحدث القصاصات بعد الحفظ", value=recent_slices_rows(), interactive=False,
+            )
+            bbox_load_btn.click(bbox_editor_rows, [file_dd, ocr_state], bbox_table)
+            bbox_save_btn.click(
+                save_bbox_editor_rows, [file_dd, bbox_table, bbox_reviewed, bbox_lang],
+                [bbox_save_status, bbox_recent],
+            )
+
         with gr.Tab("✂️ القصاصات"):
             gr.Markdown("### اقتطاع حرف/كلمة/سطر وتعليقه بنصه الصحيح (قصاصات ABBYY)\n"
                         "اختر مقطعاً من المعرض المقترح أو أدخل الموضع يدوياً، صحّح النص "
@@ -437,6 +540,10 @@ def build_ui() -> gr.Blocks:
                         "يُحدَّث بـ git push من هذا الجهاز، ويُستخدم لاحقاً لتدريب نموذج "
                         "تعرف ضوئي عربي مخصص.")
             stats_md = gr.Markdown(db_stats())
+            sync_confirm = gr.Checkbox(
+                label="أؤكد أنني راجعت دفعة البيانات المراد رفعها، وأزلت أو أخفيت هوية المرضى، ولدي الموافقة اللازمة لمشاركتها في مستودع التدريب الخاص",
+                value=False,
+            )
             with gr.Row():
                 export_btn = gr.Button("📦 تجهيز حزمة تدريب (train/val/test)")
                 sync_btn = gr.Button("☁️ مزامنة مع GitHub الآن", variant="primary")
@@ -444,7 +551,7 @@ def build_ui() -> gr.Blocks:
             sync_log = gr.Textbox(label="سجل المزامنة", lines=8, interactive=False)
 
             export_btn.click(run_export, None, export_out)
-            sync_btn.click(run_sync, None, [sync_log, stats_md])
+            sync_btn.click(run_sync, [sync_confirm], [sync_log, stats_md])
 
         # ── cross-tab wiring (needs file_dd from the OCR tab) ──
         dl_one_btn.click(download_one, [channel_in, msg_id_in], [dl_out, file_dd])
@@ -462,4 +569,4 @@ if __name__ == "__main__":
     demo = build_ui()
     port = int(os.getenv("OMNI_TG_OCR_PORT", "7861"))
     logger.info("launching Telegram OCR Studio on port %s", port)
-    demo.launch(server_name="0.0.0.0", server_port=port)
+    demo.launch(server_name=os.getenv("OMNI_TG_OCR_HOST", "127.0.0.1"), server_port=port, share=False)
