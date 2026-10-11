@@ -382,7 +382,7 @@ def run_export():
 
 def run_sync(confirmed: bool = False):
     if not confirmed:
-        return ("⛔ لم تبدأ المزامنة. راجع البيانات وأكّد صراحةً خلو الدفعة من المعلومات الشخصية غير المصرح بها.", db_stats())
+        return ("⛔ لم تبدأ المزامنة. راجع البيانات وأكّد صراحةً خلو الدفعة من المعلومات الشخصية غير المصرح بها.", db_stats(), False)
     script = os.path.join(SUITE_ROOT, "scripts", "trainingdb_sync.py")
     import subprocess
     proc = subprocess.run([sys.executable, script], capture_output=True, text=True,
@@ -551,7 +551,7 @@ def build_ui() -> gr.Blocks:
             sync_log = gr.Textbox(label="سجل المزامنة", lines=8, interactive=False)
 
             export_btn.click(run_export, None, export_out)
-            sync_btn.click(run_sync, [sync_confirm], [sync_log, stats_md])
+            sync_btn.click(run_sync, [sync_confirm], [sync_log, stats_md, sync_confirm])
 
         # ── cross-tab wiring (needs file_dd from the OCR tab) ──
         dl_one_btn.click(download_one, [channel_in, msg_id_in], [dl_out, file_dd])
