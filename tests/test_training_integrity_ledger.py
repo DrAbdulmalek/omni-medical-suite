@@ -125,3 +125,40 @@ def test_idempotency_key_reuse_with_changed_request_is_rejected():
         _export(conn, _payload("different payload"), key="bound-key")
     assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
 
+def test_concurrent_same_key_is_serialized_across_connections(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    db_path = str(tmp_path / "ledger.sqlite3")
+    setup = connect_ledger(db_path)
+    approve_sample(setup, sample_id="sample-1", payload=_payload(), reviewer="reviewer-1",
+                   consent=True, destination="local-jsonl")
+    setup.close()
+
+    def attempt():
+        conn = connect_ledger(db_path)
+        try:
+            return _export(conn, _payload(), key="concurrent-same-key")
+        finally:
+            conn.close()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: attempt(), range(8)))
+
+    assert len({result["event_id"] for result in results}) == 1
+    check = connect_ledger(db_path)
+    try:
+        assert check.execute(
+            "SELECT COUNT(*) FROM export_events WHERE idempotency_key = ?",
+            ("concurrent-same-key",),
+        ).fetchone()[0] == 1
+    finally:
+        check.close()
+
+
+def test_export_rejects_connection_with_open_transaction():
+    conn = connect_ledger(":memory:")
+    conn.execute("BEGIN")
+    with pytest.raises(ValueError, match="must not have an active transaction"):
+        _export(conn, _payload(), key="active-transaction")
+    conn.rollback()
+
