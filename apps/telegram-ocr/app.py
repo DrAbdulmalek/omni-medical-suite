@@ -380,7 +380,9 @@ def run_export():
             f"test {meta['splits']['test']})")
 
 
-def run_sync():
+def run_sync(confirmed: bool = False):
+    if not confirmed:
+        return ("⛔ لم تبدأ المزامنة. راجع البيانات وأكّد صراحةً خلو الدفعة من المعلومات الشخصية غير المصرح بها.", db_stats())
     script = os.path.join(SUITE_ROOT, "scripts", "trainingdb_sync.py")
     import subprocess
     proc = subprocess.run([sys.executable, script], capture_output=True, text=True,
@@ -538,6 +540,10 @@ def build_ui() -> gr.Blocks:
                         "يُحدَّث بـ git push من هذا الجهاز، ويُستخدم لاحقاً لتدريب نموذج "
                         "تعرف ضوئي عربي مخصص.")
             stats_md = gr.Markdown(db_stats())
+            sync_confirm = gr.Checkbox(
+                label="أؤكد أنني راجعت دفعة البيانات المراد رفعها، وأزلت أو أخفيت هوية المرضى، ولدي الموافقة اللازمة لمشاركتها في مستودع التدريب الخاص",
+                value=False,
+            )
             with gr.Row():
                 export_btn = gr.Button("📦 تجهيز حزمة تدريب (train/val/test)")
                 sync_btn = gr.Button("☁️ مزامنة مع GitHub الآن", variant="primary")
@@ -545,7 +551,7 @@ def build_ui() -> gr.Blocks:
             sync_log = gr.Textbox(label="سجل المزامنة", lines=8, interactive=False)
 
             export_btn.click(run_export, None, export_out)
-            sync_btn.click(run_sync, None, [sync_log, stats_md])
+            sync_btn.click(run_sync, [sync_confirm], [sync_log, stats_md])
 
         # ── cross-tab wiring (needs file_dd from the OCR tab) ──
         dl_one_btn.click(download_one, [channel_in, msg_id_in], [dl_out, file_dd])
