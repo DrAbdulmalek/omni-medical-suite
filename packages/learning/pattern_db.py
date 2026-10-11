@@ -3,6 +3,7 @@ Pattern DB — قاعدة بيانات لأنماط الخط اليدوي الش
 تتعلم من تصحيحات المستخدم وتقترح تلقائياً
 """
 import hashlib
+import json
 
 import cv2
 import numpy as np
@@ -31,6 +32,8 @@ class PatternDB(BaseDB):
                 confidence REAL,
                 usage_count INTEGER DEFAULT 1,
                 correction_count INTEGER DEFAULT 0,
+                review TEXT NOT NULL DEFAULT 'open'
+                    CHECK(review IN ('open', 'confirmed', 'rejected')),
                 first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 context_json TEXT
@@ -51,6 +54,17 @@ class PatternDB(BaseDB):
             CREATE INDEX IF NOT EXISTS idx_usage ON patterns(usage_count DESC);
         """)
 
+        # Existing databases predate the explicit review gate. Treat all legacy
+        # rows as open; never infer approval from usage_count or correction_count.
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(patterns)")}
+        if "review" not in columns:
+            conn.execute(
+                "ALTER TABLE patterns ADD COLUMN review TEXT NOT NULL DEFAULT 'open'"
+            )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_pattern_review ON patterns(review)"
+        )
+
     def save_pattern(self,
                     image: np.ndarray,
                     predicted: str,
@@ -64,7 +78,7 @@ class PatternDB(BaseDB):
         image_hash = self._compute_robust_hash(image)
         _, buffer = cv2.imencode('.png', image, [cv2.IMWRITE_PNG_COMPRESSION, 9])
         image_blob = buffer.tobytes()
-        context_json = str(context) if context else None
+        context_json = json.dumps(context, ensure_ascii=False, sort_keys=True) if context else None
 
         with self.connection() as conn:
             cursor = conn.execute("""
@@ -73,7 +87,12 @@ class PatternDB(BaseDB):
                  language, category, writer_id, confidence, context_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(image_hash) DO UPDATE SET
+                    predicted_text = excluded.predicted_text,
                     corrected_text = excluded.corrected_text,
+                    language = excluded.language,
+                    category = excluded.category,
+                    context_json = excluded.context_json,
+                    review = 'open',
                     usage_count = usage_count + 1,
                     correction_count = correction_count + 1,
                     last_used = CURRENT_TIMESTAMP,
@@ -81,7 +100,11 @@ class PatternDB(BaseDB):
             """, (image_hash, image_blob, predicted, corrected,
                   language, category, writer_id, confidence, context_json))
 
-            return cursor.lastrowid or self._get_id_by_hash(image_hash)
+            row = conn.execute(
+                "SELECT id FROM patterns WHERE image_hash = ?",
+                (image_hash,),
+            ).fetchone()
+            return int(row[0]) if row else 0
 
     def find_similar(self,
                     image: np.ndarray,
@@ -113,19 +136,44 @@ class PatternDB(BaseDB):
 
         return None
 
+    def confirm_pattern(self, pattern_id: int) -> bool:
+        """تأكيد نمط بعد مراجعة بشرية صريحة في طبقة الاستدعاء الموثوقة.
+
+        الحفظ والتكرار وحدهما لا يمنحان حالة confirmed.
+        """
+        if isinstance(pattern_id, bool) or not isinstance(pattern_id, int) or pattern_id <= 0:
+            return False
+        with self.connection() as conn:
+            cursor = conn.execute(
+                "UPDATE patterns SET review = 'confirmed' WHERE id = ?",
+                (pattern_id,),
+            )
+            return cursor.rowcount == 1
+
+    def reject_pattern(self, pattern_id: int) -> bool:
+        """استبعاد نمط راجعه الإنسان ورفضه."""
+        if isinstance(pattern_id, bool) or not isinstance(pattern_id, int) or pattern_id <= 0:
+            return False
+        with self.connection() as conn:
+            cursor = conn.execute(
+                "UPDATE patterns SET review = 'rejected' WHERE id = ?",
+                (pattern_id,),
+            )
+            return cursor.rowcount == 1
+
     def get_training_samples(self,
                            writer_id: str = 'default',
                            min_usage: int = 3,
                            limit: int = 500,
                            category: str | None = None) -> list[dict]:
-        """جلب عينات عالية الجودة لإعادة تدريب النموذج"""
+        """جلب العينات المؤكدة بشرياً فقط؛ كل سجل قديم أو غير محسوم مستبعد."""
         samples = []
 
         with self.connection() as conn:
             query = """
                 SELECT image_blob, corrected_text, language, category, confidence
                 FROM patterns
-                WHERE writer_id = ? AND usage_count >= ?
+                WHERE writer_id = ? AND usage_count >= ? AND review = 'confirmed'
             """
             params = [writer_id, min_usage]
 

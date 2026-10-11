@@ -98,6 +98,9 @@ app.include_router(models_router, prefix="/api/models", tags=["models"])
 from app.routers.admin import router as admin_router
 app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
 
+from app.routers.pattern_studio import router as pattern_studio_router
+app.include_router(pattern_studio_router, prefix="/api/pattern-studio", tags=["pattern-studio"])
+
 try:
     from app.packages.scanner_fixer.routers import scanner_fixer
     app.include_router(scanner_fixer.router, prefix="/api/scanner-fixer", tags=["scanner-fixer"])

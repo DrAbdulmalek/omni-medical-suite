@@ -1,0 +1,20 @@
+{
+  "normalize": "normalize_v1/1.0.0",
+  "engines": {
+    "tesseract_ara": {
+      "tesseract": "5.3.4",
+      "pytesseract": "0.3.13",
+      "ara_traineddata_sha256": "ab9d157d8e38ca00e7e39c7d5363a5239e053f5b0dbdb3167dde9d8124335896",
+      "tessdata_prefix": "/home/user/tessdata",
+      "languages_available": [
+        "ara"
+      ],
+      "psm": "6"
+    }
+  },
+  "environment": {
+    "PIL": "12.3.0",
+    "numpy": "2.5.3"
+  },
+  "generated_utc": "2026-09-28T13:13:48Z"
+}
