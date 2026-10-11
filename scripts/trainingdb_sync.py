@@ -12,9 +12,9 @@ Behavior:
     1. Refresh generated views (slices.jsonl copy, stats.json, README.md)
     2. Secret-scan all text files about to be committed (abort on hit)
     3. Commit changes (if any)
-    4. Push using the token from env GH_TOKEN / /home/z/.zai-gh-token —
-       the token is used ONLY in the push URL on the command line and is
-       NEVER written to .git/config, logs, or the pushed tree.
+    4. Push using a credential helper configured through the child process
+       environment; the token is not embedded in the remote URL, argv, git config,
+       logs, or the pushed tree.
     5. Mark pushed slice ids as synced (sync_state.json)
 
 Usage:
