@@ -2,7 +2,7 @@
 import os
 
 import pytest
-from fastapi import Depends
+from fastapi.params import Depends
 
 from app.routers.telegram_ocr import _confined_inbox_path, router
 from app.core.security import get_current_user
