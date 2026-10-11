@@ -116,6 +116,7 @@ def test_approved_destination_and_authorization_can_be_prepared_but_not_publishe
     # This module records eligibility only; it has no upload/publish side effect.
     assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
 
+
 def test_idempotency_key_reuse_with_changed_request_is_rejected():
     conn = connect_ledger(":memory:")
     approve_sample(conn, sample_id="sample-1", payload=_payload(), reviewer="reviewer-1",
@@ -124,6 +125,7 @@ def test_idempotency_key_reuse_with_changed_request_is_rejected():
     with pytest.raises(ValueError, match="idempotency_key_reused_for_different_request"):
         _export(conn, _payload("different payload"), key="bound-key")
     assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+
 
 def test_concurrent_same_key_is_serialized_across_connections(tmp_path):
     from concurrent.futures import ThreadPoolExecutor
@@ -162,3 +164,38 @@ def test_export_rejects_connection_with_open_transaction():
         _export(conn, _payload(), key="active-transaction")
     conn.rollback()
 
+
+def test_committed_event_survives_connection_close_and_reopen(tmp_path):
+    db_path = str(tmp_path / "durable-ledger.sqlite3")
+    conn = connect_ledger(db_path)
+    approve_sample(conn, sample_id="sample-1", payload=_payload(), reviewer="reviewer-1",
+                   consent=True, destination="local-jsonl")
+    first = _export(conn, _payload(), key="durable-event")
+    conn.close()
+
+    reopened = connect_ledger(db_path)
+    try:
+        row = reopened.execute(
+            "SELECT event_id, outcome, reason_code FROM export_events WHERE idempotency_key = ?",
+            ("durable-event",),
+        ).fetchone()
+        assert dict(row) == first
+        assert _export(reopened, _payload(), key="durable-event") == first
+        assert reopened.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+    finally:
+        reopened.close()
+
+
+def test_failed_idempotency_mismatch_rolls_back_and_connection_can_retry():
+    conn = connect_ledger(":memory:")
+    approve_sample(conn, sample_id="sample-1", payload=_payload(), reviewer="reviewer-1",
+                   consent=True, destination="local-jsonl")
+    original = _export(conn, _payload(), key="retry-boundary")
+
+    with pytest.raises(ValueError, match="idempotency_key_reused_for_different_request"):
+        _export(conn, _payload("tampered"), key="retry-boundary")
+
+    assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+    retry = _export(conn, _payload(), key="retry-boundary")
+    assert retry == original
+    assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
