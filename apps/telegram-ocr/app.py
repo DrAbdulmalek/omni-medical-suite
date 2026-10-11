@@ -388,7 +388,7 @@ def run_sync(confirmed: bool = False):
     proc = subprocess.run([sys.executable, script], capture_output=True, text=True,
                           cwd=SUITE_ROOT, timeout=600)
     log = (proc.stdout + proc.stderr)[-3000:]
-    return f"رمز الخروج: {proc.returncode}\n```\n{log}\n```", db_stats()
+    return f"رمز الخروج: {proc.returncode}\\n```\\n{log}\\n```", db_stats(), False
 
 
 # ── UI composition ───────────────────────────────────────────────────────────
