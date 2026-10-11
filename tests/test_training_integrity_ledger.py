@@ -115,3 +115,13 @@ def test_approved_destination_and_authorization_can_be_prepared_but_not_publishe
     assert result["reason_code"] == "eligible"
     # This module records eligibility only; it has no upload/publish side effect.
     assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+
+def test_idempotency_key_reuse_with_changed_request_is_rejected():
+    conn = connect_ledger(":memory:")
+    approve_sample(conn, sample_id="sample-1", payload=_payload(), reviewer="reviewer-1",
+                   consent=True, destination="local-jsonl")
+    _export(conn, _payload(), key="bound-key")
+    with pytest.raises(ValueError, match="idempotency_key_reused_for_different_request"):
+        _export(conn, _payload("different payload"), key="bound-key")
+    assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+
