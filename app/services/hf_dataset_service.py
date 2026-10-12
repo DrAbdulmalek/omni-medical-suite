@@ -135,6 +135,62 @@ OMNI_HF_DATASET_PRIVATE = (
     else True
 )
 
+# Remote visibility must be read from the Hub itself; the push argument alone
+# is not proof of the existing repository's current privacy.
+try:
+    from huggingface_hub import HfApi
+except ImportError:  # pragma: no cover - covered by fail-closed tests
+    HfApi = None
+
+
+def _verify_remote_dataset_privacy() -> bool:
+    """Verify actual Hub visibility before reading or writing dataset data.
+
+    Public export is allowed only with the exact explicit opt-in
+    OMNI_HF_DATASET_PRIVATE=false and only for metadata-only exports. Any API
+    failure or unknown visibility fails closed. Returns the verified private
+    state, never a guessed/default value.
+    """
+    if HfApi is None:
+        raise RuntimeError(
+            "HF export aborted: huggingface_hub privacy verification is unavailable"
+        )
+    try:
+        api = HfApi(token=HF_TOKEN)
+        info = api.dataset_info(repo_id=HF_DATASET, token=HF_TOKEN)
+        actual_private = getattr(info, "private", None)
+    except Exception as exc:
+        raise RuntimeError(
+            "HF export aborted: remote dataset privacy could not be verified; "
+            "no remote write was attempted and staged rows were retained"
+        ) from exc
+
+    if not isinstance(actual_private, bool):
+        raise RuntimeError(
+            "HF export aborted: remote dataset privacy is unknown; "
+            "no remote write was attempted and staged rows were retained"
+        )
+
+    if OMNI_HF_DATASET_PRIVATE:
+        if actual_private is not True:
+            raise RuntimeError(
+                "HF export aborted: private dataset required but remote dataset is public; "
+                "make the dataset private before retrying"
+            )
+    else:
+        if _dataset_private_env is None or _dataset_private_env.strip() != "false":
+            raise RuntimeError(
+                "HF export aborted: public visibility requires explicit "
+                "OMNI_HF_DATASET_PRIVATE=false opt-in"
+            )
+        if OMNI_HF_EXPORT_RAW_TEXT:
+            raise RuntimeError(
+                "HF export aborted: public datasets are incompatible with "
+                "OMNI_HF_EXPORT_RAW_TEXT=true"
+            )
+
+    return actual_private
+
 # Staging directory: where pending rows live until they're pushed.
 # Default: ``~/.omni/hf_dataset_queue/``. Override with ``$OMNI_HF_QUEUE_DIR``.
 _STAGE_DIR = Path(
@@ -568,6 +624,9 @@ def flush_queue() -> str:
         # A failed remote read is not evidence that the dataset is empty or absent.
         # Fail closed before any write; the operator must make the target dataset
         # readable (or explicitly provision it) before export can proceed.
+        # Verify the actual Hub visibility before any dataset read/write.
+        _verify_remote_dataset_privacy()
+
         try:
             # Capture one exact remote revision, enumerate its data layout, and
             # load that exact revision. The eventual write uses this same SHA as
