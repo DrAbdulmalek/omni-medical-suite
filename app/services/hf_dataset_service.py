@@ -537,7 +537,7 @@ def flush_queue() -> str:
             )
 
         # Verify the remote repository's actual visibility before any dataset
-        # read or write. Never infer privacy from the push_to_hub(private=...)
+        # read or write. Never infer privacy from a requested write-visibility
         # argument or continue when Hub visibility cannot be established.
         _verify_remote_dataset_privacy()
 
