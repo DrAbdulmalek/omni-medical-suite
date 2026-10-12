@@ -199,3 +199,25 @@ def test_failed_idempotency_mismatch_rolls_back_and_connection_can_retry():
     retry = _export(conn, _payload(), key="retry-boundary")
     assert retry == original
     assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+
+
+
+def test_idempotency_key_reuse_with_changed_consent_is_rejected():
+    conn = connect_ledger(":memory:")
+    approve_sample(conn, sample_id="sample-1", payload=_payload(), reviewer="reviewer-1",
+                   consent=True, destination="local-jsonl")
+    _export(conn, _payload(), key="consent-bound")
+    with pytest.raises(ValueError, match="idempotency_key_reused_for_different_request"):
+        _export(conn, _payload(), key="consent-bound", consent=False)
+    assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+
+
+def test_idempotency_key_reuse_with_changed_authorized_destinations_is_rejected():
+    conn = connect_ledger(":memory:")
+    approve_sample(conn, sample_id="sample-1", payload=_payload(), reviewer="reviewer-1",
+                   consent=True, destination="local-jsonl")
+    _export(conn, _payload(), key="destinations-bound")
+    with pytest.raises(ValueError, match="idempotency_key_reused_for_different_request"):
+        _export(conn, _payload(), key="destinations-bound",
+                authorized=("local-jsonl", "remote-hub"))
+    assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
