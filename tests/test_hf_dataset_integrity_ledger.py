@@ -164,3 +164,74 @@ def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch)
     assert service._PENDING_FILE.exists()
     assert service._read_pending() == [row]
     assert not list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
+
+
+def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths, monkeypatch):
+    import json
+
+    row = _row(consent=True)
+    row["integrity_hash"] = service._record_row_approval(row)
+    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
+    monkeypatch.setattr(service, "HAS_HF", True)
+    monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
+    monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
+    remote_hashes = set()
+    push_calls = []
+
+    class ExistingDataset:
+        column_names = ["content_hash"]
+
+        def __len__(self):
+            return len(remote_hashes)
+
+        def __getitem__(self, key):
+            return list(remote_hashes)
+
+        def to_pandas(self):
+            return [{"content_hash": value} for value in remote_hashes]
+
+    class FakePandas:
+        @staticmethod
+        def DataFrame(rows):
+            return rows
+
+        @staticmethod
+        def concat(frames, ignore_index=True):
+            return [item for frame in frames for item in frame]
+
+    class SuccessfulDataset:
+        def __init__(self, frame):
+            self.frame = frame
+
+        @staticmethod
+        def from_pandas(frame):
+            return SuccessfulDataset(frame)
+
+        def push_to_hub(self, **kwargs):
+            push_calls.append(kwargs["repo_id"])
+            remote_hashes.update(item.get("content_hash", "") for item in self.frame)
+
+    monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset())
+    monkeypatch.setattr(service, "pd", FakePandas())
+    monkeypatch.setattr(service, "Dataset", SuccessfulDataset)
+
+    with monkeypatch.context() as scoped:
+        def fail_archive(rows):
+            raise OSError("injected crash after remote push")
+        scoped.setattr(service, "_archive_uploaded", fail_archive)
+        with pytest.raises(OSError, match="injected crash after remote push"):
+            service.flush_queue()
+
+    # The remote write happened, but local cleanup did not; staged data remains.
+    assert len(push_calls) == 1
+    assert row["content_hash"] in remote_hashes
+    assert service._PENDING_FILE.exists()
+    assert service._read_pending() == [row]
+
+    # On restart/retry, the remote hash check deduplicates the already-pushed row
+    # and allows archive/queue cleanup without a second remote push.
+    result = service.flush_queue()
+    assert "موجودة مسبقاً" in result
+    assert len(push_calls) == 1
+    assert not service._PENDING_FILE.exists()
+    assert list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
