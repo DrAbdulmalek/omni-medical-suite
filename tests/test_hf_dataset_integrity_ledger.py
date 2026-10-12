@@ -98,7 +98,7 @@ def test_same_staged_row_is_idempotent_after_ledger_reopen(ledger_paths):
 
 def test_unapproved_row_is_blocked_before_any_remote_read(ledger_paths, monkeypatch):
     row = _row(consent=True)  # legacy staged row has no content-bound approval
-    service._PENDING_FILE.write_text(__import__("json").dumps(row) + "\\n", encoding="utf-8")
+    service._PENDING_FILE.write_text(__import__("json").dumps(row) + "\n", encoding="utf-8")
     monkeypatch.setattr(service, "HAS_HF", True)
     monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
@@ -120,7 +120,7 @@ def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch)
 
     row = _row(consent=True)
     row["integrity_hash"] = service._record_row_approval(row)
-    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\\n", encoding="utf-8")
+    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
     monkeypatch.setattr(service, "HAS_HF", True)
     monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
