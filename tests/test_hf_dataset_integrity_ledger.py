@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-from packages.ocr_contracts.integrity_ledger import connect_ledger
 from app.services import hf_dataset_service as service
+from packages.ocr_contracts.integrity_ledger import connect_ledger
 
 
 @pytest.fixture
