@@ -14,6 +14,7 @@ def ledger_paths(tmp_path, monkeypatch):
     monkeypatch.setattr(service, "_LEDGER_FILE", stage / "training_integrity_ledger.sqlite3")
     monkeypatch.setattr(service, "_UPLOADED_DIR", stage / "uploaded")
     monkeypatch.setattr(service, "_PENDING_FILE", stage / "pending.jsonl")
+    stage.mkdir(parents=True, exist_ok=True)
     return stage / "training_integrity_ledger.sqlite3"
 
 
