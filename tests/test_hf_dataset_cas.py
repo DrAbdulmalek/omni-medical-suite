@@ -13,8 +13,9 @@ from app.services.hf_dataset_cas import (
 
 
 class FakeEntry:
-    def __init__(self, path: str):
+    def __init__(self, path: str, entry_type: str = "file"):
         self.path = path
+        self.type = entry_type
 
 
 class FakeAPI:
@@ -53,12 +54,26 @@ def test_baseline_is_pinned_to_one_supported_parquet_file():
         [],
         ["data/train-00000-of-00001.parquet", "data/train-00001-of-00002.parquet"],
         ["data/train.csv"],
+        ["data/unexpected.bin"],
     ],
 )
 def test_unknown_or_multifile_layout_fails_closed(paths):
     api = FakeAPI(paths=paths)
     with pytest.raises(RuntimeError, match="layout"):
         get_verified_dataset_baseline(api, repo_id="owner/dataset", token="test-token")
+
+
+def test_data_directory_is_not_counted_as_a_payload_file():
+    api = FakeAPI(paths=["data", "data/train-00000-of-00001.parquet"])
+    api.list_repo_tree = lambda **kwargs: [
+        FakeEntry("data", entry_type="directory"),
+        FakeEntry("data/train-00000-of-00001.parquet"),
+    ]
+    sha, path = get_verified_dataset_baseline(
+        api, repo_id="owner/dataset", token="test-token"
+    )
+    assert sha == "a" * 40
+    assert path == "data/train-00000-of-00001.parquet"
 
 
 def test_missing_remote_sha_fails_closed():
