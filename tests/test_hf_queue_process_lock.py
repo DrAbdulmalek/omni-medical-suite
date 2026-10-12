@@ -29,6 +29,7 @@ def test_queue_lock_serializes_independent_processes(tmp_path, monkeypatch):
     lock_path.write_bytes(b"\x00")
     monkeypatch.setattr(service, "_STAGE_DIR", stage_dir)
     monkeypatch.setattr(service, "_QUEUE_LOCK_FILE", lock_path)
+    monkeypatch.setattr(service, "_UPLOADED_DIR", stage_dir / "uploaded")
 
     # Hold only the OS-level lock in this process, so the child starts with an
     # unlocked Python threading lock and must block on the shared lock file.
