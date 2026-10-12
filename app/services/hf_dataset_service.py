@@ -495,7 +495,6 @@ def flush_queue() -> str:
                 "no remote write was attempted and staged rows were retained"
             ) from e
 
-        previous_count = len(existing)
         existing_columns = set(getattr(existing, "column_names", []))
         remote_integrity_hashes: set[str] = set()
         remote_legacy_hashes: set[str] = set()
