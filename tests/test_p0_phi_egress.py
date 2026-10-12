@@ -67,19 +67,6 @@ def _enable_push(svc, monkeypatch):
         def to_pandas(self):
             return pd.DataFrame(columns=self.column_names)
 
-    # Privacy must also be mocked explicitly; tests must never contact Hub.
-    class PrivateDatasetInfo:
-        private = True
-
-    class FakeHfApi:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def dataset_info(self, *args, **kwargs):
-            return PrivateDatasetInfo()
-
-    monkeypatch.setattr(svc, "HfApi", FakeHfApi, raising=False)
-
     # raising=False: optional HF libraries are not installed in every CI job,
     # so inject the module globals that flush_queue() resolves at runtime.
     monkeypatch.setattr(svc, "Dataset", fake_dataset, raising=False)

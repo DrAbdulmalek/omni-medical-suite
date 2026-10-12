@@ -78,6 +78,20 @@ def connect_ledger(database: str | sqlite3.Connection) -> sqlite3.Connection:
         );
         CREATE INDEX IF NOT EXISTS idx_exports_sample
             ON export_events(sample_id, created_at);
+        CREATE TABLE IF NOT EXISTS delivery_events (
+            event_id TEXT PRIMARY KEY,
+            event_key TEXT NOT NULL UNIQUE,
+            correlation_id TEXT NOT NULL,
+            destination TEXT NOT NULL,
+            outcome TEXT NOT NULL CHECK(outcome IN (
+                'push_started', 'push_succeeded', 'push_failed',
+                'push_ambiguous', 'archive_failed', 'queue_cleanup_failed'
+            )),
+            error_code TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_delivery_correlation
+            ON delivery_events(correlation_id, created_at);
         CREATE TRIGGER IF NOT EXISTS approvals_no_update
         BEFORE UPDATE ON approvals BEGIN
             SELECT RAISE(ABORT, 'approvals are append-only');
@@ -227,6 +241,66 @@ def record_export_attempt(
     except Exception:
         conn.rollback()
         raise
+
+def record_delivery_event(
+    conn: sqlite3.Connection,
+    *,
+    event_key: str,
+    correlation_id: str,
+    destination: str,
+    outcome: str,
+    error_code: str = "",
+) -> dict[str, str]:
+    """Append a delivery outcome; this records observations, not exactly-once delivery.
+
+    Reusing an event key with identical content is idempotent. Reusing it with
+    different content is rejected. No medical payload or credential is stored.
+    """
+    allowed_outcomes = {
+        "push_started", "push_succeeded", "push_failed",
+        "push_ambiguous", "archive_failed", "queue_cleanup_failed",
+    }
+    if not event_key.strip() or not correlation_id.strip() or not destination.strip():
+        raise ValueError("event_key, correlation_id, and destination are required")
+    if outcome not in allowed_outcomes:
+        raise ValueError("unsupported delivery outcome")
+    if conn.in_transaction:
+        raise ValueError("ledger connection must not have an active transaction")
+    safe_error_code = "".join(
+        char for char in str(error_code).lower()
+        if char.isalnum() or char in "_-"
+    )[:80]
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        existing = conn.execute(
+            """SELECT event_id, correlation_id, destination, outcome, error_code
+               FROM delivery_events WHERE event_key = ?""",
+            (event_key,),
+        ).fetchone()
+        requested = (correlation_id, destination, outcome, safe_error_code)
+        if existing:
+            identity = (
+                existing["correlation_id"], existing["destination"],
+                existing["outcome"], existing["error_code"],
+            )
+            if identity != requested:
+                raise ValueError("delivery_event_key_reused_for_different_event")
+            result = {"event_id": existing["event_id"], "outcome": existing["outcome"]}
+            conn.commit()
+            return result
+        event_id = str(uuid.uuid4())
+        conn.execute(
+            """INSERT INTO delivery_events
+               (event_id, event_key, correlation_id, destination, outcome, error_code, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (event_id, event_key, correlation_id, destination, outcome, safe_error_code, _now()),
+        )
+        conn.commit()
+        return {"event_id": event_id, "outcome": outcome}
+    except Exception:
+        conn.rollback()
+        raise
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="microseconds")
