@@ -285,6 +285,18 @@ def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths,
     assert len(push_calls) == 1
     assert not service._PENDING_FILE.exists()
     assert list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
+    conn = connect_ledger(str(ledger_paths))
+    try:
+        outcomes = [
+            item["outcome"] for item in conn.execute(
+                "SELECT outcome FROM delivery_events ORDER BY created_at, rowid"
+            )
+        ]
+        assert outcomes == [
+            "push_started", "push_succeeded", "archive_failed", "remote_present"
+        ]
+    finally:
+        conn.close()
 
 
 def test_remote_read_failure_aborts_before_any_push(ledger_paths, monkeypatch):
