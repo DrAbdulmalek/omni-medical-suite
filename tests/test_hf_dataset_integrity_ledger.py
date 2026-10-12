@@ -499,3 +499,23 @@ def test_legacy_remote_hash_does_not_suppress_canonical_row(ledger_paths, monkey
     service.flush_queue()
 
     assert any(item.get("integrity_hash") == row["integrity_hash"] for item in pushed)
+
+
+
+def test_queue_cleanup_preserves_unconsented_duplicate_payload(ledger_paths):
+    import json
+
+    approved = _row(consent=True)
+    approved["integrity_hash"] = service._record_row_approval(approved)
+    unconsented = dict(approved)
+    unconsented["consent"] = False
+    service._PENDING_FILE.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\\n" for row in (approved, unconsented)),
+        encoding="utf-8",
+    )
+
+    service._rewrite_pending_excluding([approved])
+
+    remaining = service._read_pending()
+    assert remaining == [unconsented]
+    assert remaining[0]["consent"] is False
