@@ -287,3 +287,70 @@ def test_pending_rewrite_uses_integrity_hash_not_legacy_content_hash(ledger_path
     service._rewrite_pending_excluding([first])
 
     assert service._read_pending() == [second]
+
+
+
+def test_remote_dedup_preserves_distinct_payloads_with_same_legacy_hash(ledger_paths, monkeypatch):
+    import json
+
+    first = _row(consent=True)
+    first["integrity_hash"] = service._record_row_approval(first)
+    second = dict(first)
+    second["category"] = "different-category"
+    second["entities"] = '{"medication": "different"}'
+    second["integrity_hash"] = service._record_row_approval(second)
+    assert first["content_hash"] == second["content_hash"]
+    assert first["integrity_hash"] != second["integrity_hash"]
+    service._PENDING_FILE.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\\n" for row in (first, second)),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(service, "HAS_HF", True)
+    monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
+    monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
+    pushed_frames = []
+
+    class EmptyDataset:
+        column_names = ["content_hash"]
+
+        def __len__(self):
+            return 0
+
+        def __getitem__(self, key):
+            return []
+
+        def to_pandas(self):
+            return []
+
+    class FakePandas:
+        @staticmethod
+        def DataFrame(rows):
+            return rows
+
+        @staticmethod
+        def concat(frames, ignore_index=True):
+            return [item for frame in frames for item in frame]
+
+    class CapturingDataset:
+        def __init__(self, frame):
+            self.frame = frame
+
+        @staticmethod
+        def from_pandas(frame):
+            return CapturingDataset(frame)
+
+        def push_to_hub(self, **kwargs):
+            pushed_frames.append(self.frame)
+
+    monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: EmptyDataset(), raising=False)
+    monkeypatch.setattr(service, "pd", FakePandas(), raising=False)
+    monkeypatch.setattr(service, "Dataset", CapturingDataset, raising=False)
+
+    service.flush_queue()
+
+    assert len(pushed_frames) == 1
+    uploaded_rows = [row for row in pushed_frames[0] if row.get("integrity_hash")]
+    assert {row["integrity_hash"] for row in uploaded_rows} == {
+        first["integrity_hash"], second["integrity_hash"]
+    }
+    assert not service._PENDING_FILE.exists()
