@@ -266,7 +266,7 @@ def record_delivery_event(
     """
     allowed_outcomes = {
         "push_started", "push_succeeded", "push_failed",
-        "push_ambiguous", "archive_failed", "queue_cleanup_failed",
+        "push_ambiguous", "remote_present", "archive_failed", "queue_cleanup_failed",
     }
     if not event_key.strip() or not correlation_id.strip() or not destination.strip():
         raise ValueError("event_key, correlation_id, and destination are required")
