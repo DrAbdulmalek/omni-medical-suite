@@ -149,6 +149,7 @@ HAS_HF = False
 try:
     import pandas as pd
     from datasets import Dataset, load_dataset
+    from huggingface_hub import HfApi
     HAS_HF = True
 except ImportError:
     logger.warning("HuggingFace libs not available — save disabled (staging still works)")
@@ -519,8 +520,6 @@ def flush_queue() -> str:
             # load that exact revision. The eventual write uses this same SHA as
             # parent_commit, so a concurrent writer causes a conflict instead
             # of silently replacing a newer snapshot.
-            from huggingface_hub import HfApi
-
             hf_api = HfApi(token=HF_TOKEN)
             baseline_sha, baseline_data_path = get_verified_dataset_baseline(
                 hf_api, repo_id=HF_DATASET, token=HF_TOKEN
@@ -533,7 +532,7 @@ def flush_queue() -> str:
                 "Remote HF baseline/revision/layout could not be verified; refusing export"
             )
             raise RuntimeError(
-                "HF export aborted: could not verify a supported remote dataset baseline; "
+                "HF export aborted: could not verify the existing remote dataset baseline; "
                 "no remote write was attempted and staged rows were retained"
             ) from e
 
@@ -620,7 +619,7 @@ def flush_queue() -> str:
                     "OMNI_HF_DATASET_PRIVATE=false opt-in; this writer does not "
                     "change repository visibility."
                 )
-            new_ds = Dataset.from_pandas(df, preserve_index=False)
+            new_ds = Dataset.from_pandas(df)
             # This ID correlates metadata-only outcome events for this one attempt.
             # A retry gets a new ID; dedup against the verified remote snapshot remains
             # the recovery mechanism after an ambiguous network result.
