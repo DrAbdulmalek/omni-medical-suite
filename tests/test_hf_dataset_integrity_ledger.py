@@ -154,9 +154,9 @@ def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch)
         def push_to_hub(self, **kwargs):
             raise RuntimeError("injected push failure")
 
-    monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset())
-    monkeypatch.setattr(service, "pd", FakePandas())
-    monkeypatch.setattr(service, "Dataset", FailingDataset)
+    monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset(), raising=False)
+    monkeypatch.setattr(service, "pd", FakePandas(), raising=False)
+    monkeypatch.setattr(service, "Dataset", FailingDataset, raising=False)
 
     with pytest.raises(RuntimeError, match="injected push failure"):
         service.flush_queue()
@@ -213,7 +213,7 @@ def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths,
 
     monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset())
     monkeypatch.setattr(service, "pd", FakePandas())
-    monkeypatch.setattr(service, "Dataset", SuccessfulDataset)
+    monkeypatch.setattr(service, "Dataset", SuccessfulDataset, raising=False)
 
     with monkeypatch.context() as scoped:
         def fail_archive(rows):
