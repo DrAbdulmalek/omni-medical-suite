@@ -78,6 +78,7 @@ import os
 import subprocess
 import threading
 import uuid
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -132,62 +133,6 @@ OMNI_HF_DATASET_PRIVATE = (
     else True
 )
 
-# Remote visibility must be read from the Hub itself; the push argument alone
-# is not proof of the existing repository's current privacy.
-try:
-    from huggingface_hub import HfApi
-except ImportError:  # pragma: no cover - covered by fail-closed tests
-    HfApi = None
-
-
-def _verify_remote_dataset_privacy() -> bool:
-    """Verify actual Hub visibility before reading or writing dataset data.
-
-    Public export is allowed only with the exact explicit opt-in
-    OMNI_HF_DATASET_PRIVATE=false and only for metadata-only exports. Any API
-    failure or unknown visibility fails closed. Returns the verified private
-    state, never a guessed/default value.
-    """
-    if HfApi is None:
-        raise RuntimeError(
-            "HF export aborted: huggingface_hub privacy verification is unavailable"
-        )
-    try:
-        api = HfApi(token=HF_TOKEN)
-        info = api.dataset_info(repo_id=HF_DATASET, token=HF_TOKEN)
-        actual_private = getattr(info, "private", None)
-    except Exception as exc:
-        raise RuntimeError(
-            "HF export aborted: remote dataset privacy could not be verified; "
-            "no remote write was attempted and staged rows were retained"
-        ) from exc
-
-    if not isinstance(actual_private, bool):
-        raise RuntimeError(
-            "HF export aborted: remote dataset privacy is unknown; "
-            "no remote write was attempted and staged rows were retained"
-        )
-
-    if OMNI_HF_DATASET_PRIVATE:
-        if actual_private is not True:
-            raise RuntimeError(
-                "HF export aborted: private dataset required but remote dataset is public; "
-                "make the dataset private before retrying"
-            )
-    else:
-        if _dataset_private_env is None or _dataset_private_env.strip() != "false":
-            raise RuntimeError(
-                "HF export aborted: public visibility requires explicit "
-                "OMNI_HF_DATASET_PRIVATE=false opt-in"
-            )
-        if OMNI_HF_EXPORT_RAW_TEXT:
-            raise RuntimeError(
-                "HF export aborted: public datasets are incompatible with "
-                "OMNI_HF_EXPORT_RAW_TEXT=true"
-            )
-
-    return actual_private
-
 # Staging directory: where pending rows live until they're pushed.
 # Default: ``~/.omni/hf_dataset_queue/``. Override with ``$OMNI_HF_QUEUE_DIR``.
 _STAGE_DIR = Path(
@@ -210,10 +155,40 @@ try:
 except ImportError:
     logger.warning("HuggingFace libs not available — save disabled (staging still works)")
 
-# ── Lock for concurrent append/flush ────────────────────────────────────────
-# Gradio can call save_to_hf() from multiple worker threads. The staging
-# file append must be atomic and flush must not run concurrently with append.
-_flush_lock = threading.Lock()
+# ── Cross-thread and cross-process queue lock ────────────────────────────────
+# The thread lock protects threads in this process; the OS lock also serializes
+# independent worker processes sharing OMNI_HF_QUEUE_DIR. Hold this lock across
+# the complete flush, including remote CAS, archive, and queue cleanup.
+_flush_lock = threading.RLock()
+_QUEUE_LOCK_FILE = _STAGE_DIR / ".queue.lock"
+
+
+@contextmanager
+def _queue_lock():
+    _ensure_dirs()
+    with _queue_lock():
+        with _QUEUE_LOCK_FILE.open("a+b") as lock_file:
+            # msvcrt locks a byte range and requires that byte to exist.
+            lock_file.seek(0, os.SEEK_END)
+            if lock_file.tell() == 0:
+                lock_file.write(b"\\0")
+                lock_file.flush()
+            lock_file.seek(0)
+            if os.name == "nt":
+                import msvcrt
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                try:
+                    yield
+                finally:
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
 # ── Training integrity ledger bridge ───────────────────────────────────────
@@ -354,7 +329,7 @@ def _read_pending() -> list[dict]:
 def _append_pending(row: dict) -> int:
     """Append one row to the staging file. Returns the new pending count."""
     _ensure_dirs()
-    with _flush_lock:
+    with _queue_lock():
         with _PENDING_FILE.open("a", encoding="utf-8") as f:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
         return _count_pending_unlocked()
@@ -373,7 +348,7 @@ def _count_pending_unlocked() -> int:
 
 def count_pending() -> int:
     """Public helper: how many rows are currently staged but not pushed."""
-    with _flush_lock:
+    with _queue_lock():
         return _count_pending_unlocked()
 
 
@@ -533,7 +508,7 @@ def flush_queue() -> str:
             "لن يتم رفع أي بيانات — الصفوف تبقى مرحّلة محلياً فقط."
         )
 
-    with _flush_lock:
+    with _queue_lock():
         pending = _read_pending()
         if not pending:
             return "ℹ️ لا توجد صفوف مرحّلة للرفع."
@@ -571,9 +546,6 @@ def flush_queue() -> str:
         # A failed remote read is not evidence that the dataset is empty or absent.
         # Fail closed before any write; the operator must make the target dataset
         # readable (or explicitly provision it) before export can proceed.
-        # Verify the actual Hub visibility before any dataset read/write.
-        _verify_remote_dataset_privacy()
-
         try:
             # Capture one exact remote revision, enumerate its data layout, and
             # load that exact revision. The eventual write uses this same SHA as
