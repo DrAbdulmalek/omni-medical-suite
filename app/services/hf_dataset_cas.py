@@ -1,9 +1,9 @@
 """Compare-and-swap writer for the existing single-shard HF dataset.
 
-The current exporter is intentionally fail-closed: it only rewrites a dataset
-when the verified baseline has exactly one supported Parquet data file under
-data/. Multi-shard or non-Parquet layouts must be handled explicitly rather
-than risk deleting or silently ignoring remote data.
+The exporter fails closed unless the verified revision contains exactly one
+file below data/, and that file is a supported Parquet shard. Unknown extensions,
+multi-shard layouts, and non-Parquet layouts are rejected rather than silently
+ignored.
 """
 from __future__ import annotations
 
@@ -11,15 +11,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-_SUPPORTED_DATA_SUFFIXES = {".parquet", ".csv", ".json", ".jsonl", ".arrow", ".txt"}
-
 
 def get_verified_dataset_baseline(api: Any, *, repo_id: str, token: str) -> tuple[str, str]:
     """Return (commit SHA, sole Parquet data path) from one verified Hub revision.
 
-    Refuses missing revisions and unknown/multi-file data layouts. The caller
-    must load the dataset using the returned exact SHA before constructing a
-    replacement snapshot.
+    The caller must load the dataset using the returned exact SHA before
+    constructing a replacement snapshot.
     """
     info = api.dataset_info(repo_id=repo_id, repo_type="dataset", token=token)
     revision = getattr(info, "sha", None)
@@ -33,16 +30,22 @@ def get_verified_dataset_baseline(api: Any, *, repo_id: str, token: str) -> tupl
         recursive=True,
         token=token,
     )
-    paths = [
-        str(getattr(entry, "path", ""))
-        for entry in entries
-        if str(getattr(entry, "path", "")).startswith("data/")
-        and Path(str(getattr(entry, "path", ""))).suffix.lower() in _SUPPORTED_DATA_SUFFIXES
-    ]
-    if len(paths) != 1 or not paths[0].lower().endswith(".parquet"):
+    # Count every file below data/, not just extensions we already recognize.
+    # Otherwise an unknown payload (for example .bin) could evade layout checks.
+    paths = []
+    for entry in entries:
+        path = str(getattr(entry, "path", ""))
+        if not path.startswith("data/"):
+            continue
+        entry_type = getattr(entry, "type", None)
+        if entry_type == "directory":
+            continue
+        paths.append(path)
+
+    if len(paths) != 1 or Path(paths[0]).suffix.lower() != ".parquet":
         raise RuntimeError(
-            "HF CAS refused: expected exactly one supported Parquet data file "
-            "under data/; remote dataset layout is multi-file or unsupported"
+            "HF CAS refused: expected exactly one Parquet data file under data/; "
+            "remote dataset layout is multi-file or unsupported"
         )
     return revision, paths[0]
 
@@ -66,7 +69,7 @@ def push_parquet_snapshot_with_cas(
     """
     if not isinstance(parent_commit, str) or len(parent_commit) != 40:
         raise RuntimeError("HF CAS refused: baseline commit SHA is invalid")
-    if not data_path.startswith("data/") or not data_path.lower().endswith(".parquet"):
+    if not data_path.startswith("data/") or Path(data_path).suffix.lower() != ".parquet":
         raise RuntimeError("HF CAS refused: data path is not a supported Parquet shard")
 
     if operation_factory is None:
