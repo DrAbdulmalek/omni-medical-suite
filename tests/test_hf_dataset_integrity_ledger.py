@@ -354,3 +354,56 @@ def test_remote_dedup_preserves_distinct_payloads_with_same_legacy_hash(ledger_p
         first["integrity_hash"], second["integrity_hash"]
     }
     assert not service._PENDING_FILE.exists()
+
+
+
+def test_legacy_remote_hash_does_not_suppress_canonical_row(ledger_paths, monkeypatch):
+    import json
+
+    row = _row(consent=True)
+    row["integrity_hash"] = service._record_row_approval(row)
+    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\\n", encoding="utf-8")
+    monkeypatch.setattr(service, "HAS_HF", True)
+    monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
+    monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
+    pushed = []
+
+    class LegacyDataset:
+        column_names = ["content_hash", "category"]
+
+        def __len__(self):
+            return 1
+
+        def __getitem__(self, key):
+            return [row["content_hash"]] if key == "content_hash" else [row["category"]]
+
+        def to_pandas(self):
+            return [{"content_hash": row["content_hash"], "category": row["category"]}]
+
+    class FakePandas:
+        @staticmethod
+        def DataFrame(rows):
+            return rows
+
+        @staticmethod
+        def concat(frames, ignore_index=True):
+            return [item for frame in frames for item in frame]
+
+    class CapturingDataset:
+        def __init__(self, frame):
+            self.frame = frame
+
+        @staticmethod
+        def from_pandas(frame):
+            return CapturingDataset(frame)
+
+        def push_to_hub(self, **kwargs):
+            pushed.extend(self.frame)
+
+    monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: LegacyDataset(), raising=False)
+    monkeypatch.setattr(service, "pd", FakePandas(), raising=False)
+    monkeypatch.setattr(service, "Dataset", CapturingDataset, raising=False)
+
+    service.flush_queue()
+
+    assert any(item.get("integrity_hash") == row["integrity_hash"] for item in pushed)
