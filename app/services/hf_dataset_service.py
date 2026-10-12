@@ -787,11 +787,14 @@ def _rewrite_pending_excluding(pushed_rows: list[dict]) -> None:
     remaining = [
         r for r in _read_pending()
         if not (
-            (r.get("integrity_hash") and str(r.get("integrity_hash")) in pushed_integrity_hashes)
-            or (
-                not r.get("integrity_hash")
-                and r.get("content_hash")
-                and str(r.get("content_hash")) in pushed_legacy_hashes
+            r.get("consent") is True
+            and (
+                (r.get("integrity_hash") and str(r.get("integrity_hash")) in pushed_integrity_hashes)
+                or (
+                    not r.get("integrity_hash")
+                    and r.get("content_hash")
+                    and str(r.get("content_hash")) in pushed_legacy_hashes
+                )
             )
         )
     ]
