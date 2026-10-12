@@ -50,3 +50,22 @@ def test_queue_lock_serializes_independent_processes(tmp_path, monkeypatch):
         assert acquired.wait(3), "second process did not acquire the queue lock after release"
         child.join(timeout=3)
         assert child.exitcode == 0
+
+
+def test_corrupt_pending_row_is_preserved_and_blocks_queue_processing(tmp_path, monkeypatch):
+    stage_dir = tmp_path / "queue"
+    stage_dir.mkdir()
+    pending_path = stage_dir / "pending.jsonl"
+    original = b'{"content_hash":"ok"}\\n{corrupt-json\\n'
+    pending_path.write_bytes(original)
+    monkeypatch.setattr(service, "_STAGE_DIR", stage_dir)
+    monkeypatch.setattr(service, "_PENDING_FILE", pending_path)
+    monkeypatch.setattr(service, "_QUEUE_LOCK_FILE", stage_dir / ".queue.lock")
+    monkeypatch.setattr(service, "_UPLOADED_DIR", stage_dir / "uploaded")
+
+    with pytest.raises(RuntimeError, match="corrupt pending JSON"):
+        service._read_pending()
+
+    # A failed parse must not silently drop bytes that queue cleanup could
+    # otherwise overwrite during an export/recovery attempt.
+    assert pending_path.read_bytes() == original
