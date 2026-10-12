@@ -77,6 +77,7 @@ import logging
 import os
 import subprocess
 import threading
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -84,6 +85,7 @@ from packages.ocr_contracts.integrity_ledger import (
     approve_sample,
     compute_content_hash,
     connect_ledger,
+    record_delivery_event,
     record_export_attempt,
 )
 
@@ -171,6 +173,28 @@ def _integrity_payload(row: dict) -> dict[str, str]:
 def _open_integrity_ledger():
     _ensure_dirs()
     return connect_ledger(str(_LEDGER_FILE))
+
+
+def _record_delivery_outcome(
+    *,
+    event_key: str,
+    correlation_id: str,
+    outcome: str,
+    error_code: str = "",
+) -> None:
+    """Persist a metadata-only delivery observation; never stores payloads or tokens."""
+    conn = _open_integrity_ledger()
+    try:
+        record_delivery_event(
+            conn,
+            event_key=event_key,
+            correlation_id=correlation_id,
+            destination=HF_DATASET,
+            outcome=outcome,
+            error_code=error_code,
+        )
+    finally:
+        conn.close()
 
 
 def _record_row_approval(row: dict) -> str:
@@ -579,11 +603,54 @@ def flush_queue() -> str:
                 )
             push_kwargs["token"] = HF_TOKEN
             new_ds = Dataset.from_pandas(df)
-            new_ds.push_to_hub(**push_kwargs)
+            # This ID correlates metadata-only outcome events for this one attempt.
+            # A retry gets a new ID; dedup against the verified remote snapshot remains
+            # the recovery mechanism after an ambiguous network result.
+            delivery_id = uuid.uuid4().hex
+            _record_delivery_outcome(
+                event_key=f"{delivery_id}:push_started",
+                correlation_id=delivery_id,
+                outcome="push_started",
+            )
+            try:
+                new_ds.push_to_hub(**push_kwargs)
+            except Exception as exc:
+                # A client exception cannot prove whether the Hub committed the write.
+                # Record ambiguity rather than claiming a definite remote failure.
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:push_ambiguous",
+                    correlation_id=delivery_id,
+                    outcome="push_ambiguous",
+                    error_code=type(exc).__name__,
+                )
+                raise
 
+            _record_delivery_outcome(
+                event_key=f"{delivery_id}:push_succeeded",
+                correlation_id=delivery_id,
+                outcome="push_succeeded",
+            )
             total = len(df)
-            archive_path = _archive_uploaded(eligible)
-            _rewrite_pending_excluding(eligible)
+            try:
+                archive_path = _archive_uploaded(eligible)
+            except Exception as exc:
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:archive_failed",
+                    correlation_id=delivery_id,
+                    outcome="archive_failed",
+                    error_code=type(exc).__name__,
+                )
+                raise
+            try:
+                _rewrite_pending_excluding(eligible)
+            except Exception as exc:
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:queue_cleanup_failed",
+                    correlation_id=delivery_id,
+                    outcome="queue_cleanup_failed",
+                    error_code=type(exc).__name__,
+                )
+                raise
 
             privacy_note = "خاص (private)" if OMNI_HF_DATASET_PRIVATE else "عام — opt-in صريح"
             logger.info(
