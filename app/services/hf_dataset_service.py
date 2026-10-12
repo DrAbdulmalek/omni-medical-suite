@@ -220,7 +220,7 @@ def _prepare_rows_with_ledger(rows: list[dict]) -> tuple[list[dict], int]:
                 ),
                 authorized_destinations=(HF_DATASET,),
                 consent=row.get("consent") is True,
-                idempotency_key=f"hf-export:{sample_id}:v1",
+                idempotency_key=f"hf-export:{sample_id}:v2",
             )
             if event["outcome"] == "prepared":
                 prepared.append(row)
