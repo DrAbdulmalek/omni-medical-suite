@@ -166,7 +166,7 @@ _QUEUE_LOCK_FILE = _STAGE_DIR / ".queue.lock"
 @contextmanager
 def _queue_lock():
     _ensure_dirs()
-    with _queue_lock():
+    with _flush_lock:
         with _QUEUE_LOCK_FILE.open("a+b") as lock_file:
             # msvcrt locks a byte range and requires that byte to exist.
             lock_file.seek(0, os.SEEK_END)
