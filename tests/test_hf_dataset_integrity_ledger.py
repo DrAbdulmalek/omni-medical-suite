@@ -244,7 +244,7 @@ def test_remote_read_failure_aborts_before_any_push(ledger_paths, monkeypatch):
 
     row = _row(consent=True)
     row["integrity_hash"] = service._record_row_approval(row)
-    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\\n", encoding="utf-8")
+    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
     monkeypatch.setattr(service, "HAS_HF", True)
     monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
@@ -282,7 +282,7 @@ def test_pending_rewrite_uses_integrity_hash_not_legacy_content_hash(ledger_path
     second["integrity_hash"] = "sha256-category-b"
     # Legacy dedup hash is deliberately equal for these semantically distinct rows.
     service._PENDING_FILE.write_text(
-        "".join(json.dumps(row, ensure_ascii=False) + "\\n" for row in (first, second)),
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in (first, second)),
         encoding="utf-8",
     )
 
@@ -304,7 +304,7 @@ def test_remote_dedup_preserves_distinct_payloads_with_same_legacy_hash(ledger_p
     assert first["content_hash"] == second["content_hash"]
     assert first["integrity_hash"] != second["integrity_hash"]
     service._PENDING_FILE.write_text(
-        "".join(json.dumps(row, ensure_ascii=False) + "\\n" for row in (first, second)),
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in (first, second)),
         encoding="utf-8",
     )
     monkeypatch.setattr(service, "HAS_HF", True)
@@ -364,7 +364,7 @@ def test_legacy_remote_hash_does_not_suppress_canonical_row(ledger_paths, monkey
 
     row = _row(consent=True)
     row["integrity_hash"] = service._record_row_approval(row)
-    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\\n", encoding="utf-8")
+    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
     monkeypatch.setattr(service, "HAS_HF", True)
     monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
