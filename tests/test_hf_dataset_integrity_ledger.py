@@ -510,7 +510,7 @@ def test_queue_cleanup_preserves_unconsented_duplicate_payload(ledger_paths):
     unconsented = dict(approved)
     unconsented["consent"] = False
     service._PENDING_FILE.write_text(
-        "".join(json.dumps(row, ensure_ascii=False) + "\\n" for row in (approved, unconsented)),
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in (approved, unconsented)),
         encoding="utf-8",
     )
 
