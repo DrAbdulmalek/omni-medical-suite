@@ -16,6 +16,7 @@ on:
       - "app/services/hf_dataset_service.py"
       - "packages/ocr_contracts/integrity_ledger.py"
       - "tests/test_hf_dataset_cas.py"
+      - "tests/test_hf_queue_process_lock.py"
       - "tests/test_hf_dataset_integrity_ledger.py"
       - "tests/test_training_integrity_ledger.py"
       - ".github/workflows/hf-dataset-cas-tests.yml"
@@ -54,5 +55,6 @@ jobs:
         run: |
           pytest -q \
             tests/test_hf_dataset_cas.py \
+            tests/test_hf_queue_process_lock.py \
             tests/test_hf_dataset_integrity_ledger.py \
             tests/test_training_integrity_ledger.py
