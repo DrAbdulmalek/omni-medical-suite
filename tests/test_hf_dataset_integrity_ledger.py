@@ -93,3 +93,73 @@ def test_same_staged_row_is_idempotent_after_ledger_reopen(ledger_paths):
         assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
     finally:
         conn.close()
+
+
+def test_unapproved_row_is_blocked_before_any_remote_read(ledger_paths, monkeypatch):
+    row = _row(consent=True)  # legacy staged row has no content-bound approval
+    service._PENDING_FILE.write_text(__import__("json").dumps(row) + "\\n", encoding="utf-8")
+    monkeypatch.setattr(service, "HAS_HF", True)
+    monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
+    monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
+
+    def unexpected_remote_read(*args, **kwargs):
+        pytest.fail("remote dataset read must not happen when the ledger blocks a row")
+
+    monkeypatch.setattr(service, "load_dataset", unexpected_remote_read, raising=False)
+
+    result = service.flush_queue()
+
+    assert "سجل النزاهة" in result
+    assert service._PENDING_FILE.exists()
+    assert len(service._read_pending()) == 1
+
+
+def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch):
+    import json
+
+    row = _row(consent=True)
+    row["integrity_hash"] = service._record_row_approval(row)
+    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\\n", encoding="utf-8")
+    monkeypatch.setattr(service, "HAS_HF", True)
+    monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
+    monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
+
+    class ExistingDataset:
+        column_names = ["content_hash"]
+
+        def __len__(self):
+            return 0
+
+        def __getitem__(self, key):
+            return []
+
+        def to_pandas(self):
+            return []
+
+    class FakePandas:
+        @staticmethod
+        def DataFrame(rows):
+            return rows
+
+        @staticmethod
+        def concat(frames, ignore_index=True):
+            return [item for frame in frames for item in frame]
+
+    class FailingDataset:
+        @staticmethod
+        def from_pandas(frame):
+            return FailingDataset()
+
+        def push_to_hub(self, **kwargs):
+            raise RuntimeError("injected push failure")
+
+    monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset())
+    monkeypatch.setattr(service, "pd", FakePandas())
+    monkeypatch.setattr(service, "Dataset", FailingDataset)
+
+    with pytest.raises(RuntimeError, match="injected push failure"):
+        service.flush_queue()
+
+    assert service._PENDING_FILE.exists()
+    assert service._read_pending() == [row]
+    assert not list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
