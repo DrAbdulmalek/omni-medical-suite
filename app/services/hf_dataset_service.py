@@ -80,6 +80,13 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
+from packages.ocr_contracts.integrity_ledger import (
+    approve_sample,
+    compute_content_hash,
+    connect_ledger,
+    record_export_attempt,
+)
+
 logger = logging.getLogger(__name__)
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -144,6 +151,85 @@ except ImportError:
 # Gradio can call save_to_hf() from multiple worker threads. The staging
 # file append must be atomic and flush must not run concurrently with append.
 _flush_lock = threading.Lock()
+
+
+# ── Training integrity ledger bridge ───────────────────────────────────────
+
+_LEDGER_FILE = _STAGE_DIR / "training_integrity_ledger.sqlite3"
+
+
+def _integrity_payload(row: dict) -> dict[str, str]:
+    """Canonical, content-bearing payload approved before a row can be exported."""
+    return {
+        "original_text": str(row.get("incorrect_ocr_output", "")),
+        "corrected_text": str(row.get("correct_text", "")),
+        "entities": str(row.get("entities", "")),
+        "category": str(row.get("category", "")),
+    }
+
+
+def _open_integrity_ledger():
+    _ensure_dirs()
+    return connect_ledger(str(_LEDGER_FILE))
+
+
+def _record_row_approval(row: dict) -> str:
+    """Record local UI consent bound to the exact staged content; no network I/O."""
+    payload = _integrity_payload(row)
+    digest = compute_content_hash(payload)
+    conn = _open_integrity_ledger()
+    try:
+        if row.get("consent") is True:
+            approve_sample(
+                conn,
+                sample_id=digest,
+                payload=payload,
+                reviewer="ui-consent-checkbox",
+                consent=True,
+                destination=HF_DATASET,
+            )
+    finally:
+        conn.close()
+    return digest
+
+
+def _prepare_rows_with_ledger(rows: list[dict]) -> tuple[list[dict], int]:
+    """Return only rows with a matching approval and explicit export authorization.
+
+    The returned prepared state records eligibility only; it is not proof of
+    remote delivery. Remote exactly-once delivery is not claimed by this ledger.
+    """
+    conn = _open_integrity_ledger()
+    prepared: list[dict] = []
+    blocked = 0
+    try:
+        for row in rows:
+            # Old staged rows without an integrity hash intentionally fail closed.
+            sample_id = str(row.get("integrity_hash") or f"legacy:{row.get('content_hash', '')}")
+            payload = _integrity_payload(row)
+            event = record_export_attempt(
+                conn,
+                sample_id=sample_id,
+                payload=payload,
+                dataset_version="not-versioned",
+                destination=HF_DATASET,
+                actor="app.services.hf_dataset_service",
+                authorization_ref="OMNI_HF_EXPORT_ENABLED=true;HF_TOKEN-present",
+                authorized_destinations=(HF_DATASET,),
+                consent=row.get("consent") is True,
+                idempotency_key=f"hf-export:{sample_id}:v1",
+            )
+            if event["outcome"] == "prepared":
+                prepared.append(row)
+            else:
+                blocked += 1
+                logger.warning(
+                    "Training ledger blocked staged row (sample_id=%s, reason=%s)",
+                    sample_id, event["reason_code"],
+                )
+    finally:
+        conn.close()
+    return prepared, blocked
 
 
 # ── Staging file helpers ────────────────────────────────────────────────────
@@ -256,6 +342,15 @@ def save_to_hf(corrected_text: str, original_text: str, entities,
         "content_hash": content_hash,
         "consent": bool(consent),
     }
+    # The ledger digest covers the actual correction payload, including entities
+    # and category. A legacy content_hash remains for compatibility/dedup.
+    try:
+        row["integrity_hash"] = _record_row_approval(row)
+    except Exception:
+        # Keep the local correction, but without a durable approval the export
+        # gate will reject it. Never fail open or upload as a fallback.
+        logger.exception("Could not record training integrity approval; row stays local")
+        row["integrity_hash"] = ""
 
     pending_count = _append_pending(row)
     logger.info(
@@ -369,6 +464,16 @@ def flush_queue() -> str:
             return (
                 f"ℹ️ لا توجد صفوف مؤهلة للرفع: {len(pending)} صف مرحّل بلا موافقة "
                 "صريحة — لن يتم رفع أي بيانات."
+            )
+
+        # A consent bit alone is insufficient: require a durable, content-bound
+        # ledger approval and destination-scoped authorization before any remote
+        # dataset read/write. Legacy staged rows without an approval fail closed.
+        eligible, ledger_blocked = _prepare_rows_with_ledger(eligible)
+        if not eligible:
+            return (
+                f"🛑 منع سجل النزاهة تصدير {ledger_blocked} صف/صفوف: "
+                "الموافقة أو بصمة المحتوى غير مطابقة. بقيت البيانات محلياً."
             )
 
         # Dedup against existing HF dataset (drop rows whose content_hash
