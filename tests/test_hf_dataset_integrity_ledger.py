@@ -164,6 +164,16 @@ def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch)
     assert service._PENDING_FILE.exists()
     assert service._read_pending() == [row]
     assert not list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
+    conn = connect_ledger(str(ledger_paths))
+    try:
+        outcomes = [
+            item["outcome"] for item in conn.execute(
+                "SELECT outcome FROM delivery_events ORDER BY created_at, rowid"
+            )
+        ]
+        assert outcomes == ["push_started", "push_ambiguous"]
+    finally:
+        conn.close()
 
 
 def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths, monkeypatch):
@@ -229,6 +239,16 @@ def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths,
     assert row["content_hash"] in remote_hashes
     assert service._PENDING_FILE.exists()
     assert service._read_pending() == [row]
+    conn = connect_ledger(str(ledger_paths))
+    try:
+        outcomes = [
+            item["outcome"] for item in conn.execute(
+                "SELECT outcome FROM delivery_events ORDER BY created_at, rowid"
+            )
+        ]
+        assert outcomes == ["push_started", "push_succeeded", "archive_failed"]
+    finally:
+        conn.close()
 
     # On restart/retry, the remote hash check deduplicates the already-pushed row
     # and allows archive/queue cleanup without a second remote push.
