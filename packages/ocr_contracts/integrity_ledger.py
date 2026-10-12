@@ -70,6 +70,8 @@ def connect_ledger(database: str | sqlite3.Connection) -> sqlite3.Connection:
             destination TEXT NOT NULL,
             actor TEXT NOT NULL,
             authorization_ref TEXT NOT NULL,
+            consent INTEGER NOT NULL DEFAULT 0 CHECK(consent IN (0, 1)),
+            authorized_destinations TEXT NOT NULL DEFAULT '[]',
             outcome TEXT NOT NULL CHECK(outcome IN ('blocked', 'prepared', 'failed')),
             reason_code TEXT NOT NULL,
             created_at TEXT NOT NULL
@@ -93,6 +95,13 @@ def connect_ledger(database: str | sqlite3.Connection) -> sqlite3.Connection:
             SELECT RAISE(ABORT, 'export_events are append-only');
         END;
     """)
+    # Additive migration for ledgers created by earlier releases. Defaults preserve
+    # old rows conservatively; old events cannot masquerade as fully specified requests.
+    export_columns = {row["name"] for row in conn.execute("PRAGMA table_info(export_events)")}
+    if "consent" not in export_columns:
+        conn.execute("ALTER TABLE export_events ADD COLUMN consent INTEGER NOT NULL DEFAULT 0")
+    if "authorized_destinations" not in export_columns:
+        conn.execute("ALTER TABLE export_events ADD COLUMN authorized_destinations TEXT NOT NULL DEFAULT '[]'")
     conn.commit()
     return conn
 
@@ -151,12 +160,14 @@ def record_export_attempt(
         raise ValueError("ledger connection must not have an active transaction")
     digest = compute_content_hash(payload, schema_version=schema_version)
     allowed = set(authorized_destinations)
+    allowed_json = json.dumps(sorted(allowed), ensure_ascii=False, separators=(",", ":"))
 
     conn.execute("BEGIN IMMEDIATE")
     try:
         existing = conn.execute(
             """SELECT event_id, outcome, reason_code, sample_id, content_hash,
-                      schema_version, dataset_version, destination, actor, authorization_ref
+                      schema_version, dataset_version, destination, actor, authorization_ref,
+                      consent, authorized_destinations
                FROM export_events WHERE idempotency_key = ?""",
             (idempotency_key,),
         ).fetchone()
@@ -164,11 +175,12 @@ def record_export_attempt(
             identity = (
                 existing["sample_id"], existing["content_hash"], existing["schema_version"],
                 existing["dataset_version"], existing["destination"], existing["actor"],
-                existing["authorization_ref"],
+                existing["authorization_ref"], existing["consent"],
+                existing["authorized_destinations"],
             )
             requested = (
                 sample_id, digest, schema_version, dataset_version, destination,
-                actor or "unknown", authorization_ref or "",
+                actor or "unknown", authorization_ref or "", int(consent), allowed_json,
             )
             if identity != requested:
                 raise ValueError("idempotency_key_reused_for_different_request")
@@ -203,12 +215,12 @@ def record_export_attempt(
         conn.execute(
             """INSERT INTO export_events
                (event_id, idempotency_key, sample_id, content_hash, schema_version,
-                dataset_version, destination, actor, authorization_ref, outcome,
-                reason_code, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                dataset_version, destination, actor, authorization_ref, consent,
+                authorized_destinations, outcome, reason_code, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (event_id, idempotency_key, sample_id, digest, schema_version,
              dataset_version, destination, actor or "unknown",
-             authorization_ref or "", outcome, reason, _now()),
+             authorization_ref or "", int(consent), allowed_json, outcome, reason, _now()),
         )
         conn.commit()
         return {"event_id": event_id, "outcome": outcome, "reason_code": reason}
