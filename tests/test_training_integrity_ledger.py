@@ -221,3 +221,66 @@ def test_idempotency_key_reuse_with_changed_authorized_destinations_is_rejected(
         _export(conn, _payload(), key="destinations-bound",
                 authorized=("local-jsonl", "remote-hub"))
     assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+
+
+def test_legacy_export_event_schema_migrates_additively_and_fails_closed(tmp_path):
+    db_path = str(tmp_path / "legacy-ledger.sqlite3")
+    legacy = sqlite3.connect(db_path)
+    legacy.execute("""
+        CREATE TABLE export_events (
+            event_id TEXT PRIMARY KEY,
+            idempotency_key TEXT NOT NULL UNIQUE,
+            sample_id TEXT NOT NULL,
+            content_hash TEXT NOT NULL,
+            schema_version INTEGER NOT NULL CHECK(schema_version > 0),
+            dataset_version TEXT NOT NULL,
+            destination TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            authorization_ref TEXT NOT NULL,
+            outcome TEXT NOT NULL CHECK(outcome IN ('blocked', 'prepared', 'failed')),
+            reason_code TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+    legacy.execute(
+        """INSERT INTO export_events (
+            event_id, idempotency_key, sample_id, content_hash, schema_version,
+            dataset_version, destination, actor, authorization_ref, outcome,
+            reason_code, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        ("legacy-event-1", "legacy-key-1", "legacy-sample", "legacy-hash", 1,
+         "legacy-dataset", "remote-hub", "legacy-actor", "legacy-auth",
+         "prepared", "eligible", "2026-01-01T00:00:00Z"),
+    )
+    legacy.commit()
+    legacy.close()
+
+    conn = connect_ledger(db_path)
+    try:
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(export_events)")}
+        assert {"consent", "authorized_destinations"} <= columns
+        old = conn.execute(
+            "SELECT * FROM export_events WHERE event_id = 'legacy-event-1'"
+        ).fetchone()
+        assert old["consent"] == 0
+        assert old["authorized_destinations"] == "[]"
+        assert old["sample_id"] == "legacy-sample"
+    finally:
+        conn.close()
+
+    # Migration is repeatable and must not duplicate or rewrite historical rows.
+    conn = connect_ledger(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 1
+        result = record_export_attempt(
+            conn, sample_id="legacy-sample", payload=_payload(),
+            dataset_version="ds-v1", destination="remote-hub", actor="reviewer-1",
+            authorization_ref="legacy-auth", authorized_destinations=("remote-hub",),
+            consent=True, idempotency_key="post-migration-attempt",
+        )
+        # An old event is audit history, not proof of a current content-bound approval.
+        assert result["outcome"] == "blocked"
+        assert result["reason_code"] == "approval_missing"
+        assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 2
+    finally:
+        conn.close()
