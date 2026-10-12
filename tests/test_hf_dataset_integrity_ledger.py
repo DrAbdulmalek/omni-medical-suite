@@ -211,8 +211,8 @@ def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths,
             push_calls.append(kwargs["repo_id"])
             remote_hashes.update(item.get("content_hash", "") for item in self.frame)
 
-    monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset())
-    monkeypatch.setattr(service, "pd", FakePandas())
+    monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset(), raising=False)
+    monkeypatch.setattr(service, "pd", FakePandas(), raising=False)
     monkeypatch.setattr(service, "Dataset", SuccessfulDataset, raising=False)
 
     with monkeypatch.context() as scoped:
