@@ -176,19 +176,20 @@ def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths,
     monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
     remote_hashes = set()
+    remote_rows = []
     push_calls = []
 
     class ExistingDataset:
-        column_names = ["content_hash"]
+        column_names = ["content_hash", "integrity_hash"]
 
         def __len__(self):
-            return len(remote_hashes)
+            return len(remote_rows)
 
         def __getitem__(self, key):
-            return list(remote_hashes)
+            return [item.get(key) for item in remote_rows]
 
         def to_pandas(self):
-            return [{"content_hash": value} for value in remote_hashes]
+            return [dict(item) for item in remote_rows]
 
     class FakePandas:
         @staticmethod
@@ -209,6 +210,7 @@ def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths,
 
         def push_to_hub(self, **kwargs):
             push_calls.append(kwargs["repo_id"])
+            remote_rows.extend(dict(item) for item in self.frame)
             remote_hashes.update(item.get("content_hash", "") for item in self.frame)
 
     monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset(), raising=False)
