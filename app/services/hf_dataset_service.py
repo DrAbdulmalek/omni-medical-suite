@@ -171,7 +171,7 @@ def _queue_lock():
             # msvcrt locks a byte range and requires that byte to exist.
             lock_file.seek(0, os.SEEK_END)
             if lock_file.tell() == 0:
-                lock_file.write(b"\\0")
+                lock_file.write(bytes([0]))
                 lock_file.flush()
             lock_file.seek(0)
             if os.name == "nt":
