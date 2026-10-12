@@ -46,17 +46,33 @@ def _fresh_service(monkeypatch, tmp_path):
 
 
 def _enable_push(svc, monkeypatch):
-    """Open the operator gates and mock every Hub boundary."""
+    """Open the operator gates and mock a verified, empty remote Hub dataset."""
+    import pandas as pd
+
     monkeypatch.setattr(svc, "HAS_HF", True)
     monkeypatch.setattr(svc, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(svc, "HF_TOKEN", "test-token")
     fake_dataset = MagicMock()
-    # raising=False: the service only defines Dataset/load_dataset at module
-    # level when the optional HF libs are importable. CI does not install
-    # `datasets`, so the attributes may be absent — inject them anyway (the
-    # runtime resolves them as module globals inside flush_queue()).
+
+    class EmptyRemoteDataset:
+        # A successful, verified empty snapshot is required before a write.
+        column_names = ["content_hash", "integrity_hash"]
+
+        def __len__(self):
+            return 0
+
+        def __getitem__(self, key):
+            return []
+
+        def to_pandas(self):
+            return pd.DataFrame(columns=self.column_names)
+
+    # raising=False: optional HF libraries are not installed in every CI job,
+    # so inject the module globals that flush_queue() resolves at runtime.
     monkeypatch.setattr(svc, "Dataset", fake_dataset, raising=False)
-    monkeypatch.setattr(svc, "load_dataset", MagicMock(side_effect=RuntimeError("no network")), raising=False)
+    monkeypatch.setattr(
+        svc, "load_dataset", MagicMock(return_value=EmptyRemoteDataset()), raising=False
+    )
     return fake_dataset
 
 
@@ -183,8 +199,8 @@ def test_hub_payload_excludes_raw_ocr_by_default(monkeypatch, tmp_path):
     df = fake_dataset.from_pandas.call_args[0][0]
     for col in ("incorrect_ocr_output", "correct_text", "entities", "ner_entities"):
         assert col not in df.columns, f"raw column {col!r} leaked into Hub payload"
-    assert set(df.columns) == {"content_hash", "category", "timestamp", "consent",
-                               "raw_retained_locally"}
+    assert set(df.columns) == {"content_hash", "integrity_hash", "category", "timestamp",
+                               "consent", "raw_retained_locally"}
     assert df["raw_retained_locally"].tolist() == [True]
 
 
