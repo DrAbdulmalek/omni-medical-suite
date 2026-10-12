@@ -1,0 +1,58 @@
+name: HF Dataset CAS Tests
+
+on:
+  push:
+    branches:
+      - "feat/**"
+      - "feature/**"
+  pull_request:
+    branches:
+      - "main"
+      - "master"
+      - "feat/**"
+      - "feature/**"
+    paths:
+      - "app/services/hf_dataset_cas.py"
+      - "app/services/hf_dataset_service.py"
+      - "packages/ocr_contracts/integrity_ledger.py"
+      - "tests/test_hf_dataset_cas.py"
+      - "tests/test_hf_dataset_integrity_ledger.py"
+      - "tests/test_training_integrity_ledger.py"
+      - ".github/workflows/hf-dataset-cas-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-tests:
+    name: CAS and export-integrity unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test/runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pandas pyarrow "huggingface-hub<1.0.0" datasets
+          if [ -f requirements/api.txt ]; then pip install -r requirements/api.txt; fi
+          if [ -f requirements/ml.txt ]; then pip install -r requirements/ml.txt; fi
+
+      - name: Run CAS and integrity tests (offline)
+        env:
+          HF_HUB_OFFLINE: "1"
+          HF_DATASETS_OFFLINE: "1"
+        run: |
+          pytest -q \
+            tests/test_hf_dataset_cas.py \
+            tests/test_hf_dataset_integrity_ledger.py \
+            tests/test_training_integrity_ledger.py
