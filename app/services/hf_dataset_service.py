@@ -521,7 +521,10 @@ def flush_queue() -> str:
             legacy_hash = str(row.get("content_hash") or "")
             if integrity_hash and integrity_hash in remote_integrity_hashes:
                 continue
-            if legacy_hash and legacy_hash in remote_legacy_hashes:
+            # A legacy text-only hash cannot prove canonical equality when the
+            # current row has an integrity hash covering category/entities too.
+            # Never suppress a canonical row on that lossy legacy signal.
+            if not integrity_hash and legacy_hash and legacy_hash in remote_legacy_hashes:
                 continue
             if integrity_hash and integrity_hash in seen_integrity_hashes:
                 continue
