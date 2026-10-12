@@ -15,6 +15,19 @@ def ledger_paths(tmp_path, monkeypatch):
     monkeypatch.setattr(service, "_UPLOADED_DIR", stage / "uploaded")
     monkeypatch.setattr(service, "_PENDING_FILE", stage / "pending.jsonl")
     stage.mkdir(parents=True, exist_ok=True)
+
+    # Keep CI fully offline: model a verified private remote by default.
+    class PrivateHubInfo:
+        private = True
+
+    class FakeHfApi:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def dataset_info(self, *args, **kwargs):
+            return PrivateHubInfo()
+
+    monkeypatch.setattr(service, "HfApi", FakeHfApi, raising=False)
     return stage / "training_integrity_ledger.sqlite3"
 
 
@@ -429,3 +442,90 @@ def test_legacy_remote_hash_does_not_suppress_canonical_row(ledger_paths, monkey
     service.flush_queue()
 
     assert any(item.get("integrity_hash") == row["integrity_hash"] for item in pushed)
+
+
+
+def test_private_visibility_is_verified_and_allowed(monkeypatch):
+    class Info:
+        private = True
+
+    class Api:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def dataset_info(self, *args, **kwargs):
+            return Info()
+
+    monkeypatch.setattr(service, "HfApi", Api, raising=False)
+    monkeypatch.setattr(service, "OMNI_HF_DATASET_PRIVATE", True)
+    assert service._verify_remote_dataset_privacy() is True
+
+
+def test_public_remote_dataset_is_blocked_when_privacy_is_required(monkeypatch):
+    class Info:
+        private = False
+
+    class Api:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def dataset_info(self, *args, **kwargs):
+            return Info()
+
+    monkeypatch.setattr(service, "HfApi", Api, raising=False)
+    monkeypatch.setattr(service, "OMNI_HF_DATASET_PRIVATE", True)
+    monkeypatch.setattr(service, "_dataset_private_env", None)
+    with pytest.raises(RuntimeError, match="private dataset required but remote dataset is public"):
+        service._verify_remote_dataset_privacy()
+
+
+def test_public_visibility_requires_explicit_opt_in_and_metadata_only(monkeypatch):
+    class Info:
+        private = False
+
+    class Api:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def dataset_info(self, *args, **kwargs):
+            return Info()
+
+    monkeypatch.setattr(service, "HfApi", Api, raising=False)
+    monkeypatch.setattr(service, "_dataset_private_env", "false")
+    monkeypatch.setattr(service, "OMNI_HF_DATASET_PRIVATE", False)
+    monkeypatch.setattr(service, "OMNI_HF_EXPORT_RAW_TEXT", False)
+    assert service._verify_remote_dataset_privacy() is False
+
+    monkeypatch.setattr(service, "OMNI_HF_EXPORT_RAW_TEXT", True)
+    with pytest.raises(RuntimeError, match="incompatible with"):
+        service._verify_remote_dataset_privacy()
+
+
+def test_privacy_verification_failure_fails_closed(monkeypatch):
+    class Api:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def dataset_info(self, *args, **kwargs):
+            raise ConnectionError("visibility endpoint unavailable")
+
+    monkeypatch.setattr(service, "HfApi", Api, raising=False)
+    monkeypatch.setattr(service, "OMNI_HF_DATASET_PRIVATE", True)
+    with pytest.raises(RuntimeError, match="privacy could not be verified"):
+        service._verify_remote_dataset_privacy()
+
+
+def test_unknown_visibility_fails_closed(monkeypatch):
+    class Info:
+        private = None
+
+    class Api:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def dataset_info(self, *args, **kwargs):
+            return Info()
+
+    monkeypatch.setattr(service, "HfApi", Api, raising=False)
+    with pytest.raises(RuntimeError, match="privacy is unknown"):
+        service._verify_remote_dataset_privacy()
