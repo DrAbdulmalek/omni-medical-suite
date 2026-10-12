@@ -1,6 +1,7 @@
 """Regression tests for cross-process serialization of the local training queue."""
 from __future__ import annotations
 
+import errno
 import multiprocessing
 import os
 from pathlib import Path
@@ -69,3 +70,24 @@ def test_corrupt_pending_row_is_preserved_and_blocks_queue_processing(tmp_path, 
     # A failed parse must not silently drop bytes that queue cleanup could
     # otherwise overwrite during an export/recovery attempt.
     assert pending_path.read_bytes() == original
+
+
+
+def test_windows_queue_lock_retries_contention_without_fixed_attempt_limit(monkeypatch):
+    attempts = []
+
+    class FakeMsvcrt:
+        LK_NBLCK = 1
+
+        @staticmethod
+        def locking(fd, mode, nbytes):
+            attempts.append((fd, mode, nbytes))
+            if len(attempts) < 13:
+                raise OSError(errno.EACCES, "simulated Windows lock contention")
+
+    monkeypatch.setattr(service.time, "sleep", lambda _seconds: None)
+
+    service._acquire_windows_queue_lock(7, FakeMsvcrt)
+
+    assert len(attempts) == 13
+    assert all(mode == FakeMsvcrt.LK_NBLCK and nbytes == 1 for _, mode, nbytes in attempts)
