@@ -76,7 +76,9 @@ import json
 import logging
 import os
 import subprocess
+import errno
 import threading
+import time
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
@@ -163,6 +165,22 @@ _flush_lock = threading.RLock()
 _QUEUE_LOCK_FILE = _STAGE_DIR / ".queue.lock"
 
 
+def _acquire_windows_queue_lock(fd, msvcrt_module=None) -> None:
+    """Wait for a Windows byte-range lock without msvcrt.LK_LOCK's retry limit."""
+    if msvcrt_module is None:
+        import msvcrt as msvcrt_module
+    while True:
+        try:
+            msvcrt_module.locking(fd, msvcrt_module.LK_NBLCK, 1)
+            return
+        except OSError as exc:
+            # Windows reports a held byte-range lock as a lock violation (33),
+            # commonly surfaced as EACCES. Do not retry unrelated I/O errors.
+            if exc.errno not in (errno.EACCES, errno.EDEADLK) and getattr(exc, "winerror", None) != 33:
+                raise
+            time.sleep(0.05)
+
+
 @contextmanager
 def _queue_lock():
     _ensure_dirs()
@@ -176,7 +194,7 @@ def _queue_lock():
             lock_file.seek(0)
             if os.name == "nt":
                 import msvcrt
-                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                _acquire_windows_queue_lock(lock_file.fileno(), msvcrt)
                 try:
                     yield
                 finally:
