@@ -322,7 +322,11 @@ def _read_pending() -> list[dict]:
             try:
                 rows.append(json.loads(line))
             except json.JSONDecodeError as e:
-                logger.warning("skipping corrupt pending line %d: %s", line_no, e)
+                # Fail closed: rewriting the queue after silently skipping a
+                # corrupt line would permanently discard the original bytes.
+                raise RuntimeError(
+                    f"refusing queue operation: corrupt pending JSON at line {line_no}"
+                ) from e
     return rows
 
 
