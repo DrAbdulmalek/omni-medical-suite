@@ -76,8 +76,11 @@ import json
 import logging
 import os
 import subprocess
+import errno
 import threading
+import time
 import uuid
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -210,10 +213,56 @@ try:
 except ImportError:
     logger.warning("HuggingFace libs not available — save disabled (staging still works)")
 
-# ── Lock for concurrent append/flush ────────────────────────────────────────
-# Gradio can call save_to_hf() from multiple worker threads. The staging
-# file append must be atomic and flush must not run concurrently with append.
-_flush_lock = threading.Lock()
+# ── Cross-thread and cross-process queue lock ────────────────────────────────
+# The thread lock protects threads in this process; the OS lock also serializes
+# independent worker processes sharing OMNI_HF_QUEUE_DIR. Hold this lock across
+# the complete flush, including remote CAS, archive, and queue cleanup.
+_flush_lock = threading.RLock()
+_QUEUE_LOCK_FILE = _STAGE_DIR / ".queue.lock"
+
+
+def _acquire_windows_queue_lock(fd, msvcrt_module=None) -> None:
+    """Wait for a Windows byte-range lock without msvcrt.LK_LOCK's retry limit."""
+    if msvcrt_module is None:
+        import msvcrt as msvcrt_module
+    while True:
+        try:
+            msvcrt_module.locking(fd, msvcrt_module.LK_NBLCK, 1)
+            return
+        except OSError as exc:
+            # Windows reports a held byte-range lock as a lock violation (33),
+            # commonly surfaced as EACCES. Do not retry unrelated I/O errors.
+            if exc.errno not in (errno.EACCES, errno.EDEADLK) and getattr(exc, "winerror", None) != 33:
+                raise
+            time.sleep(0.05)
+
+
+@contextmanager
+def _queue_lock():
+    _ensure_dirs()
+    with _flush_lock:
+        with _QUEUE_LOCK_FILE.open("a+b") as lock_file:
+            # msvcrt locks a byte range and requires that byte to exist.
+            lock_file.seek(0, os.SEEK_END)
+            if lock_file.tell() == 0:
+                lock_file.write(bytes([0]))
+                lock_file.flush()
+            lock_file.seek(0)
+            if os.name == "nt":
+                import msvcrt
+                _acquire_windows_queue_lock(lock_file.fileno(), msvcrt)
+                try:
+                    yield
+                finally:
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
 # ── Training integrity ledger bridge ───────────────────────────────────────
@@ -347,14 +396,18 @@ def _read_pending() -> list[dict]:
             try:
                 rows.append(json.loads(line))
             except json.JSONDecodeError as e:
-                logger.warning("skipping corrupt pending line %d: %s", line_no, e)
+                # Fail closed: rewriting the queue after silently skipping a
+                # corrupt line would permanently discard the original bytes.
+                raise RuntimeError(
+                    f"refusing queue operation: corrupt pending JSON at line {line_no}"
+                ) from e
     return rows
 
 
 def _append_pending(row: dict) -> int:
     """Append one row to the staging file. Returns the new pending count."""
     _ensure_dirs()
-    with _flush_lock:
+    with _queue_lock():
         with _PENDING_FILE.open("a", encoding="utf-8") as f:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
         return _count_pending_unlocked()
@@ -373,7 +426,7 @@ def _count_pending_unlocked() -> int:
 
 def count_pending() -> int:
     """Public helper: how many rows are currently staged but not pushed."""
-    with _flush_lock:
+    with _queue_lock():
         return _count_pending_unlocked()
 
 
@@ -381,9 +434,9 @@ def _archive_uploaded(rows: list[dict]) -> Path:
     """Move flushed rows to an archive file. Returns the archive path."""
     if not rows:
         return _UPLOADED_DIR  # nothing to archive
-    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    archive = _UPLOADED_DIR / f"uploaded-{ts}.jsonl"
-    with archive.open("w", encoding="utf-8") as f:
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    archive = _UPLOADED_DIR / f"uploaded-{ts}-{uuid.uuid4().hex[:8]}.jsonl"
+    with archive.open("x", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
     return archive
@@ -533,7 +586,7 @@ def flush_queue() -> str:
             "لن يتم رفع أي بيانات — الصفوف تبقى مرحّلة محلياً فقط."
         )
 
-    with _flush_lock:
+    with _queue_lock():
         pending = _read_pending()
         if not pending:
             return "ℹ️ لا توجد صفوف مرحّلة للرفع."
@@ -636,13 +689,37 @@ def flush_queue() -> str:
             logger.info("Dedup: skipping %d already-uploaded rows", skipped)
 
         if not new_rows:
-            # All consented rows already exist remotely — archive & clear
-            # ONLY the consented ones; unconsented rows stay staged.
-            _archive_uploaded(eligible)
-            _rewrite_pending_excluding(eligible)
+            # The verified baseline already contains every eligible payload.
+            # Record reconciliation and retain archive/cleanup failure evidence.
+            delivery_id = uuid.uuid4().hex
+            _record_delivery_outcome(
+                event_key=f"{delivery_id}:remote_present",
+                correlation_id=delivery_id,
+                outcome="remote_present",
+            )
+            try:
+                _archive_uploaded(eligible)
+            except Exception as exc:
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:archive_failed",
+                    correlation_id=delivery_id,
+                    outcome="archive_failed",
+                    error_code=type(exc).__name__,
+                )
+                raise
+            try:
+                _rewrite_pending_excluding(eligible)
+            except Exception as exc:
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:queue_cleanup_failed",
+                    correlation_id=delivery_id,
+                    outcome="queue_cleanup_failed",
+                    error_code=type(exc).__name__,
+                )
+                raise
             return (
                 f"ℹ️ جميع الصفوف المؤهلة ({len(eligible)}) موجودة مسبقاً في HF.\n"
-                f"  • تم أرشفتها محلياً بدون رفع مكرر."
+                f"  • تم تأكيد وجودها في النسخة البعيدة وأرشفتها محلياً بدون رفع مكرر."
             )
 
         try:
@@ -769,11 +846,14 @@ def _rewrite_pending_excluding(pushed_rows: list[dict]) -> None:
     remaining = [
         r for r in _read_pending()
         if not (
-            (r.get("integrity_hash") and str(r.get("integrity_hash")) in pushed_integrity_hashes)
-            or (
-                not r.get("integrity_hash")
-                and r.get("content_hash")
-                and str(r.get("content_hash")) in pushed_legacy_hashes
+            r.get("consent") is True
+            and (
+                (r.get("integrity_hash") and str(r.get("integrity_hash")) in pushed_integrity_hashes)
+                or (
+                    not r.get("integrity_hash")
+                    and r.get("content_hash")
+                    and str(r.get("content_hash")) in pushed_legacy_hashes
+                )
             )
         )
     ]

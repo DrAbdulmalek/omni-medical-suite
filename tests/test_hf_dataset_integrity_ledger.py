@@ -39,6 +39,7 @@ def mock_hf_cas_boundary(monkeypatch):
 def ledger_paths(tmp_path, monkeypatch):
     stage = tmp_path / "stage"
     monkeypatch.setattr(service, "_STAGE_DIR", stage)
+    monkeypatch.setattr(service, "_QUEUE_LOCK_FILE", stage / ".queue.lock", raising=False)
     monkeypatch.setattr(service, "_LEDGER_FILE", stage / "training_integrity_ledger.sqlite3")
     monkeypatch.setattr(service, "_UPLOADED_DIR", stage / "uploaded")
     monkeypatch.setattr(service, "_PENDING_FILE", stage / "pending.jsonl")
@@ -156,7 +157,7 @@ def test_unapproved_row_is_blocked_before_any_remote_read(ledger_paths, monkeypa
     assert len(service._read_pending()) == 1
 
 
-def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch):
+def test_ambiguous_remote_commit_recovers_by_dedup_without_second_push(ledger_paths, monkeypatch):
     import json
 
     row = _row(consent=True)
@@ -165,18 +166,20 @@ def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch)
     monkeypatch.setattr(service, "HAS_HF", True)
     monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
+    remote_rows = []
+    push_calls = []
 
     class ExistingDataset:
-        column_names = ["content_hash"]
+        column_names = ["content_hash", "integrity_hash"]
 
         def __len__(self):
-            return 0
+            return len(remote_rows)
 
         def __getitem__(self, key):
-            return []
+            return [item.get(key) for item in remote_rows]
 
         def to_pandas(self):
-            return []
+            return [dict(item) for item in remote_rows]
 
     class FakePandas:
         @staticmethod
@@ -187,21 +190,29 @@ def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch)
         def concat(frames, ignore_index=True):
             return [item for frame in frames for item in frame]
 
-    class FailingDataset:
+    class CommitThenTimeoutDataset:
+        def __init__(self, frame):
+            self.frame = frame
+
         @staticmethod
         def from_pandas(frame):
-            return FailingDataset()
+            return CommitThenTimeoutDataset(frame)
 
         def push_to_hub(self, **kwargs):
-            raise RuntimeError("injected push failure")
+            push_calls.append(kwargs["repo_id"])
+            # Model the ambiguous window: remote commit happened, but the client
+            # lost the response and raised before local archive/queue cleanup.
+            remote_rows.extend(dict(item) for item in self.frame)
+            raise TimeoutError("transport timeout after remote commit")
 
     monkeypatch.setattr(service, "load_dataset", lambda *args, **kwargs: ExistingDataset(), raising=False)
     monkeypatch.setattr(service, "pd", FakePandas(), raising=False)
-    monkeypatch.setattr(service, "Dataset", FailingDataset, raising=False)
+    monkeypatch.setattr(service, "Dataset", CommitThenTimeoutDataset, raising=False)
 
-    with pytest.raises(RuntimeError, match="injected push failure"):
+    with pytest.raises(TimeoutError, match="after remote commit"):
         service.flush_queue()
 
+    assert len(push_calls) == 1
     assert service._PENDING_FILE.exists()
     assert service._read_pending() == [row]
     assert not list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
@@ -216,6 +227,25 @@ def test_failed_remote_push_keeps_approved_row_staged(ledger_paths, monkeypatch)
     finally:
         conn.close()
 
+    # A fresh baseline sees the committed row, deduplicates it, and safely
+    # archives/cleans the queue without issuing a second remote write.
+    result = service.flush_queue()
+    assert "موجودة مسبقاً" in result
+    assert len(push_calls) == 1
+    assert not service._PENDING_FILE.exists()
+    assert list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
+    conn = connect_ledger(str(ledger_paths))
+    try:
+        outcomes = [
+            item["outcome"] for item in conn.execute(
+                "SELECT outcome FROM delivery_events ORDER BY created_at, rowid"
+            )
+        ]
+        assert outcomes == [
+            "push_started", "push_ambiguous", "remote_present"
+        ]
+    finally:
+        conn.close()
 
 def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths, monkeypatch):
     import json
@@ -298,6 +328,18 @@ def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths,
     assert len(push_calls) == 1
     assert not service._PENDING_FILE.exists()
     assert list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
+    conn = connect_ledger(str(ledger_paths))
+    try:
+        outcomes = [
+            item["outcome"] for item in conn.execute(
+                "SELECT outcome FROM delivery_events ORDER BY created_at, rowid"
+            )
+        ]
+        assert outcomes == [
+            "push_started", "push_succeeded", "archive_failed", "remote_present"
+        ]
+    finally:
+        conn.close()
 
 
 def test_remote_read_failure_aborts_before_any_push(ledger_paths, monkeypatch):
@@ -470,6 +512,26 @@ def test_legacy_remote_hash_does_not_suppress_canonical_row(ledger_paths, monkey
     service.flush_queue()
 
     assert any(item.get("integrity_hash") == row["integrity_hash"] for item in pushed)
+
+
+
+def test_queue_cleanup_preserves_unconsented_duplicate_payload(ledger_paths):
+    import json
+
+    approved = _row(consent=True)
+    approved["integrity_hash"] = service._record_row_approval(approved)
+    unconsented = dict(approved)
+    unconsented["consent"] = False
+    service._PENDING_FILE.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in (approved, unconsented)),
+        encoding="utf-8",
+    )
+
+    service._rewrite_pending_excluding([approved])
+
+    remaining = service._read_pending()
+    assert remaining == [unconsented]
+    assert remaining[0]["consent"] is False
 
 
 

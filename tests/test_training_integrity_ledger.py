@@ -311,3 +311,55 @@ def test_delivery_events_are_append_only_and_idempotent():
     with pytest.raises(sqlite3.IntegrityError, match="append-only"):
         conn.execute("DELETE FROM delivery_events")
     conn.close()
+
+
+def test_delivery_event_schema_migrates_without_losing_ambiguous_history(tmp_path):
+    db_path = str(tmp_path / "legacy-delivery-ledger.sqlite3")
+    legacy = sqlite3.connect(db_path)
+    legacy.execute("""
+        CREATE TABLE delivery_events (
+            event_id TEXT PRIMARY KEY,
+            event_key TEXT NOT NULL UNIQUE,
+            correlation_id TEXT NOT NULL,
+            destination TEXT NOT NULL,
+            outcome TEXT NOT NULL CHECK(outcome IN (
+                'push_started', 'push_succeeded', 'push_failed',
+                'push_ambiguous', 'archive_failed', 'queue_cleanup_failed'
+            )),
+            error_code TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+        )
+    """)
+    legacy.execute(
+        """INSERT INTO delivery_events
+           (event_id, event_key, correlation_id, destination, outcome, error_code, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        ("old-event", "attempt-old:ambiguous", "attempt-old", "remote-hub",
+         "push_ambiguous", "TimeoutError", "2026-10-12T00:00:00Z"),
+    )
+    legacy.commit()
+    legacy.close()
+
+    conn = connect_ledger(db_path)
+    try:
+        old = conn.execute(
+            "SELECT event_id, outcome FROM delivery_events WHERE event_id='old-event'"
+        ).fetchone()
+        assert tuple(old) == ("old-event", "push_ambiguous")
+
+        reconciled = record_delivery_event(
+            conn,
+            event_key="attempt-recovery:remote-present",
+            correlation_id="attempt-recovery",
+            destination="remote-hub",
+            outcome="remote_present",
+        )
+        assert reconciled["outcome"] == "remote_present"
+        assert conn.execute("SELECT COUNT(*) FROM delivery_events").fetchone()[0] == 2
+
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            conn.execute("UPDATE delivery_events SET outcome='push_succeeded'")
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            conn.execute("DELETE FROM delivery_events")
+    finally:
+        conn.close()
