@@ -356,9 +356,9 @@ def _archive_uploaded(rows: list[dict]) -> Path:
     """Move flushed rows to an archive file. Returns the archive path."""
     if not rows:
         return _UPLOADED_DIR  # nothing to archive
-    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    archive = _UPLOADED_DIR / f"uploaded-{ts}.jsonl"
-    with archive.open("w", encoding="utf-8") as f:
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    archive = _UPLOADED_DIR / f"uploaded-{ts}-{uuid.uuid4().hex[:8]}.jsonl"
+    with archive.open("x", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
     return archive
@@ -608,13 +608,37 @@ def flush_queue() -> str:
             logger.info("Dedup: skipping %d already-uploaded rows", skipped)
 
         if not new_rows:
-            # All consented rows already exist remotely — archive & clear
-            # ONLY the consented ones; unconsented rows stay staged.
-            _archive_uploaded(eligible)
-            _rewrite_pending_excluding(eligible)
+            # The verified baseline already contains every eligible payload.
+            # Record reconciliation and retain archive/cleanup failure evidence.
+            delivery_id = uuid.uuid4().hex
+            _record_delivery_outcome(
+                event_key=f"{delivery_id}:remote_present",
+                correlation_id=delivery_id,
+                outcome="remote_present",
+            )
+            try:
+                _archive_uploaded(eligible)
+            except Exception as exc:
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:archive_failed",
+                    correlation_id=delivery_id,
+                    outcome="archive_failed",
+                    error_code=type(exc).__name__,
+                )
+                raise
+            try:
+                _rewrite_pending_excluding(eligible)
+            except Exception as exc:
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:queue_cleanup_failed",
+                    correlation_id=delivery_id,
+                    outcome="queue_cleanup_failed",
+                    error_code=type(exc).__name__,
+                )
+                raise
             return (
                 f"ℹ️ جميع الصفوف المؤهلة ({len(eligible)}) موجودة مسبقاً في HF.\n"
-                f"  • تم أرشفتها محلياً بدون رفع مكرر."
+                f"  • تم تأكيد وجودها في النسخة البعيدة وأرشفتها محلياً بدون رفع مكرر."
             )
 
         try:
