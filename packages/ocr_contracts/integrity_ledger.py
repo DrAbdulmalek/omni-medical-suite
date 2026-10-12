@@ -108,6 +108,14 @@ def connect_ledger(database: str | sqlite3.Connection) -> sqlite3.Connection:
         BEFORE DELETE ON export_events BEGIN
             SELECT RAISE(ABORT, 'export_events are append-only');
         END;
+        CREATE TRIGGER IF NOT EXISTS delivery_events_no_update
+        BEFORE UPDATE ON delivery_events BEGIN
+            SELECT RAISE(ABORT, 'delivery_events are append-only');
+        END;
+        CREATE TRIGGER IF NOT EXISTS delivery_events_no_delete
+        BEFORE DELETE ON delivery_events BEGIN
+            SELECT RAISE(ABORT, 'delivery_events are append-only');
+        END;
     """)
     # Additive migration for ledgers created by earlier releases. Defaults preserve
     # old rows conservatively; old events cannot masquerade as fully specified requests.
