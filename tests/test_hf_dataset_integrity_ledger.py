@@ -235,3 +235,55 @@ def test_remote_push_then_archive_failure_recovers_by_remote_dedup(ledger_paths,
     assert len(push_calls) == 1
     assert not service._PENDING_FILE.exists()
     assert list(service._UPLOADED_DIR.glob("uploaded-*.jsonl"))
+
+
+def test_remote_read_failure_aborts_before_any_push(ledger_paths, monkeypatch):
+    import json
+
+    row = _row(consent=True)
+    row["integrity_hash"] = service._record_row_approval(row)
+    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\\n", encoding="utf-8")
+    monkeypatch.setattr(service, "HAS_HF", True)
+    monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
+    monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
+    push_calls = []
+
+    def failed_read(*args, **kwargs):
+        raise ConnectionError("injected remote read outage")
+
+    class NeverPushDataset:
+        @staticmethod
+        def from_pandas(frame):
+            return NeverPushDataset()
+
+        def push_to_hub(self, **kwargs):
+            push_calls.append(kwargs)
+
+    monkeypatch.setattr(service, "load_dataset", failed_read, raising=False)
+    monkeypatch.setattr(service, "Dataset", NeverPushDataset, raising=False)
+
+    with pytest.raises(RuntimeError, match="could not verify the existing remote dataset"):
+        service.flush_queue()
+
+    assert push_calls == []
+    assert service._PENDING_FILE.exists()
+    assert service._read_pending() == [row]
+
+
+def test_pending_rewrite_uses_integrity_hash_not_legacy_content_hash(ledger_paths):
+    import json
+
+    first = _row(consent=True)
+    first["integrity_hash"] = "sha256-category-a"
+    second = dict(first)
+    second["category"] = "different-category"
+    second["integrity_hash"] = "sha256-category-b"
+    # Legacy dedup hash is deliberately equal for these semantically distinct rows.
+    service._PENDING_FILE.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\\n" for row in (first, second)),
+        encoding="utf-8",
+    )
+
+    service._rewrite_pending_excluding([first])
+
+    assert service._read_pending() == [second]
