@@ -149,7 +149,7 @@ def test_ambiguous_remote_commit_recovers_by_dedup_without_second_push(ledger_pa
 
     row = _row(consent=True)
     row["integrity_hash"] = service._record_row_approval(row)
-    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\\n", encoding="utf-8")
+    service._PENDING_FILE.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
     monkeypatch.setattr(service, "HAS_HF", True)
     monkeypatch.setattr(service, "OMNI_HF_EXPORT_ENABLED", True)
     monkeypatch.setattr(service, "HF_TOKEN", "test-token-not-used")
