@@ -85,7 +85,7 @@ def connect_ledger(database: str | sqlite3.Connection) -> sqlite3.Connection:
             destination TEXT NOT NULL,
             outcome TEXT NOT NULL CHECK(outcome IN (
                 'push_started', 'push_succeeded', 'push_failed',
-                'push_ambiguous', 'archive_failed', 'queue_cleanup_failed'
+                'push_ambiguous', 'remote_present', 'archive_failed', 'queue_cleanup_failed'
             )),
             error_code TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL
@@ -124,6 +124,60 @@ def connect_ledger(database: str | sqlite3.Connection) -> sqlite3.Connection:
         conn.execute("ALTER TABLE export_events ADD COLUMN consent INTEGER NOT NULL DEFAULT 0")
     if "authorized_destinations" not in export_columns:
         conn.execute("ALTER TABLE export_events ADD COLUMN authorized_destinations TEXT NOT NULL DEFAULT '[]'")
+
+    # SQLite cannot alter a CHECK constraint in place. Rebuild older delivery
+    # ledgers transactionally so the reconciliation outcome is accepted while
+    # preserving all existing immutable event rows.
+    delivery_schema = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='delivery_events'"
+    ).fetchone()
+    if delivery_schema and "remote_present" not in str(delivery_schema["sql"]):
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            conn.execute("DROP TABLE IF EXISTS delivery_events_migrating")
+            conn.execute("""
+                CREATE TABLE delivery_events_migrating (
+                    event_id TEXT PRIMARY KEY,
+                    event_key TEXT NOT NULL UNIQUE,
+                    correlation_id TEXT NOT NULL,
+                    destination TEXT NOT NULL,
+                    outcome TEXT NOT NULL CHECK(outcome IN (
+                        'push_started', 'push_succeeded', 'push_failed',
+                        'push_ambiguous', 'remote_present', 'archive_failed',
+                        'queue_cleanup_failed'
+                    )),
+                    error_code TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL
+                )
+            """)
+            conn.execute("""
+                INSERT INTO delivery_events_migrating
+                    (event_id, event_key, correlation_id, destination, outcome, error_code, created_at)
+                SELECT event_id, event_key, correlation_id, destination, outcome, error_code, created_at
+                FROM delivery_events
+            """)
+            conn.execute("DROP TABLE delivery_events")
+            conn.execute("ALTER TABLE delivery_events_migrating RENAME TO delivery_events")
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_delivery_correlation
+                ON delivery_events(correlation_id, created_at)
+            """)
+            conn.execute("""
+                CREATE TRIGGER delivery_events_no_update
+                BEFORE UPDATE ON delivery_events BEGIN
+                    SELECT RAISE(ABORT, 'delivery_events are append-only');
+                END
+            """)
+            conn.execute("""
+                CREATE TRIGGER delivery_events_no_delete
+                BEFORE DELETE ON delivery_events BEGIN
+                    SELECT RAISE(ABORT, 'delivery_events are append-only');
+                END
+            """)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
     conn.commit()
     return conn
 
