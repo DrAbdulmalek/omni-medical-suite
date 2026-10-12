@@ -78,7 +78,21 @@ def _enable_push(svc, monkeypatch):
         def dataset_info(self, *args, **kwargs):
             return PrivateDatasetInfo()
 
+    def fake_baseline(api, *, repo_id, token):
+        return ("a" * 40, "data/train-00000-of-00001.parquet")
+
+    def fake_cas_push(api, dataset, *, repo_id, token, parent_commit, data_path):
+        # The production service now writes through CAS. Keep this test fully
+        # offline while preserving the observable fake delivery boundary.
+        return dataset.push_to_hub(
+            repo_id=repo_id,
+            private=svc.OMNI_HF_DATASET_PRIVATE,
+            token=token,
+        )
+
     monkeypatch.setattr(svc, "HfApi", FakeHfApi, raising=False)
+    monkeypatch.setattr(svc, "get_verified_dataset_baseline", fake_baseline)
+    monkeypatch.setattr(svc, "push_parquet_snapshot_with_cas", fake_cas_push)
 
     # raising=False: optional HF libraries are not installed in every CI job,
     # so inject the module globals that flush_queue() resolves at runtime.
@@ -87,7 +101,6 @@ def _enable_push(svc, monkeypatch):
         svc, "load_dataset", MagicMock(return_value=EmptyRemoteDataset()), raising=False
     )
     return fake_dataset
-
 
 # ---------------------------------------------------------------------------
 # Gate 1: master kill-switch
@@ -183,17 +196,15 @@ def test_garbage_private_override_stays_private(monkeypatch, tmp_path):
 
 
 def test_flush_queue_never_hardcodes_private_false(monkeypatch, tmp_path):
-    """Static contract: the production service must not contain a hardcoded
-    public-dataset flag, and push_to_hub must appear exactly once (inside
-    the fully gated path)."""
+    """Static contract: production uses CAS and does not directly call the
+    legacy push_to_hub API."""
     src = SERVICE_PATH.read_text(encoding="utf-8")
     assert re.search(r"private\s*:\s*False", src) is None, "hardcoded private: False found"
     assert re.search(r"private\s*=\s*False", src) is None, "hardcoded private=False found"
     assert '"private": False' not in src
-    assert src.count("push_to_hub") == 1
-    # the single push must sit behind the export kill-switch in the same module
+    assert "push_parquet_snapshot_with_cas(" in src
+    assert ".push_to_hub(" not in src
     assert "OMNI_HF_EXPORT_ENABLED" in src
-
 
 # ---------------------------------------------------------------------------
 # Gate 3: raw-text payload gate
