@@ -39,6 +39,7 @@ def mock_hf_cas_boundary(monkeypatch):
 def ledger_paths(tmp_path, monkeypatch):
     stage = tmp_path / "stage"
     monkeypatch.setattr(service, "_STAGE_DIR", stage)
+    monkeypatch.setattr(service, "_QUEUE_LOCK_FILE", stage / ".queue.lock", raising=False)
     monkeypatch.setattr(service, "_LEDGER_FILE", stage / "training_integrity_ledger.sqlite3")
     monkeypatch.setattr(service, "_UPLOADED_DIR", stage / "uploaded")
     monkeypatch.setattr(service, "_PENDING_FILE", stage / "pending.jsonl")
