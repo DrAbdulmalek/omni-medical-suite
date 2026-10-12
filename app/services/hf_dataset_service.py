@@ -184,7 +184,7 @@ def _record_row_approval(row: dict) -> str:
                 conn,
                 sample_id=digest,
                 payload=payload,
-                reviewer="ui-consent-checkbox",
+                reviewer="local-ui-consent-checkbox (identity-unverified)",
                 consent=True,
                 destination=HF_DATASET,
             )
@@ -214,7 +214,10 @@ def _prepare_rows_with_ledger(rows: list[dict]) -> tuple[list[dict], int]:
                 dataset_version="not-versioned",
                 destination=HF_DATASET,
                 actor="app.services.hf_dataset_service",
-                authorization_ref="OMNI_HF_EXPORT_ENABLED=true;HF_TOKEN-present",
+                authorization_ref=(
+                    "runtime-gates:OMNI_HF_EXPORT_ENABLED=true;HF_TOKEN=present;"
+                    f"destination={HF_DATASET};reviewer_identity=unverified-ui-checkbox"
+                ),
                 authorized_destinations=(HF_DATASET,),
                 consent=row.get("consent") is True,
                 idempotency_key=f"hf-export:{sample_id}:v1",
@@ -480,17 +483,52 @@ def flush_queue() -> str:
         # already exists remotely). This is the only network call that
         # reads the full dataset; it happens at most once per flush, not
         # once per save.
-        existing_hashes: set[str] = set()
-        previous_count = 0
+        # A failed remote read is not evidence that the dataset is empty or absent.
+        # Fail closed before any write; the operator must make the target dataset
+        # readable (or explicitly provision it) before export can proceed.
         try:
             existing = load_dataset(HF_DATASET, split="train")
-            previous_count = len(existing)
-            if "content_hash" in existing.column_names:
-                existing_hashes = set(existing["content_hash"])
         except Exception as e:
-            logger.info("Could not load existing HF dataset (will create new): %s", e)
+            logger.error("Remote HF dataset read failed; refusing export without a verified baseline")
+            raise RuntimeError(
+                "HF export aborted: could not verify the existing remote dataset; "
+                "no remote write was attempted and staged rows were retained"
+            ) from e
 
-        new_rows = [r for r in eligible if r.get("content_hash") not in existing_hashes]
+        previous_count = len(existing)
+        existing_columns = set(getattr(existing, "column_names", []))
+        remote_integrity_hashes: set[str] = set()
+        remote_legacy_hashes: set[str] = set()
+        if "integrity_hash" in existing_columns:
+            remote_integrity_hashes = {
+                str(value) for value in existing["integrity_hash"] if value
+            }
+            if "content_hash" in existing_columns:
+                legacy_values = list(existing["content_hash"])
+                integrity_values = list(existing["integrity_hash"])
+                remote_legacy_hashes = {
+                    str(legacy_values[index])
+                    for index, value in enumerate(integrity_values)
+                    if not value and index < len(legacy_values) and legacy_values[index]
+                }
+        elif "content_hash" in existing_columns:
+            # Backward compatibility for older datasets without integrity_hash.
+            remote_legacy_hashes = {str(value) for value in existing["content_hash"] if value}
+
+        new_rows = []
+        seen_integrity_hashes: set[str] = set()
+        for row in eligible:
+            integrity_hash = str(row.get("integrity_hash") or "")
+            legacy_hash = str(row.get("content_hash") or "")
+            if integrity_hash and integrity_hash in remote_integrity_hashes:
+                continue
+            if legacy_hash and legacy_hash in remote_legacy_hashes:
+                continue
+            if integrity_hash and integrity_hash in seen_integrity_hashes:
+                continue
+            if integrity_hash:
+                seen_integrity_hashes.add(integrity_hash)
+            new_rows.append(row)
         skipped = len(eligible) - len(new_rows)
         if skipped:
             logger.info("Dedup: skipping %d already-uploaded rows", skipped)
@@ -515,6 +553,7 @@ def flush_queue() -> str:
                 payload_rows = [
                     {
                         "content_hash": r.get("content_hash", ""),
+                        "integrity_hash": r.get("integrity_hash", ""),
                         "category": r.get("category", ""),
                         "timestamp": r.get("timestamp", ""),
                         "consent": True,
@@ -524,11 +563,10 @@ def flush_queue() -> str:
                 ]
 
             new_df = pd.DataFrame(payload_rows)
-            try:
-                existing_df = load_dataset(HF_DATASET, split="train").to_pandas()
-                df = pd.concat([existing_df, new_df], ignore_index=True)
-            except Exception:
-                df = new_df
+            # Reuse the already-verified snapshot. Never replace a failed read
+            # with a new-only dataframe: that could overwrite unseen remote rows.
+            existing_df = existing.to_pandas()
+            df = pd.concat([existing_df, new_df], ignore_index=True)
 
             # P0-A visibility: PRIVATE is the default. Going public requires
             # the explicit literal OMNI_HF_DATASET_PRIVATE=false opt-in.
@@ -570,8 +608,23 @@ def _rewrite_pending_excluding(pushed_rows: list[dict]) -> None:
     """
     if not pushed_rows:
         return
-    pushed_hashes = {r.get("content_hash") for r in pushed_rows}
-    remaining = [r for r in _read_pending() if r.get("content_hash") not in pushed_hashes]
+    pushed_integrity_hashes = {
+        str(r.get("integrity_hash")) for r in pushed_rows if r.get("integrity_hash")
+    }
+    pushed_legacy_hashes = {
+        str(r.get("content_hash")) for r in pushed_rows if not r.get("integrity_hash")
+    }
+    remaining = [
+        r for r in _read_pending()
+        if not (
+            (r.get("integrity_hash") and str(r.get("integrity_hash")) in pushed_integrity_hashes)
+            or (
+                not r.get("integrity_hash")
+                and r.get("content_hash")
+                and str(r.get("content_hash")) in pushed_legacy_hashes
+            )
+        )
+    ]
     if not remaining:
         _clear_pending()
         return
