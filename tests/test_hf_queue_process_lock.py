@@ -56,7 +56,7 @@ def test_corrupt_pending_row_is_preserved_and_blocks_queue_processing(tmp_path, 
     stage_dir = tmp_path / "queue"
     stage_dir.mkdir()
     pending_path = stage_dir / "pending.jsonl"
-    original = b'{"content_hash":"ok"}\\n{corrupt-json\\n'
+    original = b'{"content_hash":"ok"}\n{corrupt-json\n'
     pending_path.write_bytes(original)
     monkeypatch.setattr(service, "_STAGE_DIR", stage_dir)
     monkeypatch.setattr(service, "_PENDING_FILE", pending_path)
