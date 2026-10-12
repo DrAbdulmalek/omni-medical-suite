@@ -88,6 +88,10 @@ from packages.ocr_contracts.integrity_ledger import (
     record_delivery_event,
     record_export_attempt,
 )
+from app.services.hf_dataset_cas import (
+    get_verified_dataset_baseline,
+    push_parquet_snapshot_with_cas,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +205,7 @@ HAS_HF = False
 try:
     import pandas as pd
     from datasets import Dataset, load_dataset
+    from huggingface_hub import HfApi
     HAS_HF = True
 except ImportError:
     logger.warning("HuggingFace libs not available — save disabled (staging still works)")
@@ -570,11 +575,23 @@ def flush_queue() -> str:
         _verify_remote_dataset_privacy()
 
         try:
-            existing = load_dataset(HF_DATASET, split="train")
+            # Capture one exact remote revision, enumerate its data layout, and
+            # load that exact revision. The eventual write uses this same SHA as
+            # parent_commit, so a concurrent writer causes a conflict instead
+            # of silently replacing a newer snapshot.
+            hf_api = HfApi(token=HF_TOKEN)
+            baseline_sha, baseline_data_path = get_verified_dataset_baseline(
+                hf_api, repo_id=HF_DATASET, token=HF_TOKEN
+            )
+            existing = load_dataset(
+                HF_DATASET, split="train", revision=baseline_sha
+            )
         except Exception as e:
-            logger.error("Remote HF dataset read failed; refusing export without a verified baseline")
+            logger.error(
+                "Remote HF baseline/revision/layout could not be verified; refusing export"
+            )
             raise RuntimeError(
-                "HF export aborted: could not verify the existing remote dataset; "
+                "HF export aborted: could not verify the existing remote dataset baseline; "
                 "no remote write was attempted and staged rows were retained"
             ) from e
 
@@ -655,12 +672,12 @@ def flush_queue() -> str:
 
             # P0-A visibility: PRIVATE is the default. Going public requires
             # the explicit literal OMNI_HF_DATASET_PRIVATE=false opt-in.
-            push_kwargs = {"repo_id": HF_DATASET, "private": OMNI_HF_DATASET_PRIVATE}
             if not OMNI_HF_DATASET_PRIVATE:
                 logger.warning(
-                    "Hub dataset will be PUBLIC — explicit OMNI_HF_DATASET_PRIVATE=false opt-in"
+                    "Hub dataset visibility is expected to be PUBLIC — explicit "
+                    "OMNI_HF_DATASET_PRIVATE=false opt-in; this writer does not "
+                    "change repository visibility."
                 )
-            push_kwargs["token"] = HF_TOKEN
             new_ds = Dataset.from_pandas(df)
             # This ID correlates metadata-only outcome events for this one attempt.
             # A retry gets a new ID; dedup against the verified remote snapshot remains
@@ -672,7 +689,14 @@ def flush_queue() -> str:
                 outcome="push_started",
             )
             try:
-                new_ds.push_to_hub(**push_kwargs)
+                push_parquet_snapshot_with_cas(
+                    hf_api,
+                    new_ds,
+                    repo_id=HF_DATASET,
+                    token=HF_TOKEN,
+                    parent_commit=baseline_sha,
+                    data_path=baseline_data_path,
+                )
             except Exception as exc:
                 # A client exception cannot prove whether the Hub committed the write.
                 # Record ambiguity rather than claiming a definite remote failure.

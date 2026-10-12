@@ -7,6 +7,34 @@ from app.services import hf_dataset_service as service
 from packages.ocr_contracts.integrity_ledger import connect_ledger
 
 
+@pytest.fixture(autouse=True)
+def mock_hf_cas_boundary(monkeypatch):
+    """Keep service integration tests offline while preserving their push fakes.
+
+    The dedicated test_hf_dataset_cas.py suite exercises the real CAS helper.
+    These tests focus on staging, consent, ledger, archive, and retry behavior.
+    """
+    class FakeHfApi:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    def fake_baseline(api, *, repo_id, token):
+        return ("a" * 40, "data/train-00000-of-00001.parquet")
+
+    def fake_cas_push(api, dataset, *, repo_id, token, parent_commit, data_path):
+        # Existing test doubles model delivery with push_to_hub; retain that
+        # behavior here without invoking any real Hugging Face network method.
+        return dataset.push_to_hub(
+            repo_id=repo_id,
+            private=service.OMNI_HF_DATASET_PRIVATE,
+            token=token,
+        )
+
+    monkeypatch.setattr(service, "HfApi", FakeHfApi, raising=False)
+    monkeypatch.setattr(service, "get_verified_dataset_baseline", fake_baseline)
+    monkeypatch.setattr(service, "push_parquet_snapshot_with_cas", fake_cas_push)
+
+
 @pytest.fixture
 def ledger_paths(tmp_path, monkeypatch):
     stage = tmp_path / "stage"
