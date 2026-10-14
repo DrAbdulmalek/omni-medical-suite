@@ -1,0 +1,10 @@
+ahw-dataset-builder/
+├── segment.py              ← المقطّع (محدّث مع Excel)
+├── server.py               ← Flask + SQLite
+├── postprocess.py          ← تحسين القصاصات
+├── train_trocr.py          ← fine-tuning
+├── requirements.txt
+├── README.md
+├── templates/
+│   └── viewer.html         ← قالب الويب
+└── output/                 ← مخرجات (تُنشأ تلقائياً)
