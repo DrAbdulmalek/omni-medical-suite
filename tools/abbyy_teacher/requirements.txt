@@ -1,0 +1,3 @@
+# Teacher pipeline only needs stdlib + these two:
+lxml>=4.9
+Pillow>=10.0
