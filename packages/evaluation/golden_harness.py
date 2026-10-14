@@ -130,6 +130,11 @@ def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict
     ref_normalized, ref_policy = normalize_v1(sample["reference"])
     cer, _, _ = calculate_cer(ref_normalized, normalized, skip_internal_normalize=True)
     wer, _, _ = calculate_wer(ref_normalized, normalized, skip_internal_normalize=True)
+    # F-13 provenance: raw parallel metrics help quantify normalization-sensitive error.
+    # This is a diagnostic delta, not proof that every removed difference was encoding noise.
+    cer_raw, _, _ = calculate_cer(sample["reference"], raw, skip_internal_normalize=True)
+    wer_raw, _, _ = calculate_wer(sample["reference"], raw, skip_internal_normalize=True)
+    encoding_artifact_share = max(0.0, cer_raw - cer)
     return {
         "sample_id": sample["id"],
         "category": sample["category"],
@@ -139,10 +144,21 @@ def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict
         "model": out.get("model", ""),
         "raw_text": raw,
         "normalized_text": normalized,
-        "normalize_policy": {"version": policy["version"], "fold_hamza": policy["fold_hamza"]},
+        "normalize_policy": {
+            "version": policy["version"],
+            "fold_hamza": policy["fold_hamza"],
+            "symmetric": True,
+            "hyp": policy,
+            "ref": ref_policy,
+        },
         "reference_normalize": {"version": ref_policy["version"], "fold_hamza": ref_policy["fold_hamza"]},
         "cer": round(cer, 6),
         "wer": round(wer, 6),
+        "cer_normalized": round(cer, 6),
+        "wer_normalized": round(wer, 6),
+        "cer_raw": round(cer_raw, 6),
+        "wer_raw": round(wer_raw, 6),
+        "encoding_artifact_share": round(encoding_artifact_share, 6),
         "audit": {
             "latency_ms": round(out.get("latency_ms", 0.0), 2),
             "chars": len(raw),
