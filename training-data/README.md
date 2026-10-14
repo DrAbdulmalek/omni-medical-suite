@@ -79,6 +79,29 @@ Each line in the export file:
 }
 ```
 
+## Readiris Teacher Pipeline (tools/readiris_teacher)
+
+To generate this kind of ground truth *at scale* from text exports (TXT /
+HTML / RTF) of a **locally licensed** Readiris copy, use the Readiris teacher
+pipeline - the direct equivalent of the ABBYY teacher (`tools/abbyy_teacher`,
+PR #168), emitting the same JSONL contract. Every CLI command clears a
+license gate (`--i-own-license` + `READIRIS_LICENSE_CONFIRMED=1`); no
+Readiris binaries or installers may ever be committed.
+
+```bash
+# line-level JSONL (works for text-only TXT/RTF exports, no geometry needed)
+python -m tools.readiris_teacher build --export export.txt --out-dir dataset/page1 --i-own-license
+
+# align Readiris output with a trusted transcription -> correction pairs
+python -m tools.readiris_teacher align --export export.txt --truth-text truth.txt --out corrections.jsonl --i-own-license
+```
+
+The produced `data.jsonl` is load-compatible with the JSONL contract above
+(additive provenance field `export_sha256`). See
+`tools/readiris_teacher/README.md` for the full methodology (teacher-student
+pseudo-labeling, Arabic text alignment, geometry-aware YOLO export for
+positioned HTML, hybrid cascade with `readiris_fallback`).
+
 ## Contributing
 
 To add new training samples:

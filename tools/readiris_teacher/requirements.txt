@@ -1,0 +1,3 @@
+# Parsing, alignment, dataset building and cascade routing are stdlib-only.
+# Pillow is required only for crop (snippet extraction).
+Pillow>=10.0
