@@ -1,0 +1,42 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  correction-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ahw-correction-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - FLASK_ENV=production
+    command: python server.py --sample S001 --host 0.0.0.0 --port 5000
+    restart: unless-stopped
+    # لا يحتاج GPU للتصحيح
+
+  training-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ahw-training-ui
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./output:/app/output
+      - ./models:/app/models
+    environment:
+      - FLASK_ENV=production
+    command: python train_server.py --host 0.0.0.0 --port 5001
+    restart: unless-stopped
+    # دعم GPU (اختياري)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # إذا لم يكن لديك GPU، احذف قسم deploy بالكامل

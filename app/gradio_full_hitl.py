@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 # lookups; the module-level imports are kept for backward compatibility.
 from app.services.ocr_service import (          # noqa: E402
     _auto_correct_ocr,
+    _auto_correct_ocr_with_status,
     _preprocess_image,
     _run_paddle_ocr,
     _run_tesseract,
@@ -146,25 +147,42 @@ def calculate_metrics(reference: str, hypothesis: str) -> str:
     return out
 
 
+def _empty_ocr_status() -> dict:
+    """A neutral, fail-visible ocr_status payload for non-processing paths."""
+    return {
+        "selected_engine": "none",
+        "paddle_status": "unavailable",
+        "tesseract_status": "unavailable",
+        "fallback_used": False,
+        "fallback_reason": None,
+        "correction_failed": False,
+        "user_visible_error": "",
+    }
+
+
 def full_process(image):
     """
     Complete processing pipeline:
     Image → Preprocess → OCR Ensemble → Spell Check → LLM Proofread → NER
+
+    P0-B (fail-visible): returns a 6-tuple ending in a structured
+    ``ocr_status`` dict. Engine failures are surfaced in the UI instead of
+    silently degrading to an empty-looking "clean document". The fallback
+    placeholder ("[لم يتم اكتشاف نص]") is NEVER fed into the correction
+    pipeline, and both-engines-empty is reported as a FAILURE.
     """
     if image is None:
-        return None, "لم يتم رفع صورة", "", {}, "يرجى رفع صورة طبية"
+        status = _empty_ocr_status()
+        status["user_visible_error"] = "لم يتم رفع صورة"
+        return None, "لم يتم رفع صورة", "", {}, "يرجى رفع صورة طبية", status
 
     # Resolve lazy singletons once for the whole call
     from app.services.ocr_service import (
-        get_paddle_ocr,
         get_spell_checker,
-        has_tesseract,
     )
     from app.services.review_service import get_ner, get_proofreader
 
-    paddle = get_paddle_ocr()
     checker = get_spell_checker()
-    tess_ok = has_tesseract()
     proof = get_proofreader()
     ner_inst = get_ner()
 
@@ -173,14 +191,54 @@ def full_process(image):
         # 1. Preprocessing
         cleaned, prep_steps = _preprocess_image(image)
 
-        # 2. OCR — run all available engines
-        paddle_text, paddle_details = _run_paddle_ocr(cleaned)
-        tesseract_text, tess_conf = _run_tesseract(cleaned)
+        # 2. OCR — run all available engines (3-tuple: text, payload, status)
+        paddle_text, paddle_details, paddle_status = _run_paddle_ocr(cleaned)
+        tesseract_text, tess_conf, tess_status = _run_tesseract(cleaned)
 
-        # 3. Ensemble: PaddleOCR primary, Tesseract supplement
-        raw_text = paddle_text if (paddle_text and len(paddle_text.strip()) > 5) else tesseract_text
-        if not raw_text.strip():
-            raw_text = paddle_text or tesseract_text or "[لم يتم اكتشاف نص]"
+        # 3. Ensemble: PaddleOCR primary, Tesseract supplement.
+        # The len>5 heuristic is preserved but is now RECORDED in the
+        # structured status (fallback_used / fallback_reason).
+        ocr_status = {
+            "paddle_status": paddle_status,
+            "tesseract_status": tess_status,
+            "fallback_used": False,
+            "fallback_reason": None,
+            "correction_failed": False,
+            "user_visible_error": "",
+        }
+        paddle_usable = paddle_status == "ok" and len(paddle_text.strip()) > 5
+        tesseract_usable = tess_status == "ok" and bool(tesseract_text.strip())
+
+        if paddle_usable:
+            raw_text = paddle_text
+            ocr_status["selected_engine"] = "paddle"
+        elif tesseract_usable:
+            raw_text = tesseract_text
+            ocr_status["selected_engine"] = "tesseract"
+            ocr_status["fallback_used"] = True
+            ocr_status["fallback_reason"] = (
+                f"paddle {paddle_status} / len<=5 heuristic"
+                if paddle_status == "ok"
+                else f"paddle {paddle_status}"
+            )
+        else:
+            # P0-B: BOTH engines failed or produced nothing. This is a
+            # FAILURE, not a document. No placeholder is fabricated, no
+            # correction is run on placeholder text, nothing clean is shown.
+            ocr_status["selected_engine"] = "none"
+            ocr_status["fallback_used"] = True
+            ocr_status["fallback_reason"] = f"paddle {paddle_status}, tesseract {tess_status}"
+            ocr_status["user_visible_error"] = (
+                f"⚠️ فشل استخراج النص: لم ينتج أي محرك OCR نصاً "
+                f"(Paddle: {paddle_status} / Tesseract: {tess_status})."
+            )
+            elapsed = time.time() - t0
+            parts = [
+                f"✅ معالجة مسبقة: {' + '.join(prep_steps)}",
+                f"❌ {ocr_status['user_visible_error']}",
+                f"⏱️ {elapsed:.1f} ثانية",
+            ]
+            return cleaned, "", "", {}, "\n".join(parts), ocr_status
 
         engine_info = {}
         if paddle_text:
@@ -188,8 +246,10 @@ def full_process(image):
         if tesseract_text:
             engine_info["Tesseract"] = f"ثقة {tess_conf:.0f}%"
 
-        # 4. Auto-correct OCR artifacts (now also applies spell checker internally)
-        corrected, corrections = _auto_correct_ocr(raw_text)
+        # 4. Auto-correct OCR artifacts (canonical single correction; the
+        # correction input is REAL engine text — never the placeholder).
+        corrected, corrections, correction_failed = _auto_correct_ocr_with_status(raw_text)
+        ocr_status["correction_failed"] = correction_failed
 
         # 4.5 Spell check info (the checker was already applied inside _auto_correct_ocr
         # since v1.1.0-rc; we keep this block only for the status message).
@@ -221,13 +281,13 @@ def full_process(image):
         elapsed = time.time() - t0
         parts = [f"✅ معالجة مسبقة: {' + '.join(prep_steps)}"]
 
-        if not tess_ok and paddle is None:
-            parts.append("❌ لا يوجد محرك OCR مثبت — ثبّت pytesseract أو paddleocr")
-        elif not raw_text.strip():
-            parts.append("⚠️ لم يُستخرَج أي نص (تحقق من جودة الصورة)")
+        if paddle_status != "ok" and tess_status != "ok":
+            parts.append("⚠️ المحركان يعملان بحالة غير سليمة — النص قد يكون جزئياً")
 
         parts.extend(f"✅ {k}: {v}" for k, v in engine_info.items())
         parts.append(f"✅ تصحيح OCR: {len(corrections)} تعديل")
+        if correction_failed:
+            parts.append("⚠️ فشل جزئي في التصحيح الإملائي — النص معروض كما هو")
         if spell_info:
             parts.append(f"✅ {spell_info}")
         parts.append(f"✅ كيانات: {sum(len(v) for v in entities.values())}")
@@ -236,11 +296,34 @@ def full_process(image):
         if proof is None and ner_inst is None:
             parts.append("(وضع أساسي — LLM غير مفعّل)")
 
-        return cleaned, corrected, raw_text, entities, "\n".join(parts)
+        return cleaned, corrected, raw_text, entities, "\n".join(parts), ocr_status
 
     except Exception as e:
         logger.error(f"Processing error: {e}", exc_info=True)
-        return None, f"خطأ: {e!s}", "", {}, f"حدث خطأ: {e!s}"
+        status = _empty_ocr_status()
+        status["user_visible_error"] = f"حدث خطأ: {e!s}"
+        return None, f"خطأ: {e!s}", "", {}, f"حدث خطأ: {e!s}", status
+
+
+def save_correction(corrected_text: str, raw_text: str, entities,
+                    category: str, consent: bool) -> str:
+    """HITL save gate (P0-A): explicit consent is mandatory (A3).
+
+    The consent checkbox is UNCHECKED by default and is never auto-ticked.
+    Without it, the save/export action is BLOCKED with an explicit message
+    and nothing is staged. With it, the row is handed to the fail-closed
+    staging service (which still requires the operator-side export gates
+    before anything ever reaches the Hub).
+    """
+    if not consent:
+        logger.info("Save blocked: user did not give explicit consent")
+        return (
+            "🛑 BLOCKED — لم يتم الحفظ: الموافقة الصريحة مطلوبة قبل حفظ/تصدير "
+            "أي بيانات طبية. ضع علامة في مربع الموافقة إن كنت توافق فعلاً. / "
+            "Explicit consent is required before saving or exporting medical "
+            "data. Nothing was saved."
+        )
+    return save_to_hf(corrected_text, raw_text, entities, category, consent=True)
 
 
 def copy_to_clipboard(text: str) -> str:
@@ -293,6 +376,11 @@ with gr.Blocks(
         copy_status = gr.Textbox(label="", interactive=False, max_lines=1)
 
     entities_output = gr.JSON(label="الكيانات المستخرجة (NER)")
+
+    ocr_status_output = gr.JSON(
+        label="حالة محركات OCR (تشخيص — P0)",
+        value=None,
+    )
 
     # ── Jais Proofread Section (prominent) ─────────────────────────────
     with gr.Group(visible=True):
@@ -351,6 +439,18 @@ with gr.Blocks(
         )
         save_btn = gr.Button("💾 حفظ التصحيح في HF Dataset", variant="secondary")
 
+    consent_checkbox = gr.Checkbox(
+        value=False,
+        label=(
+            "أوافق على حفظ هذا التصحيح وترشيحه للتصدير الاختياري إلى HuggingFace — "
+            "إلزامي قبل الحفظ / "
+            "I consent to saving this correction and its optional export to "
+            "HuggingFace — required before saving"
+        ),
+        info=("التصدير إلى Hub معطّل افتراضياً ولا يتم إلا بموافقة مشغّل صريحة. "
+              "Hub export is disabled by default and requires explicit operator opt-in."),
+    )
+
     status = gr.Textbox(label="الحالة", interactive=False)
 
     # ── Advanced Actions ────────────────────────────────────────────────
@@ -390,12 +490,12 @@ with gr.Blocks(
     process_btn.click(
         fn=full_process,
         inputs=[input_image],
-        outputs=[cleaned_img, corrected, raw_ocr, entities_output, status],
+        outputs=[cleaned_img, corrected, raw_ocr, entities_output, status, ocr_status_output],
     )
 
     save_btn.click(
-        fn=save_to_hf,
-        inputs=[corrected, raw_ocr, entities_output, category],
+        fn=save_correction,
+        inputs=[corrected, raw_ocr, entities_output, category, consent_checkbox],
         outputs=[status],
     )
 

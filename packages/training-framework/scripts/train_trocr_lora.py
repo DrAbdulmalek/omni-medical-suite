@@ -74,20 +74,16 @@ class HTRDataset(Dataset):
         samples = []
 
         if data_path.suffix == '.lmdb':
-            # LMDB format
-            import pickle
+            # LMDB format — values are JSON (UTF-8), not pickle.
+            # Old pickle-based LMDBs are rejected with an explicit error
+            # directing the operator to regenerate via prepare_htr_dataset.py.
+            # Delegates to the lightweight serialization helper so that
+            # the deserialization boundary does NOT pull in the heavy ML
+            # stack (torch/transformers/peft/datasets) at module load.
+            from _lmdb_safe_format import read_sample_lmdb
 
-            import lmdb
-
-            env = lmdb.open(str(data_path), readonly=True)
-            with env.begin() as txn:
-                n = int(txn.get(b'__len__'))
-                for i in range(n):
-                    key = f"{i:08d}".encode()
-                    value = txn.get(key)
-                    data = pickle.loads(value)
-                    samples.append(data)
-            env.close()
+            for data in read_sample_lmdb(data_path):
+                samples.append(data)
 
         elif data_path.suffix == '.jsonl':
             # JSON Lines
