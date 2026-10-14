@@ -50,6 +50,10 @@ env/
 env/
 venv/
 .venv/
+# Throwaway venv created by .github/workflows/security-scan.yml so that pip-audit /
+# safety (and their own transitive deps, e.g. safety -> nltk) can never end up inside
+# the environment being audited.
+.scanner-venv/
 
 # IDE
 .vscode/

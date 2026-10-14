@@ -174,13 +174,16 @@ def check_cloud_gate() -> None:
 
 def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict:
     raw = (out.get("text") or "").strip()
-    hyp_norm, hyp_policy = normalize_v1(raw)
-    ref_norm, ref_policy = normalize_v1(sample["reference"])
-    cer_n, _, _ = calculate_cer(ref_norm, hyp_norm)
-    wer_n, _, _ = calculate_wer(ref_norm, hyp_norm)
-    cer_r, _, _ = calculate_cer(sample["reference"], raw)
-    wer_r, _, _ = calculate_wer(sample["reference"], raw)
-    encoding_artifact_share = max(0.0, (cer_r or 0.0) - (cer_n or 0.0))
+    normalized, policy = normalize_v1(raw)
+    # F-13/F-16: طبّع المرجع أيضاً عبر normalize_v1 (نقطة تطبيع واحدة للطرفين)
+    # ثم استدعِ المقاييس بـ skip_internal_normalize=True — يمنع التطبيع المزدوج.
+    ref_normalized, ref_policy = normalize_v1(sample["reference"])
+    cer, _, _ = calculate_cer(ref_normalized, normalized, skip_internal_normalize=True)
+    wer, _, _ = calculate_wer(ref_normalized, normalized, skip_internal_normalize=True)
+    # F-13 provenance (#144): قياس خام موازٍ (بلا تطبيع داخلي) لتقدير حصة تشويش الترميز
+    cer_r, _, _ = calculate_cer(sample["reference"], raw, skip_internal_normalize=True)
+    wer_r, _, _ = calculate_wer(sample["reference"], raw, skip_internal_normalize=True)
+    encoding_artifact_share = max(0.0, (cer_r or 0.0) - (cer or 0.0))
     return {
         "sample_id": sample["id"],
         "category": sample["category"],
@@ -189,18 +192,19 @@ def _provenance_row(sample: dict, engine: str, out: dict, page: int = 1) -> dict
         "engine": engine,
         "model": out.get("model", ""),
         "raw_text": raw,
-        "normalized_text": hyp_norm,
+        "normalized_text": normalized,
         "normalize_policy": {
-            "version": hyp_policy["version"],
-            "fold_hamza": hyp_policy["fold_hamza"],
+            "version": policy["version"],
+            "fold_hamza": policy["fold_hamza"],
             "symmetric": True,
-            "hyp": hyp_policy,
+            "hyp": policy,
             "ref": ref_policy,
         },
-        "cer": round(cer_n, 6),
-        "wer": round(wer_n, 6),
-        "cer_normalized": round(cer_n, 6),
-        "wer_normalized": round(wer_n, 6),
+        "reference_normalize": {"version": ref_policy["version"], "fold_hamza": ref_policy["fold_hamza"]},
+        "cer": round(cer, 6),
+        "wer": round(wer, 6),
+        "cer_normalized": round(cer, 6),
+        "wer_normalized": round(wer, 6),
         "cer_raw": round(cer_r, 6),
         "wer_raw": round(wer_r, 6),
         "encoding_artifact_share": round(encoding_artifact_share, 6),
