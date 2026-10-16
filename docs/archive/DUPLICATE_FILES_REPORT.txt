@@ -1,0 +1,2068 @@
+=== OmniFile_Colab_Notebook.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/01-colab-notebook/OmniFile_Colab_Notebook.py
+./packages/file_processor/notebooks/OmniFile_Colab_Notebook.py
+
+=== _system.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/_system.py
+./packages/interactive-learning/_system.py
+
+=== account_pool.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/pool/account_pool.py
+./packages/ai/gateway/pool/account_pool.py
+
+=== active_learning.py موجود في 5 مسارات ===
+./packages/handwriting/modules/ai/active_learning.py
+./packages/file_processor/legacy/mobile_review/split/12-active-learning/active_learning.py
+./packages/file_processor/modules/ai/active_learning.py
+./packages/ai/active_learning.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/ai/active_learning.py
+
+=== active_learning_pipeline.py موجود في 2 مسارات ===
+./packages/file_processor/training/scripts/active_learning_pipeline.py
+./packages/training-framework/scripts/active_learning_pipeline.py
+
+=== agent.py موجود في 5 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/usernamedadad-AutoFlow/backend/app/routers/agent.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/core/agent.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/agent.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/agent.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/agent.py
+
+=== agent_tool.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/chen070808-ProgrammingTutor/src/tools/agent_tool.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lll0807-CodeTutorAgent/programmer/tools/agent_tool.py
+
+=== agents.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/afei-GuessWhoAmI/backend/agents.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/melxy1997-ColumnWriter/agents.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter15/Helloagents-AI-Town/backend/agents.py
+
+=== ai_corrector.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/ai_corrector.py
+./packages/file_processor/modules/nlp/ai_corrector.py
+./packages/omnifile/modules/nlp/ai_corrector.py
+./packages/nlp/ai_corrector.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/ai_corrector.py
+./hf-space/packages/nlp/ai_corrector.py
+
+=== analysis.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/api/routes/analysis.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/models/analysis.py
+
+=== anthropic.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/models/anthropic.py
+./packages/ai/gateway/api/models/anthropic.py
+
+=== anthropic_messages.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/providers/anthropic_messages.py
+./packages/ai/gateway/providers/anthropic_messages.py
+
+=== api_server.py موجود في 6 مسارات ===
+./legacy/api_server.py
+./packages/core/api_server.py
+./packages/doc_processor/packages/core/api_server.py
+./packages/doc-processor/packages/core/api_server.py
+./apps/ocr-pipeline/api_server.py
+./hf-space/packages/core/api_server.py
+
+=== app.py موجود في 23 مسارات ===
+./packages/handwriting/app.py
+./packages/file_processor/legacy/translation_corrector/app.py
+./packages/file_processor/legacy/ocr_unified_v2/backend/app.py
+./packages/file_processor/app.py
+./packages/file_processor/_dev_references/financial-services/claude-for-msft-365-install/examples/python-bootstrap/app.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lgs-only-NovelGenerator/src/app.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/meiguanxiHXX-historyReviewAgent/historical_review/web/app.py
+./packages/file_processor/modules/ai/gateway/api/app.py
+./packages/ai/gateway/api/app.py
+./app/config/app.py
+./apps/trainer-ui/app.py
+./apps/trainer-ui/hf-variant/app.py
+./apps/ocr-pipeline/app.py
+./apps/ocr-pipeline/desktop/app.py
+./apps/handwriting-demo/variants/handwriting-ocr/app.py
+./apps/handwriting-demo/app.py
+./apps/handwriting-demo/hf-deploy/app.py
+./apps/ocr-demo/app.py
+./hf-space/app.py
+./tools/telegram-channel-copier/app.py
+./tools/ops/telegram_forwarder/app.py
+./tools/medical-ocr-trainer-hf/app.py
+./tools/HandwrittenOCR/backend/app.py
+
+=== arabic_htr.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/htr/arabic_htr.py
+./packages/vision/htr/arabic_htr.py
+./hf-space/packages/vision/htr/arabic_htr.py
+
+=== arabic_nlp_utils.py موجود في 8 مسارات ===
+./packages/handwriting/modules/nlp/arabic_nlp_utils.py
+./packages/file_processor/legacy/mobile_review/split/05-review-systems/arabic_nlp_utils.py
+./packages/file_processor/modules/nlp/arabic_nlp_utils.py
+./packages/file_processor/tools/arabic_nlp_utils.py
+./packages/omnifile/modules/nlp/arabic_nlp_utils.py
+./packages/nlp/arabic_nlp_utils.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/arabic_nlp_utils.py
+./hf-space/packages/nlp/arabic_nlp_utils.py
+
+=== arabic_rtl.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/arabic_rtl.py
+./packages/file_processor/modules/nlp/arabic_rtl.py
+./packages/omnifile/modules/nlp/arabic_rtl.py
+./packages/nlp/arabic_rtl.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/arabic_rtl.py
+./hf-space/packages/nlp/arabic_rtl.py
+
+=== arabic_segmenter.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/arabic_segmenter.py
+./packages/vision/arabic_segmenter.py
+./hf-space/packages/vision/arabic_segmenter.py
+
+=== arabic_translation_processor.py موجود في 3 مسارات ===
+./packages/file_processor/modules/nlp/translation_corrector/arabic_translation_processor.py
+./packages/nlp/translation_corrector/arabic_translation_processor.py
+./hf-space/packages/nlp/translation_corrector/arabic_translation_processor.py
+
+=== archive_handler.py موجود في 4 مسارات ===
+./packages/handwriting/modules/security/archive_handler.py
+./packages/security/archive_handler.py
+./packages/file_processor/modules/security/archive_handler.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/archive_handler.py
+
+=== audit_logger.py موجود في 5 مسارات ===
+./packages/audit/audit_logger.py
+./packages/handwriting/modules/security/audit_logger.py
+./packages/file_processor/modules/audit/audit_logger.py
+./packages/file_processor/modules/security/audit_logger.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/audit_logger.py
+
+=== auto_train_htr.py موجود في 2 مسارات ===
+./packages/file_processor/training/scripts/auto_train_htr.py
+./packages/training-framework/scripts/auto_train_htr.py
+
+=== aws_sagemaker.py موجود في 2 مسارات ===
+./packages/file_processor/training/cloud/aws_sagemaker.py
+./packages/training-framework/cloud/aws_sagemaker.py
+
+=== azure_ml.py موجود في 2 مسارات ===
+./packages/file_processor/training/cloud/azure_ml.py
+./packages/training-framework/cloud/azure_ml.py
+
+=== backup_manager.py موجود في 4 مسارات ===
+./packages/handwriting/modules/security/backup_manager.py
+./packages/security/backup_manager.py
+./packages/file_processor/modules/security/backup_manager.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/backup_manager.py
+
+=== base.py موجود في 8 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/agents/base.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/tools/base.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/backend/agents/base.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/agents/base.py
+./packages/file_processor/modules/ai/gateway/providers/base.py
+./packages/ai/gateway/providers/base.py
+./packages/doc_processor/skills/xlsx/templates/base.py
+./packages/doc_processor/skills/ppt/ooxml/scripts/validation/base.py
+
+=== base_db.py موجود في 3 مسارات ===
+./packages/core/base_db.py
+./packages/file_processor/modules/core/base_db.py
+./hf-space/packages/core/base_db.py
+
+=== batch.py موجود في 3 مسارات ===
+./packages/ocr_postprocess/src/medical_ocr_postprocessor/batch.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/backend/tasks/batch.py
+./hf-space/packages/ocr_postprocess/src/medical_ocr_postprocessor/batch.py
+
+=== batch_fixer.py موجود في 2 مسارات ===
+./packages/scanner_fixer/scripts/batch_fixer.py
+./hf-space/packages/scanner_fixer/scripts/batch_fixer.py
+
+=== batch_ocr.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/batch_ocr.py
+./packages/vision/batch_ocr.py
+./hf-space/packages/vision/batch_ocr.py
+
+=== batch_pipeline.py موجود في 2 مسارات ===
+./packages/scanner_fixer/src/scanner_fixer/batch_pipeline.py
+./hf-space/packages/scanner_fixer/src/scanner_fixer/batch_pipeline.py
+
+=== batch_process.py موجود في 2 مسارات ===
+./packages/scanner_fixer/scripts/batch_process.py
+./hf-space/packages/scanner_fixer/scripts/batch_process.py
+
+=== benchmark_kitab.py موجود في 4 مسارات ===
+./packages/handwriting/scripts/benchmark_kitab.py
+./packages/file_processor/scripts/benchmark_kitab.py
+./packages/omnifile/scripts/benchmark_kitab.py
+./apps/handwriting-demo/variants/handwriting-ocr/scripts/benchmark_kitab.py
+
+=== chunk_validator.py موجود في 2 مسارات ===
+./packages/ai-fuel/segmenter/chunk_validator.py
+./tools/ai_fuel/segmenter/chunk_validator.py
+
+=== classifier.py موجود في 7 مسارات ===
+./packages/handwriting/modules/core/classifier.py
+./packages/core/classifier.py
+./packages/file_processor/modules/core/classifier.py
+./packages/omnifile/modules/core/classifier.py
+./packages/data-prep/classifier.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/classifier.py
+./hf-space/packages/core/classifier.py
+
+=== cli.py موجود في 6 مسارات ===
+./packages/scanner_fixer/src/scanner_fixer/cli.py
+./packages/ocr_postprocess/src/medical_ocr_postprocessor/cli.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/meiguanxiHXX-historyReviewAgent/historical_review/web/cli.py
+./packages/gt_core/tools/ocr-groundtruth/src/ocr_groundtruth/cli.py
+./hf-space/packages/scanner_fixer/src/scanner_fixer/cli.py
+./hf-space/packages/ocr_postprocess/src/medical_ocr_postprocessor/cli.py
+
+=== client.py موجود في 16 مسارات ===
+./packages/file_processor/modules/ai/gateway/providers/llamacpp/client.py
+./packages/file_processor/modules/ai/gateway/providers/nvidia_nim/client.py
+./packages/file_processor/modules/ai/gateway/providers/open_router/client.py
+./packages/file_processor/modules/ai/gateway/providers/lmstudio/client.py
+./packages/file_processor/modules/ai/gateway/providers/wafer/client.py
+./packages/file_processor/modules/ai/gateway/providers/kimi/client.py
+./packages/file_processor/modules/ai/gateway/providers/deepseek/client.py
+./packages/file_processor/modules/ai/gateway/providers/ollama/client.py
+./packages/ai/gateway/providers/llamacpp/client.py
+./packages/ai/gateway/providers/nvidia_nim/client.py
+./packages/ai/gateway/providers/open_router/client.py
+./packages/ai/gateway/providers/lmstudio/client.py
+./packages/ai/gateway/providers/wafer/client.py
+./packages/ai/gateway/providers/kimi/client.py
+./packages/ai/gateway/providers/deepseek/client.py
+./packages/ai/gateway/providers/ollama/client.py
+
+=== code_protector.py موجود في 4 مسارات ===
+./packages/handwriting/modules/security/code_protector.py
+./packages/security/code_protector.py
+./packages/file_processor/modules/security/code_protector.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/code_protector.py
+
+=== code_runner.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/chen070808-ProgrammingTutor/src/tools/code_runner.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lll0807-CodeTutorAgent/programmer/tools/code_runner.py
+
+=== column_splitter.py موجود في 2 مسارات ===
+./packages/file_processor/modules/segmentation/column_splitter.py
+./packages/segmentation/column_splitter.py
+
+=== command_utils.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/command_utils.py
+./packages/ai/gateway/api/command_utils.py
+
+=== config.py موجود في 32 مسارات ===
+./packages/ai-fuel/core/config.py
+./packages/handwriting/config.py
+./packages/file_processor/legacy/ocr_unified_v2/config.py
+./packages/file_processor/legacy/mobile_review/split/10-backend-api/config.py
+./packages/file_processor/_dev_references/financial-services/claude-for-msft-365-install/examples/python-bootstrap/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/afei-GuessWhoAmI/backend/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/core/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/939147533-DatabaseAgent/src/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/usernamedadad-AutoFlow/backend/app/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/xujikai-SentenceExpandAgent/backend/src/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/core/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/meiguanxiHXX-historyReviewAgent/historical_review/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/healer-666-Academic-Data-Agent/src/data_analysis_agent/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/haoye2-UnivesalAgent/src/agents/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/rss_digest/src/rss_digest/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/backend/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/tino-chen-HelloClaw/src/api/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/melxy1997-ColumnWriter/config.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/core/config.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/config.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter15/Helloagents-AI-Town/backend/config.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter13/helloagents-trip-planner/backend/app/config.py
+./packages/file_processor/config.py
+./packages/omniparse/omniparse/web/config.py
+./packages/omnifile/config.py
+./apps/handwriting-demo/variants/handwriting-ocr/config.py
+./apps/handwriting-demo/hf-deploy/app/config.py
+./tools/ai_fuel/core/config.py
+./tools/HandwrittenOCR/config.py
+./labs/omniparse_study/omniparse/web/config.py
+
+=== conftest.py موجود في 7 مسارات ===
+./tests/conftest.py
+./packages/handwriting/tests/conftest.py
+./packages/file_processor/tests/conftest.py
+./packages/desktop/conftest.py
+./packages/omnifile/tests/conftest.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/conftest.py
+./apps/handwriting-demo/tests/conftest.py
+
+=== constants.py موجود في 4 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/web_tools/constants.py
+./packages/file_processor/modules/ai/gateway/config/constants.py
+./packages/ai/gateway/api/web_tools/constants.py
+./packages/ai/gateway/config/constants.py
+
+=== content.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/content.py
+./packages/ai/gateway/core/anthropic/content.py
+
+=== context_preserver.py موجود في 2 مسارات ===
+./packages/ai-fuel/segmenter/context_preserver.py
+./tools/ai_fuel/segmenter/context_preserver.py
+
+=== context_protector.py موجود في 2 مسارات ===
+./packages/ai-fuel/dedup/context_protector.py
+./tools/ai_fuel/dedup/context_protector.py
+
+=== conversation_pool.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/pool/conversation_pool.py
+./packages/ai/gateway/pool/conversation_pool.py
+
+=== conversion.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/conversion.py
+./packages/ai/gateway/core/anthropic/conversion.py
+
+=== core.py موجود في 3 مسارات ===
+./packages/ocr_postprocess/src/medical_ocr_postprocessor/core.py
+./packages/doc_processor/skills/ui-ux-pro-max/scripts/core.py
+./hf-space/packages/ocr_postprocess/src/medical_ocr_postprocessor/core.py
+
+=== correction.py موجود في 7 مسارات ===
+./packages/handwriting/src/correction.py
+./packages/benchmark_core/benchmarks/postprocessor/correction.py
+./packages/file_processor/legacy/ocr_unified_v2/src/correction.py
+./packages/file_processor/src/correction.py
+./packages/omnifile/src/correction.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/correction.py
+./tools/HandwrittenOCR/src/correction.py
+
+=== corrections_manager.py موجود في 3 مسارات ===
+./packages/core/corrections_manager.py
+./packages/file_processor/modules/core/corrections_manager.py
+./hf-space/packages/core/corrections_manager.py
+
+=== crawler_strategy.py موجود في 2 مسارات ===
+./packages/omniparse/omniparse/web/crawler_strategy.py
+./labs/omniparse_study/omniparse/web/crawler_strategy.py
+
+=== crop.py موجود في 2 مسارات ===
+./packages/scanner_fixer/src/scanner_fixer/crop.py
+./hf-space/packages/scanner_fixer/src/scanner_fixer/crop.py
+
+=== csv_exporter.py موجود في 2 مسارات ===
+./packages/ai-fuel/export/csv_exporter.py
+./tools/ai_fuel/export/csv_exporter.py
+
+=== data_augmentation.py موجود في 5 مسارات ===
+./packages/handwriting/modules/vision/data_augmentation.py
+./packages/file_processor/modules/vision/data_augmentation.py
+./packages/vision/data_augmentation.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/data_augmentation.py
+./hf-space/packages/vision/data_augmentation.py
+
+=== data_mixing.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/04-data-mixing-training/data_mixing.py
+./packages/file_processor/tools/data_mixing.py
+
+=== data_mixing_logistic.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/04-data-mixing-training/data_mixing_logistic.py
+./packages/file_processor/tools/data_mixing_logistic.py
+
+=== database.py موجود في 14 مسارات ===
+./packages/handwriting/src/database.py
+./packages/handwriting/database.py
+./packages/file_processor/legacy/ocr_unified_v2/src/database.py
+./packages/file_processor/legacy/mobile_review/split/10-backend-api/database.py
+./packages/file_processor/src/database.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/core/database.py
+./packages/file_processor/database.py
+./packages/omnifile/src/database.py
+./packages/omnifile/database.py
+./app/config/database.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/database.py
+./apps/handwriting-demo/variants/handwriting-ocr/database.py
+./apps/handwriting-demo/hf-deploy/app/database.py
+./tools/HandwrittenOCR/src/database.py
+
+=== database_manager.py موجود في 6 مسارات ===
+./packages/handwriting/modules/core/database_manager.py
+./packages/core/database_manager.py
+./packages/file_processor/modules/core/database_manager.py
+./packages/omnifile/modules/core/database_manager.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/database_manager.py
+./hf-space/packages/core/database_manager.py
+
+=== dataset_builder.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/dataset_builder.py
+./packages/vision/dataset_builder.py
+./hf-space/packages/vision/dataset_builder.py
+
+=== dataset_generator.py موجود في 6 مسارات ===
+./packages/handwriting/modules/core/dataset_generator.py
+./packages/core/dataset_generator.py
+./packages/file_processor/modules/core/dataset_generator.py
+./packages/omnifile/modules/core/dataset_generator.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/dataset_generator.py
+./hf-space/packages/core/dataset_generator.py
+
+=== db_manager.py موجود في 4 مسارات ===
+./packages/core/db_manager.py
+./packages/doc_processor/packages/core/db_manager.py
+./packages/doc-processor/packages/core/db_manager.py
+./hf-space/packages/core/db_manager.py
+
+=== decay_tracker.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/04-data-mixing-training/decay_tracker.py
+./packages/file_processor/tools/decay_tracker.py
+
+=== defaults.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/providers/defaults.py
+./packages/ai/gateway/providers/defaults.py
+
+=== demo.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/bichchibui5-hub-EmailSmartAssistant/demo.py
+./packages/omniparse/omniparse/demo.py
+./labs/omniparse_study/omniparse/demo.py
+
+=== dependencies.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/dependencies.py
+./packages/ai/gateway/api/dependencies.py
+
+=== deskew.py موجود في 2 مسارات ===
+./packages/scanner_fixer/src/scanner_fixer/deskew.py
+./hf-space/packages/scanner_fixer/src/scanner_fixer/deskew.py
+
+=== detection.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/detection.py
+./packages/ai/gateway/api/detection.py
+
+=== diagram_renderer.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/graphics/diagram_renderer.py
+./packages/interactive-learning/graphics/diagram_renderer.py
+
+=== dictionary_manager.py موجود في 2 مسارات ===
+./packages/medical/dictionary_manager.py
+./hf-space/packages/medical/dictionary_manager.py
+
+=== dictionary_pipeline.py موجود في 2 مسارات ===
+./packages/medical/dictionary_pipeline.py
+./hf-space/packages/medical/dictionary_pipeline.py
+
+=== document_schemas.py موجود في 4 مسارات ===
+./packages/core/document_schemas.py
+./packages/doc_processor/packages/core/document_schemas.py
+./packages/doc-processor/packages/core/document_schemas.py
+./hf-space/packages/core/document_schemas.py
+
+=== document_segmenter.py موجود في 2 مسارات ===
+./packages/ai-fuel/segmenter/document_segmenter.py
+./tools/ai_fuel/segmenter/document_segmenter.py
+
+=== dotted_recovery.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/htr/dotted_recovery.py
+./packages/vision/htr/dotted_recovery.py
+./hf-space/packages/vision/htr/dotted_recovery.py
+
+=== double_blind_reviewer.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/05-review-systems/double_blind_reviewer.py
+./packages/file_processor/tools/double_blind_reviewer.py
+
+=== download.py موجود في 2 مسارات ===
+./packages/omniparse/download.py
+./labs/omniparse_study/download.py
+
+=== dual_ocr_verifier.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/dual_ocr_verifier.py
+./packages/vision/dual_ocr_verifier.py
+./hf-space/packages/vision/dual_ocr_verifier.py
+
+=== efficient_learner.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/learning/efficient_learner.py
+./packages/interactive-learning/learning/efficient_learner.py
+
+=== egress.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/web_tools/egress.py
+./packages/ai/gateway/api/web_tools/egress.py
+
+=== embedding.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/utils/embedding.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/rag/embedding.py
+
+=== emitted_sse_tracker.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/emitted_sse_tracker.py
+./packages/ai/gateway/core/anthropic/emitted_sse_tracker.py
+
+=== encryption.py موجود في 8 مسارات ===
+./packages/handwriting/modules/security/encryption.py
+./packages/security/encryption.py
+./packages/core/encryption.py
+./packages/file_processor/modules/security/encryption.py
+./packages/doc_processor/packages/core/encryption.py
+./packages/doc-processor/packages/core/encryption.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/encryption.py
+./hf-space/packages/core/encryption.py
+
+=== engine.py موجود في 4 مسارات ===
+./packages/ai-fuel/engine.py
+./packages/ai-fuel/dedup/engine.py
+./tools/ai_fuel/engine.py
+./tools/ai_fuel/dedup/engine.py
+
+=== engine_router.py موجود في 3 مسارات ===
+./packages/core/engine_router.py
+./packages/file_processor/modules/core/engine_router.py
+./hf-space/packages/core/engine_router.py
+
+=== enhance.py موجود في 2 مسارات ===
+./packages/scanner_fixer/src/scanner_fixer/enhance.py
+./hf-space/packages/scanner_fixer/src/scanner_fixer/enhance.py
+
+=== enhanced_preprocessor.py موجود في 2 مسارات ===
+./packages/scanner_fixer/src/scanner_fixer/enhanced_preprocessor.py
+./hf-space/packages/scanner_fixer/src/scanner_fixer/enhanced_preprocessor.py
+
+=== entity_extractor.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/entity_extractor.py
+./packages/file_processor/modules/nlp/entity_extractor.py
+./packages/omnifile/modules/nlp/entity_extractor.py
+./packages/nlp/entity_extractor.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/entity_extractor.py
+./hf-space/packages/nlp/entity_extractor.py
+
+=== error_mapping.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/providers/error_mapping.py
+./packages/ai/gateway/providers/error_mapping.py
+
+=== errors.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/errors.py
+./packages/ai/gateway/core/anthropic/errors.py
+
+=== evaluate.py موجود في 2 مسارات ===
+./packages/gt_core/tools/ocr-groundtruth/src/ocr_groundtruth/evaluate.py
+./apps/handwriting-demo/training/evaluate.py
+
+=== evaluate_checkpoint.py موجود في 2 مسارات ===
+./packages/file_processor/training/scripts/evaluate_checkpoint.py
+./packages/training-framework/scripts/evaluate_checkpoint.py
+
+=== evaluation_example.py موجود في 4 مسارات ===
+./packages/handwriting/examples/evaluation_example.py
+./packages/file_processor/examples/evaluation_example.py
+./packages/omnifile/examples/evaluation_example.py
+./apps/handwriting-demo/variants/handwriting-ocr/examples/evaluation_example.py
+
+=== evaluator.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/xujikai-SentenceExpandAgent/backend/src/agents/evaluator.py
+./packages/doc_processor/skills/quiz-mastery/src/quiz_mastery/evaluator.py
+
+=== exact_dedup.py موجود في 2 مسارات ===
+./packages/ai-fuel/dedup/exact_dedup.py
+./tools/ai_fuel/dedup/exact_dedup.py
+
+=== exceptions.py موجود في 6 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/core/exceptions.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Yixiang-Wu-LearningAgent/utils/exceptions.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/core/exceptions.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/core/exceptions.py
+./packages/file_processor/modules/ai/gateway/providers/exceptions.py
+./packages/ai/gateway/providers/exceptions.py
+
+=== exercise.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/chen070808-ProgrammingTutor/src/agents/exercise.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lll0807-CodeTutorAgent/programmer/agents/exercise.py
+
+=== export.py موجود في 6 مسارات ===
+./packages/handwriting/src/export.py
+./packages/file_processor/legacy/ocr_unified_v2/src/export.py
+./packages/file_processor/src/export.py
+./packages/omnifile/src/export.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/export.py
+./tools/HandwrittenOCR/src/export.py
+
+=== exporter.py موجود في 7 مسارات ===
+./packages/handwriting/modules/export/exporter.py
+./packages/file_processor/legacy/mobile_review/split/11-export-modules/exporter.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/melxy1997-ColumnWriter/exporter.py
+./packages/file_processor/modules/export/exporter.py
+./packages/omnifile/modules/export/exporter.py
+./packages/export/exporter.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/export/exporter.py
+
+=== fast_segmenter.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/core/fast_segmenter.py
+./packages/interactive-learning/core/fast_segmenter.py
+
+=== feedback.py موجود في 7 مسارات ===
+./packages/handwriting/modules/nlp/feedback.py
+./packages/file_processor/modules/nlp/feedback.py
+./packages/omnifile/modules/nlp/feedback.py
+./packages/nlp/feedback.py
+./app/core/monitoring/feedback.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/feedback.py
+./hf-space/packages/nlp/feedback.py
+
+=== feedback_processor.py موجود في 2 مسارات ===
+./packages/ai-fuel/active_learning/feedback_processor.py
+./tools/ai_fuel/active_learning/feedback_processor.py
+
+=== file_fingerprint.py موجود في 6 مسارات ===
+./packages/handwriting/modules/core/file_fingerprint.py
+./packages/core/file_fingerprint.py
+./packages/file_processor/modules/core/file_fingerprint.py
+./packages/omnifile/modules/core/file_fingerprint.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/file_fingerprint.py
+./hf-space/packages/core/file_fingerprint.py
+
+=== file_organizer.py موجود في 4 مسارات ===
+./packages/handwriting/modules/security/file_organizer.py
+./packages/security/file_organizer.py
+./packages/file_processor/modules/security/file_organizer.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/file_organizer.py
+
+=== file_scanner.py موجود في 4 مسارات ===
+./packages/handwriting/modules/security/file_scanner.py
+./packages/security/file_scanner.py
+./packages/file_processor/modules/security/file_scanner.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/file_scanner.py
+
+=== finetuning.py موجود في 14 مسارات ===
+./packages/handwriting/src/finetuning.py
+./packages/handwriting/modules/vision/finetuning.py
+./packages/file_processor/legacy/ocr_unified_v2/src/finetuning.py
+./packages/file_processor/legacy/mobile_review/split/12-active-learning/finetuning.py
+./packages/file_processor/src/finetuning.py
+./packages/file_processor/modules/ai/finetuning.py
+./packages/file_processor/modules/vision/finetuning.py
+./packages/ai/finetuning.py
+./packages/vision/finetuning.py
+./packages/omnifile/src/finetuning.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/finetuning.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/finetuning.py
+./hf-space/packages/vision/finetuning.py
+./tools/HandwrittenOCR/src/finetuning.py
+
+=== gateway_model_ids.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/gateway_model_ids.py
+./packages/ai/gateway/api/gateway_model_ids.py
+
+=== gemini_refiner.py موجود في 5 مسارات ===
+./packages/handwriting/modules/ai/gemini_refiner.py
+./packages/file_processor/modules/ai/gemini_refiner.py
+./packages/ai/gemini_refiner.py
+./packages/omnifile/modules/ai/gemini_refiner.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/ai/gemini_refiner.py
+
+=== generate_report.py موجود في 3 مسارات ===
+./packages/file_processor/training/reports/generate_report.py
+./packages/doc_processor/skills/skill-creator/scripts/generate_report.py
+./packages/training-framework/reports/generate_report.py
+
+=== generate_synthetic_data.py موجود في 2 مسارات ===
+./packages/file_processor/training/scripts/generate_synthetic_data.py
+./packages/training-framework/scripts/generate_synthetic_data.py
+
+=== google_vertex.py موجود في 2 مسارات ===
+./packages/file_processor/training/cloud/google_vertex.py
+./packages/training-framework/cloud/google_vertex.py
+
+=== gradio_app.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/allen2000-FashionDailyDress/gradio_app.py
+./packages/file_processor/modules/ui/gradio_app.py
+./apps/handwriting-demo/hf-deploy/app/gradio_app.py
+
+=== gradio_ui.py موجود في 5 مسارات ===
+./packages/handwriting/src/gradio_ui.py
+./packages/file_processor/src/gradio_ui.py
+./packages/omnifile/src/gradio_ui.py
+./app/gradio_ui.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/gradio_ui.py
+
+=== gui_app.py موجود في 4 مسارات ===
+./packages/handwriting/gui_app.py
+./packages/file_processor/gui_app.py
+./packages/omnifile/gui_app.py
+./apps/handwriting-demo/variants/handwriting-ocr/gui_app.py
+
+=== handwriting_db.py موجود في 6 مسارات ===
+./packages/handwriting/modules/core/handwriting_db.py
+./packages/core/handwriting_db.py
+./packages/file_processor/modules/core/handwriting_db.py
+./packages/omnifile/modules/core/handwriting_db.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/handwriting_db.py
+./hf-space/packages/core/handwriting_db.py
+
+=== health.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/api/routes/health.py
+./app/routers/health.py
+
+=== health_scorer.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/pool/health_scorer.py
+./packages/ai/gateway/pool/health_scorer.py
+
+=== hf_app.py موجود في 5 مسارات ===
+./packages/handwriting/hf_app.py
+./packages/file_processor/hf_app.py
+./packages/omnifile/hf_app.py
+./app/hf_app.py
+./apps/handwriting-demo/variants/handwriting-ocr/hf_app.py
+
+=== hf_exporter.py موجود في 2 مسارات ===
+./packages/file_processor/modules/training/hf_exporter.py
+./packages/training/hf_exporter.py
+
+=== html_renderer.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/rendering/html_renderer.py
+./packages/interactive-learning/rendering/html_renderer.py
+
+=== htr_config.py موجود في 3 مسارات ===
+./packages/file_processor/modules/config/htr_config.py
+./packages/config/htr_config.py
+./hf-space/packages/config/htr_config.py
+
+=== image_preprocessor.py موجود في 6 مسارات ===
+./packages/handwriting/modules/vision/image_preprocessor.py
+./packages/file_processor/modules/vision/image_preprocessor.py
+./packages/vision/image_preprocessor.py
+./apps/ocr-pipeline/src/preprocessing/image_preprocessor.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/image_preprocessor.py
+./hf-space/packages/vision/image_preprocessor.py
+
+=== image_processor.py موجود في 4 مسارات ===
+./packages/core/image_processor.py
+./packages/doc_processor/packages/core/image_processor.py
+./packages/doc-processor/packages/core/image_processor.py
+./hf-space/packages/core/image_processor.py
+
+=== jsonl_exporter.py موجود في 2 مسارات ===
+./packages/ai-fuel/export/jsonl_exporter.py
+./tools/ai_fuel/export/jsonl_exporter.py
+
+=== keyword_router.py موجود في 2 مسارات ===
+./packages/ai-fuel/classifier/keyword_router.py
+./tools/ai_fuel/classifier/keyword_router.py
+
+=== language_corrector.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/language_corrector.py
+./packages/file_processor/modules/nlp/language_corrector.py
+./packages/omnifile/modules/nlp/language_corrector.py
+./packages/nlp/language_corrector.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/language_corrector.py
+./hf-space/packages/nlp/language_corrector.py
+
+=== language_detector.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/language_detector.py
+./packages/file_processor/modules/nlp/language_detector.py
+./packages/omnifile/modules/nlp/language_detector.py
+./packages/nlp/language_detector.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/language_detector.py
+./hf-space/packages/nlp/language_detector.py
+
+=== layout_analyzer.py موجود في 6 مسارات ===
+./packages/handwriting/modules/vision/layout_analyzer.py
+./packages/file_processor/modules/vision/layout_analyzer.py
+./packages/vision/layout_analyzer.py
+./packages/omnifile/modules/vision/layout_analyzer.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/layout_analyzer.py
+./hf-space/packages/vision/layout_analyzer.py
+
+=== layout_preserving.py موجود في 5 مسارات ===
+./packages/handwriting/modules/export/layout_preserving.py
+./packages/file_processor/legacy/mobile_review/split/03-layout-preserving-export/layout_preserving.py
+./packages/file_processor/modules/export/layout_preserving.py
+./packages/omnifile/modules/export/layout_preserving.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/export/layout_preserving.py
+
+=== layout_preserving_v2.py موجود في 2 مسارات ===
+./packages/file_processor/modules/export/layout_preserving/layout_preserving_v2.py
+./packages/export/layout_preserving/layout_preserving_v2.py
+
+=== line_segmenter.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/htr/line_segmenter.py
+./packages/vision/htr/line_segmenter.py
+./hf-space/packages/vision/htr/line_segmenter.py
+
+=== llm.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/core/llm.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/healer-666-Academic-Data-Agent/src/data_analysis_agent/llm.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/rss_digest/src/rss_digest/llm.py
+
+=== llm_adapter.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/core/llm_adapter.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/core/llm_adapter.py
+
+=== llm_classifier.py موجود في 2 مسارات ===
+./packages/ai-fuel/classifier/llm_classifier.py
+./tools/ai_fuel/classifier/llm_classifier.py
+
+=== llm_client.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/zjzhou-SREOnCallAgent/src/core/llm_client.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter4/llm_client.py
+
+=== llm_service.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/usernamedadad-AutoFlow/backend/app/services/llm_service.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter13/helloagents-trip-planner/backend/app/services/llm_service.py
+
+=== log_manager.py موجود في 3 مسارات ===
+./packages/core/log_manager.py
+./packages/file_processor/modules/core/log_manager.py
+./hf-space/packages/core/log_manager.py
+
+=== logger.py موجود في 10 مسارات ===
+./packages/handwriting/src/logger.py
+./packages/file_processor/legacy/ocr_unified_v2/src/logger.py
+./packages/file_processor/src/logger.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Yixiang-Wu-LearningAgent/utils/logger.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter15/Helloagents-AI-Town/backend/logger.py
+./packages/doc_processor/download/medical-image-ai-suite/src/utils/logger.py
+./packages/omnifile/src/logger.py
+./apps/ocr-pipeline/src/utils/logger.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/logger.py
+./tools/HandwrittenOCR/src/logger.py
+
+=== logging.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/utils/logging.py
+./app/core/logging.py
+./app/core/monitoring/logging.py
+
+=== logging_config.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/config/logging_config.py
+./packages/ai/gateway/config/logging_config.py
+
+=== lora_htr_trainer.py موجود في 2 مسارات ===
+./packages/file_processor/training/models/lora_htr_trainer.py
+./packages/training-framework/models/lora_htr_trainer.py
+
+=== main.py موجود في 40 مسارات ===
+./packages/handwriting/src/main.py
+./packages/handwriting/main.py
+./packages/file_processor/legacy/ocr_unified_v2/src/main.py
+./packages/file_processor/legacy/mobile_review/split/10-backend-api/main.py
+./packages/file_processor/src/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/zjzhou-SREOnCallAgent/src/api/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lgs-only-NovelGenerator/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/afei-GuessWhoAmI/backend/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/api/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/939147533-DatabaseAgent/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Yixiang-Wu-LearningAgent/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/alexrunner-DataAnalysisAgent/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/usernamedadad-AutoFlow/backend/app/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lll0807-CodeTutorAgent/programmer/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/xujikai-SentenceExpandAgent/backend/src/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/haoye2-UnivesalAgent/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/angelen-SoftwareDevHelper/src/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/pamdla-MindEchoAgent/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/rss_digest/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/backend/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/tino-chen-HelloClaw/src/cli/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/tino-chen-HelloClaw/src/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/melxy1997-ColumnWriter/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/api/main.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/main.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/main.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter9/project/main.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter15/Helloagents-AI-Town/backend/main.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter13/helloagents-trip-planner/backend/app/api/main.py
+./packages/file_processor/main.py
+./packages/omnifile/src/main.py
+./packages/omnifile/main.py
+./app/main.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/main.py
+./apps/handwriting-demo/variants/handwriting-ocr/main.py
+./tools/HandwrittenOCR/src/main.py
+
+=== main_pipeline.py موجود في 2 مسارات ===
+./main_pipeline.py
+./packages/doc_processor/download/medical-image-ai-suite/main_pipeline.py
+
+=== manager.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/backend/tasks/manager.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/tino-chen-HelloClaw/src/workspace/manager.py
+
+=== markdown_exporter.py موجود في 5 مسارات ===
+./packages/handwriting/modules/export/markdown_exporter.py
+./packages/file_processor/modules/export/markdown_exporter.py
+./packages/omnifile/modules/export/markdown_exporter.py
+./packages/export/markdown_exporter.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/export/markdown_exporter.py
+
+=== medical_doc_gui_final.py موجود في 3 مسارات ===
+./packages/doc_processor/desktop/medical_doc_gui_final.py
+./packages/desktop/medical_doc_gui_final.py
+./packages/doc-processor/desktop/medical_doc_gui_final.py
+
+=== medical_ocr.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/medical_ocr.py
+./packages/vision/medical_ocr.py
+./hf-space/packages/vision/medical_ocr.py
+
+=== medical_ocr_gradio.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/medical_ocr_gradio.py
+./packages/vision/medical_ocr_gradio.py
+./hf-space/packages/vision/medical_ocr_gradio.py
+
+=== medical_ocr_reviewer.py موجود في 3 مسارات ===
+./packages/medical/medical_ocr_reviewer.py
+./packages/file_processor/modules/medical/medical_ocr_reviewer.py
+./hf-space/packages/medical/medical_ocr_reviewer.py
+
+=== memory.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/tino-chen-HelloClaw/src/api/memory.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/tino-chen-HelloClaw/src/tools/builtin/memory.py
+
+=== metrics.py موجود في 21 مسارات ===
+./src/evaluation/metrics.py
+./packages/ai-fuel/core/metrics.py
+./packages/handwriting/src/metrics.py
+./packages/handwriting/modules/evaluation/metrics.py
+./packages/benchmark_core/src/benchmarks/metrics.py
+./packages/benchmark_core/benchmarks/core/metrics.py
+./packages/file_processor/legacy/ocr_unified_v2/src/metrics.py
+./packages/file_processor/src/metrics.py
+./packages/file_processor/training/utils/metrics.py
+./packages/file_processor/modules/evaluation/metrics.py
+./packages/doc_processor/download/medical-image-ai-suite/src/utils/metrics.py
+./packages/training-framework/utils/metrics.py
+./packages/omnifile/src/metrics.py
+./packages/omnifile/modules/evaluation/metrics.py
+./packages/evaluation/metrics.py
+./app/core/monitoring/metrics.py
+./apps/trainer-ui/evaluation/metrics.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/metrics.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/evaluation/metrics.py
+./tools/ai_fuel/core/metrics.py
+./tools/HandwrittenOCR/src/metrics.py
+
+=== metrics_v2.py موجود في 2 مسارات ===
+./packages/file_processor/modules/evaluation/metrics_v2.py
+./packages/evaluation/metrics_v2.py
+
+=== migration.py موجود في 9 مسارات ===
+./packages/handwriting/src/migration.py
+./packages/core/migration/migration.py
+./packages/file_processor/legacy/ocr_unified_v2/src/migration.py
+./packages/file_processor/src/migration.py
+./packages/file_processor/modules/core/migration/migration.py
+./packages/omnifile/src/migration.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/migration.py
+./hf-space/packages/core/migration/migration.py
+./tools/HandwrittenOCR/src/migration.py
+
+=== mistral_integration.py موجود في 4 مسارات ===
+./packages/core/mistral_integration.py
+./packages/doc_processor/packages/core/mistral_integration.py
+./packages/doc-processor/packages/core/mistral_integration.py
+./hf-space/packages/core/mistral_integration.py
+
+=== mixed_engine.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ocr/mixed_engine.py
+./packages/omni-ocr/mixed_engine.py
+
+=== mixed_language.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/mixed_language.py
+./packages/file_processor/modules/nlp/mixed_language.py
+./packages/omnifile/modules/nlp/mixed_language.py
+./packages/nlp/mixed_language.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/mixed_language.py
+./hf-space/packages/nlp/mixed_language.py
+
+=== mixed_text.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/mixed_text.py
+./packages/file_processor/modules/nlp/mixed_text.py
+./packages/omnifile/modules/nlp/mixed_text.py
+./packages/nlp/mixed_text.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/mixed_text.py
+./hf-space/packages/nlp/mixed_text.py
+
+=== mobile_review_connector.py موجود في 2 مسارات ===
+./packages/file_processor/training/data/mobile_review_connector.py
+./packages/training-framework/data/mobile_review_connector.py
+
+=== model_listing.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/providers/model_listing.py
+./packages/ai/gateway/providers/model_listing.py
+
+=== model_loader.py موجود في 2 مسارات ===
+./packages/omniparse/omniparse/web/model_loader.py
+./labs/omniparse_study/omniparse/web/model_loader.py
+
+=== model_manager.py موجود في 5 مسارات ===
+./packages/core/model_manager.py
+./packages/file_processor/interactive_learning/core/model_manager.py
+./packages/file_processor/modules/core/model_manager.py
+./packages/interactive-learning/core/model_manager.py
+./hf-space/packages/core/model_manager.py
+
+=== model_registry.py موجود في 3 مسارات ===
+./packages/core/model_registry.py
+./packages/file_processor/modules/core/model_registry.py
+./hf-space/packages/core/model_registry.py
+
+=== model_router.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/model_router.py
+./packages/ai/gateway/api/model_router.py
+
+=== models.py موجود في 14 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/10-backend-api/models.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/afei-GuessWhoAmI/backend/models.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/models.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/backend/models.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/models.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/melxy1997-ColumnWriter/models.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/models.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter9/codebase/models.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter15/Helloagents-AI-Town/backend/models.py
+./packages/omniparse/omniparse/web/models.py
+./packages/doc_processor/skills/quiz-mastery/src/quiz_mastery/models.py
+./packages/doc_processor/download/medical-image-ai-suite/services/dictionary/models.py
+./app/routers/models.py
+./labs/omniparse_study/omniparse/web/models.py
+
+=== monitoring.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/core/monitoring.py
+./packages/interactive-learning/core/monitoring.py
+
+=== native_messages_request.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/native_messages_request.py
+./packages/ai/gateway/core/anthropic/native_messages_request.py
+
+=== native_sse_block_policy.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/native_sse_block_policy.py
+./packages/ai/gateway/core/anthropic/native_sse_block_policy.py
+
+=== nim.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/config/nim.py
+./packages/ai/gateway/config/nim.py
+
+=== nlp_pipeline.py موجود في 4 مسارات ===
+./packages/handwriting/examples/nlp_pipeline.py
+./packages/file_processor/examples/nlp_pipeline.py
+./packages/omnifile/examples/nlp_pipeline.py
+./apps/handwriting-demo/variants/handwriting-ocr/examples/nlp_pipeline.py
+
+=== normalize.py موجود في 6 مسارات ===
+./packages/handwriting/modules/vision/normalize.py
+./packages/file_processor/modules/vision/normalize.py
+./packages/vision/normalize.py
+./packages/omnifile/modules/vision/normalize.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/normalize.py
+./hf-space/packages/vision/normalize.py
+
+=== notes.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/services/notes.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/services/notes.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/services/notes.py
+
+=== ocr_basic.py موجود في 4 مسارات ===
+./packages/handwriting/examples/ocr_basic.py
+./packages/file_processor/examples/ocr_basic.py
+./packages/omnifile/examples/ocr_basic.py
+./apps/handwriting-demo/variants/handwriting-ocr/examples/ocr_basic.py
+
+=== ocr_engine.py موجود في 7 مسارات ===
+./packages/handwriting/modules/vision/ocr_engine.py
+./packages/file_processor/modules/vision/ocr_engine.py
+./packages/vision/ocr_engine.py
+./packages/omnifile/modules/vision/ocr_engine.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/ocr_engine.py
+./apps/handwriting-demo/hf-deploy/app/ocr_engine.py
+./hf-space/packages/vision/ocr_engine.py
+
+=== ocr_json_to_layout.py موجود في 3 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/03-layout-preserving-export/ocr_json_to_layout.py
+./packages/file_processor/modules/export/layout_preserving/ocr_json_to_layout.py
+./packages/export/layout_preserving/ocr_json_to_layout.py
+
+=== omniparse.py موجود في 2 مسارات ===
+./packages/omniparse/python-sdk/omniparse_client/omniparse.py
+./labs/omniparse_study/python-sdk/omniparse_client/omniparse.py
+
+=== online_learner.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/learning/online_learner.py
+./packages/interactive-learning/learning/online_learner.py
+
+=== openai_compat.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/providers/openai_compat.py
+./packages/ai/gateway/providers/openai_compat.py
+
+=== optimization_handlers.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/optimization_handlers.py
+./packages/ai/gateway/api/optimization_handlers.py
+
+=== orchestrator.py موجود في 4 مسارات ===
+./packages/ai-fuel/classifier/orchestrator.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/xujikai-SentenceExpandAgent/backend/src/agents/orchestrator.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/melxy1997-ColumnWriter/orchestrator.py
+./tools/ai_fuel/classifier/orchestrator.py
+
+=== outbound.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/web_tools/outbound.py
+./packages/ai/gateway/api/web_tools/outbound.py
+
+=== parallel_processor.py موجود في 3 مسارات ===
+./packages/core/parallel_processor.py
+./packages/file_processor/modules/core/parallel_processor.py
+./hf-space/packages/core/parallel_processor.py
+
+=== parquet_exporter.py موجود في 3 مسارات ===
+./packages/ai-fuel/export/parquet_exporter.py
+./apps/trainer-ui/exports/parquet_exporter.py
+./tools/ai_fuel/export/parquet_exporter.py
+
+=== parsers.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/web_tools/parsers.py
+./packages/ai/gateway/api/web_tools/parsers.py
+
+=== pattern_db.py موجود في 6 مسارات ===
+./packages/handwriting/modules/ai/pattern_db.py
+./packages/learning/pattern_db.py
+./packages/file_processor/modules/learning/pattern_db.py
+./packages/file_processor/modules/ai/pattern_db.py
+./packages/omnifile/modules/ai/pattern_db.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/ai/pattern_db.py
+
+=== pattern_matcher.py موجود في 5 مسارات ===
+./packages/handwriting/modules/ai/pattern_matcher.py
+./packages/file_processor/modules/ai/pattern_matcher.py
+./packages/ai/pattern_matcher.py
+./packages/omnifile/modules/ai/pattern_matcher.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/ai/pattern_matcher.py
+
+=== pdf.py موجود في 2 مسارات ===
+./packages/doc_processor/skills/pdf/scripts/pdf.py
+./packages/doc_processor/skills/ppt/scripts/pdf.py
+
+=== pdf_processor.py موجود في 12 مسارات ===
+./packages/handwriting/src/pdf_processor.py
+./packages/handwriting/modules/vision/pdf_processor.py
+./packages/file_processor/legacy/ocr_unified_v2/src/pdf_processor.py
+./packages/file_processor/src/pdf_processor.py
+./packages/file_processor/modules/vision/pdf_processor.py
+./packages/vision/pdf_processor.py
+./packages/omnifile/src/pdf_processor.py
+./packages/omnifile/modules/vision/pdf_processor.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/pdf_processor.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/pdf_processor.py
+./hf-space/packages/vision/pdf_processor.py
+./tools/HandwrittenOCR/src/pdf_processor.py
+
+=== pdf_to_training_data.py موجود في 5 مسارات ===
+./packages/handwriting/modules/vision/pdf_to_training_data.py
+./packages/file_processor/modules/vision/pdf_to_training_data.py
+./packages/vision/pdf_to_training_data.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/pdf_to_training_data.py
+./hf-space/packages/vision/pdf_to_training_data.py
+
+=== phi_protection.py موجود في 2 مسارات ===
+./packages/ai-fuel/core/phi_protection.py
+./tools/ai_fuel/core/phi_protection.py
+
+=== pipeline.py موجود في 16 مسارات ===
+./omni_medical_suite/pipeline.py
+./packages/audit/pipeline.py
+./packages/ai-fuel/export/pipeline.py
+./packages/scanner_fixer/src/scanner_fixer/pipeline.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/zjzhou-SREOnCallAgent/src/agents/pipeline.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/usernamedadad-AutoFlow/backend/app/agents/mermaid/pipeline.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/rss_digest/src/rss_digest/pipeline.py
+./packages/file_processor/modules/audit/pipeline.py
+./packages/doc_processor/download/medical-image-ai-suite/services/ocr/data_collection/pipeline.py
+./packages/nlp/pipeline.py
+./packages/training_hub/src/promotion/pipeline.py
+./app/routers/pipeline.py
+./apps/ocr-pipeline/src/core/pipeline.py
+./hf-space/packages/scanner_fixer/src/scanner_fixer/pipeline.py
+./hf-space/packages/nlp/pipeline.py
+./tools/ai_fuel/export/pipeline.py
+
+=== planner.py موجود في 7 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/chen070808-ProgrammingTutor/src/agents/planner.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lll0807-CodeTutorAgent/programmer/agents/planner.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/services/planner.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/services/planner.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/agents/planner.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/services/planner.py
+./packages/doc_processor/skills/quiz-mastery/src/quiz_mastery/planner.py
+
+=== prepare_fixed_eval_set.py موجود في 2 مسارات ===
+./packages/file_processor/training/scripts/prepare_fixed_eval_set.py
+./packages/training-framework/scripts/prepare_fixed_eval_set.py
+
+=== prepare_htr_dataset.py موجود في 2 مسارات ===
+./packages/file_processor/training/scripts/prepare_htr_dataset.py
+./packages/training-framework/scripts/prepare_htr_dataset.py
+
+=== preprocessing.py موجود في 6 مسارات ===
+./packages/handwriting/src/preprocessing.py
+./packages/file_processor/legacy/ocr_unified_v2/src/preprocessing.py
+./packages/file_processor/src/preprocessing.py
+./packages/omnifile/src/preprocessing.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/preprocessing.py
+./tools/HandwrittenOCR/src/preprocessing.py
+
+=== process.py موجود في 6 مسارات ===
+./packages/handwriting/process.py
+./packages/file_processor/process.py
+./packages/omniparse/omniparse/image/process.py
+./packages/omnifile/process.py
+./apps/handwriting-demo/variants/handwriting-ocr/process.py
+./labs/omniparse_study/omniparse/image/process.py
+
+=== progress_tracker.py موجود في 3 مسارات ===
+./packages/core/progress_tracker.py
+./packages/file_processor/modules/core/progress_tracker.py
+./hf-space/packages/core/progress_tracker.py
+
+=== prompts.py موجود في 8 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/xujikai-SentenceExpandAgent/backend/src/agents/prompts.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/healer-666-Academic-Data-Agent/src/data_analysis_agent/prompts.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/prompts.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/prompts.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/melxy1997-ColumnWriter/prompts.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/prompts.py
+./packages/omniparse/omniparse/web/prompts.py
+./labs/omniparse_study/omniparse/web/prompts.py
+
+=== protected_vocab.py موجود في 3 مسارات ===
+./packages/core/protected_vocab.py
+./packages/file_processor/modules/core/protected_vocab.py
+./hf-space/packages/core/protected_vocab.py
+
+=== protected_words.py موجود في 5 مسارات ===
+./packages/handwriting/modules/nlp/protected_words.py
+./packages/file_processor/modules/nlp/protected_words.py
+./packages/nlp/protected_words.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/protected_words.py
+./hf-space/packages/nlp/protected_words.py
+
+=== protocol_tools.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/AstrumPush-Smart-Recipe-Agent/protocol_tools.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/tools/builtin/protocol_tools.py
+
+=== provider_catalog.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/config/provider_catalog.py
+./packages/ai/gateway/config/provider_catalog.py
+
+=== provider_ids.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/config/provider_ids.py
+./packages/ai/gateway/config/provider_ids.py
+
+=== provider_stream_error.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/provider_stream_error.py
+./packages/ai/gateway/core/anthropic/provider_stream_error.py
+
+=== quiz_generator.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Yixiang-Wu-LearningAgent/specialist/quiz_generator.py
+./packages/doc_processor/skills/quiz-mastery/src/quiz_mastery/quiz_generator.py
+
+=== quota_manager.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/05-review-systems/quota_manager.py
+./packages/file_processor/tools/quota_manager.py
+
+=== rag_exporter.py موجود في 2 مسارات ===
+./packages/ai-fuel/export/rag_exporter.py
+./tools/ai_fuel/export/rag_exporter.py
+
+=== rate_limit.py موجود في 4 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/rate_limit.py
+./packages/file_processor/modules/ai/gateway/providers/rate_limit.py
+./packages/ai/gateway/core/rate_limit.py
+./packages/ai/gateway/providers/rate_limit.py
+
+=== rate_limit_fallback.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/pool/rate_limit_fallback.py
+./packages/ai/gateway/pool/rate_limit_fallback.py
+
+=== react_agent.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/939147533-DatabaseAgent/src/react_agent.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/alexrunner-DataAnalysisAgent/agents/react_agent.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/agents/react_agent.py
+
+=== recognition.py موجود في 6 مسارات ===
+./packages/handwriting/src/recognition.py
+./packages/file_processor/legacy/ocr_unified_v2/src/recognition.py
+./packages/file_processor/src/recognition.py
+./packages/omnifile/src/recognition.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/recognition.py
+./tools/HandwrittenOCR/src/recognition.py
+
+=== reconstruction.py موجود في 12 مسارات ===
+./packages/handwriting/src/reconstruction.py
+./packages/handwriting/modules/nlp/reconstruction.py
+./packages/file_processor/legacy/ocr_unified_v2/src/reconstruction.py
+./packages/file_processor/src/reconstruction.py
+./packages/file_processor/modules/nlp/reconstruction.py
+./packages/omnifile/src/reconstruction.py
+./packages/omnifile/modules/nlp/reconstruction.py
+./packages/nlp/reconstruction.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/reconstruction.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/reconstruction.py
+./hf-space/packages/nlp/reconstruction.py
+./tools/HandwrittenOCR/src/reconstruction.py
+
+=== registry.py موجود في 4 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/tools/registry.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/backend/agents/registry.py
+./packages/file_processor/modules/ai/gateway/providers/registry.py
+./packages/ai/gateway/providers/registry.py
+
+=== rejected_lines_manager.py موجود في 2 مسارات ===
+./packages/audit/rejected_lines_manager.py
+./packages/file_processor/modules/audit/rejected_lines_manager.py
+
+=== report.py موجود في 2 مسارات ===
+./packages/benchmark_core/src/benchmarks/report.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Shawnxyxy-HealthRecordAgent/backend/agents/report.py
+
+=== report_generator.py موجود في 2 مسارات ===
+./packages/audit/report_generator.py
+./packages/file_processor/modules/audit/report_generator.py
+
+=== reporter.py موجود في 4 مسارات ===
+./packages/benchmark_core/benchmarks/core/reporter.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/services/reporter.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/services/reporter.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/services/reporter.py
+
+=== request.py موجود في 10 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/web_tools/request.py
+./packages/file_processor/modules/ai/gateway/providers/nvidia_nim/request.py
+./packages/file_processor/modules/ai/gateway/providers/open_router/request.py
+./packages/file_processor/modules/ai/gateway/providers/kimi/request.py
+./packages/file_processor/modules/ai/gateway/providers/deepseek/request.py
+./packages/ai/gateway/api/web_tools/request.py
+./packages/ai/gateway/providers/nvidia_nim/request.py
+./packages/ai/gateway/providers/open_router/request.py
+./packages/ai/gateway/providers/kimi/request.py
+./packages/ai/gateway/providers/deepseek/request.py
+
+=== responses.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/models/responses.py
+./packages/ai/gateway/api/models/responses.py
+
+=== result_fusion.py موجود في 6 مسارات ===
+./packages/handwriting/modules/vision/result_fusion.py
+./packages/file_processor/modules/vision/result_fusion.py
+./packages/vision/result_fusion.py
+./packages/omnifile/modules/vision/result_fusion.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/result_fusion.py
+./hf-space/packages/vision/result_fusion.py
+
+=== review_dashboard.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/05-review-systems/review_dashboard.py
+./packages/file_processor/tools/review_dashboard.py
+
+=== review_queue.py موجود في 2 مسارات ===
+./packages/ai-fuel/active_learning/review_queue.py
+./tools/ai_fuel/active_learning/review_queue.py
+
+=== review_ui.py موجود في 6 مسارات ===
+./packages/handwriting/src/review_ui.py
+./packages/file_processor/legacy/ocr_unified_v2/src/review_ui.py
+./packages/file_processor/src/review_ui.py
+./packages/omnifile/src/review_ui.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/review_ui.py
+./tools/HandwrittenOCR/src/review_ui.py
+
+=== reviewer.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/chen070808-ProgrammingTutor/src/agents/reviewer.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lll0807-CodeTutorAgent/programmer/agents/reviewer.py
+
+=== rotate.py موجود في 2 مسارات ===
+./packages/scanner_fixer/src/scanner_fixer/rotate.py
+./hf-space/packages/scanner_fixer/src/scanner_fixer/rotate.py
+
+=== router.py موجود في 8 مسارات ===
+./packages/omniparse/omniparse/documents/router.py
+./packages/omniparse/omniparse/web/router.py
+./packages/omniparse/omniparse/image/router.py
+./packages/omniparse/omniparse/media/router.py
+./labs/omniparse_study/omniparse/documents/router.py
+./labs/omniparse_study/omniparse/web/router.py
+./labs/omniparse_study/omniparse/image/router.py
+./labs/omniparse_study/omniparse/media/router.py
+
+=== routes.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/routes.py
+./packages/ai/gateway/api/routes.py
+
+=== run.py موجود في 5 مسارات ===
+./packages/file_processor/legacy/ocr_unified_v2/run.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/run.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter13/helloagents-trip-planner/backend/run.py
+./packages/file_processor/run.py
+./tools/HandwrittenOCR/run.py
+
+=== run_eval.py موجود في 2 مسارات ===
+./packages/doc_processor/skills/skill-creator/scripts/run_eval.py
+./apps/trainer-ui/scripts/run_eval.py
+
+=== runner.py موجود في 3 مسارات ===
+./packages/benchmark_core/src/benchmarks/runner.py
+./packages/benchmark_core/benchmarks/core/runner.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/backend/tasks/runner.py
+
+=== runtime.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/runtime.py
+./packages/ai/gateway/api/runtime.py
+
+=== scheduler_daemon.py موجود في 2 مسارات ===
+./packages/file_processor/training/scripts/scheduler_daemon.py
+./packages/training-framework/scripts/scheduler_daemon.py
+
+=== schemas.py موجود في 5 مسارات ===
+./packages/ai-fuel/core/schemas.py
+./packages/file_processor/legacy/mobile_review/split/10-backend-api/schemas.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/usernamedadad-AutoFlow/backend/app/models/schemas.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter13/helloagents-trip-planner/backend/app/models/schemas.py
+./tools/ai_fuel/core/schemas.py
+
+=== search.py موجود في 5 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/tools/builtin/search.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/services/search.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/services/search.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/services/search.py
+./packages/doc_processor/skills/ui-ux-pro-max/scripts/search.py
+
+=== search_engine.py موجود في 6 مسارات ===
+./packages/handwriting/modules/core/search_engine.py
+./packages/core/search_engine.py
+./packages/file_processor/modules/core/search_engine.py
+./packages/omnifile/modules/core/search_engine.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/search_engine.py
+./hf-space/packages/core/search_engine.py
+
+=== secure_file_handler.py موجود في 4 مسارات ===
+./packages/handwriting/modules/security/secure_file_handler.py
+./packages/security/secure_file_handler.py
+./packages/file_processor/modules/security/secure_file_handler.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/secure_file_handler.py
+
+=== security.py موجود في 3 مسارات ===
+./packages/file_processor/interactive_learning/core/security.py
+./packages/interactive-learning/core/security.py
+./app/config/security.py
+
+=== segmenter.py موجود في 3 مسارات ===
+./packages/file_processor/interactive_learning/core/segmenter.py
+./packages/interactive-learning/core/segmenter.py
+./packages/data-prep/segmenter.py
+
+=== semantic_dedup.py موجود في 2 مسارات ===
+./packages/ai-fuel/dedup/semantic_dedup.py
+./tools/ai_fuel/dedup/semantic_dedup.py
+
+=== semantic_matcher.py موجود في 2 مسارات ===
+./packages/ai-fuel/classifier/semantic_matcher.py
+./tools/ai_fuel/classifier/semantic_matcher.py
+
+=== sensitive_data_scanner.py موجود في 4 مسارات ===
+./packages/handwriting/modules/security/sensitive_data_scanner.py
+./packages/security/sensitive_data_scanner.py
+./packages/file_processor/modules/security/sensitive_data_scanner.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/security/sensitive_data_scanner.py
+
+=== server.py موجود في 10 مسارات ===
+./packages/handwriting/mobile_review/server.py
+./packages/file_processor/legacy/mobile_review/split/02-mobile-review/server.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter10/weather-mcp-server/server.py
+./packages/file_processor/modules/ai/gateway/server.py
+./packages/file_processor/mobile_review/server.py
+./packages/omniparse/server.py
+./packages/ai/gateway/server.py
+./packages/omnifile/mobile_review/server.py
+./apps/handwriting-demo/variants/handwriting-ocr/mobile_review/server.py
+./labs/omniparse_study/server.py
+
+=== server_tool_sse.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/server_tool_sse.py
+./packages/ai/gateway/core/anthropic/server_tool_sse.py
+
+=== services.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/services.py
+./packages/ai/gateway/api/services.py
+
+=== session.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/tino-chen-HelloClaw/src/api/session.py
+./app/db/session.py
+
+=== settings.py موجود في 3 مسارات ===
+./packages/file_processor/modules/ai/gateway/config/settings.py
+./packages/ai/gateway/config/settings.py
+./apps/ocr-pipeline/config/settings.py
+
+=== setup.py موجود في 5 مسارات ===
+./packages/ai-fuel/setup.py
+./packages/bilingual/setup.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/setup.py
+./apps/ocr-pipeline/setup.py
+./tools/ai_fuel/setup.py
+
+=== smart_migrator.py موجود في 5 مسارات ===
+./packages/handwriting/modules/core/smart_migrator.py
+./packages/core/smart_migrator.py
+./packages/file_processor/modules/core/smart_migrator.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/smart_migrator.py
+./hf-space/packages/core/smart_migrator.py
+
+=== spell_checker.py موجود في 3 مسارات ===
+./packages/core/spell_checker.py
+./packages/file_processor/modules/core/spell_checker.py
+./hf-space/packages/core/spell_checker.py
+
+=== spell_checker_singleton.py موجود في 3 مسارات ===
+./packages/core/spell_checker_singleton.py
+./packages/file_processor/modules/core/spell_checker_singleton.py
+./hf-space/packages/core/spell_checker_singleton.py
+
+=== spell_corrector.py موجود في 5 مسارات ===
+./packages/handwriting/modules/nlp/spell_corrector.py
+./packages/file_processor/modules/nlp/spell_corrector.py
+./packages/nlp/spell_corrector.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/spell_corrector.py
+./hf-space/packages/nlp/spell_corrector.py
+
+=== sse.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/sse.py
+./packages/ai/gateway/core/anthropic/sse.py
+
+=== stardict_reader.py موجود في 2 مسارات ===
+./packages/medical/stardict_reader.py
+./hf-space/packages/medical/stardict_reader.py
+
+=== start_server.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/ocr_unified_v2/backend/start_server.py
+./tools/HandwrittenOCR/backend/start_server.py
+
+=== stream_contracts.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/stream_contracts.py
+./packages/ai/gateway/core/anthropic/stream_contracts.py
+
+=== streaming.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Yixiang-Wu-LearningAgent/utils/streaming.py
+./packages/file_processor/modules/ai/gateway/api/web_tools/streaming.py
+./packages/ai/gateway/api/web_tools/streaming.py
+
+=== streamlit_segmentation_app.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/ocr_unified_v2/tools/streamlit_segmentation_app.py
+./packages/file_processor/tools/streamlit_segmentation_app.py
+
+=== structural_annotation.py موجود في 4 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/14-surya-ocr-schema/structural_annotation.py
+./packages/file_processor/modules/vision/structural_annotation.py
+./packages/vision/structural_annotation.py
+./hf-space/packages/vision/structural_annotation.py
+
+=== structure.py موجود في 6 مسارات ===
+./packages/handwriting/modules/core/structure.py
+./packages/core/structure.py
+./packages/file_processor/modules/core/structure.py
+./packages/omnifile/modules/core/structure.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/structure.py
+./hf-space/packages/core/structure.py
+
+=== study_guide.py موجود في 10 مسارات ===
+./packages/handwriting/src/study_guide.py
+./packages/handwriting/modules/nlp/study_guide.py
+./packages/file_processor/legacy/ocr_unified_v2/src/study_guide.py
+./packages/file_processor/src/study_guide.py
+./packages/file_processor/modules/nlp/study_guide.py
+./packages/omnifile/src/study_guide.py
+./packages/nlp/study_guide.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/study_guide.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/study_guide.py
+./hf-space/packages/nlp/study_guide.py
+
+=== study_guide_generator.py موجود في 2 مسارات ===
+./packages/file_processor/modules/export/study_guide/study_guide_generator.py
+./packages/export/study_guide/study_guide_generator.py
+
+=== summarizer.py موجود في 9 مسارات ===
+./packages/handwriting/modules/nlp/summarizer.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/services/summarizer.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/services/summarizer.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/services/summarizer.py
+./packages/file_processor/modules/nlp/summarizer.py
+./packages/omnifile/modules/nlp/summarizer.py
+./packages/nlp/summarizer.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/summarizer.py
+./hf-space/packages/nlp/summarizer.py
+
+=== surya_ocr.py موجود في 6 مسارات ===
+./packages/handwriting/modules/vision/surya_ocr.py
+./packages/file_processor/modules/vision/surya_ocr.py
+./packages/vision/surya_ocr.py
+./packages/omnifile/modules/vision/surya_ocr.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/surya_ocr.py
+./hf-space/packages/vision/surya_ocr.py
+
+=== sync.py موجود في 8 مسارات ===
+./packages/handwriting/src/sync.py
+./packages/security/sync/sync.py
+./packages/file_processor/legacy/ocr_unified_v2/src/sync.py
+./packages/file_processor/src/sync.py
+./packages/file_processor/modules/security/sync/sync.py
+./packages/omnifile/src/sync.py
+./apps/handwriting-demo/variants/handwriting-ocr/src/sync.py
+./tools/HandwrittenOCR/src/sync.py
+
+=== sync_backend.py موجود في 3 مسارات ===
+./packages/security/sync/sync_backend.py
+./packages/file_processor/legacy/mobile_review/split/02-mobile-review/sync_backend.py
+./packages/file_processor/modules/security/sync/sync_backend.py
+
+=== table_detection.py موجود في 6 مسارات ===
+./packages/handwriting/modules/vision/table_detection.py
+./packages/file_processor/modules/vision/table_detection.py
+./packages/vision/table_detection.py
+./packages/omnifile/modules/vision/table_detection.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/table_detection.py
+./hf-space/packages/vision/table_detection.py
+
+=== table_extractor.py موجود في 6 مسارات ===
+./packages/handwriting/modules/vision/table_extractor.py
+./packages/file_processor/modules/vision/table_extractor.py
+./packages/vision/table_extractor.py
+./packages/omnifile/modules/vision/table_extractor.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/table_extractor.py
+./hf-space/packages/vision/table_extractor.py
+
+=== tasks.py موجود في 5 مسارات ===
+./packages/handwriting/tasks.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/api/routes/tasks.py
+./packages/file_processor/tasks.py
+./packages/omnifile/tasks.py
+./apps/handwriting-demo/variants/handwriting-ocr/tasks.py
+
+=== terminal_tool.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/YYHDBL-HelloCodeAgentCli/tools/builtin/terminal_tool.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/haoye2-UnivesalAgent/src/tools/terminal_tool.py
+
+=== test_advanced_pipeline.py موجود في 5 مسارات ===
+./tests/test_advanced_pipeline.py
+./packages/handwriting/tests/test_advanced_pipeline.py
+./packages/file_processor/tests/test_advanced_pipeline.py
+./packages/omnifile/tests/test_advanced_pipeline.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_advanced_pipeline.py
+
+=== test_api_performance.py موجود في 2 مسارات ===
+./tests/test_api_performance.py
+./packages/file_processor/tests/test_api_performance.py
+
+=== test_arabic_nlp_utils.py موجود في 5 مسارات ===
+./tests/test_arabic_nlp_utils.py
+./packages/handwriting/tests/test_arabic_nlp_utils.py
+./packages/file_processor/tests/test_arabic_nlp_utils.py
+./packages/omnifile/tests/test_arabic_nlp_utils.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_arabic_nlp_utils.py
+
+=== test_arabic_rtl.py موجود في 5 مسارات ===
+./tests/test_arabic_rtl.py
+./packages/handwriting/tests/test_arabic_rtl.py
+./packages/file_processor/tests/test_arabic_rtl.py
+./packages/omnifile/tests/test_arabic_rtl.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_arabic_rtl.py
+
+=== test_audit_logger.py موجود في 2 مسارات ===
+./tests/test_audit_logger.py
+./packages/file_processor/tests/test_audit_logger.py
+
+=== test_base_db.py موجود في 2 مسارات ===
+./tests/test_base_db.py
+./packages/file_processor/tests/test_base_db.py
+
+=== test_basic.py موجود في 3 مسارات ===
+./packages/bilingual/tests/test_basic.py
+./packages/file_processor/scripts/test_basic.py
+./packages/omniparse/tests/test_basic.py
+
+=== test_build_training_data.py موجود في 2 مسارات ===
+./tests/test_build_training_data.py
+./packages/file_processor/tests/test_build_training_data.py
+
+=== test_classifier.py موجود في 2 مسارات ===
+./packages/ai-fuel/tests/test_classifier.py
+./tools/ai_fuel/tests/test_classifier.py
+
+=== test_config.py موجود في 2 مسارات ===
+./packages/ai-fuel/tests/test_config.py
+./tools/ai_fuel/tests/test_config.py
+
+=== test_core.py موجود في 12 مسارات ===
+./tests/unit/test_core.py
+./packages/core/test_core.py
+./packages/ocr_postprocess/tests/test_core.py
+./packages/doc_processor/desktop/test_core.py
+./packages/doc_processor/packages/core/test_core.py
+./packages/doc_processor/test_core.py
+./packages/desktop/test_core.py
+./packages/doc-processor/desktop/test_core.py
+./packages/doc-processor/packages/core/test_core.py
+./packages/doc-processor/test_core.py
+./hf-space/packages/core/test_core.py
+./hf-space/packages/ocr_postprocess/tests/test_core.py
+
+=== test_corrections_manager.py موجود في 2 مسارات ===
+./tests/test_corrections_manager.py
+./packages/file_processor/tests/test_corrections_manager.py
+
+=== test_dedup.py موجود في 2 مسارات ===
+./packages/ai-fuel/tests/test_dedup.py
+./tools/ai_fuel/tests/test_dedup.py
+
+=== test_e2e.py موجود في 2 مسارات ===
+./tests/test_e2e.py
+./packages/file_processor/tests/test_e2e.py
+
+=== test_engine_router.py موجود في 2 مسارات ===
+./tests/test_engine_router.py
+./packages/file_processor/tests/test_engine_router.py
+
+=== test_export.py موجود في 2 مسارات ===
+./packages/ai-fuel/tests/test_export.py
+./tools/ai_fuel/tests/test_export.py
+
+=== test_fusion.py موجود في 5 مسارات ===
+./tests/test_fusion.py
+./packages/handwriting/tests/test_fusion.py
+./packages/file_processor/tests/test_fusion.py
+./packages/omnifile/tests/test_fusion.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_fusion.py
+
+=== test_gemini_modules.py موجود في 5 مسارات ===
+./tests/test_gemini_modules.py
+./packages/handwriting/tests/test_gemini_modules.py
+./packages/file_processor/tests/test_gemini_modules.py
+./packages/omnifile/tests/test_gemini_modules.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_gemini_modules.py
+
+=== test_htr.py موجود في 2 مسارات ===
+./tests/test_htr.py
+./packages/file_processor/tests/test_htr.py
+
+=== test_integration.py موجود في 6 مسارات ===
+./tests/test_integration.py
+./packages/handwriting/tests/test_integration.py
+./packages/file_processor/tests/test_integration.py
+./packages/omnifile/tests/test_integration.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_integration.py
+./apps/handwriting-demo/tests/test_integration.py
+
+=== test_integration_full.py موجود في 2 مسارات ===
+./tests/test_integration_full.py
+./packages/file_processor/tests/test_integration_full.py
+
+=== test_layout_preserving.py موجود في 5 مسارات ===
+./tests/test_layout_preserving.py
+./packages/handwriting/tests/test_layout_preserving.py
+./packages/file_processor/tests/test_layout_preserving.py
+./packages/omnifile/tests/test_layout_preserving.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_layout_preserving.py
+
+=== test_markdown_exporter.py موجود في 5 مسارات ===
+./tests/test_markdown_exporter.py
+./packages/handwriting/tests/test_markdown_exporter.py
+./packages/file_processor/tests/test_markdown_exporter.py
+./packages/omnifile/tests/test_markdown_exporter.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_markdown_exporter.py
+
+=== test_metrics.py موجود في 7 مسارات ===
+./tests/test_metrics.py
+./packages/handwriting/tests/test_metrics.py
+./packages/benchmark_core/tests/test_metrics.py
+./packages/file_processor/tests/test_metrics.py
+./packages/omnifile/tests/test_metrics.py
+./apps/trainer-ui/tests/test_metrics.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_metrics.py
+
+=== test_mobile_review_server.py موجود في 2 مسارات ===
+./tests/test_mobile_review_server.py
+./packages/file_processor/tests/test_mobile_review_server.py
+
+=== test_model_registry.py موجود في 2 مسارات ===
+./tests/test_model_registry.py
+./packages/file_processor/tests/test_model_registry.py
+
+=== test_ocr.py موجود في 2 مسارات ===
+./tests/test_ocr.py
+./packages/file_processor/tests/test_ocr.py
+
+=== test_ocr_engine.py موجود في 6 مسارات ===
+./tests/test_ocr_engine.py
+./packages/handwriting/tests/test_ocr_engine.py
+./packages/file_processor/tests/test_ocr_engine.py
+./packages/omnifile/tests/test_ocr_engine.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_ocr_engine.py
+./apps/handwriting-demo/tests/test_ocr_engine.py
+
+=== test_pattern_matcher.py موجود في 5 مسارات ===
+./tests/test_pattern_matcher.py
+./packages/handwriting/tests/test_pattern_matcher.py
+./packages/file_processor/tests/test_pattern_matcher.py
+./packages/omnifile/tests/test_pattern_matcher.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_pattern_matcher.py
+
+=== test_performance.py موجود في 5 مسارات ===
+./tests/test_performance.py
+./packages/handwriting/tests/test_performance.py
+./packages/file_processor/tests/test_performance.py
+./packages/omnifile/tests/test_performance.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_performance.py
+
+=== test_pipeline.py موجود في 7 مسارات ===
+./tests/integration/test_pipeline.py
+./tests/test_pipeline.py
+./packages/handwriting/tests/test_pipeline.py
+./packages/file_processor/tests/test_pipeline.py
+./packages/omnifile/tests/test_pipeline.py
+./apps/ocr-pipeline/tests/test_pipeline.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_pipeline.py
+
+=== test_preprocessor.py موجود في 5 مسارات ===
+./tests/test_preprocessor.py
+./packages/handwriting/tests/test_preprocessor.py
+./packages/file_processor/tests/test_preprocessor.py
+./packages/omnifile/tests/test_preprocessor.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_preprocessor.py
+
+=== test_processing.py موجود في 3 مسارات ===
+./packages/doc_processor/desktop/test_processing.py
+./packages/desktop/test_processing.py
+./packages/doc-processor/desktop/test_processing.py
+
+=== test_protected_vocab.py موجود في 2 مسارات ===
+./tests/test_protected_vocab.py
+./packages/file_processor/tests/test_protected_vocab.py
+
+=== test_scanner_fixer.py موجود في 2 مسارات ===
+./packages/scanner_fixer/tests/test_scanner_fixer.py
+./hf-space/packages/scanner_fixer/tests/test_scanner_fixer.py
+
+=== test_schemas.py موجود في 2 مسارات ===
+./packages/ai-fuel/tests/test_schemas.py
+./tools/ai_fuel/tests/test_schemas.py
+
+=== test_segmenter.py موجود في 2 مسارات ===
+./packages/ai-fuel/tests/test_segmenter.py
+./tools/ai_fuel/tests/test_segmenter.py
+
+=== test_sensitive_scanner.py موجود في 5 مسارات ===
+./tests/test_sensitive_scanner.py
+./packages/handwriting/tests/test_sensitive_scanner.py
+./packages/file_processor/tests/test_sensitive_scanner.py
+./packages/omnifile/tests/test_sensitive_scanner.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_sensitive_scanner.py
+
+=== test_spell_checker.py موجود في 2 مسارات ===
+./tests/test_spell_checker.py
+./packages/file_processor/tests/test_spell_checker.py
+
+=== test_spell_corrector.py موجود في 5 مسارات ===
+./tests/test_spell_corrector.py
+./packages/handwriting/tests/test_spell_corrector.py
+./packages/file_processor/tests/test_spell_corrector.py
+./packages/omnifile/tests/test_spell_corrector.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_spell_corrector.py
+
+=== test_summarizer.py موجود في 5 مسارات ===
+./tests/test_summarizer.py
+./packages/handwriting/tests/test_summarizer.py
+./packages/file_processor/tests/test_summarizer.py
+./packages/omnifile/tests/test_summarizer.py
+./apps/handwriting-demo/variants/handwriting-ocr/tests/test_summarizer.py
+
+=== test_tools.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/haoye2-UnivesalAgent/outputs/tests/test_tools.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/angelen-SoftwareDevHelper/src/utils/test_tools.py
+
+=== test_training.py موجود في 2 مسارات ===
+./tests/test_training.py
+./packages/file_processor/tests/test_training.py
+
+=== test_user_manager.py موجود في 2 مسارات ===
+./tests/test_user_manager.py
+./packages/file_processor/tests/test_user_manager.py
+
+=== text_classifier.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/text_classifier.py
+./packages/file_processor/modules/nlp/text_classifier.py
+./packages/omnifile/modules/nlp/text_classifier.py
+./packages/nlp/text_classifier.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/text_classifier.py
+./hf-space/packages/nlp/text_classifier.py
+
+=== text_processing.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/services/text_processing.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/services/text_processing.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/services/text_processing.py
+
+=== text_reconstructor.py موجود في 6 مسارات ===
+./packages/handwriting/modules/vision/text_reconstructor.py
+./packages/file_processor/modules/vision/text_reconstructor.py
+./packages/vision/text_reconstructor.py
+./packages/omnifile/modules/vision/text_reconstructor.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/text_reconstructor.py
+./hf-space/packages/vision/text_reconstructor.py
+
+=== thinking.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/thinking.py
+./packages/ai/gateway/core/anthropic/thinking.py
+
+=== tmx_processor.py موجود في 2 مسارات ===
+./packages/medical/tmx_processor.py
+./hf-space/packages/medical/tmx_processor.py
+
+=== tokens.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/core/anthropic/tokens.py
+./packages/ai/gateway/core/anthropic/tokens.py
+
+=== tool_events.py موجود في 3 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/services/tool_events.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/services/tool_events.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/services/tool_events.py
+
+=== tools.py موجود في 4 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/939147533-DatabaseAgent/src/tools.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter4/tools.py
+./packages/file_processor/modules/ai/gateway/core/anthropic/tools.py
+./packages/ai/gateway/core/anthropic/tools.py
+
+=== train_trocr_lora.py موجود في 2 مسارات ===
+./packages/file_processor/training/scripts/train_trocr_lora.py
+./packages/training-framework/scripts/train_trocr_lora.py
+
+=== training_hub_loader.py موجود في 2 مسارات ===
+./packages/training_hub/scripts/training_hub_loader.py
+./apps/handwriting-demo/app/training_hub_loader.py
+
+=== translation_corrector.py موجود في 5 مسارات ===
+./packages/handwriting/modules/nlp/translation_corrector.py
+./packages/file_processor/modules/nlp/translation_corrector.py
+./packages/nlp/translation_corrector.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/translation_corrector.py
+./hf-space/packages/nlp/translation_corrector.py
+
+=== translator.py موجود في 6 مسارات ===
+./packages/handwriting/modules/nlp/translator.py
+./packages/file_processor/modules/nlp/translator.py
+./packages/omnifile/modules/nlp/translator.py
+./packages/nlp/translator.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/nlp/translator.py
+./hf-space/packages/nlp/translator.py
+
+=== trocr_arabic_trainer.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/trocr_arabic_trainer.py
+./packages/ai/trocr_arabic_trainer.py
+
+=== trocr_finetuned.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/htr/trocr_finetuned.py
+./packages/vision/htr/trocr_finetuned.py
+./hf-space/packages/vision/htr/trocr_finetuned.py
+
+=== tutor.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/chen070808-ProgrammingTutor/src/agents/tutor.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/lll0807-CodeTutorAgent/programmer/agents/tutor.py
+
+=== unsloth_pipeline.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/04-data-mixing-training/unsloth_pipeline.py
+./packages/file_processor/tools/unsloth_pipeline.py
+
+=== user_manager.py موجود في 5 مسارات ===
+./packages/core/user_manager.py
+./packages/file_processor/legacy/mobile_review/split/05-review-systems/user_manager.py
+./packages/file_processor/modules/core/user_manager.py
+./packages/file_processor/tools/user_manager.py
+./hf-space/packages/core/user_manager.py
+
+=== user_pattern_db.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/user_pattern_db.py
+./packages/ai/user_pattern_db.py
+
+=== utils.py موجود في 21 مسارات ===
+./packages/ai-fuel/core/utils.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/huailishang-AgentPlatformBase/agents/deep_research/src/utils.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/JJason-DeepCastAgent/backend/src/utils.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/melxy1997-ColumnWriter/utils.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter14/helloagents-deepresearch/backend/src/utils.py
+./packages/file_processor/_dev_references/hello-agents/code/chapter9/codebase/utils.py
+./packages/file_processor/modules/ai/gateway/core/anthropic/utils.py
+./packages/omniparse/python-sdk/omniparse_client/utils.py
+./packages/omniparse/omniparse/web/utils.py
+./packages/omniparse/omniparse/image/utils.py
+./packages/omniparse/omniparse/media/utils.py
+./packages/omniparse/omniparse/utils.py
+./packages/ai/gateway/core/anthropic/utils.py
+./packages/doc_processor/skills/quiz-mastery/src/quiz_mastery/utils.py
+./packages/doc_processor/skills/skill-creator/scripts/utils.py
+./tools/ai_fuel/core/utils.py
+./labs/omniparse_study/python-sdk/omniparse_client/utils.py
+./labs/omniparse_study/omniparse/web/utils.py
+./labs/omniparse_study/omniparse/image/utils.py
+./labs/omniparse_study/omniparse/media/utils.py
+./labs/omniparse_study/omniparse/utils.py
+
+=== validate.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/financial-services/scripts/validate.py
+./packages/doc_processor/skills/ppt/ooxml/scripts/validate.py
+
+=== validation_log.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/validation_log.py
+./packages/ai/gateway/api/validation_log.py
+
+=== versioning.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/core/versioning.py
+./packages/interactive-learning/core/versioning.py
+
+=== video_ocr.py موجود في 5 مسارات ===
+./packages/handwriting/modules/vision/video_ocr.py
+./packages/file_processor/modules/vision/video_ocr.py
+./packages/vision/video_ocr.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/vision/video_ocr.py
+./hf-space/packages/vision/video_ocr.py
+
+=== voice.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/providers/nvidia_nim/voice.py
+./packages/ai/gateway/providers/nvidia_nim/voice.py
+
+=== voting_tracker.py موجود في 2 مسارات ===
+./packages/file_processor/legacy/mobile_review/split/05-review-systems/voting_tracker.py
+./packages/file_processor/tools/voting_tracker.py
+
+=== watchdog_service.py موجود في 6 مسارات ===
+./packages/handwriting/modules/core/watchdog_service.py
+./packages/core/watchdog_service.py
+./packages/file_processor/modules/core/watchdog_service.py
+./packages/omnifile/modules/core/watchdog_service.py
+./apps/handwriting-demo/variants/handwriting-ocr/modules/core/watchdog_service.py
+./hf-space/packages/core/watchdog_service.py
+
+=== web_crawler.py موجود في 2 مسارات ===
+./packages/omniparse/omniparse/web/web_crawler.py
+./labs/omniparse_study/omniparse/web/web_crawler.py
+
+=== web_server_tools.py موجود في 2 مسارات ===
+./packages/file_processor/modules/ai/gateway/api/web_server_tools.py
+./packages/ai/gateway/api/web_server_tools.py
+
+=== word_editor.py موجود في 2 مسارات ===
+./packages/file_processor/interactive_learning/ui/word_editor.py
+./packages/interactive-learning/ui/word_editor.py
+
+=== word_segmenter.py موجود في 3 مسارات ===
+./packages/file_processor/modules/vision/htr/word_segmenter.py
+./packages/vision/htr/word_segmenter.py
+./hf-space/packages/vision/htr/word_segmenter.py
+
+=== word_trainer.py موجود في 3 مسارات ===
+./packages/core/word_trainer.py
+./packages/file_processor/modules/core/word_trainer.py
+./hf-space/packages/core/word_trainer.py
+
+=== writing.py موجود في 2 مسارات ===
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/api/routes/writing.py
+./packages/file_processor/_dev_references/hello-agents/Co-creation-projects/Apricity-InnocoreAI/models/writing.py
+
