@@ -7,6 +7,7 @@ from packages.ocr_contracts.integrity_ledger import (
     approve_sample,
     compute_content_hash,
     connect_ledger,
+    record_delivery_event,
     record_export_attempt,
 )
 
@@ -284,3 +285,29 @@ def test_legacy_export_event_schema_migrates_additively_and_fails_closed(tmp_pat
         assert conn.execute("SELECT COUNT(*) FROM export_events").fetchone()[0] == 2
     finally:
         conn.close()
+
+
+
+def test_delivery_events_are_append_only_and_idempotent():
+    conn = connect_ledger(":memory:")
+    first = record_delivery_event(
+        conn, event_key="attempt-1:push-started", correlation_id="attempt-1",
+        destination="remote-hub", outcome="push_started",
+    )
+    again = record_delivery_event(
+        conn, event_key="attempt-1:push-started", correlation_id="attempt-1",
+        destination="remote-hub", outcome="push_started",
+    )
+    assert first == again
+    assert conn.execute("SELECT COUNT(*) FROM delivery_events").fetchone()[0] == 1
+
+    with pytest.raises(ValueError, match="delivery_event_key_reused_for_different_event"):
+        record_delivery_event(
+            conn, event_key="attempt-1:push-started", correlation_id="attempt-1",
+            destination="remote-hub", outcome="push_succeeded",
+        )
+    with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+        conn.execute("UPDATE delivery_events SET outcome='push_succeeded'")
+    with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+        conn.execute("DELETE FROM delivery_events")
+    conn.close()

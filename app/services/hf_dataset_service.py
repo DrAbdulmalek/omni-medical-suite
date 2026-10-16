@@ -77,6 +77,7 @@ import logging
 import os
 import subprocess
 import threading
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -84,6 +85,7 @@ from packages.ocr_contracts.integrity_ledger import (
     approve_sample,
     compute_content_hash,
     connect_ledger,
+    record_delivery_event,
     record_export_attempt,
 )
 
@@ -169,7 +171,6 @@ def _verify_remote_dataset_privacy() -> bool:
                 "make the dataset private before retrying"
             )
     else:
-        # Recheck the literal source value instead of trusting a mutable boolean.
         if _dataset_private_env is None or _dataset_private_env.strip() != "false":
             raise RuntimeError(
                 "HF export aborted: public visibility requires explicit "
@@ -228,6 +229,28 @@ def _integrity_payload(row: dict) -> dict[str, str]:
 def _open_integrity_ledger():
     _ensure_dirs()
     return connect_ledger(str(_LEDGER_FILE))
+
+
+def _record_delivery_outcome(
+    *,
+    event_key: str,
+    correlation_id: str,
+    outcome: str,
+    error_code: str = "",
+) -> None:
+    """Persist a metadata-only delivery observation; never stores payloads or tokens."""
+    conn = _open_integrity_ledger()
+    try:
+        record_delivery_event(
+            conn,
+            event_key=event_key,
+            correlation_id=correlation_id,
+            destination=HF_DATASET,
+            outcome=outcome,
+            error_code=error_code,
+        )
+    finally:
+        conn.close()
 
 
 def _record_row_approval(row: dict) -> str:
@@ -536,11 +559,6 @@ def flush_queue() -> str:
                 "الموافقة أو بصمة المحتوى غير مطابقة. بقيت البيانات محلياً."
             )
 
-        # Verify the remote repository's actual visibility before any dataset
-        # read or write. Never infer privacy from a requested write-visibility
-        # argument or continue when Hub visibility cannot be established.
-        _verify_remote_dataset_privacy()
-
         # Dedup against existing HF dataset (drop rows whose content_hash
         # already exists remotely). This is the only network call that
         # reads the full dataset; it happens at most once per flush, not
@@ -548,6 +566,9 @@ def flush_queue() -> str:
         # A failed remote read is not evidence that the dataset is empty or absent.
         # Fail closed before any write; the operator must make the target dataset
         # readable (or explicitly provision it) before export can proceed.
+        # Verify the actual Hub visibility before any dataset read/write.
+        _verify_remote_dataset_privacy()
+
         try:
             existing = load_dataset(HF_DATASET, split="train")
         except Exception as e:
@@ -641,11 +662,54 @@ def flush_queue() -> str:
                 )
             push_kwargs["token"] = HF_TOKEN
             new_ds = Dataset.from_pandas(df)
-            new_ds.push_to_hub(**push_kwargs)
+            # This ID correlates metadata-only outcome events for this one attempt.
+            # A retry gets a new ID; dedup against the verified remote snapshot remains
+            # the recovery mechanism after an ambiguous network result.
+            delivery_id = uuid.uuid4().hex
+            _record_delivery_outcome(
+                event_key=f"{delivery_id}:push_started",
+                correlation_id=delivery_id,
+                outcome="push_started",
+            )
+            try:
+                new_ds.push_to_hub(**push_kwargs)
+            except Exception as exc:
+                # A client exception cannot prove whether the Hub committed the write.
+                # Record ambiguity rather than claiming a definite remote failure.
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:push_ambiguous",
+                    correlation_id=delivery_id,
+                    outcome="push_ambiguous",
+                    error_code=type(exc).__name__,
+                )
+                raise
 
+            _record_delivery_outcome(
+                event_key=f"{delivery_id}:push_succeeded",
+                correlation_id=delivery_id,
+                outcome="push_succeeded",
+            )
             total = len(df)
-            archive_path = _archive_uploaded(eligible)
-            _rewrite_pending_excluding(eligible)
+            try:
+                archive_path = _archive_uploaded(eligible)
+            except Exception as exc:
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:archive_failed",
+                    correlation_id=delivery_id,
+                    outcome="archive_failed",
+                    error_code=type(exc).__name__,
+                )
+                raise
+            try:
+                _rewrite_pending_excluding(eligible)
+            except Exception as exc:
+                _record_delivery_outcome(
+                    event_key=f"{delivery_id}:queue_cleanup_failed",
+                    correlation_id=delivery_id,
+                    outcome="queue_cleanup_failed",
+                    error_code=type(exc).__name__,
+                )
+                raise
 
             privacy_note = "خاص (private)" if OMNI_HF_DATASET_PRIVATE else "عام — opt-in صريح"
             logger.info(
