@@ -1,0 +1,4 @@
+file,repo,status,evidence
+deduplication_pipeline.py,omni:src/ocr,SUSPECT-orphan,not-imported-by-scanned-files
+build_medical_dict.py,omni:src/ocr,SUSPECT-orphan,not-imported-by-scanned-files
+full-orphan-scan,all,BLOCKED,requires-local-clone

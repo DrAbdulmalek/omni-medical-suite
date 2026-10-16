@@ -1,0 +1,6 @@
+id,package_or_topic,versions_or_detail,severity,impact,recommendation,evidence
+C-001,numpy,<2.0.0-cap-in-hf vs open-floor-elsewhere,MEDIUM,paddle-numpy2 compat,unify cap,medical-ocr-trainer-hf/requirements.txt
+C-002,streamlit,==1.38.0 vs >=1.38.0,LOW,version drift,>=1.38.0,trainer-hf/requirements.txt
+C-003,git-dependency,medical-ocr-benchmarks git+https,HIGH,unpinned install,replace with release,medical-ocr-trainer/requirements.txt:47
+K-001,contract-bbox,dict(x,y,w,h) vs [[x,y]x4] vs BoundingBox vs HTR-bbox,HIGH,4 incompatible word schemas,adopt adapter.OCRResult,adapter.py:93;ensemble_ocr.py:76-150;result_fusion.py:71;arabic_htr.py:95
+K-002,contract-provenance,only-adapter-has-P0-fields,MEDIUM,provenance loss in other schemas,mandate P0 fields,adapter.py:83-93
