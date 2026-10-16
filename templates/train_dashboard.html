@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة تدريب TrOCR العربي — AHW</title>
+<!-- عميل socket.io يُقدَّم من خادم flask-socketio نفسه — بلا CDN خارجي -->
+<script src="/socket.io/socket.io.js"></script>
+<style>
+body { font-family: Tahoma, "Segoe UI", sans-serif; background: #1a1a2e;
+       color: #eee; margin: 0; padding: 20px; }
+h1 { color: #00d4ff; font-size: 24px; }
+h3 { margin: 0 0 10px; }
+.panel { background: #16213e; border-radius: 12px; padding: 20px;
+         margin: 15px 0; }
+label { display: block; margin: 8px 0 4px; color: #aaa; font-size: 14px; }
+input, select { width: 100%; padding: 10px; border-radius: 6px;
+                border: 1px solid #333; background: #0f3460; color: #eee;
+                box-sizing: border-box; font-size: 15px; }
+button { background: #00d4ff; color: #000; border: none;
+         padding: 12px 30px; border-radius: 8px; font-size: 16px;
+         cursor: pointer; margin-top: 15px; margin-inline-end: 10px;
+         font-weight: bold; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.stop { background: #dc3545; color: #fff; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+.metric { background: #0f3460; padding: 15px; border-radius: 8px;
+          text-align: center; }
+.metric .value { font-size: 28px; font-weight: bold; color: #00d4ff; }
+.metric .label { font-size: 12px; color: #888; margin-top: 5px; }
+.progress-bar { height: 20px; background: #0f3460; border-radius: 10px;
+                overflow: hidden; margin: 15px 0; }
+.progress-fill { height: 100%;
+                 background: linear-gradient(90deg,#00d4ff,#7b2ff7);
+                 transition: width 0.5s; width: 0%; }
+#log { background: #0a0a1a; padding: 15px; border-radius: 8px;
+       font-family: monospace; font-size: 13px; max-height: 300px;
+       overflow-y: auto; white-space: pre-wrap; direction: rtl; }
+.status-badge { display: inline-block; padding: 4px 12px;
+                border-radius: 20px; font-size: 13px; margin-inline-start: 10px; }
+.status-idle { background: #444; }
+.status-running { background: #00d4ff; color: #000; }
+.status-done { background: #28a745; }
+.status-error { background: #dc3545; }
+.status-stopped { background: #fd7e14; color: #000; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.hint { color: #777; font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<h1>🧠 لوحة تدريب TrOCR العربي — حزمة AHW</h1>
+
+<div class="panel">
+    <h3>⚙️ إعدادات التدريب</h3>
+    <label for="mode">الوضع</label>
+    <select id="mode">
+        <option value="full">كامل — من corrections.xlsx/csv (يتطلب أوزانًا)</option>
+        <option value="smoke">دخاني — 10 عينات اصطناعية، epoch واحد (بلا تنزيل)</option>
+    </select>
+    <label for="dataDir">مجلد البيانات (يحوي corrections + القصاصات)</label>
+    <input id="dataDir" value="output/S001">
+    <label for="outputDir">مجلد المخرجات</label>
+    <input id="outputDir" value="models/trocr-arabic">
+    <div class="grid3">
+        <div><label for="epochs">Epochs</label>
+             <input id="epochs" type="number" min="1" value="20"></div>
+        <div><label for="batch">Batch Size</label>
+             <input id="batch" type="number" min="1" value="8"></div>
+        <div><label for="lr">Learning Rate</label>
+             <input id="lr" value="5e-5"></div>
+    </div>
+    <label for="baseModel">النموذج الأساسي</label>
+    <select id="baseModel">
+        <option value="microsoft/trocr-base-handwritten">TrOCR Base (Handwritten)</option>
+        <option value="microsoft/trocr-large-handwritten">TrOCR Large (Handwritten)</option>
+    </select>
+    <div class="hint">في الوضع الدخاني يُستخدم نموذج dry_run صغير — لا يُنزَّل شيء.</div>
+    <button id="startBtn" onclick="startTraining()">🚀 بدء التدريب</button>
+    <button id="stopBtn" class="stop" onclick="stopTraining()" disabled>⏹ إيقاف</button>
+</div>
+
+<div class="panel">
+    <h3>📊 الحالة الحالية
+        <span id="statusBadge" class="status-badge status-idle">خامل</span>
+    </h3>
+    <div class="metrics">
+        <div class="metric"><div class="value" id="mEpoch">0</div>
+            <div class="label">Epoch</div></div>
+        <div class="metric"><div class="value" id="mStep">0</div>
+            <div class="label">Step</div></div>
+        <div class="metric"><div class="value" id="mLoss">0.00</div>
+            <div class="label">Loss</div></div>
+        <div class="metric"><div class="value" id="mCER">--</div>
+            <div class="label">CER</div></div>
+    </div>
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div id="log">في انتظار بدء التدريب...</div>
+</div>
+
+<script>
+const socket = io();
+let totalEpochs = 1;
+
+socket.on('training_started', (d) => {
+    totalEpochs = d.epochs || 1;
+    setStatus('running', 'قيد التشغيل');
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+    log(`بدء التدريب (${d.mode}): ${d.total} عينة، ${d.epochs} epoch`);
+});
+
+socket.on('training_update', (d) => {
+    if (d.epoch !== undefined)
+        document.getElementById('mEpoch').textContent =
+            Number(d.epoch).toFixed(1);
+    if (d.step !== undefined)
+        document.getElementById('mStep').textContent = d.step;
+    if (d.loss !== undefined)
+        document.getElementById('mLoss').textContent =
+            Number(d.loss).toFixed(4);
+    const pct = Math.min(100, ((d.epoch || 0) / totalEpochs) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    if (d.loss !== undefined)
+        log(`Epoch ${Number(d.epoch||0).toFixed(2)} | Step ${d.step} | ` +
+            `Loss ${Number(d.loss).toFixed(4)}`);
+});
+
+socket.on('eval_update', (d) => {
+    if (d.cer !== undefined && d.cer >= 0)
+        document.getElementById('mCER').textContent =
+            Number(d.cer).toFixed(4);
+    log(`📊 تقييم: CER=${d.cer >= 0 ? Number(d.cer).toFixed(4) : '--'} ` +
+        `Loss=${Number(d.loss || 0).toFixed(4)}`);
+});
+
+socket.on('training_log', (d) => { log(d.message); });
+
+socket.on('training_done', (d) => {
+    setStatus('done', 'مكتمل ✓');
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    document.getElementById('progressFill').style.width = '100%';
+    log(`✅ اكتمل التدريب! loss=${Number(d.final_loss).toFixed(4)}` +
+        (d.cer != null ? ` CER=${Number(d.cer).toFixed(4)}` : ''));
+    if (d.output_dir) log(`📁 النموذج في: ${d.output_dir}`);
+});
+
+socket.on('training_error', (d) => {
+    setStatus(d.status === 'stopped' ? 'stopped' : 'error',
+              d.status === 'stopped' ? 'موقوف' : 'خطأ');
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    log(`❌ ${d.error}`);
+});
+
+function setStatus(cls, text) {
+    const b = document.getElementById('statusBadge');
+    b.className = 'status-badge status-' + cls;
+    b.textContent = text;
+}
+
+function log(msg) {
+    const el = document.getElementById('log');
+    if (el.textContent.startsWith('في انتظار')) el.textContent = '';
+    el.textContent += '\n' + msg;
+    el.scrollTop = el.scrollHeight;
+}
+
+async function startTraining() {
+    const data = {
+        mode: document.getElementById('mode').value,
+        data_dir: document.getElementById('dataDir').value,
+        output_dir: document.getElementById('outputDir').value,
+        epochs: document.getElementById('epochs').value,
+        batch: document.getElementById('batch').value,
+        lr: document.getElementById('lr').value,
+        base_model: document.getElementById('baseModel').value
+    };
+    totalEpochs = Number(data.epochs) || 1;
+    document.getElementById('log').textContent = '';
+    document.getElementById('startBtn').disabled = true;
+    const r = await fetch('/api/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    if (!r.ok) {
+        const err = await r.json();
+        document.getElementById('startBtn').disabled = false;
+        alert('خطأ: ' + (err.error || 'فشل البدء'));
+    }
+}
+
+async function stopTraining() {
+    document.getElementById('stopBtn').disabled = true;
+    await fetch('/api/stop', {method: 'POST'});
+}
+
+// مزامنة أولية مع الحالة القائمة (تحديث الصفحة أثناء تدريب جارٍ)
+fetch('/api/status').then(r => r.json()).then(s => {
+    if (s.running) {
+        setStatus('running', 'قيد التشغيل');
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
+        totalEpochs = s.total_epochs || 1;
+    } else if (s.status && s.status !== 'idle') {
+        setStatus(s.status, s.status === 'done' ? 'مكتمل ✓' :
+                  s.status === 'error' ? 'خطأ' : 'موقوف');
+    }
+    (s.log || []).slice(-50).forEach(log);
+});
+</script>
+</body>
+</html>

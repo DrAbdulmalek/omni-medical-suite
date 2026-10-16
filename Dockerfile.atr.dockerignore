@@ -1,0 +1,40 @@
+# Dockerfile.atr.dockerignore — إقصاءات سياق البناء لحزمة AHW
+# (BuildKit يقرأ <dockerfile>.dockerignore تلقائيًا عند -f Dockerfile.atr؛
+#  هذا لا يمس .dockerignore الجذري القائم للمنظومة)
+output/
+models/
+.git/
+.secrets/
+*.pdf
+batch_*/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+download/
+uploads/
+training-data/
+data/
+samples/
+hf-space/
+hf-spaces/
+legacy/
+notebooks/
+research/
+benchmarks/
+apps/
+desktop/
+mobile/
+docs/
+tests/
+*.md
+Dockerfile
+Dockerfile.*
+!Dockerfile.atr
+docker-compose*.yml
+!docker-compose.atr.yml
+requirements/
+requirements.txt
+requirements-dev.txt
+requirements-scanner.txt
