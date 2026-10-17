@@ -536,16 +536,6 @@ Interactive HuggingFace Spaces deployment with clinical AI features.
 - Medical Analysis — extract vitals, medications, diagnoses from free-form text
 - Clinical Q&A — evidence-based clinical questions with citations
 
-### Telegram Content Forwarder (`tools/ops/telegram_forwarder/app.py`)
-
-Gradio UI for the Telegram content forwarding tool (ops utility).
-
-**Features:**
-- Download-Upload technique to bypass "Restrict Saving Content" on protected channels
-- Real-time progress tracking, session string export for HF Spaces
-- Configurable delay, media/text filtering, reverse order
-- Rate-limit warnings and cancel support
-
 ---
 
 ## Archived Prototypes
