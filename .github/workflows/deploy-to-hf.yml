@@ -33,8 +33,12 @@ jobs:
 
     steps:
       - name: Verify HF_TOKEN is set
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        # `${{ secrets.* }}` داخل run يُستبدل نصيًّا قبل تنفيذ الصدفة: أي حرف خاص
+        # في القيمة يكسر السكربت أو يتيح حقن أوامر. الفحص عبر env فقط.
         run: |
-          if [ -z "${{ secrets.HF_TOKEN }}" ]; then
+          if [ -z "${HF_TOKEN:-}" ]; then
             echo "::error:: HF_TOKEN secret is not set in repository settings"
             echo "::error:: Add it at: Settings -> Secrets and variables -> Actions"
             exit 1
@@ -48,13 +52,37 @@ jobs:
           git config --global user.name "DrAbdulmalek"
           git config --global user.email "drabdulmalek@proton.me"
 
-      - name: Clone HF Space
+      - name: Configure Git credential helper (token never enters the remote URL)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        # لماذا: `https://user:${TOKEN}@host/...` يكتب التوكن داخل `.git/config`
+        # ويعرّضه في `git remote -v` وقائمة العمليات (`ps`) ورسائل الخطأ.
+        # البديل: ملف اعتمادات بصلاحيات 600 خارج المستودع + helper يشير إليه،
+        # فيبقى remote نظيفًا ويُحذف الملف في نهاية المهمة.
         run: |
-          git clone "https://DrAbdulmalek:${HF_TOKEN}@huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr" hf-space-deploy
+          set -euo pipefail
+          CRED_FILE="${HOME}/.hf-git-credentials"
+          umask 077
+          printf 'https://DrAbdulmalek:%s@huggingface.co\n' "$HF_TOKEN" > "$CRED_FILE"
+          chmod 600 "$CRED_FILE"
+          git config --global credential.https://huggingface.co.helper "store --file=$CRED_FILE"
+          echo "CRED_FILE=$CRED_FILE" >> "$GITHUB_ENV"
+          # fail-fast إن لم يكن git-lfs متاحًا بدل إخفاء الفشل
+          if ! command -v git-lfs >/dev/null 2>&1; then
+            echo "::warning::git-lfs is not installed — LFS objects will not be pulled"
+          fi
+
+      - name: Clone HF Space
+        run: |
+          set -euo pipefail
+          git clone "https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr" hf-space-deploy
           cd hf-space-deploy
-          git lfs pull 2>/dev/null || true
+          # التحقق من نظافة remote بعد الاستنساخ (لا يجوز أن يحمل بيانات اعتماد)
+          ORIGIN="$(git remote get-url origin)"
+          case "$ORIGIN" in
+            *"://"*":"*"@"*) echo "::error::origin embeds credentials — aborting"; exit 1 ;;
+          esac
+          if command -v git-lfs >/dev/null 2>&1; then git lfs pull; fi
 
       - name: Sync all hf-space files
         run: |
@@ -86,16 +114,25 @@ jobs:
           echo "packages/: $(find packages/ -name '*.py' | wc -l) files"
 
       - name: Push to HF Spaces
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          set -euo pipefail
           cd hf-space-deploy
           git add -A
           CHANGED=$(git diff --cached --stat)
           if [ -n "$CHANGED" ]; then
             git commit -m "auto-deploy from omni-medical-suite@${GITHUB_SHA::7}"
-            git push "https://DrAbdulmalek:${HF_TOKEN}@huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr" main
+            # الدفع إلى remote نظيف؛ الاعتماد يأتي من الـhelper المُعدّ أعلاه
+            git push origin main
             echo "✅ Deployed to https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"
           else
             echo "No changes to deploy"
           fi
+
+      - name: Remove credential file
+        if: always()
+        run: |
+          if [ -n "${CRED_FILE:-}" ] && [ -f "$CRED_FILE" ]; then
+            shred -u "$CRED_FILE" 2>/dev/null || rm -f "$CRED_FILE"
+            echo "removed $CRED_FILE"
+          fi
+          git config --global --unset credential.https://huggingface.co.helper 2>/dev/null || true
