@@ -46,7 +46,7 @@ jobs:
             "huggingface_hub==0.20.3"
 
       - name: Cache buildozer
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.buildozer
