@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/Packages-31-4B8BBE?style=flat-square" />
   <img src="https://img.shields.io/badge/Apps-5-2ECC71?style=flat-square" />
-  <img src="https://img.shields.io/badge/Tests-174%2B-FF6B6B?style=flat-square" />
+  <img src="https://img.shields.io/badge/CI-Tested-174%2B-FF6B6B?style=flat-square" />
   <img src="https://img.shields.io/badge/Version-v1.1.0-blue?style=flat-square" />
   <a href="https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/Release-v1.1.0-brightgreen?style=flat-square" /></a>
   <img src="https://img.shields.io/badge/License-MIT-3C873A?style=flat-square" />
@@ -72,7 +72,7 @@ Omni Medical Suite extracts, corrects, and structures Arabic text from medical d
 
 ## 🆕 What's New in v1.1.0 (stable)
 
-The v1.1.0 hardening sprint consolidates **16 commits** across three phases (P0 + P1 + P2) plus 4 post-rc1 AppImage build fixes. It adds **174 passing tests** (163 unit + 11 AppImage smoke), structured decision logging, an AppImage build pipeline, and a multi-platform CI matrix.
+The v1.1.0 hardening sprint consolidates **16 commits** across three phases (P0 + P1 + P2) plus 4 post-rc1 AppImage build fixes. The v1.1.0 release gate reported **174 passing tests** (163 unit + 11 AppImage smoke); this is the release-gate count, not a count of every test function in the monorepo. The sprint also adds structured decision logging, an AppImage build pipeline, and a multi-platform CI matrix.
 
 ### Highlights
 
