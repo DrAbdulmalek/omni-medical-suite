@@ -103,9 +103,9 @@ The v1.1.0 hardening sprint consolidates **16 commits** across three phases (P0 
   3. Decision log emits to stderr by default. Attach a JSON-lines file handler to ship to your log aggregator.
 - **New env vars:** `OMNI_HF_QUEUE_DIR`, `OMNI_HF_FLUSH_THRESHOLD`, `OMNI_APPIMAGE_OFFSCREEN`, `APPIMAGETOOL_SIGN_KEY`, `MEDICAL_DOC_APPIMAGE`.
 
-📖 **Full release notes:** [`RELEASE_NOTES_v1.1.0.md`](RELEASE_NOTES_v1.1.0.md)
-📋 **Release candidate checklist:** [`RELEASE_CANDIDATE_CHECKLIST.md`](RELEASE_CANDIDATE_CHECKLIST.md)
-🔄 **Previous RC:** [`RELEASE_NOTES_v1.1.0-rc1.md`](RELEASE_NOTES_v1.1.0-rc1.md)
+📖 **Full release notes:** [`RELEASE_NOTES_v1.1.0.md`](docs/archive/RELEASE_NOTES_v1.1.0.md)
+📋 **Release candidate checklist:** [`RELEASE_CANDIDATE_CHECKLIST.md`](docs/archive/RELEASE_CANDIDATE_CHECKLIST.md)
+🔄 **Previous RC:** [`RELEASE_NOTES_v1.1.0-rc1.md`](docs/archive/RELEASE_NOTES_v1.1.0-rc1.md)
 
 ## Quick Start
 

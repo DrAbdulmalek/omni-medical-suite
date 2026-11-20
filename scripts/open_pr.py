@@ -110,8 +110,8 @@ After this PR merges to `main`:
 
 ## 📚 References
 
-- [Release Notes v1.1.0-rc1](RELEASE_NOTES_v1.1.0-rc1.md)
-- [Release Candidate Checklist](RELEASE_CANDIDATE_CHECKLIST.md)
+- [Release Notes v1.1.0-rc1](docs/archive/RELEASE_NOTES_v1.1.0-rc1.md)
+- [Release Candidate Checklist](docs/archive/RELEASE_CANDIDATE_CHECKLIST.md)
 - [AppImage Manjaro Build Guide](docs/APPIIMAGE_MANJARO.md)
 - [LFS Migration Plan](docs/LFS_MIGRATION_PLAN.md)
 - [Worklog](worklog.md)
