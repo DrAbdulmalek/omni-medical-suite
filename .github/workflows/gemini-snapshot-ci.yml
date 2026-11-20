@@ -1,0 +1,165 @@
+name: Gemini Snapshot Tool CI
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'tools/export_project_snapshot.py'
+      - 'tests/tools/test_export_project_snapshot.py'
+      - 'tools/__init__.py'
+      - 'tests/tools/__init__.py'
+      - '.github/workflows/gemini-snapshot-ci.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'tools/export_project_snapshot.py'
+      - 'tests/tools/test_export_project_snapshot.py'
+      - 'tools/__init__.py'
+      - 'tests/tools/__init__.py'
+      - '.github/workflows/gemini-snapshot-ci.yml'
+
+jobs:
+  test-snapshot-tool:
+    name: Test Snapshot Tool
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run unit tests
+        run: |
+          python -m unittest tests.tools.test_export_project_snapshot -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Run CLI — tracked scope
+        run: |
+          python tools/export_project_snapshot.py \
+            --scope tracked \
+            --output snapshot_tracked.txt \
+            --purpose "CI tracked test"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Verify tracked snapshot
+        run: |
+          test -f snapshot_tracked.txt
+          echo "=== Tracked Snapshot Header ==="
+          head -n 20 snapshot_tracked.txt
+          echo "=== Redaction Check ==="
+          # Only flag actual secret VALUES (hf_ followed by 20+ chars), not variable names
+          if grep -oP 'hf_[A-Za-z0-9]{20,}' snapshot_tracked.txt | grep -v "REDACTED"; then
+            echo "❌ Possible unredacted HF token value found!"
+            exit 1
+          fi
+          echo "✅ No unredacted HF token values found"
+
+      - name: Run CLI — diff scope
+        run: |
+          python tools/export_project_snapshot.py \
+            --scope diff \
+            --output snapshot_diff.txt \
+            --purpose "CI diff test" \
+            --with-prompt
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Verify diff snapshot
+        run: |
+          test -f snapshot_diff.txt
+          echo "=== Diff Snapshot Manifest ==="
+          grep -A 5 "PROJECT MANIFEST" snapshot_diff.txt || true
+          echo "=== AI Prompt Section ==="
+          grep -A 5 "AI REVIEW CONTEXT" snapshot_diff.txt || true
+
+      - name: Run CLI — selected scope
+        run: |
+          python tools/export_project_snapshot.py \
+            --scope selected \
+            --include tools/export_project_snapshot.py tests/tools/test_export_project_snapshot.py \
+            --output snapshot_selected.txt \
+            --purpose "CI selected test"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Verify selected snapshot
+        run: |
+          test -f snapshot_selected.txt
+          grep "FILE: tools/export_project_snapshot.py" snapshot_selected.txt
+          grep "FILE: tests/tools/test_export_project_snapshot.py" snapshot_selected.txt
+          echo "✅ Selected scope works correctly"
+
+      - name: Run CLI — full scope (with size limits)
+        run: |
+          python tools/export_project_snapshot.py \
+            --scope full \
+            --output snapshot_full.txt \
+            --max-file-size 50000 \
+            --max-total-size 1000000 \
+            --purpose "CI full test"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Verify full snapshot
+        run: |
+          test -f snapshot_full.txt
+          echo "=== Full Snapshot Size ==="
+          ls -lh snapshot_full.txt
+          echo "=== Binary Exclusion Check ==="
+          if grep -E "FILE: .*\.(png|jpg|jpeg|gif|pdf|zip)" snapshot_full.txt; then
+            echo "❌ Binary file was included!"
+            exit 1
+          fi
+          echo "✅ Binary files correctly excluded"
+
+      - name: Security regression — ensure no real secrets leak
+        run: |
+          for snapshot in snapshot_*.txt; do
+            echo "Checking $snapshot for secret leakage..."
+
+            # Check for actual HF token VALUES (hf_ + 20+ alphanumeric, not variable names)
+            if grep -oP 'hf_[A-Za-z0-9]{20,}' "$snapshot" | grep -v "REDACTED"; then
+              echo "❌ Unredacted HF token value found in $snapshot"
+              exit 1
+            fi
+
+            # Check for OpenAI key VALUES
+            if grep -oP 'sk-[A-Za-z0-9]{20,}' "$snapshot" | grep -v "REDACTED"; then
+              echo "❌ Unredacted OpenAI key value found in $snapshot"
+              exit 1
+            fi
+
+            # Check for AWS keys
+            if grep -oP 'AKIA[0-9A-Z]{16}' "$snapshot" | grep -v "REDACTED"; then
+              echo "❌ Unredacted AWS key found in $snapshot"
+              exit 1
+            fi
+
+            # Check for private key blocks
+            if grep -E "BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY" "$snapshot"; then
+              echo "❌ Private key block found in $snapshot"
+              exit 1
+            fi
+
+            echo "✅ $snapshot passed secret leakage check"
+          done
+
+      - name: Upload snapshots as artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gemini-snapshots-${{ github.run_id }}
+          path: snapshot_*.txt
+          retention-days: 1
+
+      - name: Cleanup
+        if: always()
+        run: rm -f snapshot_*.txt

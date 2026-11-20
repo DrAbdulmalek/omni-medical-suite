@@ -73,7 +73,6 @@ jobs:
       - name: Build debug APK
         working-directory: mobile/android
         run: buildozer -v android debug
-        continue-on-error: true
         id: build
 
       - name: Post-build check

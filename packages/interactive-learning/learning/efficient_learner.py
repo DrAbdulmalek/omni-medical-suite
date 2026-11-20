@@ -20,9 +20,10 @@ Usage:
 
 import contextlib
 import io
+import json
 import logging
-import pickle
 import time
+from base64 import b64decode, b64encode
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -170,30 +171,42 @@ class MemoryEfficientLearner:
         return np.array(pil_img)
 
     def _offload_to_disk(self, item: CorrectionItem):
-        """Offload a correction item to disk."""
-        filename = f"correction_{self._disk_count:08d}.pkl.zst"
+        """Offload a correction item to disk.
+
+        Security note: the on-disk format is JSON (UTF-8) + zstd/zlib
+        compression, NOT pickle. This eliminates arbitrary-code-execution
+        risk from a tampered cache file. Legacy ``correction_*.pkl.zst``
+        files written by previous versions are ignored by
+        ``_load_from_disk`` (which globs for ``correction_*.json.zst``).
+        """
+        filename = f"correction_{self._disk_count:08d}.json.zst"
         filepath = self.cache_dir / filename
 
         try:
+            # compressed_image is raw bytes — JSON has no bytes type, so
+            # base64-encode it for storage. All other fields are native
+            # JSON types (str, float).
             data = {
                 "original_text": item.original_text,
                 "corrected_text": item.corrected_text,
                 "confidence": item.confidence,
-                "compressed_image": item.compressed_image,
+                "compressed_image_b64": b64encode(item.compressed_image).decode("ascii"),
                 "timestamp": item.timestamp,
                 "weight": item.weight,
             }
 
-            # Pickle + compress
-            pickled = pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+            # JSON + compress (JSON is non-executable: a tampered cache
+            # file can at most produce a JSONDecodeError or wrong types,
+            # never arbitrary code execution).
+            json_bytes = json.dumps(data).encode("utf-8")
 
             # Try zstd, fallback to zlib
             try:
                 import zstandard as zstd
-                compressed = zstd.compress(pickled, level=self.compression_level)
+                compressed = zstd.compress(json_bytes, level=self.compression_level)
             except ImportError:
                 import zlib
-                compressed = zlib.compress(pickled, level=self.compression_level)
+                compressed = zlib.compress(json_bytes, level=self.compression_level)
 
             filepath.write_bytes(compressed)
             self._disk_count += 1
@@ -203,21 +216,30 @@ class MemoryEfficientLearner:
             logger.error(f"Failed to offload correction to disk: {e}")
 
     def _load_from_disk(self) -> list[CorrectionItem]:
-        """Load all corrections from disk."""
+        """Load all corrections from disk.
+
+        Reads only ``correction_*.json.zst`` files (the new safe format).
+        Legacy ``correction_*.pkl.zst`` files are silently ignored —
+        operators who want to reclaim that disk space should delete them
+        manually. No pickle deserialization is performed at any point.
+        """
         items = []
 
-        for filepath in sorted(self.cache_dir.glob("correction_*.pkl.zst")):
+        for filepath in sorted(self.cache_dir.glob("correction_*.json.zst")):
             try:
                 compressed = filepath.read_bytes()
 
                 try:
                     import zstandard as zstd
-                    pickled = zstd.decompress(compressed)
+                    json_bytes = zstd.decompress(compressed)
                 except ImportError:
                     import zlib
-                    pickled = zlib.decompress(compressed)
+                    json_bytes = zlib.decompress(compressed)
 
-                data = pickle.loads(pickled)
+                data = json.loads(json_bytes.decode("utf-8"))
+                # Reconstruct the CorrectionItem. compressed_image is
+                # stored as base64; decode it back to raw bytes.
+                data["compressed_image"] = b64decode(data.pop("compressed_image_b64"))
                 items.append(CorrectionItem(**data))
 
             except Exception as e:
