@@ -13,6 +13,7 @@ evaluate_checkpoint.py
 """
 
 import argparse
+import io
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -403,28 +404,27 @@ class HTREvaluator:
         samples = []
 
         if path.suffix == '.lmdb':
-            import pickle
+            # LMDB format — values are JSON (UTF-8), not pickle.
+            # Old pickle-based LMDBs are rejected with an explicit error
+            # directing the operator to regenerate via prepare_htr_dataset.py.
+            # Delegates JSON+base64 decoding to the lightweight
+            # serialization helper; the PIL Image reconstruction stays
+            # here because that's where the bytes are consumed.
+            from _lmdb_safe_format import read_sample_lmdb
 
-            import lmdb
+            for data in read_sample_lmdb(path):
+                # Reconstruct the PIL image from the raw image bytes
+                # stored in the LMDB. The producer (prepare_htr_dataset.py)
+                # writes the ORIGINAL image file bytes (PNG/JPEG/etc.),
+                # NOT pre-decoded pixel buffers, so we use Image.open()
+                # on a BytesIO wrapper — PIL auto-detects the format
+                # and dimensions from the byte-stream header.
+                img = Image.open(io.BytesIO(data['image']))
 
-            env = lmdb.open(str(path), readonly=True)
-            with env.begin() as txn:
-                n = int(txn.get(b'__len__'))
-                for i in range(n):
-                    key = f"{i:08d}".encode()
-                    data = pickle.loads(txn.get(key))
-
-                    img = Image.frombytes(
-                        'RGB',
-                        data.get('size', (384, 384)),
-                        data['image']
-                    ) if 'size' in data else Image.open(data['image_path'])
-
-                    samples.append({
-                        'image': img,
-                        'text': data['text']
-                    })
-            env.close()
+                samples.append({
+                    'image': img,
+                    'text': data['text']
+                })
 
         elif path.is_dir():
             # مجلد صور + labels.txt
