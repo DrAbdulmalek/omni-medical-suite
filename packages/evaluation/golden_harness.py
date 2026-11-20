@@ -43,6 +43,29 @@ GT_PATH = SET_DIR / "ground_truth.jsonl"
 MANIFEST_PATH = SET_DIR / "manifest.json"
 LOCK_PATH = SET_DIR / "engines.lock.json"
 
+
+def set_dataset_dir(path: "Path | str") -> None:
+    """F-14: أعد ربط مسارات مجموعة البيانات في وقت التشغيل.
+
+    SET_DIR كان مثبّتاً صلباً، فكان قياس عينات حقيقية يستلزم الكتابة فوق
+    ``golden_set/`` — أي تدمير المعيار الاصطناعي الذي هو **بوابة الانحدار في CI**.
+    هذه الدالة تفصل المجموعتين:
+      ``golden_set/``       اصطناعية، ثابتة، بوابة CI (الافتراضي)
+      ``golden_set_real/``  من القناة الحقيقية، متنامية، أساس قرار المحرك
+
+    تُستدعى من ``main()`` قبل أي قراءة. لا تغيّر السلوك الافتراضي.
+    """
+    global SET_DIR, GT_PATH, MANIFEST_PATH, LOCK_PATH
+    SET_DIR = Path(path).expanduser().resolve()
+    if not (SET_DIR / "manifest.json").exists():
+        raise FileNotFoundError(
+            f"--set-dir: لا manifest.json في {SET_DIR} — هل هو مجلد مجموعة بيانات؟"
+        )
+    GT_PATH = SET_DIR / "ground_truth.jsonl"
+    MANIFEST_PATH = SET_DIR / "manifest.json"
+    LOCK_PATH = SET_DIR / "engines.lock.json"
+
+
 TESSDATA_BEST_ARA_SHA256 = "ab9d157d8e38ca00e7e39c7d5363a5239e053f5b0dbdb3167dde9d8124335896"
 
 # محركات القياس المحلية فقط افتراضياً. أي محرك سحابي يدخل هذا السجل بعلامة
@@ -50,8 +73,33 @@ TESSDATA_BEST_ARA_SHA256 = "ab9d157d8e38ca00e7e39c7d5363a5239e053f5b0dbdb3167dde
 LOCAL_ENGINES = ("tesseract_ara",)
 
 
+_LFS_MAGIC = b"version https://git-lfs.github.com/spec/v1"
+
+
+def _reject_lfs_pointer(path: "Path") -> None:
+    """LFS: افشل بصراحة إن كان الملف مؤشراً لا محتوى.
+
+    ``.gitattributes`` يتتبّع ``*.jsonl`` والصور بلا عتبة حجم، فاستنساخ عادي بلا
+    ``git lfs pull`` يعطي ملفات من 129/130 بايت مكان ``ground_truth.jsonl`` والـPNGs.
+    النتيجة السابقة كانت ``json.decoder.JSONDecodeError: Expecting value: line 1
+    column 1`` — رسالة **مضلِّلة** تُشير إلى بيانات تالفة لا إلى LFS، وقد كلّفت
+    4 اختبارات فاشلة في ``test_golden_harness.py`` على كل استنساخ متفرّق.
+    """
+    try:
+        head = path.open("rb").read(len(_LFS_MAGIC))
+    except FileNotFoundError:
+        raise
+    if head.startswith(_LFS_MAGIC):
+        raise RuntimeError(
+            f"{path} is a Git LFS pointer ({len(head)} B header), not content. "
+            f"Run: git lfs pull   (or: git lfs install && git lfs pull)"
+        )
+
+
 def load_samples() -> list[dict]:
     """حمّل العينات وتحقق من sha256 لكل ملف (ثبات القياس)."""
+    _reject_lfs_pointer(MANIFEST_PATH)
+    _reject_lfs_pointer(GT_PATH)
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     gt = {
         row["id"]: row
@@ -60,6 +108,8 @@ def load_samples() -> list[dict]:
     out = []
     for entry in manifest:
         path = SET_DIR / "samples" / entry["file"]
+        # قبل فحص sha256: المؤشر يعطي "drifted" وهي تشخيص خاطئ للسبب الحقيقي.
+        _reject_lfs_pointer(path)
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest != entry["sha256"]:
             raise RuntimeError(f"sample {entry['id']} drifted: sha256 mismatch")
@@ -230,12 +280,25 @@ def write_lock() -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--engines", nargs="*", default=list(LOCAL_ENGINES))
-    ap.add_argument("--out", default=str(SET_DIR / "results.jsonl"))
+    # F-14: default=None لأن SET_DIR قد يُعاد ربطه أدناه؛ يُحلّ المسار بعده.
+    ap.add_argument("--out", default=None,
+                    help="مسار النتائج (افتراضياً <set-dir>/results.jsonl)")
+    ap.add_argument("--set-dir", default=None,
+                    help="مجلد مجموعة بديلة تحوي manifest.json + samples/ + "
+                         "ground_truth.jsonl. الافتراضي golden_set/ (المعيار "
+                         "الاصطناعي = بوابة CI). استخدم golden_set_real/ "
+                         "لصفحات القناة الحقيقية كي لا تدهس البوابة.")
     ap.add_argument("--ingest", help="JSONL نتيج سحابية ملتقطة يدوياً (بلا شبكة)")
     ap.add_argument("--allow-cloud", action="store_true",
                     help="يتطلب OMNI_ALLOW_CLOUD — يستخدم فقط خارج الاختبارات")
     ap.add_argument("--write-lock", action="store_true")
     args = ap.parse_args()
+
+    # F-14: أعِد الربط **قبل** أي قراءة للمسارات، ثم احسم --out.
+    if args.set_dir:
+        set_dataset_dir(args.set_dir)
+    if args.out is None:
+        args.out = str(SET_DIR / "results.jsonl")
 
     if args.write_lock:
         print(json.dumps(write_lock(), indent=2))
