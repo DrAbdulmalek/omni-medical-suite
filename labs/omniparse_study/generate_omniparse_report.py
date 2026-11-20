@@ -881,4 +881,4 @@ for ref in refs:
 
 # ── Build ──
 doc.multiBuild(story)
-print(f  # ARCHIVED: merged into omni-medical-suite"Body PDF generated: {OUTPUT}")
+print(f"Body PDF generated: {OUTPUT}")
