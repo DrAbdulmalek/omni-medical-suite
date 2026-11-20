@@ -17,8 +17,8 @@
   <img src="https://img.shields.io/badge/Packages-31-4B8BBE?style=flat-square" />
   <img src="https://img.shields.io/badge/Apps-5-2ECC71?style=flat-square" />
   <img src="https://img.shields.io/badge/Tests-174%2B-FF6B6B?style=flat-square" />
-  <img src="https://img.shields.io/badge/Version-v1.1.0-blue?style=flat-square" />
-  <a href="https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/Release-v1.1.0-brightgreen?style=flat-square" /></a>
+  <img src="https://img.shields.io/badge/Version-v1.2.0-blue?style=flat-square" />
+  <a href="https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Release-v1.2.0-brightgreen?style=flat-square" /></a>
   <img src="https://img.shields.io/badge/License-MIT-3C873A?style=flat-square" />
   <a href="https://huggingface.co/spaces/DrAbdulmalek/omni-medical-ocr"><img src="https://img.shields.io/badge/HF%20Space-Beta-yellow?style=flat-square&logo=huggingface" /></a>
 </p>
@@ -70,7 +70,26 @@ Omni Medical Suite extracts, corrects, and structures Arabic text from medical d
 | **Desktop + Web + API** | PyQt6 desktop app, Gradio web UI, FastAPI REST API |
 | **Continuous Retraining** | Weekly model improvement from accumulated corrections |
 
-## 🆕 What's New in v1.1.0 (stable)
+## 🆕 What's New in v1.2.0 (stable)
+
+v1.2.0 is a small stabilization release following v1.1.0. It contains
+**7 commits** focused on AppImage runtime fixes (OpenBLAS crash), a
+mobile README, and a security-hardened Web API wiring.
+
+📖 **Full release notes:** [`RELEASE_NOTES_v1.2.0.md`](RELEASE_NOTES_v1.2.0.md)
+
+### Highlights
+
+| Area | Change | Impact |
+|------|--------|--------|
+| **AppImage** | numpy < 2.0 pin + frozen-runtime smoke test | Stops OpenBLAS crash in the frozen AppImage |
+| **Web API** | Wire Web API to Backend with security fixes (PR #67) | Input validation, rate limiting, audit logging |
+| **Mobile** | Added `mobile/README.md` with migration plan | Documents existing mobile apps + future plan |
+| **Scripts** | `os.argv` → `sys.argv` fix in release helper | Fixes a latent bug in release tooling |
+
+---
+
+## 📜 What's New in v1.1.0 (stable)
 
 The v1.1.0 hardening sprint consolidates **16 commits** across three phases (P0 + P1 + P2) plus 4 post-rc1 AppImage build fixes. It adds **174 passing tests** (163 unit + 11 AppImage smoke), structured decision logging, an AppImage build pipeline, and a multi-platform CI matrix.
 
@@ -161,7 +180,7 @@ Portable single-file AppImage — no install required, runs on Manjaro/KDE Plasm
 
 **⬇️ Pre-built binary (recommended):**
 Download `MedicalDocProcessor-v1.1.0-x86_64.AppImage` (177 MB) directly from the
-[GitHub Release v1.1.0](https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.1.0):
+[GitHub Release v1.1.0](https://github.com/DrAbdulmalek/omni-medical-suite/releases/tag/v1.2.0):
 
 ```bash
 # Download + verify + run
