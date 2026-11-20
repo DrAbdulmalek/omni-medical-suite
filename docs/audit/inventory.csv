@@ -1,0 +1,8 @@
+repo,status,archived,license_file,license_spdx,last_commit_sha,last_commit_date,language,size_kb,notes
+omni-medical-suite,active,false,YES,MIT,47ec48f853,2026-09-28,Python,1325276,60+ tests; >1GB stop-condition
+arabic-medical-ocr-baseline,archived,UNPROVEN-rate-limited,NO,,f89eb7fdb7,2026-07-07,Python,6-files-only
+medical-handwriting-ocr,archived,true,YES,MIT,0b9c0102c5,2026-07-07,Python,738,
+medical-ocr-trainer,archived,true,YES,MIT,f2c4320810,2026-07-07,Python,261,git-dep present
+scanner-fixer,archived,true,YES,MIT,8ae7f9668e,2026-07-07,Python,15046,
+medical-ocr-trainer-hf,active,false,YES,MIT,496936e897,2026-08-01,Python,113,no tests
+tg-campaign-toolkit,active,BLOCKED-rate-limited,NO,,21ee570b0c,2026-09-28,Python,BLOCKED,
