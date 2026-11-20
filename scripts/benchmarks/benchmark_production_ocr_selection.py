@@ -132,10 +132,11 @@ def _run_integration() -> str:
     image = np.zeros((100, 100, 3), dtype=np.uint8)
     try:
         cleaned, _ = _preprocess_image(image)
-        pt, pd = _run_paddle_ocr(cleaned)
-        tt, tc = _run_tesseract(cleaned)
-        _select_ocr_result(pt, pd, tt, tc)
-        return "OK: integration benchmark ran against real OCR engines (selection helper works)"
+        pt, pd_, p_status = _run_paddle_ocr(cleaned)
+        tt, tc, t_status = _run_tesseract(cleaned)
+        _select_ocr_result(pt, pd_, tt, tc)
+        return ("OK: integration benchmark ran against real OCR engines "
+                f"(selection helper works; statuses: paddle={p_status}, tesseract={t_status})")
     except Exception as e:
         return f"SKIP: integration benchmark failed at runtime (got: {e})"
 
