@@ -33,6 +33,20 @@
         "https://github.com/DrAbdulmalek/omni-medical-suite/actions/runs/36597490659",
         ".github/workflows/security-scan.yml"
       ]
+    },
+    {
+      "id": "CVE-2026-85394",
+      "package": "python-jose",
+      "reason": "python-jose through 3.5.0 accepts DER-encoded public keys that lack PEM armor or SSH prefixes when initializing HMAC verification (incomplete fix for CVE-2024-33663). An attacker holding the service's public key can forge HS256 tokens, but only when the allowed algorithms are not explicitly restricted at verification time.",
+      "mitigation": "The only production JWT verification site (app/core/security/dependencies.py) passes an explicit algorithms list (algorithms=[config.JWT_ALGORITHM]); the application is HS256-only and never verifies asymmetric-key tokens, so the vulnerable path is unreachable. No patched python-jose release exists yet; re-evaluate on the next upstream release.",
+      "pinned_by": "python-jose[cryptography]>=3.5.0 (requirements/api.txt)",
+      "added": "2026-10-06",
+      "expires": "2027-01-06",
+      "review_owner": "@DrAbdulmalek",
+      "references": [
+        "https://osv.dev/vulnerability/CVE-2026-85394",
+        "app/core/security/dependencies.py"
+      ]
     }
   ],
   "rejected_or_unnecessary": [
