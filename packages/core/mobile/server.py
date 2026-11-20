@@ -83,6 +83,7 @@ _extract_ner = None
 try:
     from app.services.ocr_service import (  # type: ignore
         _auto_correct_ocr,
+        _auto_correct_ocr_with_status,
         _preprocess_image,
         _run_paddle_ocr,
         _run_tesseract,
@@ -261,24 +262,70 @@ def process_image() -> Response:
         # 1. Preprocess
         cleaned, prep_steps = _preprocess_image(image)
 
-        # 2. OCR ensemble
-        paddle_text, paddle_details = _run_paddle_ocr(cleaned)
-        tesseract_text, tess_conf = _run_tesseract(cleaned)
+        # 2. OCR ensemble (3-tuple: text, payload, status — P0-B fail-visible)
+        paddle_text, paddle_details, paddle_status = _run_paddle_ocr(cleaned)
+        tesseract_text, tess_conf, tess_status = _run_tesseract(cleaned)
 
-        # 3. Pick primary
-        raw_text = paddle_text if (paddle_text and len(paddle_text.strip()) > 5) else tesseract_text
-        if not raw_text.strip():
-            raw_text = paddle_text or tesseract_text or ""
+        # 3. Pick primary (len>5 heuristic preserved, now recorded in status)
+        ocr_status: dict[str, Any] = {
+            "paddle_status": paddle_status,
+            "tesseract_status": tess_status,
+            "fallback_used": False,
+            "fallback_reason": None,
+            "correction_failed": False,
+            "user_visible_error": "",
+        }
+        paddle_usable = paddle_status == "ok" and len(paddle_text.strip()) > 5
+        tesseract_usable = tess_status == "ok" and bool(tesseract_text.strip())
+        if paddle_usable:
+            raw_text = paddle_text
+            ocr_status["selected_engine"] = "paddle"
+        elif tesseract_usable:
+            raw_text = tesseract_text
+            ocr_status["selected_engine"] = "tesseract"
+            ocr_status["fallback_used"] = True
+            ocr_status["fallback_reason"] = (
+                f"paddle {paddle_status} / len<=5 heuristic"
+                if paddle_status == "ok"
+                else f"paddle {paddle_status}"
+            )
+        else:
+            # P0-B: both engines failed/empty → FAILURE, not a document.
+            # No placeholder is fabricated and no correction is run.
+            ocr_status["selected_engine"] = "none"
+            ocr_status["fallback_used"] = True
+            ocr_status["fallback_reason"] = f"paddle {paddle_status}, tesseract {tess_status}"
+            ocr_status["user_visible_error"] = (
+                f"Text extraction FAILED: no OCR engine produced text "
+                f"(Paddle: {paddle_status} / Tesseract: {tess_status})."
+            )
+            elapsed = round(time.time() - t0, 2)
+            result_payload = {
+                "raw_text": "",
+                "corrected_text": "",
+                "entities": {},
+                "engine_info": {
+                    "paddle": {"status": paddle_status},
+                    "tesseract": {"status": tess_status},
+                },
+                "ocr_status": ocr_status,
+                "corrections": [],
+                "preprocessing_steps": prep_steps,
+                "processing_time_seconds": elapsed,
+                "timestamp": datetime.now().isoformat(),
+            }
+            _save_json(DATA_FILE, result_payload)
+            return jsonify({
+                "status": "failure",
+                "message": ocr_status["user_visible_error"],
+                "result": result_payload,
+            })
 
-        # 4. Auto-correct OCR artifacts
-        corrected, corrections = _auto_correct_ocr(raw_text)
-
-        # 5. Spell check
-        if spell_checker is not None:
-            try:
-                corrected = spell_checker.correct_text(corrected)
-            except Exception as exc:
-                logger.warning("Spell check failed: %s", exc)
+        # 4. Auto-correct OCR artifacts (canonical single correction — the
+        # spell checker already runs inside _auto_correct_ocr; the previous
+        # second spell-check call was removed, P0-B double-correction fix)
+        corrected, corrections, correction_failed = _auto_correct_ocr_with_status(raw_text)
+        ocr_status["correction_failed"] = correction_failed
 
         # 6. NER
         entities = _extract_ner(corrected) if _extract_ner else {}
@@ -291,9 +338,10 @@ def process_image() -> Response:
             "corrected_text": corrected,
             "entities": entities,
             "engine_info": {
-                "paddle": {"lines": len(paddle_details)} if paddle_text else None,
-                "tesseract": {"confidence": tess_conf} if tesseract_text else None,
+                "paddle": {"lines": len(paddle_details)} if paddle_text else {"status": paddle_status},
+                "tesseract": {"confidence": tess_conf} if tesseract_text else {"status": tess_status},
             },
+            "ocr_status": ocr_status,
             "corrections": corrections,
             "preprocessing_steps": prep_steps,
             "processing_time_seconds": elapsed,
