@@ -1,255 +1,81 @@
-# System Architecture
+# Architecture — omni-medical-suite
 
-## Overview
+End-to-end medical document processing suite: scan → OCR → audited correction/spell-check → terminology/TM lookup → NER → structured output. Ships as AppImage + HF Space.
 
-Omni Medical Suite is a monorepo that consolidates 6+ former repositories into a unified platform for Arabic medical OCR. The system follows a layered architecture with clear separation between core engines, processing packages, applications, and infrastructure.
+## Current production OCR path
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        APPLICATIONS LAYER                       │
-│  ┌──────────┐ ┌──────────────┐ ┌────────────┐ ┌──────────────┐  │
-│  │  Gradio   │ │  OCR Demo    │ │  Trainer   │ │  Collector   │  │
-│  │  HITL UI  │ │  Multi-Engine│ │  UI        │ │  Data App    │  │
-│  └────┬─────┘ └──────┬───────┘ └─────┬──────┘ └──────┬───────┘  │
-├───────┴──────────────┴───────────────┴───────────────┴──────────┤
-│                        SERVICES LAYER                            │
-│  ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌──────────────────┐  │
-│  │  FastAPI  │ │  Celery    │ │  Postgres│ │  Redis Queue    │  │
-│  │  REST API │ │  Workers   │ │  + RBAC  │ │  + Cache        │  │
-│  └────┬─────┘ └─────┬──────┘ └──────────┘ └──────────────────┘  │
-├───────┴──────────────┴──────────────────────────────────────────┤
-│                        PACKAGES LAYER                            │
-│                                                                  │
-│  ┌─── OCR & Vision ────────────────────────────────────────┐   │
-│  │  scanner_fixer │ ocr_postprocess │ vision │ handwriting │   │
-│  └────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌─── NLP & AI ────────────────────────────────────────────┐   │
-│  │  nlp (spell) │ ai-fuel │ bilingual │ medical │ llm     │   │
-│  └────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌─── Training & Evaluation ───────────────────────────────┐   │
-│  │  training │ training_hub │ gt_core │ benchmark_core     │   │
-│  └────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌─── Infrastructure ──────────────────────────────────────┐   │
-│  │  core │ config │ security │ audit │ export │ omnifile   │   │
-│  └────────────────────────────────────────────────────────┘   │
-├────────────────────────────────────────────────────────────────┤
-│                        CORE LIBRARY (src/)                      │
-│  ┌──────────┐ ┌─────┐ ┌──────┐ ┌────────┐ ┌───────────────┐  │
-│  │    OCR   │ │ NER │ │ LLM  │ │ Layout │ │  Benchmarks   │  │
-│  │  Engine  │ │     │ │      │ │        │ │               │  │
-│  └──────────┘ └─────┘ └──────┘ └────────┘ └───────────────┘  │
-├────────────────────────────────────────────────────────────────┤
-│                        INFRASTRUCTURE                           │
-│  Docker │ PostgreSQL │ Redis │ Qdrant │ Prometheus │ Grafana  │
-└────────────────────────────────────────────────────────────────┘
+The canonical Gradio/HF production path is implemented through:
+
+```text
+input image
+  → hf-space/app.py / hf-space/app_core.py
+  → app/services/ocr_service.py
+      → image preprocessing
+      → PaddleOCR / Tesseract execution
+      → _auto_correct_ocr()
+          → HybridSpellChecker.apply_ocr_corrections()
+          → exact-token audited OCR corrections
+          → HybridSpellChecker.correct_text()
+          → specialty-aware token corrections
+      → structured response
 ```
 
-## Data Flow
+`hf-space/app_core.py` mirrors the canonical correction implementation and is kept synchronized by `scripts/sync-hf-space.sh` and the HF Space drift gate.
 
-```
-Input Image
-     │
-     ▼
-┌─────────────┐
-│ Scanner     │  deskew, crop, CLAHE, denoise
-│ Fixer       │  (packages/scanner_fixer)
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ OCR         │  4 engines: PaddleOCR, Tesseract,
-│ Ensemble    │  EasyOCR, TrOCR + Surya
-│ (src/ocr)   │  (packages/ocr_postprocess)
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ Text        │  Arabic RTL handling, mixed
-│ Processing  │  language detection
-│ (packages/  │
-│  nlp)       │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ Spell Check │  Hybrid: dictionary + Jais LLM
-│ + Medical   │  Protected medical vocabulary
-│ Context     │  (packages/nlp, packages/medical)
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ NER +       │  Entity extraction, structure
-│ Structured  │  parsing, export to JSON/CSV
-│ Output      │  (src/ner, packages/export)
-└──────┬──────┘
-       │
-       ▼
-  Final Output
-  (JSON / CSV / XLSX / PDF)
+## OCR components
+
+The repository contains two OCR orchestration concepts which must not be conflated:
+
+- `src/ocr/ensemble.py` — a multi-engine ensemble implementation with composite scoring. It is a real repository component.
+- `packages/core/engine_router.py` — an engine-selection router which records `engine_selection` decisions through `app.core.decision_log.log_decision()` when its `select()` method is used.
+
+Post-merge audit status: the canonical Gradio/HF production path above does **not** currently invoke `packages/core/engine_router.py` for engine selection. Therefore its decision logging is not, by itself, evidence that production OCR engine-selection decisions are being audited. Any future connection must be explicit, tested, and must not create a second competing OCR path.
+
+## OCR correction safety boundary
+
+OCR corrections, medical terminology, and translation memory are separate semantic resources:
+
+```text
+OCR corrections
+    → exact-token correction only
+
+Medical terminology
+    → exact whole-input lookup / normalization metadata
+    → never a blind text replacement map
+
+Translation memory / TMX
+    → exact segment lookup
+    → never substring replacement
 ```
 
-## Package Directory Map
+The 159k-scale generated glossary artifact is not a runtime OCR replacement map. It must not be reintroduced into `_auto_correct_ocr()` as a global `str.replace()` dictionary.
 
-### Applications (`apps/`)
+## Repository data dependencies
 
-| Directory | Source | Description |
-|-----------|--------|-------------|
-| `collector/` | — | HITL data collection interface |
-| `handwriting-demo/` | handwriting-ocr | Gradio demo for handwriting recognition |
-| `ocr-demo/` | — | Multi-engine OCR comparison demo |
-| `ocr-pipeline/` | omni-medical-ocr-pipeline | Full end-to-end OCR pipeline |
-| `trainer-ui/` | medical-ocr-trainer | Model training & evaluation UI |
+`data/arabic-medical-glossary` is a Git submodule. Any CI job that builds an artifact or Docker image requiring that data must use `actions/checkout` with `submodules: recursive` (or an equivalent explicit submodule initialization step). A normal checkout leaves the submodule unavailable.
 
-### Core Packages (`packages/`)
+## Decision logging
 
-| Directory | Purpose |
-|-----------|---------|
-| `ai-fuel/` | AI content generation engine |
-| `bilingual/` | Arabic/English bilingual text extraction |
-| `core/` | Shared utilities and base classes |
-| `doc-processor/` | Document processing and parsing |
-| `evaluation/` | Model evaluation metrics |
-| `export/` | Data export (CSV, XLSX, JSONL, HF Hub) |
-| `file_processor/` | File format detection and routing |
-| `gt_core/` | Ground truth management |
-| `handwriting/` | Handwriting recognition models |
-| `medical/` | Medical domain logic and dictionaries |
-| `nlp/` | NLP: spell checking, correction, translation |
-| `ocr_postprocess/` | OCR post-processing and result fusion |
-| `omnifile/` | Unified file processing (from OmniFile_Processor) |
-| `scanner_fixer/` | Pre-OCR image normalization |
-| `security/` | RBAC and authentication |
-| `training/` | Model training framework |
-| `training_hub/` | Continuous retraining pipeline |
-| `vision/` | Computer vision utilities |
+`app.core.decision_log.log_decision()` is implemented and used by `packages/core/engine_router.py`. The production OCR path must be treated separately until an explicit integration is implemented and covered by an end-to-end test.
 
-### Core Library (`src/`)
+### Issue #94 — Production engine-selection decision logging
 
-| Directory | Purpose |
-|-----------|---------|
-| `ocr/` | OCR engine routing and ensemble logic |
-| `ner/` | Named Entity Recognition |
-| `llm/` | LLM integration (Jais, Gemini) |
-| `layout/` | Document layout analysis |
-| `benchmarks/` | Benchmarking utilities |
+The **existing production HF OCR selector** (in `hf-space/app_core.py:_select_ocr_result()`) remains the canonical selector. It has been instrumented to emit a structured decision log via `log_decision()` — **without changing OCR behavior**.
 
-## Infrastructure
+Key points:
 
-### Docker Compose Services
+- **The production selector is `_select_ocr_result()`**, not `EngineRouter`. `EngineRouter` exists in `packages/core/engine_router.py` but is **NOT used by the production HF OCR pipeline**.
+- The selection rule is unchanged: PaddleOCR is selected iff it produced text with stripped length > 5 characters; otherwise Tesseract.
+- The decision log records **only operational metadata** in `inputs`: `paddle_available`, `paddle_text_length`, `tesseract_available`, `tesseract_text_length`, `selection_rule`. **No OCR text, patient data, medical terms, image content, or raw OCR output** is ever logged.
+- `log_decision()` has a never-raise contract (errors are swallowed), so logging failures cannot break OCR processing. This is verified by `tests/test_pr94_production_engine_decision.py::TestSelectOcrResultLoggingNeverFails`.
+- A reproducible benchmark is at `scripts/benchmarks/benchmark_production_ocr_selection.py`. It measures the pure selection helper with deterministic mocked outputs — it does **not** fabricate PaddleOCR/Tesseract inference numbers.
 
-| Service | Image | Port | Purpose |
-|---------|-------|------|---------|
-| `api` | build (Dockerfile) | 8000 | FastAPI REST API |
-| `celery-worker` | build (Dockerfile) | — | Async task processing |
-| `celery-beat` | build (Dockerfile) | — | Scheduled tasks |
-| `postgres` | postgres:16-alpine | 5432 | Primary database |
-| `redis` | redis:7-alpine | 6379 | Queue + cache |
-| `qdrant` | qdrant/qdrant | 6333 | Vector search |
-| `prometheus` | prom/prometheus | 9090 | Metrics collection |
-| `grafana` | grafana/grafana | 3000 | Dashboards |
-| `tempo` | grafana/tempo | 3200 | Distributed tracing |
-| `nginx` | nginx:alpine | 80 | Reverse proxy |
+This is intentional until a separate architecture decision changes the selector to `EngineRouter` or another component.
 
-### Configuration Tiers
+## Performance
 
-| File | Tier | Services |
-|------|------|----------|
-| `docker-compose.lite.yml` | Lite | API + Postgres + Redis only |
-| `docker-compose.standard.yml` | Standard | + Qdrant + Celery |
-| `docker-compose.yml` | Full | + Monitoring (Prometheus, Grafana, Tempo) |
-| `docker-compose.medical-infra.yml` | Medical Infra | Specialized medical processing |
-| `docker-compose.prod.yml` | Production | Production-optimized settings |
+No repository-wide P50/P95/P99 OCR production baseline is claimed by this document. A reproducible benchmark must be established before introducing additional NLP dependencies or making latency claims.
 
-## API Endpoints
+## Future layers
 
-### OCR Processing
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/ocr/process` | Process single image |
-| `POST` | `/api/v1/ocr/batch` | Process multiple images |
-| `POST` | `/api/v1/ocr/pdf` | Process multi-page PDF |
-| `GET`  | `/api/v1/ocr/status/{task_id}` | Check async task status |
-
-### Spell Correction
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/correct` | Correct Arabic medical text |
-| `POST` | `/api/v1/correct/batch` | Batch correction |
-| `GET`  | `/api/v1/dictionary` | Get medical dictionary |
-| `POST` | `/api/v1/dictionary/add` | Add terms to dictionary |
-
-### NER
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/ner/extract` | Extract named entities |
-| `GET`  | `/api/v1/ner/supported-types` | List entity types |
-
-### Training
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/training/submit-correction` | Submit HITL correction |
-| `POST` | `/api/v1/training/start` | Trigger retraining |
-| `GET`  | `/api/v1/training/status` | Check training status |
-
-### System
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/health` | Health check |
-| `GET`  | `/metrics` | Prometheus metrics |
-
-## Database Schema (PostgreSQL)
-
-```
-users
-  ├── id, username, email, password_hash
-  ├── role (admin, reviewer, viewer)
-  └── created_at, last_login
-
-documents
-  ├── id, user_id, filename, file_hash
-  ├── ocr_result_json, corrected_text
-  ├── confidence_score, processing_time_ms
-  └── created_at, updated_at
-
-corrections
-  ├── id, document_id, user_id
-  ├── original_text, corrected_text
-  ├── correction_type (spelling, medical, layout)
-  └── created_at
-
-medical_dictionary
-  ├── id, term_arabic, term_english
-  ├── category, frequency
-  └── is_protected (bool)
-
-training_runs
-  ├── id, status, base_model
-  ├── dataset_size, epochs, metrics_json
-  └── started_at, completed_at
-```
-
-## Error Handling Strategy
-
-| Error Type | HTTP Status | Handling |
-|------------|-------------|----------|
-| Invalid image | 400 | Return validation errors with field details |
-| OCR engine failure | 422 | Fall back to next engine, report partial results |
-| LLM timeout | 504 | Return OCR-only results with `llm_corrected: false` |
-| Auth failure | 401/403 | JWT validation, RBAC enforcement |
-| Rate limit | 429 | Redis-based rate limiting per user |
-
-## Key Design Decisions
-
-1. **Monorepo over Multi-repo**: All 6+ former repositories consolidated for simpler dependency management and atomic commits across packages.
-
-2. **Git Subtree Merges**: Each migrated repo was merged with `--squash` into its designated `packages/` or `apps/` prefix, preserving file history within the subtree.
-
-3. **Medical Vocabulary Protection**: The spell checker treats medical terms as protected vocabulary, preventing "correction" of valid medical terminology.
-
-4. **Multi-Engine OCR Ensemble**: Results from 4+ OCR engines are fused using confidence-based voting, with the ensemble consistently outperforming any single engine.
-
-5. **HITL Feedback Loop**: Human corrections feed back into training data, enabling continuous model improvement through `training_hub` and `gt_core`.
+After production OCR and terminology/TM availability are verified in deployed artifacts, the next architectural layer is clinical NER. Only after that should the project evaluate larger NLP integrations (for example MedCAT, medspaCy, or EDS-NLP) and interoperability mappings such as FHIR.

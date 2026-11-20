@@ -32,6 +32,14 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Verify HF_TOKEN is set
+        run: |
+          if [ -z "${{ secrets.HF_TOKEN }}" ]; then
+            echo "::error:: HF_TOKEN secret is not set in repository settings"
+            echo "::error:: Add it at: Settings -> Secrets and variables -> Actions"
+            exit 1
+          fi
+
       - name: Checkout monorepo
         uses: actions/checkout@v4
 

@@ -8,7 +8,17 @@
 -r base.txt
 
 # === Database ===
-sqlalchemy>=2.0.25
+sqlalchemy>=2.0.51
+# SQLAlchemy's asyncio extension imports greenlet at runtime. It is a conditional
+# dependency (platform/python markers), so it is not always resolved — and when it
+# is missing, tests/test_auth_security.py fails at COLLECTION time:
+#   ModuleNotFoundError: No module named 'greenlet'
+#   ImportError: The SQLAlchemy asyncio module requires that the Python 'greenlet'
+#                library is installed.
+# A collection error aborts pytest with exit code 2 before any test runs, which is
+# what turned Unit Tests / test / Production security regression gate red.
+# Declared explicitly so CI cannot silently lose it.
+greenlet>=3.0.0
 alembic>=1.13.1
 qdrant-client>=1.7.0
 
@@ -17,13 +27,15 @@ redis>=5.0.1
 celery[redis]>=5.3.6
 
 # === Security & Auth ===
-python-jose[cryptography]>=3.3.0
+python-jose[cryptography]>=3.5.0
 passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.1,<5
 cryptography>=41.0.0
+slowapi>=0.1.9
 
 # === OCR ===
 pytesseract>=0.3.10
-Pillow>=10.0.0
+Pillow>=12.3.0
 PyMuPDF>=1.23.0
 pdf2image>=1.16.0
 opencv-python-headless>=4.8.0
@@ -33,9 +45,9 @@ langdetect>=1.0.9
 rapidfuzz>=3.0.0
 
 # === Monitoring ===
-opentelemetry-api>=1.22.0
-opentelemetry-sdk>=1.22.0
-opentelemetry-exporter-otlp-proto-http>=1.22.0
+opentelemetry-api>=1.44.0
+opentelemetry-sdk>=1.44.0
+opentelemetry-exporter-otlp-proto-http>=1.44.0
 prometheus-fastapi-instrumentator>=7.0.0
 
 # === Export ===

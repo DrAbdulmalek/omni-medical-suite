@@ -1,45 +1,50 @@
 # =============================================================================
 # OmniMedical Suite — Production Docker Compose
 # =============================================================================
-# Production profile: Next.js web + PostgreSQL + Redis with persistence.
-# Uses env vars from .env.production (copy from env.example.production).
-#
-# Usage:
-#   cp env.example.production .env.production   # fill in secrets first
-#   make prod       # or: docker compose -f docker-compose.prod.yml up -d --build
-#   make prod-down  # stop: docker compose -f docker-compose.prod.yml down
+# Canonical production surface: Gradio HITL OCR + PostgreSQL + Redis.
+# All security-sensitive values must be supplied by the deployment environment.
 # =============================================================================
 
 services:
-  web:
+  ocr:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: deploy/Dockerfile.gradio
       target: production
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      POSTGRES_USER: ${DB_USER:-medocr}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:-medical_ocr}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      GRADIO_USERNAME: ${GRADIO_USERNAME:?GRADIO_USERNAME is required}
+      GRADIO_PASSWORD: ${GRADIO_PASSWORD:?GRADIO_PASSWORD is required}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:?ADMIN_BOOTSTRAP_PASSWORD is required}
+      ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME:-admin}
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-admin@omni-medical-suite.local}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
     ports:
-      - "3000:3000"
+      - "7860:7860"
     restart: unless-stopped
 
   postgres:
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: ${DB_USER:-medocr}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_DB: ${DB_NAME:-medical_ocr}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "5432:5432"
     restart: unless-stopped
 
   redis:
@@ -47,8 +52,6 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redisdata:/data
-    ports:
-      - "6379:6379"
     restart: unless-stopped
 
 volumes:

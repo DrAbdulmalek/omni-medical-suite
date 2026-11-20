@@ -185,20 +185,43 @@ def test_reset_lazy_cache_clears_state():
 
 
 # ---------------------------------------------------------------------------
-# _auto_correct_ocr still works without spell_checker
+# _auto_correct_ocr degrades gracefully when spell_checker is unavailable.
+# In the canonical architecture (PR #92), OCR corrections are applied through
+# HybridSpellChecker.apply_ocr_corrections(). When spell_checker is None,
+# OCR corrections are intentionally NOT applied — the text is returned with
+# whitespace normalization only. This is the safe degradation: no correction
+# is better than an uncontrolled str.replace() loop.
 # ---------------------------------------------------------------------------
 
 
 def test_auto_correct_ocr_works_without_spell_checker():
-    """_auto_correct_ocr must not crash when spell_checker is unavailable."""
+    """_auto_correct_ocr must not crash when spell_checker is unavailable.
+
+    In the canonical architecture, OCR corrections flow through
+    HybridSpellChecker.apply_ocr_corrections(). When spell_checker is None,
+    no OCR correction is applied — the input text is returned with only
+    whitespace normalization. This is the safe degradation: returning the
+    uncorrected text is preferable to an uncontrolled str.replace() loop.
+    """
     from app.services.ocr_service import _auto_correct_ocr, reset_lazy_cache
 
     reset_lazy_cache()
+    # Save and restore sys.modules state to avoid polluting other tests
+    # (test_spell_checker.py imports packages.core.spell_checker directly).
+    saved = sys.modules.get("packages.core.spell_checker")
     sys.modules["packages.core.spell_checker"] = None
-    corrected, changes = _auto_correct_ocr("باراسيتبمول 5mg")
-    # The OCR_CORRECTIONS dict should still apply
-    assert "باراسيتامول" in corrected
-    assert isinstance(changes, list)
+    try:
+        corrected, changes = _auto_correct_ocr("باراسيتبمول 5mg")
+        # spell_checker unavailable → no OCR correction applied (safe degradation)
+        assert corrected == "باراسيتبمول 5mg"
+        assert isinstance(changes, list)
+        assert changes == []  # no corrections recorded
+    finally:
+        if saved is not None:
+            sys.modules["packages.core.spell_checker"] = saved
+        else:
+            sys.modules.pop("packages.core.spell_checker", None)
+        reset_lazy_cache()
 
 
 # ---------------------------------------------------------------------------

@@ -14,11 +14,12 @@
 #   hf-space/requirements.txt — HF-specific deps
 #
 # Synced paths (source → snapshot):
-#   src/ocr/          → hf-space/src/ocr/
-#   packages/vision/  → hf-space/packages/vision/
-#   packages/nlp/     → hf-space/packages/nlp/
-#   packages/core/    → hf-space/packages/core/
-#   config/           → hf-space/config/
+#   src/ocr/             → hf-space/src/ocr/
+#   packages/vision/     → hf-space/packages/vision/
+#   packages/nlp/        → hf-space/packages/nlp/
+#   packages/core/       → hf-space/packages/core/
+#   packages/medical/     → hf-space/packages/medical/   (PR #92: dictionary registry + router)
+#   config/              → hf-space/config/
 #
 # Modes:
 #   ./scripts/sync-hf-space.sh             # default: sync + verify
@@ -59,6 +60,7 @@ SYNC_MAP=(
   "packages/vision:packages/vision"
   "packages/nlp:packages/nlp"
   "packages/core:packages/core"
+  "packages/medical:packages/medical"
   "config:config"
 )
 

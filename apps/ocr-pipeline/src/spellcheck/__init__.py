@@ -1,12 +1,12 @@
 """
 Spell checking module for the Omni Medical OCR Pipeline.
 
-Provides hybrid and LLM-based spell checking tailored for Arabic medical text
-extracted via OCR, where errors from character confusion, dot placement,
-and diacritics are common.
+The canonical production HybridSpellChecker lives in packages.core.
+The old divergent implementation was removed to prevent an unsafe second
+correction path from bypassing the medical dictionary safety contracts.
 """
 
-from src.spellcheck.hybrid_spell_checker import HybridSpellChecker
+from packages.core.spell_checker import HybridSpellChecker
 from src.spellcheck.jais_spell_checker import JaisSpellChecker
 
 __all__ = ["HybridSpellChecker", "JaisSpellChecker"]

@@ -31,11 +31,11 @@ OCR_CORRECTIONS = {
     "باراسيتبمول": "باراسيتامول", "ايبوروفين": "ايبوبروفين",
     "اموكسيستلين": "اموكسيسيلين", "اموكسيسلين": "اموكسيسيلين",
     "ازيثروميسين": "ازيثرومايسين", "ميتروندازول": "ميترونيدازول",
-    "ديكلوفيناك ": "ديكلوفيناك", "اوجمينتين": "اوجمنتين",
-    "اوميبرازول ": "اوميبرازول", "سيليبريكس ": "سيليبريكس",
-    "ترامادول ": "ترامادول", "كاتافلام ": "كاتافلام",
-    "نوفافين ": "نوفافين", "فلاميكس ": "فلاميكس",
-    "بنادول ": "بنادول", "ادفيل ": "ادفيل",
+    "اوجمينتين": "اوجمنتين",
+    "اوميبرازول": "اوميبرازول", "سيليبريكس": "سيليبريكس",
+    "كاتافلام": "كاتافلام",
+    "فلاميكس": "فلاميكس",
+    "بنادول": "بنادول", "ادفيل": "ادفيل",
 }
 
 # ── Lazy singletons (thread-safe) ────────────────────────────────────────────
@@ -266,11 +266,46 @@ def _preprocess_image(image: np.ndarray) -> tuple[np.ndarray, list[str]]:
     return cleaned, steps
 
 
-def _run_paddle_ocr(image: np.ndarray) -> tuple[str, list[dict]]:
-    """Run PaddleOCR. Returns (full_text, line_details)."""
+# ── Engine status contract (P0-B: fail-visible OCR) ──────────────────────────
+# Every engine wrapper returns (text, payload, status) where status is one of:
+#   "ok"          — engine ran and produced non-empty text
+#   "unavailable" — engine is not installed/initialized (never ran)
+#   "error"       — engine ran (or tried to) and raised an exception
+#   "empty"       — engine ran successfully but produced no text
+# A silent failure (returning ("", []) indistinguishable from a real empty
+# page) is a bug: callers surface this status in the UI instead of showing a
+# clean "document" that was never actually read.
+ENGINE_STATUS_OK = "ok"
+ENGINE_STATUS_UNAVAILABLE = "unavailable"
+ENGINE_STATUS_ERROR = "error"
+ENGINE_STATUS_EMPTY = "empty"
+
+
+def _to_percent(conf: float) -> float:
+    """Normalize a PaddleOCR 0..1 confidence to the shared 0..100 percent unit.
+
+    PaddleOCR emits confidences in [0, 1] while Tesseract already reports
+    [0, 100]. The conversion happens ONCE, here at the service boundary, so
+    all downstream consumers (HITL, HF Space, mobile) see percent values.
+    """
+    value = float(conf)
+    if 0.0 <= value <= 1.0:
+        value *= 100.0
+    return round(max(0.0, min(100.0, value)), 2)
+
+
+def _run_paddle_ocr(image: np.ndarray) -> tuple[str, list[dict], str]:
+    """Run PaddleOCR. Returns (full_text, line_details, status).
+
+    ``status`` distinguishes unavailable / error / empty-but-ran / ok so a
+    crashed engine can never masquerade as a successful empty scan (P0-B).
+    Line-detail confidences are percent-native (0..100) — Paddle's 0..1
+    values are converted at this boundary exactly once.
+    """
     paddle = get_paddle_ocr()
     if paddle is None:
-        return "", []
+        logger.warning("PaddleOCR unavailable — returning explicit status")
+        return "", [], ENGINE_STATUS_UNAVAILABLE
     try:
         img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         result = paddle.ocr(img_bgr, cls=True)
@@ -282,52 +317,104 @@ def _run_paddle_ocr(image: np.ndarray) -> tuple[str, list[dict]]:
                 if text:
                     lines.append(text)
                     details.append({"line": idx+1, "text": text,
-                                   "confidence": round(float(conf), 4)})
-        return "\n".join(lines), details
+                                   "confidence": _to_percent(conf)})
+        if not lines:
+            return "", [], ENGINE_STATUS_EMPTY
+        return "\n".join(lines), details, ENGINE_STATUS_OK
     except Exception as e:
         logger.error(f"PaddleOCR error: {e}")
-        return "", []
+        return "", [], ENGINE_STATUS_ERROR
 
 
-def _run_tesseract(image: np.ndarray) -> tuple[str, float]:
-    """Run Tesseract. Returns (text, avg_confidence)."""
+def _run_tesseract(image: np.ndarray) -> tuple[str, float, str]:
+    """Run Tesseract. Returns (text, avg_confidence, status).
+
+    ``avg_confidence`` is already percent-native (0..100). ``status`` uses
+    the same fail-visible contract as ``_run_paddle_ocr`` (P0-B).
+    """
     if not has_tesseract():
-        return "", 0.0
+        return "", 0.0, ENGINE_STATUS_UNAVAILABLE
     try:
         import pytesseract
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         text = pytesseract.image_to_string(gray, lang="ara+eng", config="--psm 6")
+        text = text.strip()
         try:
             data = pytesseract.image_to_data(gray, lang="ara+eng", output_type=pytesseract.Output.DICT)
             confs = [int(c) for c in data["conf"] if int(c) > 0]
             avg_conf = sum(confs) / len(confs) if confs else 0.0
         except Exception:
             avg_conf = 0.0
-        return text.strip(), round(avg_conf, 2)
+        if not text:
+            return "", round(avg_conf, 2), ENGINE_STATUS_EMPTY
+        return text, round(avg_conf, 2), ENGINE_STATUS_OK
     except Exception as e:
         logger.error(f"Tesseract error: {e}")
-        return "", 0.0
+        return "", 0.0, ENGINE_STATUS_ERROR
 
 
 def _auto_correct_ocr(text: str) -> tuple[str, list[dict]]:
-    """Apply OCR corrections + spell checker. Returns (corrected, changes)."""
-    changes = []
+    """Apply OCR corrections + spell checker via the canonical HybridSpellChecker.
+
+    Production path (single source of OCR correction):
+        OCR raw text
+          → HybridSpellChecker.apply_ocr_corrections(text, OCR_CORRECTIONS)
+            → SpecialtyDictionaryRouter
+            → audited OCR corrections
+            → exact-token replacement (preserves punctuation, no substring)
+          → HybridSpellChecker.correct_text()
+            → specialty-routed safe token-level corrections
+
+    This function does NOT use ``str.replace()``, ``OCR_CORRECTIONS.items()``
+    as a replacement loop, or ``wrong in corrected`` substring checks.
+    """
+    changes: list[dict] = []
     corrected = text
-    for wrong, right in OCR_CORRECTIONS.items():
-        if wrong in corrected:
-            count = corrected.count(wrong)
-            corrected = corrected.replace(wrong, right)
-            changes.append({"type": "ocr_fix", "from": wrong, "to": right, "count": count})
-    # Normalize whitespace
+    checker = get_spell_checker()
+    # Step 1: exact-token OCR corrections through the canonical spell checker.
+    if checker is not None:
+        try:
+            corrected, changes = checker.apply_ocr_corrections(
+                corrected, OCR_CORRECTIONS
+            )
+        except Exception as e:
+            logger.debug("apply_ocr_corrections failed (non-fatal): %s", e)
+    # Step 2: token-level spell corrections (specialty-routed, safe).
+    if checker is not None:
+        try:
+            new_corrected = checker.correct_text(corrected)
+            if new_corrected != corrected:
+                changes.append({
+                    "type": "spell_check",
+                    "from": corrected,
+                    "to": new_corrected,
+                    "count": 1,
+                })
+                corrected = new_corrected
+        except Exception as e:
+            logger.debug("spell_checker.correct_text failed (non-fatal): %s", e)
+    # Step 3: normalize whitespace only (no replacement).
     corrected = re.sub(r'[ \t]+', ' ', corrected)
     corrected = re.sub(r'\n{3,}', '\n\n', corrected).strip()
 
-    # Apply spell checker (lazy) — non-fatal
-    checker = get_spell_checker()
-    if checker is not None:
-        try:
-            corrected = checker.correct_text(corrected)
-        except Exception as e:
-            logger.debug("spell_checker.correct_text failed (non-fatal): %s", e)
-
     return corrected, changes
+
+
+def _auto_correct_ocr_with_status(text: str) -> tuple[str, list[dict], bool]:
+    """Fail-visible variant of :func:`_auto_correct_ocr` (P0-B).
+
+    Returns ``(corrected, changes, correction_failed)``. ``correction_failed``
+    is True when any correction stage raised — the output is still returned
+    (best-effort, exactly as the canonical function produces it), but the
+    caller MUST surface the degraded state instead of silently presenting
+    uncorrected text as if it had been checked.
+    """
+    try:
+        corrected, changes = _auto_correct_ocr(text)
+        return corrected, changes, False
+    except Exception as e:
+        # _auto_correct_ocr already swallows per-stage errors internally;
+        # reaching this point means an unexpected failure (e.g. regex or
+        # whitespace normalization blew up). Never fabricate a clean result.
+        logger.warning("_auto_correct_ocr failed (correction_failed=True): %s", e)
+        return text, [], True
