@@ -79,6 +79,23 @@ Each line in the export file:
 }
 ```
 
+## ABBYY FineReader Teacher Pipeline (tools/abbyy_teacher)
+
+To generate this kind of ground truth *at scale* from reviewed ABBYY FineReader
+exports (ALTO XML / PAGE XML / FineReader XML), use the teacher pipeline:
+
+```bash
+# crops + JSONL (same schema as handwriting_gt.jsonl) + YOLO layout labels
+python -m tools.abbyy_teacher build --xml export.xml --image page.png --out-dir dataset/page1
+
+# align ABBYY output with a trusted transcription -> correction pairs
+python -m tools.abbyy_teacher align --xml export.xml --truth-text truth.txt --out corrections.jsonl
+```
+
+The produced `data.jsonl` is load-compatible with the JSONL contract above.
+See `tools/abbyy_teacher/README.md` for the full methodology (teacher-student
+pseudo-labeling, Arabic text alignment, layout/YOLO export, hybrid cascade).
+
 ## Contributing
 
 To add new training samples:
