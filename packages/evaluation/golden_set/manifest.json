@@ -1,0 +1,62 @@
+[
+  {
+    "id": "gs_ar_printed_001",
+    "category": "printed_clean",
+    "file": "gs_ar_printed_001.png",
+    "sha256": "6db9da1baec7005c2c838f786a24f573fbec53cbd08a88d9c3550b93ff2b9ffd"
+  },
+  {
+    "id": "gs_ar_printed_002",
+    "category": "printed_clean",
+    "file": "gs_ar_printed_002.png",
+    "sha256": "94d1f63fa042c61b58b3a335d48fe35d9d131171aa2e8e31f48971a1b7d6828a"
+  },
+  {
+    "id": "gs_ar_printed_003",
+    "category": "printed_clean",
+    "file": "gs_ar_printed_003.png",
+    "sha256": "7cadb50648687cb9570660f46bd52cbd58f7c5dd99222309e3ba5e1035e46712"
+  },
+  {
+    "id": "gs_ar_scanned_001",
+    "category": "scan_noisy",
+    "file": "gs_ar_scanned_001.png",
+    "sha256": "230dd9676c34c0f395ab63489e21b1532f444659e1a33fad2c1df0febca87db4"
+  },
+  {
+    "id": "gs_ar_scanned_002",
+    "category": "scan_noisy",
+    "file": "gs_ar_scanned_002.png",
+    "sha256": "a9a47f736fa9e226fbdeea8cc162a801b6d0f206d0178121cfb2431357a1c3fb"
+  },
+  {
+    "id": "gs_ar_mixed_001",
+    "category": "mixed_ar_en",
+    "file": "gs_ar_mixed_001.png",
+    "sha256": "4f095804639a1957a1cdf3928c413f2267024e79e9a84aa833d0ccdf879e32a1"
+  },
+  {
+    "id": "gs_ar_mixed_002",
+    "category": "mixed_ar_en",
+    "file": "gs_ar_mixed_002.png",
+    "sha256": "547007b68817f4bd3f0b275b83b237fb5b5a92f1501fb86f2a2b777734e28ddc"
+  },
+  {
+    "id": "gs_ar_table_001",
+    "category": "dosage_table",
+    "file": "gs_ar_table_001.png",
+    "sha256": "b5c7313078853d562997b7581171f61da1e78b5d1f4e14b1c57979ed099c6f10"
+  },
+  {
+    "id": "gs_ar_table_002",
+    "category": "dosage_table",
+    "file": "gs_ar_table_002.png",
+    "sha256": "3866141c42213dacf811fdd77a9717e6ab4cd1a774492baa0752f11eaf87d472"
+  },
+  {
+    "id": "gs_ar_anatomy_001",
+    "category": "printed_clean",
+    "file": "gs_ar_anatomy_001.png",
+    "sha256": "3900de3970826a1940d5109e2e6e1a37513a98705a80713771cfe62bb26477e9"
+  }
+]
