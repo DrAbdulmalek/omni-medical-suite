@@ -38,6 +38,25 @@ from mistral_integration import MistralIntegration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# ---- Cloud OCR gate (P0-A5, fail-closed) ----
+# Cloud OCR endpoints send medical documents to a third-party API. That is
+# an explicit PHI-egress decision, so it is DENIED BY DEFAULT. Operators
+# must set OMNI_ALLOW_CLOUD_OCR=true to enable the /mistral/* routes.
+OMNI_ALLOW_CLOUD_OCR = os.getenv("OMNI_ALLOW_CLOUD_OCR", "false").strip().lower() == "true"
+
+
+def _cloud_ocr_gate() -> None:
+    """Raise 403 unless the operator explicitly allowed cloud OCR."""
+    if not OMNI_ALLOW_CLOUD_OCR:
+        raise HTTPException(
+            403,
+            detail=(
+                "Cloud OCR is denied by default (OMNI_ALLOW_CLOUD_OCR != true). "
+                "لا يُسمح بـ OCR السحابي افتراضياً — تفعيله قرار صريح من المشغّل "
+                "لأنه يرسل المستندات الطبية إلى خدمة خارجية."
+            ),
+        )
+
 # ---- App Factory ----
 
 def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
@@ -219,6 +238,7 @@ def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
     @app.post("/mistral/ocr")
     async def mistral_ocr(file: UploadFile = File(...)):
         """Run Mistral OCR 3 on a document."""
+        _cloud_ocr_gate()
         if not mistral.is_available():
             raise HTTPException(503, "Mistral API not configured. Set MISTRAL_API_KEY.")
 
@@ -239,6 +259,7 @@ def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
         ocr_text: str | None = Form(None),
     ):
         """Classify a medical document."""
+        _cloud_ocr_gate()
         if not mistral.is_available():
             raise HTTPException(503, "Mistral API not configured.")
 
@@ -269,6 +290,7 @@ def create_app(db_path: str = "medical_docs.db") -> "FastAPI":
         patient_id: str = Form("unknown"),
     ):
         """Extract structured data and generate FHIR."""
+        _cloud_ocr_gate()
         if not mistral.is_available():
             raise HTTPException(503, "Mistral API not configured.")
 
