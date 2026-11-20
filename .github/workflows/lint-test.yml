@@ -17,6 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # LFS: golden_set/*.jsonl والصور تحت LFS؛ بلا هذا
+          # تصل مؤشرات 129 بايت فتفشل tests/evaluation/ بـJSONDecodeError
+          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,6 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # LFS: golden_set/*.jsonl والصور تحت LFS؛ بلا هذا
+          # تصل مؤشرات 129 بايت فتفشل tests/evaluation/ بـJSONDecodeError
+          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -61,6 +69,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # LFS: golden_set/*.jsonl والصور تحت LFS؛ بلا هذا
+          # تصل مؤشرات 129 بايت فتفشل tests/evaluation/ بـJSONDecodeError
+          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
