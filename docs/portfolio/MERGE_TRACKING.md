@@ -11,14 +11,21 @@
 | # | العنقود | الحالة على main @ 3631335 | الدليل (أمر منفذ) | PR | الحكم |
 |---|---|---|---|---|---|
 | C-1 | `ai_corrector.py` (5 نسخ → كنسية + 3 shims) | الكنسية `packages/nlp/ai_corrector.py` md5=`2f53a5ea` بلا تغيير؛ 3 شيمات تعيد التصدير فقط | `md5sum` + `grep 'Consolidation shim'` على الاستنساخ الحي | #129 (CLOSED؛ المحتوى على main — commit squash `0f1630b7` سلف لـ main وفق `compare main...0f1630b7 = behind`) | PROVEN |
-| C-2 | إزالة كلمة مرور PostgreSQL المضمّنة (SEC-1) | grep المستودع كاملاً لا يجد `omni_dev_pass` (استثناء `.git/`) | `grep -rn` على الاستنساخ الحي | #128 (MERGED، mergeCommit `60112cfb`) | PROVEN |
+| C-2 | إزالة كلمة مرور PostgreSQL المضمّنة (SEC-1) | grep المستودع كاملاً لا يجد `omni_dev_****` (استثناء `.git/`) | `grep -rn` على الاستنساخ الحي | #128 (MERGED، mergeCommit `60112cfb`) | PROVEN |
 | C-3 | بوابة السحابة P0 + عزل الثقة المخترعة + provenance | main HEAD = `3631335f` (عنوان الـcommit يطابق موضوع #137) | `git log` + `gh pr view` | #137 (CLOSED؛ commit على main) | commit PROVEN — **التحقق التفصيلي لبنوده الثمانية (R1) لم يُنفذ بعد → UNPROVEN حتى مراجعة R1** |
+
+> **ملاحظة حجب (‏`omni_dev_****`):** القيمة مكتوبة مُجزَّأة عمداً.
+> `tests/security/test_no_embedded_default_credentials.py` يمسح **كل** ملف متتبَّع بحثاً عن
+> `KNOWN_FORBIDDEN_DEFAULTS` ويستثني نفسه فقط (`DECLARED_FIXTURES`) — فكتابة الكلمة كاملةً
+> في هذا الجدول، وهو السجل الذي يوثّق إزالتها، كانت تُبطل ادعاءه وتُشعل الحارس
+> (‏`Production security regression gate` و`Unit Tests`).
+> **القاعدة: لا تُكتب قيمة سرّ محظور حرفياً في أي وثيقة، ولا حتى لنفي وجودها.**
 
 ## 2) المتبقي — عناقيد التكرار المرشحة للدمج (جرد 2026-09-28 على main)
 
 | # | الملف | النسخ على main (المسار + md5) | الهدف المقترح | المهمة/الفرع المخطط | العوائق | الحالة |
 |---|---|---|---|---|---|---|
-| R-1 | `arabic_rtl.py` | 5 نسخ متطابقة (`05b28e6b`): المرجع الحاكم `packages/omnifile/modules/nlp/` (وفق T3) + `packages/nlp/` + `packages/handwriting/modules/nlp/` + `packages/file_processor/modules/nlp/` + `hf-space/packages/nlp/` (لقطة مولّدة) | المرجع T3 + shims موسومة `DeprecationWarning` | **T3** — `gs/t3-canonical-arabic-rtl` | فحص أنماط الاستيراد الفعلية قبل كتابة الشيمات (§5.T3)؛ lqta hf-space تتجدد بـ`sync-hf-space.sh` | مخططة (P1) |
+| R-1 | `arabic_rtl.py` | 5 نسخ متطابقة (`05b28e6b`): المرجع الحاكم `packages/nlp/arabic_rtl.py` (تصحيح A1 بتوجيه المالك 2026-10-08 — يُلغي إحالة T3 إلى نسخة `packages/omnifile/modules/nlp/`) + `packages/nlp/` + `packages/handwriting/modules/nlp/` + `packages/file_processor/modules/nlp/` + `hf-space/packages/nlp/` (لقطة مولّدة) | المرجع T3 + shims موسومة `DeprecationWarning` | **T3** — `gs/t3-canonical-arabic-rtl` | فحص أنماط الاستيراد الفعلية قبل كتابة الشيمات (§5.T3)؛ lqta hf-space تتجدد بـ`sync-hf-space.sh` | مخططة (P1) |
 | R-2 | `correction_dict.json` | 10 نسخ بمجموعتين: `e6eb3df8` ×6 (modules/nlp عبر الحزم + hf-space + apps variant) و`3347a55b` ×4 (artifacts: handwriting، file_processor، file_processor/legacy، apps variant) | مرجع واحد (T4: `packages/config/correction_dict.json` أو مسار التحميل المثبت) | **T4** — `gs/t4-canonical-corrections` | diff مفاتيح JSON بين المجموعتين أولاً → اندماج شامل → إثبات مسار التحميل الحي | مخططة (P1) |
 | R-3 | `text_reconstructor.py` | 5 نسخ بمجموعتين منحرفتين: `06adc5f8` (packages/vision + hf-space لقطة) و`b7441a8b` (handwriting/file_processor/omnifile modules/vision) | يُحدد بعد مقارنة المجموعتين | غير مُسندة (نمط T2/T3) | **انحراف مثبت بين المجموعتين** — ممنوع الدمج الأعمى قبل diff وظيفي | بانتظار مقارنة |
 | R-4 | `mixed_text.py` | 5 نسخ متطابقة (`c4637d74`) — نفس نمط R-1 | `packages/nlp/mixed_text.py` (أو المرجع المثبت وقت التنفيذ) | غير مُسندة (يُقترح ضمّها لفرع T3 أو PR بنفس النمط) | لا يوجد جوهري | جاهزة للجدولة |
