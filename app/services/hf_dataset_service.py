@@ -80,6 +80,13 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
+from packages.ocr_contracts.integrity_ledger import (
+    approve_sample,
+    compute_content_hash,
+    connect_ledger,
+    record_export_attempt,
+)
+
 logger = logging.getLogger(__name__)
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -119,6 +126,63 @@ OMNI_HF_DATASET_PRIVATE = (
     else True
 )
 
+# Remote visibility must be read from the Hub itself; the push argument alone
+# is not proof of the existing repository's current privacy.
+try:
+    from huggingface_hub import HfApi
+except ImportError:  # pragma: no cover - covered by fail-closed tests
+    HfApi = None
+
+
+def _verify_remote_dataset_privacy() -> bool:
+    """Verify actual Hub visibility before reading or writing dataset data.
+
+    Public export is allowed only with the exact explicit opt-in
+    OMNI_HF_DATASET_PRIVATE=false and only for metadata-only exports. Any API
+    failure or unknown visibility fails closed. Returns the verified private
+    state, never a guessed/default value.
+    """
+    if HfApi is None:
+        raise RuntimeError(
+            "HF export aborted: huggingface_hub privacy verification is unavailable"
+        )
+    try:
+        api = HfApi(token=HF_TOKEN)
+        info = api.dataset_info(repo_id=HF_DATASET, token=HF_TOKEN)
+        actual_private = getattr(info, "private", None)
+    except Exception as exc:
+        raise RuntimeError(
+            "HF export aborted: remote dataset privacy could not be verified; "
+            "no remote write was attempted and staged rows were retained"
+        ) from exc
+
+    if not isinstance(actual_private, bool):
+        raise RuntimeError(
+            "HF export aborted: remote dataset privacy is unknown; "
+            "no remote write was attempted and staged rows were retained"
+        )
+
+    if OMNI_HF_DATASET_PRIVATE:
+        if actual_private is not True:
+            raise RuntimeError(
+                "HF export aborted: private dataset required but remote dataset is public; "
+                "make the dataset private before retrying"
+            )
+    else:
+        # Recheck the literal source value instead of trusting a mutable boolean.
+        if _dataset_private_env is None or _dataset_private_env.strip() != "false":
+            raise RuntimeError(
+                "HF export aborted: public visibility requires explicit "
+                "OMNI_HF_DATASET_PRIVATE=false opt-in"
+            )
+        if OMNI_HF_EXPORT_RAW_TEXT:
+            raise RuntimeError(
+                "HF export aborted: public datasets are incompatible with "
+                "OMNI_HF_EXPORT_RAW_TEXT=true"
+            )
+
+    return actual_private
+
 # Staging directory: where pending rows live until they're pushed.
 # Default: ``~/.omni/hf_dataset_queue/``. Override with ``$OMNI_HF_QUEUE_DIR``.
 _STAGE_DIR = Path(
@@ -144,6 +208,88 @@ except ImportError:
 # Gradio can call save_to_hf() from multiple worker threads. The staging
 # file append must be atomic and flush must not run concurrently with append.
 _flush_lock = threading.Lock()
+
+
+# ── Training integrity ledger bridge ───────────────────────────────────────
+
+_LEDGER_FILE = _STAGE_DIR / "training_integrity_ledger.sqlite3"
+
+
+def _integrity_payload(row: dict) -> dict[str, str]:
+    """Canonical, content-bearing payload approved before a row can be exported."""
+    return {
+        "original_text": str(row.get("incorrect_ocr_output", "")),
+        "corrected_text": str(row.get("correct_text", "")),
+        "entities": str(row.get("entities", "")),
+        "category": str(row.get("category", "")),
+    }
+
+
+def _open_integrity_ledger():
+    _ensure_dirs()
+    return connect_ledger(str(_LEDGER_FILE))
+
+
+def _record_row_approval(row: dict) -> str:
+    """Record local UI consent bound to the exact staged content; no network I/O."""
+    payload = _integrity_payload(row)
+    digest = compute_content_hash(payload)
+    conn = _open_integrity_ledger()
+    try:
+        if row.get("consent") is True:
+            approve_sample(
+                conn,
+                sample_id=digest,
+                payload=payload,
+                reviewer="local-ui-consent-checkbox (identity-unverified)",
+                consent=True,
+                destination=HF_DATASET,
+            )
+    finally:
+        conn.close()
+    return digest
+
+
+def _prepare_rows_with_ledger(rows: list[dict]) -> tuple[list[dict], int]:
+    """Return only rows with a matching approval and explicit export authorization.
+
+    The returned prepared state records eligibility only; it is not proof of
+    remote delivery. Remote exactly-once delivery is not claimed by this ledger.
+    """
+    conn = _open_integrity_ledger()
+    prepared: list[dict] = []
+    blocked = 0
+    try:
+        for row in rows:
+            # Old staged rows without an integrity hash intentionally fail closed.
+            sample_id = str(row.get("integrity_hash") or f"legacy:{row.get('content_hash', '')}")
+            payload = _integrity_payload(row)
+            event = record_export_attempt(
+                conn,
+                sample_id=sample_id,
+                payload=payload,
+                dataset_version="not-versioned",
+                destination=HF_DATASET,
+                actor="app.services.hf_dataset_service",
+                authorization_ref=(
+                    "runtime-gates:OMNI_HF_EXPORT_ENABLED=true;HF_TOKEN=present;"
+                    f"destination={HF_DATASET};reviewer_identity=unverified-ui-checkbox"
+                ),
+                authorized_destinations=(HF_DATASET,),
+                consent=row.get("consent") is True,
+                idempotency_key=f"hf-export:{sample_id}:v2",
+            )
+            if event["outcome"] == "prepared":
+                prepared.append(row)
+            else:
+                blocked += 1
+                logger.warning(
+                    "Training ledger blocked staged row (sample_id=%s, reason=%s)",
+                    sample_id, event["reason_code"],
+                )
+    finally:
+        conn.close()
+    return prepared, blocked
 
 
 # ── Staging file helpers ────────────────────────────────────────────────────
@@ -256,6 +402,15 @@ def save_to_hf(corrected_text: str, original_text: str, entities,
         "content_hash": content_hash,
         "consent": bool(consent),
     }
+    # The ledger digest covers the actual correction payload, including entities
+    # and category. A legacy content_hash remains for compatibility/dedup.
+    try:
+        row["integrity_hash"] = _record_row_approval(row)
+    except Exception:
+        # Keep the local correction, but without a durable approval the export
+        # gate will reject it. Never fail open or upload as a fallback.
+        logger.exception("Could not record training integrity approval; row stays local")
+        row["integrity_hash"] = ""
 
     pending_count = _append_pending(row)
     logger.info(
@@ -371,21 +526,73 @@ def flush_queue() -> str:
                 "صريحة — لن يتم رفع أي بيانات."
             )
 
+        # A consent bit alone is insufficient: require a durable, content-bound
+        # ledger approval and destination-scoped authorization before any remote
+        # dataset read/write. Legacy staged rows without an approval fail closed.
+        eligible, ledger_blocked = _prepare_rows_with_ledger(eligible)
+        if not eligible:
+            return (
+                f"🛑 منع سجل النزاهة تصدير {ledger_blocked} صف/صفوف: "
+                "الموافقة أو بصمة المحتوى غير مطابقة. بقيت البيانات محلياً."
+            )
+
+        # Verify the remote repository's actual visibility before any dataset
+        # read or write. Never infer privacy from a requested write-visibility
+        # argument or continue when Hub visibility cannot be established.
+        _verify_remote_dataset_privacy()
+
         # Dedup against existing HF dataset (drop rows whose content_hash
         # already exists remotely). This is the only network call that
         # reads the full dataset; it happens at most once per flush, not
         # once per save.
-        existing_hashes: set[str] = set()
-        previous_count = 0
+        # A failed remote read is not evidence that the dataset is empty or absent.
+        # Fail closed before any write; the operator must make the target dataset
+        # readable (or explicitly provision it) before export can proceed.
         try:
             existing = load_dataset(HF_DATASET, split="train")
-            previous_count = len(existing)
-            if "content_hash" in existing.column_names:
-                existing_hashes = set(existing["content_hash"])
         except Exception as e:
-            logger.info("Could not load existing HF dataset (will create new): %s", e)
+            logger.error("Remote HF dataset read failed; refusing export without a verified baseline")
+            raise RuntimeError(
+                "HF export aborted: could not verify the existing remote dataset; "
+                "no remote write was attempted and staged rows were retained"
+            ) from e
 
-        new_rows = [r for r in eligible if r.get("content_hash") not in existing_hashes]
+        existing_columns = set(getattr(existing, "column_names", []))
+        remote_integrity_hashes: set[str] = set()
+        remote_legacy_hashes: set[str] = set()
+        if "integrity_hash" in existing_columns:
+            remote_integrity_hashes = {
+                str(value) for value in existing["integrity_hash"] if value
+            }
+            if "content_hash" in existing_columns:
+                legacy_values = list(existing["content_hash"])
+                integrity_values = list(existing["integrity_hash"])
+                remote_legacy_hashes = {
+                    str(legacy_values[index])
+                    for index, value in enumerate(integrity_values)
+                    if not value and index < len(legacy_values) and legacy_values[index]
+                }
+        elif "content_hash" in existing_columns:
+            # Backward compatibility for older datasets without integrity_hash.
+            remote_legacy_hashes = {str(value) for value in existing["content_hash"] if value}
+
+        new_rows = []
+        seen_integrity_hashes: set[str] = set()
+        for row in eligible:
+            integrity_hash = str(row.get("integrity_hash") or "")
+            legacy_hash = str(row.get("content_hash") or "")
+            if integrity_hash and integrity_hash in remote_integrity_hashes:
+                continue
+            # A legacy text-only hash cannot prove canonical equality when the
+            # current row has an integrity hash covering category/entities too.
+            # Never suppress a canonical row on that lossy legacy signal.
+            if not integrity_hash and legacy_hash and legacy_hash in remote_legacy_hashes:
+                continue
+            if integrity_hash and integrity_hash in seen_integrity_hashes:
+                continue
+            if integrity_hash:
+                seen_integrity_hashes.add(integrity_hash)
+            new_rows.append(row)
         skipped = len(eligible) - len(new_rows)
         if skipped:
             logger.info("Dedup: skipping %d already-uploaded rows", skipped)
@@ -410,6 +617,7 @@ def flush_queue() -> str:
                 payload_rows = [
                     {
                         "content_hash": r.get("content_hash", ""),
+                        "integrity_hash": r.get("integrity_hash", ""),
                         "category": r.get("category", ""),
                         "timestamp": r.get("timestamp", ""),
                         "consent": True,
@@ -419,11 +627,10 @@ def flush_queue() -> str:
                 ]
 
             new_df = pd.DataFrame(payload_rows)
-            try:
-                existing_df = load_dataset(HF_DATASET, split="train").to_pandas()
-                df = pd.concat([existing_df, new_df], ignore_index=True)
-            except Exception:
-                df = new_df
+            # Reuse the already-verified snapshot. Never replace a failed read
+            # with a new-only dataframe: that could overwrite unseen remote rows.
+            existing_df = existing.to_pandas()
+            df = pd.concat([existing_df, new_df], ignore_index=True)
 
             # P0-A visibility: PRIVATE is the default. Going public requires
             # the explicit literal OMNI_HF_DATASET_PRIVATE=false opt-in.
@@ -465,8 +672,23 @@ def _rewrite_pending_excluding(pushed_rows: list[dict]) -> None:
     """
     if not pushed_rows:
         return
-    pushed_hashes = {r.get("content_hash") for r in pushed_rows}
-    remaining = [r for r in _read_pending() if r.get("content_hash") not in pushed_hashes]
+    pushed_integrity_hashes = {
+        str(r.get("integrity_hash")) for r in pushed_rows if r.get("integrity_hash")
+    }
+    pushed_legacy_hashes = {
+        str(r.get("content_hash")) for r in pushed_rows if not r.get("integrity_hash")
+    }
+    remaining = [
+        r for r in _read_pending()
+        if not (
+            (r.get("integrity_hash") and str(r.get("integrity_hash")) in pushed_integrity_hashes)
+            or (
+                not r.get("integrity_hash")
+                and r.get("content_hash")
+                and str(r.get("content_hash")) in pushed_legacy_hashes
+            )
+        )
+    ]
     if not remaining:
         _clear_pending()
         return
