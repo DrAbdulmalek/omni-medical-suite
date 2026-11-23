@@ -72,7 +72,7 @@ jobs:
           cd packages/desktop
           APPIMAGE_FILE="$(ls MedicalDocProcessor-*.AppImage | head -1)"
           sha256sum -c "${APPIMAGE_FILE}.sha256"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: AppImage-release
           path: |
