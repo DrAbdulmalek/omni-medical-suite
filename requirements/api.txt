@@ -27,7 +27,8 @@ redis>=5.0.1
 celery[redis]>=5.3.6
 
 # === Security & Auth ===
-python-jose[cryptography]>=3.5.0
+# python-jose أُزيل: ثغرة PYSEC-2026-4298 بلا إصدار إصلاح، وغير مستخدم في الكود
+# (code search: 0 مطابقة) — ecdsa الثغرة (PYSEC-2026-1325) ترجعية عنه فتسقط معه
 passlib[bcrypt]>=1.7.4
 bcrypt>=4.0.1,<5
 cryptography>=41.0.0
